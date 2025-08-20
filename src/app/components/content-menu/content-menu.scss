@@ -1,0 +1,54 @@
+.nav-link {
+  transition: all 0.3s ease;
+  border-radius: 0.5rem;
+  margin: 0 2px;
+  
+  &:hover {
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &.active {
+    background-color: var(--bs-primary);
+    color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  // Estilos específicos para el botón de logout
+  &.text-danger {
+    &:hover {
+      background-color: rgba(var(--bs-danger-rgb), 0.1);
+      color: var(--bs-danger) !important;
+    }
+    
+    &:focus {
+      box-shadow: 0 0 0 0.2rem rgba(var(--bs-danger-rgb), 0.25);
+    }
+  }
+  
+  i {
+    font-size: 1.1em;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.75rem;
+    
+    span {
+      display: none !important;
+    }
+  }
+}
+
+.nav-pills {
+  .nav-item {
+    flex: 1;
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 576px) {
+  .py-3 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}

@@ -1,0 +1,198 @@
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+
+  .navbar {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .navbar-brand {
+      font-size: 1.5rem;
+      
+      i {
+        font-size: 1.3rem;
+      }
+    }
+
+    .nav-link {
+      transition: all 0.3s ease;
+      border-radius: 6px;
+      margin: 0 2px;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+      }
+
+      &.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+      }
+    }
+
+    .btn-outline-light {
+      border-radius: 8px;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  .card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-header {
+      background-color: #fff;
+      border-bottom: 1px solid #e9ecef;
+      border-radius: 12px 12px 0 0 !important;
+      padding: 1rem 1.5rem;
+
+      .card-title {
+        color: #495057;
+        font-weight: 600;
+      }
+    }
+
+    .card-body {
+      padding: 1.5rem;
+    }
+
+    &.bg-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+      
+      .card-title {
+        font-size: 2rem;
+        font-weight: 700;
+      }
+    }
+  }
+
+  .border-start {
+    border-left-width: 4px !important;
+  }
+
+  .text-xs {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+  }
+
+  .h5 {
+    font-size: 1.5rem;
+  }
+
+  .text-gray-800 {
+    color: #495057 !important;
+  }
+
+  .list-group-item {
+    border: none;
+    padding: 1rem 0;
+    border-bottom: 1px solid #e9ecef;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    i {
+      width: 20px;
+      text-align: center;
+    }
+  }
+
+  .breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin-bottom: 1rem;
+
+    .breadcrumb-item {
+      font-weight: 500;
+      
+      &.active {
+        color: #667eea;
+      }
+    }
+  }
+
+  .badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+  }
+
+  // Stats cards hover effects
+  .card.border-start {
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+      transition: all 0.5s;
+      transform: skewX(-25deg);
+    }
+
+    &:hover::before {
+      width: 100%;
+      left: 100%;
+    }
+  }
+
+  // Responsive adjustments
+  @media (max-width: 768px) {
+    .container-fluid {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .card-body {
+      padding: 1rem;
+    }
+
+    .h5 {
+      font-size: 1.25rem;
+    }
+
+    .navbar-brand {
+      font-size: 1.25rem;
+    }
+  }
+
+  // Animation for cards
+  .card {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  // Stagger animation for stats cards
+  .col-xl-3:nth-child(1) .card { animation-delay: 0.1s; }
+  .col-xl-3:nth-child(2) .card { animation-delay: 0.2s; }
+  .col-xl-3:nth-child(3) .card { animation-delay: 0.3s; }
+  .col-xl-3:nth-child(4) .card { animation-delay: 0.4s; }
+}

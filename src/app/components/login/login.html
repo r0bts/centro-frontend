@@ -1,0 +1,89 @@
+<div class="login-container">
+  <div class="container-fluid vh-100">
+    <div class="row h-100">
+      <!-- Lado izquierdo - Imagen o información -->
+      <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center bg-primary text-white">
+        <div class="text-center">
+          <h1 class="display-4 mb-4">Centro</h1>
+          <p class="lead">Sistema de Gestión Integral</p>
+          <p>Bienvenido al sistema de gestión del centro. Ingresa tus credenciales para acceder.</p>
+        </div>
+      </div>
+      
+      <!-- Lado derecho - Formulario de login -->
+      <div class="col-md-6 d-flex align-items-center justify-content-center">
+        <div class="login-form-container w-100" style="max-width: 400px;">
+          <div class="text-center mb-4">
+            <h2 class="mb-3">Iniciar Sesión</h2>
+            <p class="text-muted">Ingresa tus credenciales para acceder al sistema</p>
+          </div>
+
+          <!-- Mensaje de error global -->
+          <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ errorMessage }}
+            <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+          </div>
+
+          <!-- Formulario -->
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+            <!-- Campo Usuario -->
+            <div class="mb-3">
+              <label for="username" class="form-label">Usuario</label>
+              <input 
+                type="text" 
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('username')"
+                id="username" 
+                formControlName="username"
+                placeholder="Ingresa tu usuario"
+                autocomplete="username">
+              <div *ngIf="isFieldInvalid('username')" class="invalid-feedback">
+                {{ getFieldError('username') }}
+              </div>
+            </div>
+
+            <!-- Campo Contraseña -->
+            <div class="mb-3">
+              <label for="password" class="form-label">Contraseña</label>
+              <input 
+                type="password" 
+                class="form-control"
+                [class.is-invalid]="isFieldInvalid('password')"
+                id="password" 
+                formControlName="password"
+                placeholder="Ingresa tu contraseña"
+                autocomplete="current-password">
+              <div *ngIf="isFieldInvalid('password')" class="invalid-feedback">
+                {{ getFieldError('password') }}
+              </div>
+            </div>
+
+            <!-- Recordar sesión -->
+            <div class="mb-3 form-check">
+              <input type="checkbox" class="form-check-input" id="rememberMe">
+              <label class="form-check-label" for="rememberMe">
+                Recordar sesión
+              </label>
+            </div>
+
+            <!-- Botón de submit -->
+            <div class="d-grid">
+              <button 
+                type="submit" 
+                class="btn btn-primary btn-lg"
+                [disabled]="isLoading">
+                <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
+              </button>
+            </div>
+          </form>
+
+          <!-- Enlaces adicionales -->
+          <div class="text-center mt-4">
+            <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
