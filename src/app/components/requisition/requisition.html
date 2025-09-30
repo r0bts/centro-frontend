@@ -1,0 +1,144 @@
+<div class="requisition-page">
+  <!-- Content Menu Component -->
+  <app-content-menu 
+    [activeSection]="activeSection"
+    (sectionChange)="onSectionChange($event)">
+  </app-content-menu>
+
+  <!-- Main Content -->
+  <div class="container-fluid mt-4">
+    <div class="requisition-container">
+      <div class="row g-4">
+    <!-- Panel izquierdo - Selección de productos -->
+    <div class="col-md-7">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light border-bottom">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <label class="form-label fw-bold">Área:</label>
+              <select 
+                class="form-select" 
+                [(ngModel)]="selectedArea"
+                (change)="onAreaChange()">
+                <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <!-- Búsqueda de productos -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Producto</label>
+              <select class="form-select" [(ngModel)]="searchProduct">
+                <option value="">Selecciona un producto</option>
+                <option value="Producto A">Producto A</option>
+                <option value="Producto B">Producto B</option>
+                <option value="Producto C">Producto C</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Cantidad</label>
+              <input type="number" class="form-control" value="1" min="1">
+            </div>
+            <div class="col-md-2">
+              <label class="form-label">Unidad</label>
+              <select class="form-select" [(ngModel)]="selectedUnit">
+                <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
+              </select>
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+              <button class="btn btn-primary" (click)="onAddProduct()">
+                Agregar
+              </button>
+            </div>
+          </div>
+          
+          <!-- Lista de productos seleccionados -->
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead class="table-primary">
+                <tr>
+                  <th>Producto</th>
+                  <th>Cantidad</th>
+                  <th>Presentación</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let product of products; trackBy: trackByProductId">
+                  <td>{{ product.name }}</td>
+                  <td>
+                    <input 
+                      type="number" 
+                      class="form-control form-control-sm" 
+                      [value]="product.quantity"
+                      (input)="updateQuantity(product.id, +$any($event.target).value)"
+                      min="1"
+                      style="width: 80px;">
+                  </td>
+                  <td>{{ product.unit }}</td>
+                  <td>
+                    <button 
+                      class="btn btn-danger btn-sm"
+                      (click)="removeProduct(product.id)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          
+          <div class="text-end mt-3">
+            <button class="btn btn-primary" (click)="onAccept()">
+              Aceptar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Panel derecho - Resumen de solicitud -->
+    <div class="col-md-5">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light border-bottom">
+          <h5 class="card-title mb-0">Resumen de solicitud:</h5>
+        </div>
+        
+        <div class="card-body">
+          <div *ngFor="let summary of requisitionSummary" class="mb-4">
+            <h6 class="text-primary fw-bold">{{ summary.area }}</h6>
+            <div class="table-responsive">
+              <table class="table table-sm table-borderless">
+                <thead class="table-secondary">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Presentación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let product of summary.products">
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.quantity }}</td>
+                    <td>{{ product.unit }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div class="text-end mt-4">
+            <button class="btn btn-success" (click)="onConfirmRequisition()">
+              Confirmar solicitud
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  </div>
+</div>

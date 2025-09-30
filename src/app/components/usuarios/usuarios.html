@@ -1,0 +1,59 @@
+<div class="usuarios-page">
+  <!-- Content Menu Component -->
+  <app-content-menu 
+    [activeSection]="activeSection"
+    (sectionChange)="onSectionChange($event)">
+  </app-content-menu>
+
+  <!-- Main Content -->
+  <div class="container-fluid mt-4">
+    <div class="usuarios-container">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h4 class="card-title mb-0">
+                <i class="bi bi-people me-2"></i>
+                Gestión de Usuarios
+              </h4>
+            </div>
+            <div class="card-body">
+              <p>Aquí podrás gestionar todos los usuarios del sistema.</p>
+              
+              <!-- Ejemplo de contenido -->
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card border-primary">
+                    <div class="card-body">
+                      <h5>Usuarios Activos</h5>
+                      <h2 class="text-primary">125</h2>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="card border-warning">
+                    <div class="card-body">
+                      <h5>Usuarios Pendientes</h5>
+                      <h2 class="text-warning">8</h2>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="mt-4">
+                <button class="btn btn-primary me-2">
+                  <i class="bi bi-plus-circle me-1"></i>
+                  Nuevo Usuario
+                </button>
+                <button class="btn btn-outline-secondary">
+                  <i class="bi bi-download me-1"></i>
+                  Exportar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

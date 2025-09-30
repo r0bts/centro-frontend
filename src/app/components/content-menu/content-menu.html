@@ -2,20 +2,21 @@
   <div class="container-fluid">
     <ul class="nav nav-pills nav-fill py-3">
       <li class="nav-item" *ngFor="let item of menuItems">
-        <a 
-          class="nav-link" 
+        <button 
+          class="nav-link btn btn-link" 
           [class.active]="isActive(item.id)"
-          [href]="'#' + item.id" 
-          (click)="onSectionClick(item.id, $event)">
+          (click)="onSectionClick(item.id, $event)"
+          type="button">
           <i [class]="'bi ' + item.icon + ' me-2'"></i>
           <span class="d-none d-md-inline">{{ item.label }}</span>
-        </a>
+        </button>
       </li>
       <li class="nav-item">
         <button 
           class="nav-link btn btn-link text-danger" 
           (click)="onLogout()"
-          title="Cerrar Sesión">
+          title="Cerrar Sesión"
+          type="button">
           <i class="bi bi-box-arrow-right me-2"></i>
           <span class="d-none d-md-inline">Salir</span>
         </button>

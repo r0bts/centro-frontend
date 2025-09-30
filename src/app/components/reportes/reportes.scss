@@ -1,0 +1,120 @@
+// Reportes Component Styles
+.reportes-content {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.reportes-title {
+  color: var(--primary-color);
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+// Stats Cards
+.stats-card {
+  transition: all 0.3s ease;
+  border-width: 2px;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  }
+}
+
+.stats-icon {
+  font-size: 2.5rem;
+  opacity: 0.8;
+}
+
+// Chart Container
+.chart-container {
+  border: none;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
+  .card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+  }
+  
+  .card-body {
+    padding: 2rem;
+  }
+}
+
+// Activity Feed
+.activity-feed {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e9ecef;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.activity-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  color: white;
+  
+  i {
+    font-size: 1.1rem;
+  }
+}
+
+.activity-content {
+  flex: 1;
+  
+  p {
+    font-weight: 500;
+    color: #495057;
+  }
+}
+
+// Table Styles
+.table {
+  tbody tr {
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(64, 110, 186, 0.05);
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .reportes-title {
+    font-size: 1.5rem;
+  }
+  
+  .stats-card {
+    margin-bottom: 1rem;
+  }
+  
+  #chartdiv {
+    height: 300px !important;
+  }
+}
+
+// Color Variables
+:root {
+  --primary-color: #406eba;
+  --secondary-color: #1d3d79;
+  --success-color: #43B581;
+  --warning-color: #F4D35E;
+  --danger-color: #DA3E3E;
+}

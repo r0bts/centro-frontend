@@ -1,403 +1,101 @@
-<div class="dashboard-container">
-
-  <!-- Content Menu Component -->
-  <app-content-menu 
-    [activeSection]="activeSection"
-    (sectionChange)="onSectionChange($event)">
-  </app-content-menu>
-
-  <!-- Main Content -->
-  <div class="container-fluid mt-4">
-    <!-- Breadcrumb -->
-
-
-    <!-- Dynamic Content Based on Active Section -->
-    <div [ngSwitch]="activeSection">
-      
-      <!-- Dashboard Section -->
-      <div *ngSwitchCase="'dashboard'">
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card bg-primary text-white">
-          <div class="card-body">
-            <h1 class="card-title">¡Bienvenido{{ currentUser?.first_name ? ', ' + currentUser?.first_name : '' }}!</h1>
-            <p class="card-text mb-0">Sistema de Gestión Integral - Centro</p>
-            <small *ngIf="currentUser?.number_employee">Empleado: {{ currentUser?.number_employee }}</small>
-          </div>
+<!-- Dashboard Simple y Limpio -->
+<div class="container-fluid h-100">
+    <!-- Content Menu Component -->
+    <app-content-menu></app-content-menu>
+    
+    <!-- Dashboard Content -->
+    <div class="dashboard-content">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="dashboard-title">Centro de Control</h1>
+                <p class="text-muted">Panel de administración y gestión</p>
+            </div>
         </div>
-      </div>
+        
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-person-fill stat-icon text-primary"></i>
+                        <h3 class="card-title">1,247</h3>
+                        <p class="card-text text-muted">Usuarios Activos</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-people-fill stat-icon text-success"></i>
+                        <h3 class="card-title">452</h3>
+                        <p class="card-text text-muted">Empleados</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-file-text-fill stat-icon text-warning"></i>
+                        <h3 class="card-title">89</h3>
+                        <p class="card-text text-muted">Requisiciones</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="card dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="bi bi-graph-up stat-icon text-info"></i>
+                        <h3 class="card-title">95%</h3>
+                        <p class="card-text text-muted">Eficiencia</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activity -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Actividad Reciente</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline">
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-primary"></div>
+                                <div class="timeline-content">
+                                    <h6>Nueva requisición creada</h6>
+                                    <p class="text-muted">Hace 2 horas</p>
+                                </div>
+                            </div>
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-success"></div>
+                                <div class="timeline-content">
+                                    <h6>Usuario registrado</h6>
+                                    <p class="text-muted">Hace 4 horas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Accesos Rápidos</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-primary">
+                                <i class="bi bi-file-plus me-2"></i>Nueva Requisición
+                            </button>
+                            <button type="button" class="btn btn-outline-primary">
+                                <i class="bi bi-person-plus me-2"></i>Nuevo Usuario
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <!-- Stats Cards -->
-    <div class="row mb-4">
-      <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-primary border-4">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <div class="text-xs fw-bold text-primary text-uppercase mb-1">Usuarios Activos</div>
-                <div class="h5 mb-0 fw-bold text-gray-800">150</div>
-              </div>
-              <div class="col-auto">
-                <i class="bi bi-people fs-2 text-primary"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-success border-4">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <div class="text-xs fw-bold text-success text-uppercase mb-1">Sesiones Hoy</div>
-                <div class="h5 mb-0 fw-bold text-gray-800">45</div>
-              </div>
-              <div class="col-auto">
-                <i class="bi bi-graph-up fs-2 text-success"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-info border-4">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <div class="text-xs fw-bold text-info text-uppercase mb-1">Notificaciones</div>
-                <div class="h5 mb-0 fw-bold text-gray-800">8</div>
-              </div>
-              <div class="col-auto">
-                <i class="bi bi-bell fs-2 text-info"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-start border-warning border-4">
-          <div class="card-body">
-            <div class="d-flex align-items-center">
-              <div class="flex-grow-1">
-                <div class="text-xs fw-bold text-warning text-uppercase mb-1">Pendientes</div>
-                <div class="h5 mb-0 fw-bold text-gray-800">12</div>
-              </div>
-              <div class="col-auto">
-                <i class="bi bi-exclamation-triangle fs-2 text-warning"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Content Area -->
-    <div class="row">
-      <div class="col-lg-8 mb-4">
-        <div class="card">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <i class="bi bi-activity me-2"></i>Actividad Reciente
-            </h5>
-          </div>
-          <div class="card-body">
-            <div class="list-group list-group-flush">
-              <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <i class="bi bi-person-plus text-success me-2"></i>
-                  <strong>Nuevo usuario registrado:</strong> Juan Pérez
-                </div>
-                <small class="text-muted">Hace 2 horas</small>
-              </div>
-              <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <i class="bi bi-file-earmark text-info me-2"></i>
-                  <strong>Documento actualizado:</strong> Reporte mensual
-                </div>
-                <small class="text-muted">Hace 4 horas</small>
-              </div>
-              <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                  <i class="bi bi-gear text-warning me-2"></i>
-                  <strong>Configuración modificada:</strong> Permisos de usuario
-                </div>
-                <small class="text-muted">Hace 6 horas</small>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-lg-4 mb-4">
-        <div class="card">
-          <div class="card-header">
-            <h5 class="card-title mb-0">
-              <i class="bi bi-info-circle me-2"></i>Información del Sistema
-            </h5>
-          </div>
-          <div class="card-body">
-            <ul class="list-unstyled">
-              <li class="mb-2">
-                <strong>Versión:</strong> 1.0.0
-              </li>
-              <li class="mb-2">
-                <strong>Última actualización:</strong> 14/08/2025
-              </li>
-              <li class="mb-2">
-                <strong>Estado del servidor:</strong> 
-                <span class="badge bg-success ms-1">Online</span>
-              </li>
-              <li class="mb-2">
-                <strong>Tiempo de actividad:</strong> 99.9%
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-      </div>
-
-      <!-- Usuarios Section -->
-      <div *ngSwitchCase="'usuarios'">
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                  <i class="bi bi-people me-2"></i>Gestión de Usuarios
-                </h5>
-                <button class="btn btn-primary">
-                  <i class="bi bi-person-plus me-1"></i>Nuevo Usuario
-                </button>
-              </div>
-              <div class="card-body">
-                <div class="table-responsive">
-                  <table class="table table-hover">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Usuario</th>
-                        <th>Email</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td>1</td>
-                        <td>admin</td>
-                        <td>admin@example.com</td>
-                        <td><span class="badge bg-success">Activo</span></td>
-                        <td>
-                          <button class="btn btn-sm btn-outline-primary me-1">
-                            <i class="bi bi-pencil"></i>
-                          </button>
-                          <button class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Empleados Section -->
-      <div *ngSwitchCase="'empleados'">
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                  <i class="bi bi-person-badge me-2"></i>Gestión de Empleados
-                </h5>
-                <button class="btn btn-success">
-                  <i class="bi bi-person-plus-fill me-1"></i>Nuevo Empleado
-                </button>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-4 mb-3">
-                    <div class="card border-start border-success border-4">
-                      <div class="card-body">
-                        <h6>Total Empleados</h6>
-                        <h3 class="text-success">47</h3>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <div class="card border-start border-info border-4">
-                      <div class="card-body">
-                        <h6>Activos Hoy</h6>
-                        <h3 class="text-info">42</h3>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <div class="card border-start border-warning border-4">
-                      <div class="card-body">
-                        <h6>Ausentes</h6>
-                        <h3 class="text-warning">5</h3>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Reportes Section -->
-      <div *ngSwitchCase="'reportes'">
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-header">
-                <h5 class="card-title mb-0">
-                  <i class="bi bi-graph-up me-2"></i>Reportes y Análisis
-                </h5>
-              </div>
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-md-6 mb-4">
-                    <div class="card bg-light">
-                      <div class="card-body text-center">
-                        <i class="bi bi-bar-chart fs-1 text-primary mb-3"></i>
-                        <h5>Reporte de Ventas</h5>
-                        <p class="text-muted">Análisis mensual de ventas</p>
-                        <button class="btn btn-primary">Generar Reporte</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="col-md-6 mb-4">
-                    <div class="card bg-light">
-                      <div class="card-body text-center">
-                        <i class="bi bi-people fs-1 text-success mb-3"></i>
-                        <h5>Reporte de Usuarios</h5>
-                        <p class="text-muted">Actividad de usuarios</p>
-                        <button class="btn btn-success">Generar Reporte</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Documentos Section -->
-      <div *ngSwitchCase="'documentos'">
-        <div class="row">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="card-title mb-0">
-                  <i class="bi bi-file-earmark-text me-2"></i>Gestión de Documentos
-                </h5>
-                <button class="btn btn-info">
-                  <i class="bi bi-cloud-upload me-1"></i>Subir Documento
-                </button>
-              </div>
-              <div class="card-body">
-                <div class="list-group">
-                  <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                      <i class="bi bi-file-pdf text-danger me-2"></i>
-                      <strong>Manual de Usuario.pdf</strong>
-                      <br><small class="text-muted">Subido el 12/08/2025</small>
-                    </div>
-                    <div>
-                      <button class="btn btn-sm btn-outline-primary me-1">
-                        <i class="bi bi-download"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <div class="list-group-item d-flex justify-content-between align-items-center">
-                    <div>
-                      <i class="bi bi-file-word text-primary me-2"></i>
-                      <strong>Reporte Mensual.docx</strong>
-                      <br><small class="text-muted">Subido el 10/08/2025</small>
-                    </div>
-                    <div>
-                      <button class="btn btn-sm btn-outline-primary me-1">
-                        <i class="bi bi-download"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Configuración Section -->
-      <div *ngSwitchCase="'configuracion'">
-        <div class="row">
-          <div class="col-md-6">
-            <div class="card">
-              <div class="card-header">
-                <h5 class="card-title mb-0">
-                  <i class="bi bi-gear me-2"></i>Configuración General
-                </h5>
-              </div>
-              <div class="card-body">
-                <form>
-                  <div class="mb-3">
-                    <label class="form-label">Nombre del Sistema</label>
-                    <input type="text" class="form-control" value="Centro">
-                  </div>
-                  <div class="mb-3">
-                    <label class="form-label">Email del Administrador</label>
-                    <input type="email" class="form-control" value="admin@centro.com">
-                  </div>
-                  <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                </form>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <div class="card">
-              <div class="card-header">
-                <h5 class="card-title mb-0">
-                  <i class="bi bi-shield-check me-2"></i>Configuración de Seguridad
-                </h5>
-              </div>
-              <div class="card-body">
-                <div class="form-check form-switch mb-3">
-                  <input class="form-check-input" type="checkbox" checked>
-                  <label class="form-check-label">Autenticación de dos factores</label>
-                </div>
-                <div class="form-check form-switch mb-3">
-                  <input class="form-check-input" type="checkbox" checked>
-                  <label class="form-check-label">Logs de actividad</label>
-                </div>
-                <div class="form-check form-switch mb-3">
-                  <input class="form-check-input" type="checkbox">
-                  <label class="form-check-label">Backup automático</label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
 </div>

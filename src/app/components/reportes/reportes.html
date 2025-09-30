@@ -1,0 +1,164 @@
+<app-content-menu></app-content-menu>
+
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h2 class="mb-0">📊 Reportes y Analytics</h2>
+                    <p class="mb-0">Dashboard con amCharts 5 - Visualización de datos en tiempo real</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Tendencias de Ventas vs Gastos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="lineChartDiv" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>Distribución por Categoría
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="pieChartDiv" style="width: 100%; height: 400px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas adicionales -->
+    <div class="row mt-4">
+        <div class="col-md-3 mb-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary">1,247</h4>
+                    <p class="mb-0">Usuarios Activos</p>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> +5.2% este mes
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-success mb-2"></i>
+                    <h4 class="text-success">$45,320</h4>
+                    <p class="mb-0">Ingresos</p>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> +12.8% este mes
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="fas fa-shopping-cart fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning">892</h4>
+                    <p class="mb-0">Pedidos</p>
+                    <small class="text-warning">
+                        <i class="fas fa-minus"></i> -2.1% este mes
+                    </small>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <i class="fas fa-percent fa-2x text-info mb-2"></i>
+                    <h4 class="text-info">94.8%</h4>
+                    <p class="mb-0">Satisfacción</p>
+                    <small class="text-success">
+                        <i class="fas fa-arrow-up"></i> +3.4% este mes
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de reportes -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-table me-2"></i>Resumen de Actividad
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Métrica</th>
+                                    <th>Actual</th>
+                                    <th>Anterior</th>
+                                    <th>Cambio</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Usuarios Registrados</strong></td>
+                                    <td>1,247</td>
+                                    <td>1,184</td>
+                                    <td class="text-success">+5.2%</td>
+                                    <td><span class="badge bg-success">↗ Creciendo</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Ventas Totales</strong></td>
+                                    <td>$45,320</td>
+                                    <td>$40,150</td>
+                                    <td class="text-success">+12.8%</td>
+                                    <td><span class="badge bg-success">↗ Excelente</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Conversiones</strong></td>
+                                    <td>3.8%</td>
+                                    <td>3.2%</td>
+                                    <td class="text-success">+0.6%</td>
+                                    <td><span class="badge bg-success">↗ Mejorando</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Tiempo Promedio</strong></td>
+                                    <td>2m 34s</td>
+                                    <td>2m 45s</td>
+                                    <td class="text-success">-11s</td>
+                                    <td><span class="badge bg-info">↗ Optimizado</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Retorno de Inversión</strong></td>
+                                    <td>18.5%</td>
+                                    <td>16.2%</td>
+                                    <td class="text-success">+2.3%</td>
+                                    <td><span class="badge bg-success">↗ Rentable</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

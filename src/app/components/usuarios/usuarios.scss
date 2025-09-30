@@ -1,0 +1,71 @@
+.usuarios-page {
+  min-height: 100vh;
+  background-color: var(--neutral-50);
+}
+
+.usuarios-container {
+  padding: 1.5rem;
+}
+
+.card {
+  border: 1px solid var(--neutral-100);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  .card-header {
+    background-color: var(--neutral-50);
+    border-bottom: 1px solid var(--neutral-100);
+    
+    .card-title {
+      color: var(--neutral-800);
+      font-weight: 600;
+    }
+  }
+  
+  .card-body {
+    background-color: white;
+  }
+}
+
+.btn {
+  border-radius: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  
+  &.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    
+    &:hover {
+      background-color: var(--primary-dark);
+      border-color: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+  }
+  
+  &.btn-outline-secondary {
+    border-color: var(--neutral-300);
+    color: var(--neutral-700);
+    
+    &:hover {
+      background-color: var(--neutral-100);
+      border-color: var(--neutral-400);
+    }
+  }
+}
+
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+.text-warning {
+  color: var(--warning-color) !important;
+}
+
+.border-primary {
+  border-color: var(--primary-color) !important;
+}
+
+.border-warning {
+  border-color: var(--warning-color) !important;
+}

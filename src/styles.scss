@@ -1,21 +1,48 @@
 /* Estilos globales para el proyecto Centro */
 
-/* Variables personalizadas */
+/* Variables personalizadas basadas en la paleta de colores proporcionada */
 :root {
-  --primary-color: #667eea;
-  --secondary-color: #764ba2;
-  --success-color: #28a745;
-  --danger-color: #dc3545;
-  --warning-color: #ffc107;
-  --info-color: #17a2b8;
-  --light-color: #f8f9fa;
-  --dark-color: #343a40;
+  /* Colores primarios */
+  --primary-color: #406eba; /* primario-700 */
+  --primary-dark: #1d3d79; /* primario-800 */
+  --primary-gradient-start: #87700b; /* COLOR PRINCIPAL gradiente horizontal */
+  --primary-gradient-end: #b39716; /* COLOR PRINCIPAL gradiente horizontal */
+  
+  /* Colores de alerta */
+  --success-color: #43B581; /* alert-Success */
+  --warning-color: #F4D35E; /* alert-Warning */
+  --danger-color: #DA3E3E; /* alert-Error */
+  
+  /* Colores neutros */
+  --neutral-900: #141414;
+  --neutral-800: #373737;
+  --neutral-700: #5B5B5B;
+  --neutral-600: #727272;
+  --neutral-500: #8A8A8A;
+  --neutral-400: #A1A1A1;
+  --neutral-300: #B9B9B9;
+  --neutral-200: #D0D0D0;
+  --neutral-100: #E8E8E8;
+  --neutral-50: #F6F6F6;
+  
+  /* Colores Bootstrap personalizados */
+  --bs-primary: #406eba;
+  --bs-primary-rgb: 64, 110, 186;
+  --bs-success: #43B581;
+  --bs-success-rgb: 67, 181, 129;
+  --bs-warning: #F4D35E;
+  --bs-warning-rgb: 244, 211, 94;
+  --bs-danger: #DA3E3E;
+  --bs-danger-rgb: 218, 62, 62;
+  --bs-light: #F6F6F6;
+  --bs-dark: #141414;
 }
 
 /* Estilos globales */
 body {
   font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--light-color);
+  background-color: var(--neutral-50);
+  color: var(--neutral-800);
   line-height: 1.6;
 }
 
@@ -27,11 +54,11 @@ html, body {
 
 /* Utilidades personalizadas */
 .gradient-bg {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
 }
 
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -67,7 +94,7 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--neutral-100);
   border-radius: 4px;
 }
 
@@ -77,5 +104,5 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--secondary-color);
+  background: var(--primary-dark);
 }
