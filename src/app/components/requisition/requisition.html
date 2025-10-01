@@ -1,3 +1,5 @@
+<div class="container-fluid">
+
 <div class="requisition-page">
   <!-- Content Menu Component -->
   <app-content-menu 
@@ -6,18 +8,23 @@
   </app-content-menu>
 
   <!-- Main Content -->
-  <div class="container-fluid py-4">
     <div class="requisition-container">
       <div class="row g-4">
     <!-- Panel izquierdo - Selección de productos -->
     <div [class]="isResumeCollapsed ? 'col-11' : 'col-lg-7'" class="transition-all">
       <div class="card shadow h-100">
-        <div class="card-header bg-primary text-white py-3">
+        <div class="card-header bg-primary text-white">
+          <h4>Agregar</h4>
+        </div>
+        
+        <div class="card-body">
           <div class="row align-items-center">
-            <div class="col-md-6">
-              <label class="form-label fw-bold mb-2 text-white">Área:</label>
+            <div class="col-12 col-lg-auto">
+              <label class="form-label fw-bold mb-2">Área:</label>
+            </div>
+            <div class="col-12 col-lg-5">
               <select 
-                class="form-select form-select-lg" 
+                class="form-select" 
                 [(ngModel)]="selectedArea"
                 (change)="onAreaChange()">
                 <option value="">Seleccione el área</option>
@@ -27,36 +34,33 @@
               </select>
             </div>
           </div>
-        </div>
-        
-        <div class="card-body p-4">
           <!-- Búsqueda de productos -->
           <div class="row mb-4">
             <div class="col-md-5">
-              <label class="form-label fw-semibold fs-5">Producto</label>
-              <select class="form-select form-select-lg" [(ngModel)]="searchProduct" [disabled]="!selectedArea">
+              <label class="form-label ">Producto</label>
+              <select class="form-select" [(ngModel)]="searchProduct" [disabled]="!selectedArea">
                 <option value="">Selecciona un producto</option>
                 <option *ngFor="let product of availableProducts" [value]="product">{{ product }}</option>
               </select>
             </div>
             <div class="col-md-2">
-              <label class="form-label fw-semibold fs-5">Cantidad</label>
+              <label class="form-label ">Cantidad</label>
               <input 
                 type="text" 
-                class="form-control form-control-lg" 
+                class="form-control " 
                 [(ngModel)]="currentQuantity"
                 (input)="validateNumberInput($event)"
                 placeholder="Ingrese cantidad"
                 [disabled]="!selectedArea">
             </div>
             <div class="col-md-3">
-              <label class="form-label fw-semibold fs-5">Presentación</label>
-              <select class="form-select form-select-lg" [(ngModel)]="selectedUnit" [disabled]="!selectedArea">
+              <label class="form-label ">Presentación</label>
+              <select class="form-select" [(ngModel)]="selectedUnit" [disabled]="!selectedArea">
                 <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
               </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-              <button class="btn btn-primary btn-lg w-100" (click)="onAddProduct()" [disabled]="!selectedArea">
+              <button class="btn btn-primary  w-100" (click)="onAddProduct()" [disabled]="!selectedArea">
                 Agregar
               </button>
             </div>
@@ -64,20 +68,20 @@
           
           <!-- Lista de productos seleccionados -->
           <div class="table-responsive">
-            <table class="table table-hover table-lg">
+            <table class="table table-hover">
               <thead class="table-primary">
                 <tr>
-                  <th class="fs-5 py-3">Producto</th>
-                  <th class="fs-5 py-3">Cantidad</th>
-                  <th class="fs-5 py-3">Presentación</th>
-                  <th class="fs-5 py-3">Acciones</th>
+                  <th class="py-3">Producto</th>
+                  <th class="py-3">Cantidad</th>
+                  <th class="py-3">Presentación</th>
+                  <th class="py-3">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let product of products; trackBy: trackByProductId">
                   <td class="fs-6 py-3">{{ product.name }}</td>
                   <td>
-                    <div class="input-group input-group-lg" style="width: 150px;">
+                    <div class="input-group" style="width: 150px;">
                       <button 
                         class="btn btn-outline-secondary" 
                         type="button" 
@@ -102,7 +106,7 @@
                   <td class="fs-6 py-3">{{ product.unit }}</td>
                   <td>
                     <button 
-                      class="btn btn-danger btn-lg"
+                      class="btn btn-danger "
                       (click)="removeProduct(product.id)">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -113,7 +117,7 @@
           </div>
           
           <div class="text-end mt-4">
-            <button class="btn btn-primary btn-lg px-5" (click)="onAccept()">
+            <button class="btn btn-primary  px-5" (click)="onAccept()">
               Aceptar
             </button>
           </div>
@@ -124,8 +128,8 @@
     <!-- Panel derecho - Resumen de solicitud -->
     <div [class]="isResumeCollapsed ? 'col-1' : 'col-lg-5'" class="transition-all">
       <div class="card shadow h-100">
-        <div class="card-header bg-success text-white py-3 d-flex justify-content-between align-items-center">
-          <h4 class="card-title mb-0 text-white" [class.d-none]="isResumeCollapsed">Resumen de solicitud:</h4>
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h4 class="text-white" [class.d-none]="isResumeCollapsed">Resumen de solicitud:</h4>
           <button 
             class="btn btn-success btn-sm border-white" 
             (click)="toggleResumePanel()"
@@ -172,7 +176,7 @@
           </div>
           
           <div class="text-end mt-4" *ngIf="requisitionSummary.length > 0">
-            <button class="btn btn-success btn-lg px-5" (click)="onConfirmRequisition()">
+            <button class="btn btn-success  px-5" (click)="onConfirmRequisition()">
               Confirmar solicitud
             </button>
           </div>

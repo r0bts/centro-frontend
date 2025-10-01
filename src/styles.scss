@@ -36,14 +36,15 @@
   --bs-danger-rgb: 218, 62, 62;
   --bs-light: #F6F6F6;
   --bs-dark: #141414;
+
+  --border-global: 20px;
 }
 
-/* Estilos globales */
+/* ---------------------------- Estilos globales ---------------------------- */
 body {
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: var(--neutral-50);
-  color: var(--neutral-800);
-  line-height: 1.6;
+  font-family     : 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color           : var(--neutral-800);
+  line-height     : 1.6;
 }
 
 html, body {
@@ -52,7 +53,7 @@ html, body {
   padding: 0;
 }
 
-/* Utilidades personalizadas */
+/* ------------------------ Utilidades personalizadas ----------------------- */
 .gradient-bg {
   background: linear-gradient(135deg, var(--primary-gradient-start) 0%, var(--primary-gradient-end) 100%);
 }
@@ -77,6 +78,40 @@ html, body {
   animation: fadeIn 0.5s ease-in-out;
 }
 
+/* ------------------------------ Card section ------------------------------ */
+.card{
+  border-radius: var(--border-global);
+  // background-color: var(--neutral-100);
+}
+.card-header {
+  border-top-left-radius : var(--border-global) !important;
+  border-top-right-radius: var(--border-global) !important;
+}
+
+/* --------------------------------- Buttons -------------------------------- */
+.btn{
+  border-radius: var(--border-global);
+}
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color    : var(--primary-color);
+  color           : #fff;
+  transition      : background-color 0.3s, border-color 0.3s;
+}
+
+/* ---------------------------------- Input --------------------------------- */
+.form-control, .form-select {
+  border-radius: var(--border-global);
+  transition   : border-color 0.3s, box-shadow 0.3s;
+}
+
+/* -------------------------------- container ------------------------------- */
+.container-fluid {
+  // background-color: var(--primary-color);
+  min-height: 100vh;
+}
+
+/* ------------------------------- background ------------------------------- */
 @keyframes fadeIn {
   from {
     opacity: 0;

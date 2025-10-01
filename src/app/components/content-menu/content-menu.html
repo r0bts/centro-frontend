@@ -1,25 +1,24 @@
-<div class="bg-light border-bottom">
-  <div class="container-fluid">
-    <ul class="nav nav-pills nav-fill py-3">
+<div class="mb-5 pt-3">
+  <div class="container">
+    <ul class="nav nav-pills nav-fill bg-light nav-custom">
       <li class="nav-item" *ngFor="let item of menuItems">
-        <button 
-          class="nav-link btn btn-link" 
+        <a 
+          class="nav-link " 
           [class.active]="isActive(item.id)"
-          (click)="onSectionClick(item.id, $event)"
-          type="button">
+          (click)="onSectionClick(item.id, $event)">
           <i [class]="'bi ' + item.icon + ' me-2'"></i>
           <span class="d-none d-md-inline">{{ item.label }}</span>
-        </button>
+        </a>
       </li>
       <li class="nav-item">
-        <button 
-          class="nav-link btn btn-link text-danger" 
+        <a 
+          class="nav-link" 
           (click)="onLogout()"
           title="Cerrar Sesión"
           type="button">
           <i class="bi bi-box-arrow-right me-2"></i>
           <span class="d-none d-md-inline">Salir</span>
-        </button>
+        </a>
       </li>
     </ul>
   </div>

@@ -1,34 +1,25 @@
-// Estilos para el menú de contenido usando la paleta de colores actualizada
-
-.bg-light {
-  background-color: var(--neutral-50) !important;
-}
-
-.border-bottom {
-  border-bottom: 1px solid var(--neutral-200) !important;
-}
 
 .nav-link {
   transition: all 0.3s ease;
-  border-radius: 0.5rem;
-  margin: 0 2px;
-  color: var(--neutral-700);
+  border-radius: var(--border-global);
+  color: var(--primary-gradient-end);
   font-weight: 500;
+  cursor: pointer;
   
   &:hover {
-    background-color: rgba(64, 110, 186, 0.1); /* primary-700 con opacidad */
-    color: var(--primary-color);
-    transform: translateY(-1px);
+    background-color: var(--primary-dark); /* primary-700 con opacidad */
+    color           : var(--neutral-100);
+    transform       : translateY(-1px);
   }
   
   &.active {
     background-color: var(--primary-color);
-    color: white;
+    color: var(--neutral-50);
     box-shadow: 0 2px 8px rgba(64, 110, 186, 0.3);
     
     &:hover {
       background-color: var(--primary-dark);
-      color: white;
+      color           : var(--neutral-100);
     }
   }
   
@@ -64,6 +55,11 @@
     flex: 1;
     max-width: 200px;
   }
+}
+
+.nav{
+  background: var(--neutral-100);
+  border-radius: var(--border-global);
 }
 
 @media (max-width: 576px) {
