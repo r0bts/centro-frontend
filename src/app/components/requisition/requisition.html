@@ -6,50 +6,57 @@
   </app-content-menu>
 
   <!-- Main Content -->
-  <div class="container-fluid mt-4">
+  <div class="container-fluid py-4">
     <div class="requisition-container">
       <div class="row g-4">
     <!-- Panel izquierdo - Selección de productos -->
-    <div class="col-md-7">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-light border-bottom">
+    <div [class]="isResumeCollapsed ? 'col-11' : 'col-lg-7'" class="transition-all">
+      <div class="card shadow h-100">
+        <div class="card-header bg-primary text-white py-3">
           <div class="row align-items-center">
             <div class="col-md-6">
-              <label class="form-label fw-bold">Área:</label>
+              <label class="form-label fw-bold mb-2 text-white">Área:</label>
               <select 
-                class="form-select" 
+                class="form-select form-select-lg" 
                 [(ngModel)]="selectedArea"
                 (change)="onAreaChange()">
-                <option *ngFor="let area of areas" [value]="area">{{ area }}</option>
+                <option value="">Seleccione el área</option>
+                <option *ngFor="let area of areas" [value]="area">
+                  {{ area }}{{ hasProductsInArea(area) ? ' ✓' : '' }}
+                </option>
               </select>
             </div>
           </div>
         </div>
         
-        <div class="card-body">
+        <div class="card-body p-4">
           <!-- Búsqueda de productos -->
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <label class="form-label">Producto</label>
-              <select class="form-select" [(ngModel)]="searchProduct">
+          <div class="row mb-4">
+            <div class="col-md-5">
+              <label class="form-label fw-semibold fs-5">Producto</label>
+              <select class="form-select form-select-lg" [(ngModel)]="searchProduct" [disabled]="!selectedArea">
                 <option value="">Selecciona un producto</option>
-                <option value="Producto A">Producto A</option>
-                <option value="Producto B">Producto B</option>
-                <option value="Producto C">Producto C</option>
+                <option *ngFor="let product of availableProducts" [value]="product">{{ product }}</option>
               </select>
             </div>
-            <div class="col-md-3">
-              <label class="form-label">Cantidad</label>
-              <input type="number" class="form-control" value="1" min="1">
-            </div>
             <div class="col-md-2">
-              <label class="form-label">Unidad</label>
-              <select class="form-select" [(ngModel)]="selectedUnit">
+              <label class="form-label fw-semibold fs-5">Cantidad</label>
+              <input 
+                type="text" 
+                class="form-control form-control-lg" 
+                [(ngModel)]="currentQuantity"
+                (input)="validateNumberInput($event)"
+                placeholder="Ingrese cantidad"
+                [disabled]="!selectedArea">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label fw-semibold fs-5">Presentación</label>
+              <select class="form-select form-select-lg" [(ngModel)]="selectedUnit" [disabled]="!selectedArea">
                 <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
               </select>
             </div>
-            <div class="col-md-1 d-flex align-items-end">
-              <button class="btn btn-primary" (click)="onAddProduct()">
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-primary btn-lg w-100" (click)="onAddProduct()" [disabled]="!selectedArea">
                 Agregar
               </button>
             </div>
@@ -57,31 +64,45 @@
           
           <!-- Lista de productos seleccionados -->
           <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover table-lg">
               <thead class="table-primary">
                 <tr>
-                  <th>Producto</th>
-                  <th>Cantidad</th>
-                  <th>Presentación</th>
-                  <th>Acciones</th>
+                  <th class="fs-5 py-3">Producto</th>
+                  <th class="fs-5 py-3">Cantidad</th>
+                  <th class="fs-5 py-3">Presentación</th>
+                  <th class="fs-5 py-3">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let product of products; trackBy: trackByProductId">
-                  <td>{{ product.name }}</td>
+                  <td class="fs-6 py-3">{{ product.name }}</td>
                   <td>
-                    <input 
-                      type="number" 
-                      class="form-control form-control-sm" 
-                      [value]="product.quantity"
-                      (input)="updateQuantity(product.id, +$any($event.target).value)"
-                      min="1"
-                      style="width: 80px;">
+                    <div class="input-group input-group-lg" style="width: 150px;">
+                      <button 
+                        class="btn btn-outline-secondary" 
+                        type="button" 
+                        (click)="decrementQuantity(product.id)"
+                        [disabled]="product.quantity <= 1">
+                        <i class="bi bi-dash"></i>
+                      </button>
+                      <input 
+                        type="text" 
+                        class="form-control text-center" 
+                        [value]="product.quantity"
+                        (input)="updateQuantityFromInput(product.id, $event)"
+                        (blur)="validateTableInput(product.id, $event)">
+                      <button 
+                        class="btn btn-outline-secondary" 
+                        type="button" 
+                        (click)="incrementQuantity(product.id)">
+                        <i class="bi bi-plus"></i>
+                      </button>
+                    </div>
                   </td>
-                  <td>{{ product.unit }}</td>
+                  <td class="fs-6 py-3">{{ product.unit }}</td>
                   <td>
                     <button 
-                      class="btn btn-danger btn-sm"
+                      class="btn btn-danger btn-lg"
                       (click)="removeProduct(product.id)">
                       <i class="bi bi-trash"></i>
                     </button>
@@ -91,8 +112,8 @@
             </table>
           </div>
           
-          <div class="text-end mt-3">
-            <button class="btn btn-primary" (click)="onAccept()">
+          <div class="text-end mt-4">
+            <button class="btn btn-primary btn-lg px-5" (click)="onAccept()">
               Aceptar
             </button>
           </div>
@@ -101,37 +122,57 @@
     </div>
     
     <!-- Panel derecho - Resumen de solicitud -->
-    <div class="col-md-5">
-      <div class="card shadow-sm h-100">
-        <div class="card-header bg-light border-bottom">
-          <h5 class="card-title mb-0">Resumen de solicitud:</h5>
+    <div [class]="isResumeCollapsed ? 'col-1' : 'col-lg-5'" class="transition-all">
+      <div class="card shadow h-100">
+        <div class="card-header bg-success text-white py-3 d-flex justify-content-between align-items-center">
+          <h4 class="card-title mb-0 text-white" [class.d-none]="isResumeCollapsed">Resumen de solicitud:</h4>
+          <button 
+            class="btn btn-success btn-sm border-white" 
+            (click)="toggleResumePanel()"
+            [title]="isResumeCollapsed ? 'Mostrar resumen' : 'Ocultar resumen'">
+            <i [class]="isResumeCollapsed ? 'bi bi-chevron-left' : 'bi bi-chevron-right'"></i>
+          </button>
         </div>
         
-        <div class="card-body">
+        <div class="card-body p-4" [class.d-none]="isResumeCollapsed">
+          <div *ngIf="requisitionSummary.length === 0" class="text-center text-muted py-5">
+            <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
+            <p class="fs-5">No hay áreas con productos agregados</p>
+            <small>Selecciona un área, agrega productos y presiona "Aceptar"</small>
+          </div>
+          
           <div *ngFor="let summary of requisitionSummary" class="mb-4">
-            <h6 class="text-primary fw-bold">{{ summary.area }}</h6>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="text-primary fw-bold mb-0">{{ summary.area }}</h5>
+              <button 
+                class="btn btn-outline-danger btn-sm"
+                (click)="removeAreaFromSummary(summary.area)"
+                title="Eliminar área">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
             <div class="table-responsive">
-              <table class="table table-sm table-borderless">
+              <table class="table table-borderless">
                 <thead class="table-secondary">
                   <tr>
-                    <th>Producto</th>
-                    <th>Cantidad</th>
-                    <th>Presentación</th>
+                    <th class="fs-6 py-3">Producto</th>
+                    <th class="fs-6 py-3">Cantidad</th>
+                    <th class="fs-6 py-3">Presentación</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr *ngFor="let product of summary.products">
-                    <td>{{ product.name }}</td>
-                    <td>{{ product.quantity }}</td>
-                    <td>{{ product.unit }}</td>
+                    <td class="fs-6 py-2">{{ product.name }}</td>
+                    <td class="fs-6 py-2">{{ product.quantity }}</td>
+                    <td class="fs-6 py-2">{{ product.unit }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
           
-          <div class="text-end mt-4">
-            <button class="btn btn-success" (click)="onConfirmRequisition()">
+          <div class="text-end mt-4" *ngIf="requisitionSummary.length > 0">
+            <button class="btn btn-success btn-lg px-5" (click)="onConfirmRequisition()">
               Confirmar solicitud
             </button>
           </div>
