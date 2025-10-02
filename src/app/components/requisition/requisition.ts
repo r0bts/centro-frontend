@@ -3,6 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContentMenu } from '../content-menu/content-menu';
 
+export interface Event {
+  id: string;
+  name: string;
+  date: Date;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -26,14 +32,37 @@ export interface RequisitionSummary {
 export class RequisitionComponent implements OnInit {
   activeSection: string = 'requisicion';
   
+  // Propiedades para fechas (OBLIGATORIO)
+  selectedEvent: string = '';
+  customDeliveryDate: string = '';
+  currentDeliveryDate: Date | null = null;
+  
+  // Propiedades para área
   selectedArea: string = '';
+  areaSearchTerm: string = '';
+  showAreaDropdown: boolean = false;
+  filteredAreas: string[] = [];
+  
+  // Propiedades para productos
   searchProduct: string = '';
+  productSearchTerm: string = '';
+  showProductDropdown: boolean = false;
+  filteredProducts: string[] = [];
   selectedUnit: string = 'ml';
   currentQuantity: string = '';
   isResumeCollapsed: boolean = false;
 
   areas: string[] = ['Restaurante', 'Cocina', 'Bar', 'Limpieza', 'Administración'];
   units: string[] = ['ml', 'Lt', 'Kg', 'g', 'Pzs', 'Cajas'];
+  
+  // Eventos predefinidos
+  events: Event[] = [
+    { id: '1', name: 'Cena de Gala', date: new Date('2025-10-15') },
+    { id: '2', name: 'Evento Corporativo', date: new Date('2025-10-20') },
+    { id: '3', name: 'Banquete de Bodas', date: new Date('2025-10-25') },
+    { id: '4', name: 'Reunión de Directivos', date: new Date('2025-11-05') },
+    { id: '5', name: 'Celebración de Aniversario', date: new Date('2025-11-10') }
+  ];
   
   // Lista de productos disponibles para seleccionar
   availableProducts: string[] = [
@@ -71,6 +100,79 @@ export class RequisitionComponent implements OnInit {
   onAreaChange(): void {
     console.log('Área seleccionada:', this.selectedArea);
     this.loadProductsForArea();
+  }
+
+  onAreaSearch(): void {
+    this.showAreaDropdown = true;
+    if (this.areaSearchTerm.trim() === '') {
+      this.filteredAreas = this.areas;
+    } else {
+      this.filteredAreas = this.areas.filter(area => 
+        area.toLowerCase().includes(this.areaSearchTerm.toLowerCase())
+      );
+    }
+  }
+
+  selectArea(area: string): void {
+    this.selectedArea = area;
+    this.areaSearchTerm = area;
+    this.showAreaDropdown = false;
+    this.onAreaChange();
+  }
+
+  onAreaFocus(): void {
+    this.showAreaDropdown = true;
+    this.filteredAreas = this.areas;
+  }
+
+  onAreaBlur(): void {
+    setTimeout(() => {
+      this.showAreaDropdown = false;
+      const exactMatch = this.areas.find(area => 
+        area.toLowerCase() === this.areaSearchTerm.toLowerCase()
+      );
+      if (!exactMatch) {
+        this.selectedArea = '';
+        this.areaSearchTerm = '';
+      }
+    }, 200);
+  }
+
+  onProductSearch(): void {
+    this.showProductDropdown = true;
+    if (this.productSearchTerm.trim() === '') {
+      this.filteredProducts = this.availableProducts;
+    } else {
+      this.filteredProducts = this.availableProducts.filter(product => 
+        product.toLowerCase().includes(this.productSearchTerm.toLowerCase())
+      );
+    }
+  }
+
+  selectProduct(product: string): void {
+    this.searchProduct = product;
+    this.productSearchTerm = product;
+    this.showProductDropdown = false;
+  }
+
+  onProductFocus(): void {
+    this.showProductDropdown = true;
+    this.filteredProducts = this.availableProducts;
+  }
+
+  onProductBlur(): void {
+    setTimeout(() => {
+      this.showProductDropdown = false;
+      const exactMatch = this.availableProducts.find(product => 
+        product.toLowerCase() === this.productSearchTerm.toLowerCase()
+      );
+      if (exactMatch) {
+        this.searchProduct = exactMatch;
+      } else {
+        this.searchProduct = '';
+        this.productSearchTerm = '';
+      }
+    }, 200);
   }
 
   loadProductsForArea(): void {
@@ -114,6 +216,11 @@ export class RequisitionComponent implements OnInit {
   }
 
   onAccept(): void {
+    if (!this.currentDeliveryDate) {
+      console.log('Debe seleccionar una fecha de entrega');
+      return;
+    }
+    
     if (!this.selectedArea) {
       console.log('Debe seleccionar un área');
       return;
@@ -141,11 +248,14 @@ export class RequisitionComponent implements OnInit {
     console.log('Productos aceptados para el área:', this.selectedArea);
     console.log('Resumen actualizado:', this.requisitionSummary);
     
-    // Limpiar la lista temporal y resetear área después de aceptar
+    // Limpiar la lista temporal y resetear campos después de aceptar
     this.products = [];
     this.searchProduct = '';
+    this.productSearchTerm = '';
     this.currentQuantity = '';
     this.selectedArea = '';
+    this.areaSearchTerm = '';
+    // NO limpiar la fecha porque es para toda la solicitud
   }
 
   onConfirmRequisition(): void {
@@ -229,5 +339,52 @@ export class RequisitionComponent implements OnInit {
 
   toggleResumePanel(): void {
     this.isResumeCollapsed = !this.isResumeCollapsed;
+  }
+
+  onEventChange(): void {
+    if (this.selectedEvent) {
+      const selectedEventObj = this.events.find(event => event.id === this.selectedEvent);
+      if (selectedEventObj) {
+        // Establecer fecha un día antes del evento
+        const deliveryDate = new Date(selectedEventObj.date);
+        deliveryDate.setDate(deliveryDate.getDate() - 1);
+        this.currentDeliveryDate = deliveryDate;
+        this.customDeliveryDate = '';
+      }
+    }
+  }
+
+  onCustomDateChange(): void {
+    if (this.customDeliveryDate) {
+      // Si es fecha personalizada, usa el día exacto seleccionado
+      this.currentDeliveryDate = new Date(this.customDeliveryDate);
+    } else {
+      this.currentDeliveryDate = null;
+    }
+  }
+
+  formatDate(date: Date): string {
+    return date.toLocaleDateString('es-ES', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  isEventDatePassed(eventDate: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate < today;
+  }
+
+  getMinDate(): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  }
+
+  getRequestDeliveryDate(): Date | null {
+    return this.currentDeliveryDate;
   }
 }
