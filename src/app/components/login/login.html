@@ -45,24 +45,26 @@
             <!-- Campo Contraseña -->
             <div class="mb-3">
               <label for="password" class="form-label">Contraseña</label>
-              <input 
-                type="password" 
-                class="form-control"
-                [class.is-invalid]="isFieldInvalid('password')"
-                id="password" 
-                formControlName="password"
-                placeholder="Ingresa tu contraseña"
-                autocomplete="current-password">
-              <div *ngIf="isFieldInvalid('password')" class="invalid-feedback">
-                {{ getFieldError('password') }}
+              <div class="position-relative">
+                <input 
+                  [type]="showPassword ? 'text' : 'password'" 
+                  class="form-control"
+                  [class.is-invalid]="isFieldInvalid('password')"
+                  id="password" 
+                  formControlName="password"
+                  placeholder="Ingresa tu contraseña"
+                  autocomplete="current-password">
+                <div *ngIf="isFieldInvalid('password')" class="invalid-feedback">
+                  {{ getFieldError('password') }}
+                </div>
               </div>
             </div>
 
-            <!-- Recordar sesión -->
+            <!-- Mostrar contraseña -->
             <div class="mb-3 form-check">
-              <input type="checkbox" class="form-check-input" id="rememberMe">
-              <label class="form-check-label" for="rememberMe">
-                Recordar sesión
+              <input type="checkbox" class="form-check-input" id="showPassword" [(ngModel)]="showPassword" [ngModelOptions]="{standalone: true}">
+              <label class="form-check-label" for="showPassword">
+                Mostrar contraseña
               </label>
             </div>
 
@@ -79,9 +81,10 @@
           </form>
 
           <!-- Enlaces adicionales -->
-          <div class="text-center mt-4">
+          
+          <!--<div class="text-center mt-4">
             <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>

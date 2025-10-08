@@ -1,12 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, LoginRequest } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   templateUrl: './login.html',
   styleUrl: './login.scss'
 })
@@ -14,6 +15,7 @@ export class Login {
   loginForm: FormGroup;
   isLoading = false;
   errorMessage = '';
+  showPassword = false;
 
   constructor(
     private formBuilder: FormBuilder,
