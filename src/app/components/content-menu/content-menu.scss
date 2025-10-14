@@ -5,6 +5,10 @@
   color: var(--primary-gradient-end);
   font-weight: 500;
   cursor: pointer;
+  margin: 0 2px; // Espaciado entre nav-links
+  padding: 0.75rem 1rem; // Padding consistente
+  text-align: center; // Centrar contenido de cada link
+  white-space: nowrap; // Evitar que el texto se corte
   
   &:hover {
     background-color: var(--primary-dark); /* primary-700 con opacidad */
@@ -43,6 +47,7 @@
   
   @media (max-width: 768px) {
     padding: 0.5rem 0.75rem;
+    margin: 0 1px; // Reducir margen en móviles
     
     span {
       display: none !important;
@@ -50,21 +55,170 @@
   }
 }
 
+// Estilos para dropdown
+.dropdown {
+  position: relative;
+  
+  .dropdown-toggle {
+    &::after {
+      margin-left: 0.5rem;
+      transition: transform 0.3s ease;
+    }
+    
+    &[aria-expanded="true"]::after {
+      transform: rotate(180deg);
+    }
+  }
+  
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 50%; // Centrar el dropdown
+    transform: translateX(-50%); // Centrar usando transform
+    z-index: 1000;
+    min-width: 200px;
+    padding: 0.5rem 0;
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+    color: var(--neutral-700);
+    text-align: left;
+    background-color: var(--neutral-50);
+    background-clip: padding-box;
+    border: 1px solid var(--neutral-200);
+    border-radius: var(--border-global);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    
+    &.show {
+      display: block;
+    }
+    
+    .dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem;
+      clear: both;
+      font-weight: 400;
+      color: var(--neutral-700);
+      text-decoration: none;
+      white-space: nowrap;
+      background-color: transparent;
+      border: 0;
+      border-radius: 0;
+      transition: all 0.15s ease-in-out;
+      
+      &:hover,
+      &:focus {
+        color: var(--neutral-900);
+        background-color: var(--neutral-100);
+      }
+      
+      &.active {
+        color: var(--neutral-50);
+        background-color: var(--primary-color);
+        
+        &:hover,
+        &:focus {
+          color: var(--neutral-50);
+          background-color: var(--primary-dark);
+        }
+      }
+      
+      i {
+        width: 1rem;
+        text-align: center;
+      }
+    }
+  }
+}
+
 .nav-pills {
   .nav-item {
-    flex: 1;
-    max-width: 200px;
+    flex: 0 1 auto; // Cambiado de flex: 1 a flex: 0 1 auto para mejor adaptación
+    max-width: none; // Removido el max-width fijo
+    min-width: 120px; // Ancho mínimo para cada item
   }
 }
 
 .nav{
   background: var(--neutral-100);
   border-radius: var(--border-global);
+  justify-content: center; // Centrar los items del menú
+  max-width: fit-content; // Ajustar al contenido
+  margin: 0 auto; // Centrar el contenedor del menú
+  padding: 0.5rem; // Añadir padding interno
+}
+
+// Mejorar la distribución del espacio en el contenedor
+.container {
+  display: flex;
+  justify-content: center; // Centrar el nav dentro del container
+  align-items: center;
 }
 
 @media (max-width: 576px) {
   .py-3 {
     padding-top: 1rem !important;
     padding-bottom: 1rem !important;
+  }
+  
+  .nav-pills {
+    .nav-item {
+      min-width: 60px; // Reducir ancho mínimo en móviles
+      margin: 0 2px; // Añadir pequeño margen entre items
+    }
+  }
+  
+  .nav {
+    max-width: 100%; // Usar todo el ancho disponible en móvil
+    margin: 0; // Sin margen automático en móvil
+    padding: 0.25rem; // Reducir padding en móvil
+    flex-wrap: wrap; // Permitir que los items se envuelvan si es necesario
+  }
+  
+  .container {
+    padding: 0 0.5rem; // Reducir padding del container en móvil
+  }
+  
+  .dropdown-menu {
+    position: relative;
+    display: block;
+    float: none;
+    width: 100%;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: var(--neutral-200);
+    
+    .dropdown-item {
+      padding: 0.25rem 1rem;
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Estilos para tablets
+@media (min-width: 577px) and (max-width: 768px) {
+  .nav-pills {
+    .nav-item {
+      min-width: 100px; // Ancho medio para tablets
+    }
+  }
+  
+  .nav {
+    max-width: 90%; // Usar la mayoría del ancho en tablets
+  }
+}
+
+// Estilos para desktop
+@media (min-width: 769px) {
+  .nav-pills {
+    .nav-item {
+      min-width: 120px; // Ancho completo para desktop
+    }
+  }
+  
+  .nav {
+    max-width: fit-content; // Ajustar al contenido en desktop
   }
 }

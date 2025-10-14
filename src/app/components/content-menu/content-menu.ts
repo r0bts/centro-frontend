@@ -9,6 +9,9 @@ export interface MenuItem {
   icon: string;
   route?: string;
   active?: boolean;
+  children?: MenuItem[];
+  isParent?: boolean;
+  isExpanded?: boolean;
 }
 
 @Component({
@@ -25,13 +28,51 @@ export class ContentMenu {
 
   // Menú por defecto si no se proporciona uno externo
   private defaultMenuItems: MenuItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard' },
-    { id: 'usuarios', label: 'Usuarios', icon: 'bi-people', route: '/usuarios' },
-    { id: 'empleados', label: 'Empleados', icon: 'bi-person-badge', route: '/empleados' },
-    { id: 'requisicion', label: 'Requisición', icon: 'bi-clipboard-check', route: '/requisicion' },
-    { id: 'reportes', label: 'Reportes', icon: 'bi-graph-up', route: '/reportes' },
-    { id: 'documentos', label: 'Documentos', icon: 'bi-file-earmark-text', route: '/documentos' },
-    { id: 'configuracion', label: 'Configuración', icon: 'bi-gear', route: '/configuracion' }
+    { 
+      id: 'dashboard', 
+      label: 'Dashboard', 
+      icon: 'bi-speedometer2', 
+      route: '/dashboard' 
+    },
+    { 
+      id: 'requisicion', 
+      label: 'Requisición', 
+      icon: 'bi-clipboard-check',
+      isParent: true,
+      isExpanded: false,
+      children: [
+        { id: 'requisicion-crear', label: 'Crear Requisición', icon: 'bi-plus-circle', route: '/requisicion/crear' },
+        { id: 'requisicion-lista', label: 'Lista de Requisiciones', icon: 'bi-list-ul', route: '/requisicion/lista' },
+        { id: 'requisicion-surtir', label: 'Surtir Requisición', icon: 'bi-check-circle', route: '/requisicion/surtir' },
+        { id: 'requisicion-recibir', label: 'Recibir Requisición', icon: 'bi-inbox', route: '/requisicion/recibir' }
+      ]
+    },
+    { 
+      id: 'reportes', 
+      label: 'Reportes', 
+      icon: 'bi-graph-up',
+      isParent: true,
+      isExpanded: false,
+      children: [
+        { id: 'reportes-historial', label: 'Historial de Requisiciones', icon: 'bi-clock-history', route: '/reportes/historial' },
+        { id: 'reportes-consumo', label: 'Reportes de Consumo', icon: 'bi-bar-chart', route: '/reportes/consumo' },
+        { id: 'reportes-inventario', label: 'Inventario', icon: 'bi-boxes', route: '/reportes/inventario' }
+      ]
+    },
+    { 
+      id: 'configuracion', 
+      label: 'Configuración', 
+      icon: 'bi-gear',
+      isParent: true,
+      isExpanded: false,
+      children: [
+        { id: 'configuracion-general', label: 'General', icon: 'bi-gear-fill', route: '/configuracion/general' },
+        { id: 'configuracion-usuarios', label: 'Usuarios', icon: 'bi-people', route: '/configuracion/usuarios' },
+        { id: 'configuracion-productos', label: 'Productos', icon: 'bi-box', route: '/configuracion/productos' },
+        { id: 'configuracion-netsuite', label: 'Sincronización NetSuite', icon: 'bi-cloud-arrow-up', route: '/configuracion/netsuite' },
+        { id: 'configuracion-roles', label: 'Roles y Permisos', icon: 'bi-shield-check', route: '/configuracion/roles' }
+      ]
+    }
   ];
 
   constructor(
@@ -50,7 +91,7 @@ export class ContentMenu {
     event.preventDefault();
     console.log('🔍 Click en sección:', sectionId);
     
-    const menuItem = this.menuItems.find(item => item.id === sectionId);
+    const menuItem = this.findMenuItemById(sectionId);
     console.log('🔍 Menu item encontrado:', menuItem);
     
     if (menuItem?.route) {
@@ -76,12 +117,49 @@ export class ContentMenu {
     }
   }
 
+  toggleSubmenu(item: MenuItem, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // Cerrar otros submenus
+    this.menuItems.forEach(menuItem => {
+      if (menuItem !== item && menuItem.isExpanded) {
+        menuItem.isExpanded = false;
+      }
+    });
+    
+    // Toggle del submenu actual
+    item.isExpanded = !item.isExpanded;
+    console.log(`🔍 Submenu ${item.id} ${item.isExpanded ? 'expandido' : 'colapsado'}`);
+  }
+
+  findMenuItemById(id: string): MenuItem | null {
+    for (const item of this.menuItems) {
+      if (item.id === id) {
+        return item;
+      }
+      if (item.children) {
+        for (const child of item.children) {
+          if (child.id === id) {
+            return child;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  hasActiveChild(item: MenuItem): boolean {
+    if (!item.children) return false;
+    return item.children.some(child => this.isActive(child.id));
+  }
+
   isActive(sectionId: string): boolean {
-    const menuItem = this.menuItems.find(item => item.id === sectionId);
+    const menuItem = this.findMenuItemById(sectionId);
     if (menuItem?.route && this.router) {
       try {
         const currentUrl = this.router.url;
-        const isActive = currentUrl === menuItem.route;
+        const isActive = currentUrl === menuItem.route || currentUrl.startsWith(menuItem.route + '/');
         console.log(`Checking if ${sectionId} is active: currentUrl=${currentUrl}, route=${menuItem.route}, active=${isActive}`);
         return isActive;
       } catch (error) {

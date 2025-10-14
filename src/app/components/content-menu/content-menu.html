@@ -1,15 +1,43 @@
 <div class="mb-5 pt-3">
   <div class="container">
-    <ul class="nav nav-pills nav-fill bg-light nav-custom">
+    <ul class="nav nav-pills nav-custom d-flex justify-content-center">
       <li class="nav-item" *ngFor="let item of menuItems">
-        <a 
-          class="nav-link " 
-          [class.active]="isActive(item.id)"
-          (click)="onSectionClick(item.id, $event)">
-          <i [class]="'bi ' + item.icon + ' me-2'"></i>
-          <span class="d-none d-md-inline">{{ item.label }}</span>
-        </a>
+        <!-- Items con submenu -->
+        <div *ngIf="item.children && item.children.length > 0; else simpleItem" class="dropdown">
+          <a 
+            class="nav-link dropdown-toggle" 
+            [class.active]="isActive(item.id) || hasActiveChild(item)"
+            (click)="toggleSubmenu(item, $event)"
+            type="button">
+            <i [class]="'bi ' + item.icon + ' me-2'"></i>
+            <span class="d-none d-md-inline">{{ item.label }}</span>
+          </a>
+          <!-- Submenu -->
+          <ul class="dropdown-menu" [class.show]="item.isExpanded">
+            <li *ngFor="let child of item.children">
+              <a 
+                class="dropdown-item" 
+                [class.active]="isActive(child.id)"
+                (click)="onSectionClick(child.id, $event)">
+                <i [class]="'bi ' + child.icon + ' me-2'"></i>
+                {{ child.label }}
+              </a>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Items simples sin submenu -->
+        <ng-template #simpleItem>
+          <a 
+            class="nav-link" 
+            [class.active]="isActive(item.id)"
+            (click)="onSectionClick(item.id, $event)">
+            <i [class]="'bi ' + item.icon + ' me-2'"></i>
+            <span class="d-none d-md-inline">{{ item.label }}</span>
+          </a>
+        </ng-template>
       </li>
+      
       <li class="nav-item">
         <a 
           class="nav-link" 

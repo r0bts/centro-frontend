@@ -58,13 +58,13 @@
                       <small class="text-muted">*Entrega en la fecha exacta</small>
                     </div>
                     
-                    <div class="col-12 col-md-4" *ngIf="currentDeliveryDate">
-                      <div class="alert alert-success mb-0 py-2">
-                        <small>
-                          <i class="bi bi-check-circle me-1"></i>
-                          <strong>Entrega:</strong> {{ formatDate(currentDeliveryDate) }}
-                        </small>
+                    <div class="col-12 col-md-4 d-flex flex-column" *ngIf="currentDeliveryDate">
+                      <label class="form-label mb-1 fw-bold">Fecha confirmada:</label>
+                      <div class="form-control bg-success text-white d-flex align-items-center">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>{{ formatDate(currentDeliveryDate) }}</strong>
                       </div>
+                      <small class="text-muted">&nbsp;</small>
                     </div>
                   </div>
                 </div>
@@ -128,7 +128,7 @@
                 (blur)="onProductBlur()"
                 placeholder="Buscar producto..."
                 autocomplete="off"
-                [disabled]="!currentDeliveryDate || !selectedArea">
+              >
               
               <!-- Dropdown de productos -->
               <div 
@@ -171,7 +171,8 @@
               </select>
             </div>
             <div class="col-md-2 d-flex align-items-end">
-              <button class="btn btn-primary  w-100" (click)="onAddProduct()" [disabled]="!currentDeliveryDate || !selectedArea">
+              <button class="btn btn-primary w-100" (click)="onAddProduct()" 
+                      [disabled]="!currentDeliveryDate || !selectedArea || !productSearchTerm.trim() || !isValidQuantity()">
                 Agregar
               </button>
             </div>
@@ -242,15 +243,7 @@
         <div class="card-header bg-success text-white">
           <div class="d-flex justify-content-between align-items-center">
             <div class="flex-grow-1" [class.d-none]="isResumeCollapsed">
-              <h4 class="text-white mb-1">Resumen de solicitud</h4>
-              <div *ngIf="getRequestDeliveryDate()" class="small">
-                <i class="bi bi-calendar-check me-1"></i>
-                <strong>Fecha de entrega:</strong> {{ formatDate(getRequestDeliveryDate()!) }}
-              </div>
-              <div *ngIf="!getRequestDeliveryDate()" class="small text-white-50">
-                <i class="bi bi-calendar-x me-1"></i>
-                Sin fecha programada
-              </div>
+              <h4 class="text-white mb-0">Resumen de solicitud</h4>
             </div>
             <!-- Spacer invisible para mantener el botón a la derecha cuando está colapsado -->
             <div class="flex-grow-1" [class.d-none]="!isResumeCollapsed"></div>
@@ -264,6 +257,17 @@
         </div>
         
         <div class="card-body p-4" [class.d-none]="isResumeCollapsed">
+          <!-- Información de fecha de entrega movida aquí -->
+          <div class="mb-4">
+            <div *ngIf="getRequestDeliveryDate()" class="mb-0">
+              <i class="bi bi-calendar-check me-2"></i>
+              <strong>Fecha de entrega:</strong> {{ formatDate(getRequestDeliveryDate()!) }}
+            </div>
+            <div *ngIf="!getRequestDeliveryDate()" class="mb-0">
+              <i class="bi bi-calendar-x me-2"></i>
+              <strong>Sin fecha programada</strong> - Selecciona una fecha de entrega
+            </div>
+          </div>
           <div *ngIf="requisitionSummary.length === 0" class="text-center text-muted py-5">
             <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
             <p class="fs-5">No hay áreas con productos agregados</p>
@@ -308,9 +312,100 @@
             </button>
           </div>
         </div>
+        
+        <!-- Vista colapsada - Solo mostrar áreas -->
+        <div class="card-body p-2" [class.d-none]="!isResumeCollapsed">
+          <!-- Información de fecha en vista colapsada -->
+          <div class="mb-3 p-2 rounded" 
+               [class]="getRequestDeliveryDate() ? 'bg-success text-white' : 'bg-warning text-dark'">
+            <div *ngIf="getRequestDeliveryDate()" class="text-center">
+              <i class="bi bi-calendar-check me-1"></i>
+              <small class="fw-bold">{{ formatDate(getRequestDeliveryDate()!) }}</small>
+            </div>
+            <div *ngIf="!getRequestDeliveryDate()" class="text-center">
+              <i class="bi bi-calendar-x me-1"></i>
+              <small class="fw-bold">Sin fecha</small>
+            </div>
+          </div>
+          
+          <div *ngIf="requisitionSummary.length === 0" class="text-center text-muted py-2">
+            <i class="bi bi-clipboard-x fs-4 d-block mb-1"></i>
+            <small>Sin áreas</small>
+          </div>
+          
+          <div *ngFor="let summary of requisitionSummary" class="mb-2">
+            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+              <div class="flex-grow-1">
+                <small class="text-primary fw-bold">{{ summary.area }}</small>
+                <br>
+                <small class="text-muted">{{ summary.products.length }} producto(s)</small>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para cambio de área -->
+<div class="modal" [style.display]="showAreaChangeModal ? 'block' : 'none'" 
+     style="z-index: 9999; background-color: rgba(0, 0, 0, 0.3);" 
+     (click)="closeAreaChangeModal()">
+  <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+    <div class="modal-content shadow-lg border-0">
+      <div class="modal-header bg-warning text-dark border-0">
+        <h5 class="modal-title">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          Cambio de área
+        </h5>
+        <button type="button" class="btn-close" (click)="closeAreaChangeModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <p class="fw-bold">Tienes productos sin agregar a la requisición en el área: <span class="text-primary">{{ currentAreaWithProducts }}</span></p>
+          <p>¿Qué deseas hacer con estos productos?</p>
+        </div>
+        
+        <!-- Resumen de productos actuales -->
+        <div class="card bg-light border-0 shadow-sm" *ngIf="products.length > 0">
+          <div class="card-header py-2 bg-primary text-white border-0">
+            <h6 class="mb-0">Productos que se agregarán al área "{{ currentAreaWithProducts }}":</h6>
+          </div>
+          <div class="card-body py-2">
+            <div class="table-responsive">
+              <table class="table table-sm mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Presentación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let product of products">
+                    <td>{{ product.name }}</td>
+                    <td>{{ product.quantity }}</td>
+                    <td>{{ product.unit }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" (click)="cancelAreaChange()">
+          <i class="bi bi-x-circle me-2"></i>
+          Cancelar y descartar
+        </button>
+        <button type="button" class="btn btn-success" (click)="addToRequisitionAndChange()">
+          <i class="bi bi-plus-circle me-2"></i>
+          Agregar a requisición
+        </button>
+      </div>
+    </div>
   </div>
 </div>

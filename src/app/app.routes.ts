@@ -31,7 +31,42 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'requisicion/crear',
+    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'requisicion/lista',
+    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'requisicion/surtir',
+    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'requisicion/recibir',
+    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'reportes',
+    loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'reportes/historial',
+    loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'reportes/consumo',
+    loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'reportes/inventario',
     loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
     canActivate: [authGuard]
   },
@@ -42,6 +77,31 @@ export const routes: Routes = [
   },
   {
     path: 'configuracion',
+    redirectTo: '/configuracion/general',
+    pathMatch: 'full'
+  },
+  {
+    path: 'configuracion/general',
+    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'configuracion/usuarios',
+    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'configuracion/productos',
+    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'configuracion/netsuite',
+    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'configuracion/roles',
     loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
     canActivate: [authGuard]
   },
