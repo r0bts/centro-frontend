@@ -2,3 +2,22 @@
 .transition-all {
   transition: all 0.3s ease-in-out;
 }
+
+/* Scrollbar personalizado para el panel de resumen */
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: var(--neutral-100);
+  border-radius: 3px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}

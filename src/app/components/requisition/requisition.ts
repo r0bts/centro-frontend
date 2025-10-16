@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
 
 export interface Event {
@@ -36,6 +37,14 @@ export class RequisitionComponent implements OnInit {
   selectedEvent: string = '';
   customDeliveryDate: string = '';
   currentDeliveryDate: Date | null = null;
+
+  constructor(private router: Router) {
+    // Verificar si vienen datos del estado de navegación (desde confirmation)
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras.state?.['loadExistingData']) {
+      this.loadExistingRequisitionData(navigation.extras.state);
+    }
+  }
   
   // Propiedades para área
   selectedArea: string = '';
@@ -101,6 +110,31 @@ export class RequisitionComponent implements OnInit {
     // Cargar productos del área inicial si ya existen
     this.loadProductsForArea();
     //consultas a endpoints para cargar areas y productos
+  }
+
+  loadExistingRequisitionData(state: any): void {
+    // Cargar los datos existentes de la requisición
+    if (state['requisitionSummary']) {
+      this.requisitionSummary = state['requisitionSummary'];
+    }
+    
+    // Cargar la fecha de entrega
+    if (state['deliveryDate']) {
+      this.currentDeliveryDate = new Date(state['deliveryDate']);
+      this.customDeliveryDate = this.formatDateForInput(this.currentDeliveryDate);
+    }
+    
+    // Mostrar mensaje de carga exitosa
+    console.log('Datos cargados desde confirmación:', {
+      areas: this.requisitionSummary.length,
+      deliveryDate: this.currentDeliveryDate,
+      selectedEmployee: state['selectedEmployee']
+    });
+  }
+
+  formatDateForInput(date: Date): string {
+    // Formatear fecha para el input type="date" (YYYY-MM-DD)
+    return date.toISOString().split('T')[0];
   }
 
   onAreaChange(): void {
@@ -325,8 +359,21 @@ export class RequisitionComponent implements OnInit {
       console.log('No hay requisiciones para confirmar');
       return;
     }
-    console.log('Confirmar solicitud de requisición:', this.requisitionSummary);
-    // Aquí podrías enviar la requisición al servidor
+    
+    if (!this.currentDeliveryDate) {
+      console.log('Debe seleccionar una fecha de entrega');
+      return;
+    }
+    
+    console.log('Navegar a confirmación con datos:', this.requisitionSummary);
+    
+    // Navegar a la vista de confirmación pasando los datos
+    this.router.navigate(['/requisicion/confirmacion'], {
+      state: {
+        requisitionData: this.requisitionSummary,
+        deliveryDate: this.currentDeliveryDate
+      }
+    });
   }
 
   removeAreaFromSummary(area: string): void {

@@ -89,18 +89,13 @@ export class ContentMenu {
 
   onSectionClick(sectionId: string, event: Event): void {
     event.preventDefault();
-    console.log('🔍 Click en sección:', sectionId);
     
     const menuItem = this.findMenuItemById(sectionId);
-    console.log('🔍 Menu item encontrado:', menuItem);
     
     if (menuItem?.route) {
-      console.log('🚀 Navegando a ruta:', menuItem.route);
-      console.log('🔍 Router disponible:', !!this.router);
       
       // Navegar usando el router
       this.router.navigate([menuItem.route]).then((success) => {
-        console.log(`✅ Navegación ${success ? 'exitosa' : 'fallida'} a: ${menuItem.route}`);
         if (success) {
           console.log('🔍 URL actual después de navegación:', this.router.url);
         } else {
@@ -110,7 +105,6 @@ export class ContentMenu {
         console.error('❌ Error en navegación:', error);
       });
     } else {
-      console.log('⚠️ Emitiendo evento para sección sin ruta:', sectionId);
       // Para secciones sin ruta, emitir evento
       this.activeSection = sectionId;
       this.sectionChange.emit(sectionId);
@@ -130,7 +124,6 @@ export class ContentMenu {
     
     // Toggle del submenu actual
     item.isExpanded = !item.isExpanded;
-    console.log(`🔍 Submenu ${item.id} ${item.isExpanded ? 'expandido' : 'colapsado'}`);
   }
 
   findMenuItemById(id: string): MenuItem | null {
@@ -160,7 +153,6 @@ export class ContentMenu {
       try {
         const currentUrl = this.router.url;
         const isActive = currentUrl === menuItem.route || currentUrl.startsWith(menuItem.route + '/');
-        console.log(`Checking if ${sectionId} is active: currentUrl=${currentUrl}, route=${menuItem.route}, active=${isActive}`);
         return isActive;
       } catch (error) {
         console.warn('Error accessing router.url:', error);

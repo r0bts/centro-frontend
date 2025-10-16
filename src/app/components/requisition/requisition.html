@@ -268,41 +268,45 @@
               <strong>Sin fecha programada</strong> - Selecciona una fecha de entrega
             </div>
           </div>
-          <div *ngIf="requisitionSummary.length === 0" class="text-center text-muted py-5">
-            <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
-            <p class="fs-5">No hay áreas con productos agregados</p>
-            <small>Selecciona un área, agrega productos y presiona "Aceptar"</small>
-          </div>
           
-          <div *ngFor="let summary of requisitionSummary" class="mb-4">
-            <div class="d-flex justify-content-between align-items-start mb-3">
-              <div class="flex-grow-1">
-                <h5 class="text-primary fw-bold mb-1">{{ summary.area }}</h5>
-              </div>
-              <button 
-                class="btn btn-outline-danger btn-sm"
-                (click)="removeAreaFromSummary(summary.area)"
-                title="Eliminar área">
-                <i class="bi bi-trash"></i>
-              </button>
+          <!-- Contenedor con scroll para las áreas -->
+          <div class="overflow-auto" style="max-height: 50vh;">
+            <div *ngIf="requisitionSummary.length === 0" class="text-center text-muted py-5">
+              <i class="bi bi-clipboard-x fs-1 d-block mb-3"></i>
+              <p class="fs-5">No hay áreas con productos agregados</p>
+              <small>Selecciona un área, agrega productos y presiona "Aceptar"</small>
             </div>
-            <div class="table-responsive">
-              <table class="table table-borderless">
-                <thead class="table-secondary">
-                  <tr>
-                    <th class="fs-6 py-3">Producto</th>
-                    <th class="fs-6 py-3">Cantidad</th>
-                    <th class="fs-6 py-3">Presentación</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let product of summary.products">
-                    <td class="fs-6 py-2">{{ product.name }}</td>
-                    <td class="fs-6 py-2">{{ product.quantity }}</td>
-                    <td class="fs-6 py-2">{{ product.unit }}</td>
-                  </tr>
-                </tbody>
-              </table>
+            
+            <div *ngFor="let summary of requisitionSummary" class="mb-4">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="flex-grow-1">
+                  <h5 class="text-primary fw-bold mb-1">{{ summary.area }}</h5>
+                </div>
+                <button 
+                  class="btn btn-outline-danger btn-sm"
+                  (click)="removeAreaFromSummary(summary.area)"
+                  title="Eliminar área">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-borderless">
+                  <thead class="table-secondary">
+                    <tr>
+                      <th class="fs-6 py-3">Producto</th>
+                      <th class="fs-6 py-3">Cantidad</th>
+                      <th class="fs-6 py-3">Presentación</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let product of summary.products">
+                      <td class="fs-6 py-2">{{ product.name }}</td>
+                      <td class="fs-6 py-2">{{ product.quantity }}</td>
+                      <td class="fs-6 py-2">{{ product.unit }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
           

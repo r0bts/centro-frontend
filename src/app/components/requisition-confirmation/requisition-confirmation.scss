@@ -1,0 +1,49 @@
+/* Estilos mínimos usando principalmente Bootstrap */
+
+/* Solo animaciones suaves y transiciones básicas */
+.card {
+  transition: transform 0.2s ease-in-out;
+}
+
+/* Prevenir desbordamiento vertical */
+.container-fluid {
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+/* Scrollbar personalizado usando variables del proyecto */
+.overflow-auto::-webkit-scrollbar {
+  width: 6px;
+}
+
+.overflow-auto::-webkit-scrollbar-track {
+  background: var(--neutral-100);
+  border-radius: 3px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 3px;
+}
+
+.overflow-auto::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* Transición suave para colapsos */
+.collapse {
+  transition: all 0.3s ease-in-out;
+}
+
+/* Estilos responsivos básicos */
+@media (max-width: 768px) {
+  .btn-lg {
+    font-size: 0.9rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  /* Reducir altura en móviles */
+  .overflow-auto {
+    max-height: 30vh !important;
+  }
+}
