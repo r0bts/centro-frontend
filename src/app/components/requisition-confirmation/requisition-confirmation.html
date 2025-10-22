@@ -16,7 +16,10 @@
             <div class="card-header bg-primary text-white">
               <div class="d-flex justify-content-between align-items-center">
                 <h4 class="mb-0">
-                  Resumen por Áreas
+                  <span *ngIf="!isFromList">Resumen por Áreas</span>
+                  <span *ngIf="isFromList">
+                    <i class="bi bi-eye me-2"></i>Vista de Requisición: {{ requisitionId }}
+                  </span>
                 </h4>
                 <!--<span class="badge bg-light text-dark fs-6">
                   {{ getTotalAreasCount() }} área(s)
@@ -45,8 +48,8 @@
                 </div>
               </div>
 
-              <!-- Selección de empleado -->
-              <div class="row mb-4">
+              <!-- Selección de empleado - Solo mostrar si NO viene de la lista -->
+              <div class="row mb-4" *ngIf="!isFromList">
                 <div class="col-12">
                   <div class="card border">
                     <div class="card-body p-3">
@@ -114,8 +117,34 @@
                 </div>
               </div>
 
+              <!-- Información del empleado responsable - Solo mostrar cuando viene de la lista -->
+              <div class="row mb-4" *ngIf="isFromList && selectedEmployee">
+                <div class="col-12">
+                  <div class="card border">
+                    <div class="card-body p-3">
+                      <div class="row align-items-center">
+                        <div class="col-12 col-md-3">
+                          <label class="form-label fw-bold mb-2">Empleado responsable:</label>
+                        </div>
+                        <div class="col-12 col-md-9">
+                          <div class="alert alert-info border-info mb-0">
+                            <div class="d-flex align-items-center">
+                              <div>
+                                <i class="bi bi-person-badge me-2"></i>
+                                <strong>{{ selectedEmployee.name }}</strong>
+                                <small class="text-muted ms-2">{{ selectedEmployee.position }}</small>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Lista de áreas y productos -->
-              <div class="overflow-auto" style="max-height: 50vh;">
+              <div class="overflow-auto" style="max-height: 40vh;">
                 <div *ngFor="let summary of requisitionData; let i = index" class="mb-4">
                   <div class="card border shadow-sm">
                     <div class="card-header bg-light border-bottom">
@@ -155,9 +184,17 @@
                 </div>
               </div>
 
-              <div class="text-end mt-4">
+              <!-- Botón "Volver a editar" - Solo mostrar si NO viene de la lista -->
+              <div class="text-end mt-4" *ngIf="!isFromList">
                 <button class="btn btn-primary border" (click)="goBack()">
                   Volver a editar
+                </button>
+              </div>
+
+              <!-- Botón "Cerrar" - Solo mostrar si viene de la lista -->
+              <div class="text-end mt-4" *ngIf="isFromList">
+                <button class="btn btn-secondary border" (click)="goBack()">
+                  <i class="bi bi-arrow-left me-2"></i>Volver a la lista
                 </button>
               </div>
             </div>
@@ -243,7 +280,8 @@
                 </div>
               </div>
               
-              <div class="text-end mt-4">
+              <!-- Botón "Enviar Requisición" - Solo mostrar si NO viene de la lista -->
+              <div class="text-end mt-4" *ngIf="!isFromList">
                 <button 
                   class="btn btn-success" 
                   (click)="confirmFinalRequisition()"

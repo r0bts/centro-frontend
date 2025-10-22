@@ -37,7 +37,7 @@ export const routes: Routes = [
   },
   {
     path: 'requisicion/lista',
-    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
+    loadComponent: () => import('./components/requisition-list/requisition-list').then(m => m.RequisitionListComponent),
     canActivate: [authGuard]
   },
   {

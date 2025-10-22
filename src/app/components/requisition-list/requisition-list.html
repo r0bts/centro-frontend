@@ -1,0 +1,172 @@
+<div class="container-fluid">
+  <div class="bg-light">
+    <!-- Content Menu Component -->
+    <app-content-menu 
+      [activeSection]="activeSection"
+      (sectionChange)="onSectionChange($event)">
+    </app-content-menu>
+
+    <!-- Main Content -->
+    <div class="container-fluid p-4">
+      <div class="row">
+        <div class="col-12">
+          <!-- Barra de herramientas superior -->
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex gap-2">
+               <!--<button type="button" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-house"></i> Inicio
+              </button> -->
+              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="exportData()">
+                <i class="bi bi-download"></i> Exportar
+              </button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="printTable()">
+                <i class="bi bi-printer"></i> Imprimir
+              </button>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+              <!-- Filtros de fecha -->
+              <div class="d-flex align-items-center gap-2">
+                <label for="startDate" class="form-label mb-0 text-muted">Desde:</label>
+                <input type="date" 
+                       id="startDate" 
+                       class="form-control form-control-sm" 
+                       style="width: 140px;"
+                       [(ngModel)]="filterStartDate"
+                       (change)="applyDateFilter()">
+              </div>
+              
+              <div class="d-flex align-items-center gap-2">
+                <label for="endDate" class="form-label mb-0 text-muted">Hasta:</label>
+                <input type="date" 
+                       id="endDate" 
+                       class="form-control form-control-sm" 
+                       style="width: 140px;"
+                       [(ngModel)]="filterEndDate"
+                       (change)="applyDateFilter()">
+              </div>
+              
+              <button type="button" 
+                      class="btn btn-outline-secondary btn-sm" 
+                      (click)="clearDateFilter()"
+                      title="Limpiar filtros de fecha">
+                <i class="bi bi-x-circle"></i>
+              </button>
+              
+              <!-- Separador -->
+              <div class="vr"></div>
+              
+              <!-- Búsqueda -->
+              <div class="d-flex align-items-center gap-2">
+                <label for="searchInput" class="form-label mb-0">Buscar:</label>
+                <input type="text" id="searchInput" class="form-control form-control-sm" style="width: 200px;" 
+                       placeholder="" 
+                       [(ngModel)]="searchTerm"
+                       (keyup)="performSearch()">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabla de requisiciones agrupadas por fecha -->
+          <div class="requisitions-sections">
+            <div *ngFor="let dateGroup of filteredDateGroups" class="date-section mb-4">
+              <!-- Encabezado de la sección de fecha -->
+              <div class="date-header bg-light p-3 rounded-top border">
+                <h5 class="mb-0 text-primary">
+                  <i class="bi bi-calendar3"></i>
+                  {{ dateGroup }}
+                  <span class="badge bg-secondary ms-2">{{ filteredGroupedRequisitions[dateGroup].length }} requisiciones</span>
+                </h5>
+              </div>
+              
+              <!-- Tabla para esta fecha -->
+              <div class="table-responsive border border-top-0 rounded-bottom">                                   
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="border">ID <i class="bi bi-caret-up-fill text-muted"></i></th>
+                      <th class="border">Creado por</th>
+                      <th class="border">Autorizado por</th>
+                      <th class="border">Estatus</th>
+                      <th class="border">Fecha entrega</th>
+                      <th class="border">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let requisition of filteredGroupedRequisitions[dateGroup]">
+                      <!-- ID -->
+                      <td class="align-middle border">
+                        <strong>{{ requisition.id }}</strong>
+                      </td>
+                      
+                      <!-- Creador -->
+                      <td class="align-middle border">
+                        {{ requisition.creator }}
+                      </td>
+                      
+                      <!-- Autorizador -->
+                      <td class="align-middle border">
+                        <span *ngIf="requisition.authorizer; else noAuthorizer">
+                          {{ requisition.authorizer }}
+                        </span>
+                        <ng-template #noAuthorizer>
+                          <span class="text-muted">Pendiente</span>
+                        </ng-template>
+                      </td>
+                      
+                      <!-- Estatus -->
+                      <td class="align-middle border">
+                        <span [class]="getStatusClass(requisition.status)">
+                          {{ requisition.status }}
+                        </span>
+                      </td>
+                      
+                      <!-- Fecha de Entrega -->
+                      <td class="align-middle border">
+                        {{ formatDate(requisition.deliveryDate) }}
+                      </td>
+                      
+                      <!-- Acciones -->
+                      <td class="align-middle border">
+                        <div class="d-flex gap-1 justify-content-center">
+                          <!-- Ver -->
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-secondary btn-sm"
+                            (click)="viewRequisition(requisition)"
+                            title="Ver">
+                            <i class="bi bi-eye"></i>
+                          </button>
+                          
+                          <!-- Editar -->
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-primary btn-sm"
+                            [disabled]="!canSupply(requisition)"
+                            (click)="supplyRequisition(requisition)"
+                            title="Editar">
+                            <i class="bi bi-pencil"></i>
+                          </button>
+                          
+                          <!-- Eliminar -->
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-danger btn-sm"
+                            [disabled]="!canDelete(requisition)"
+                            (click)="deleteRequisition(requisition)"
+                            title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

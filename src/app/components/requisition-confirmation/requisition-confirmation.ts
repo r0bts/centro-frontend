@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
 
 export interface RequisitionSummary {
@@ -68,9 +68,14 @@ export class RequisitionConfirmationComponent implements OnInit {
   selectedEmployee: Employee | null = null;
   employeeSearchTerm: string = '';
   showEmployeeDropdown: boolean = false;
+  
+  // Propiedades para manejo de parámetros
+  requisitionId: string = '';
+  viewMode: 'view' | 'edit' = 'view';
+  isFromList: boolean = false;
 
-  constructor(private router: Router) {
-    // Obtener datos del estado de navegación
+  constructor(private router: Router, private route: ActivatedRoute) {
+    // Obtener datos del estado de navegación (para flujo normal)
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state) {
       this.requisitionData = navigation.extras.state['requisitionData'] || [];
@@ -79,13 +84,103 @@ export class RequisitionConfirmationComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Si no hay datos, redirigir de vuelta
-    if (this.requisitionData.length === 0) {
-      this.router.navigate(['/requisicion']);
-      return;
+    // Verificar si vienen parámetros de query (desde la lista)
+    this.route.queryParams.subscribe(params => {
+      if (params['id'] && params['mode']) {
+        this.requisitionId = params['id'];
+        this.viewMode = params['mode'];
+        this.isFromList = true; // Marca que viene desde la lista
+        this.loadRequisitionData(this.requisitionId);
+      } else {
+        // Si no hay datos ni parámetros, redirigir de vuelta
+        if (this.requisitionData.length === 0) {
+          this.router.navigate(['/requisicion']);
+          return;
+        }
+        this.isFromList = false; // Viene del flujo normal
+        this.consolidateProducts();
+      }
+    });
+  }
+
+  loadRequisitionData(requisitionId: string): void {
+    // Aquí cargarías los datos de la requisición desde el servicio
+    // Por ahora, voy a simular datos basándose en el ID
+    console.log(`Cargando datos para requisición: ${requisitionId} en modo: ${this.viewMode}`);
+    
+    // Datos simulados basándose en el ID de la requisición
+    this.requisitionData = this.getSimulatedRequisitionData(requisitionId);
+    
+    // Simular fecha de entrega
+    this.deliveryDate = new Date('2025-10-25T10:00:00');
+    
+    // Simular empleado responsable asignado
+    this.selectedEmployee = this.getSimulatedResponsibleEmployee(requisitionId);
+    if (this.selectedEmployee) {
+      this.employeeSearchTerm = this.selectedEmployee.name;
     }
     
     this.consolidateProducts();
+  }
+
+  getSimulatedRequisitionData(requisitionId: string): RequisitionSummary[] {
+    // Datos simulados que varían según el ID
+    const baseData: RequisitionSummary[] = [
+      {
+        area: 'Cocina',
+        products: [
+          { id: '1', name: 'Aceite vegetal', quantity: 5, unit: 'Litros', actions: '' },
+          { id: '2', name: 'Sal marina', quantity: 2, unit: 'Kg', actions: '' },
+          { id: '3', name: 'Azúcar refinada', quantity: 10, unit: 'Kg', actions: '' }
+        ]
+      },
+      {
+        area: 'Almacén',
+        products: [
+          { id: '4', name: 'Papel higiénico', quantity: 24, unit: 'Rollos', actions: '' },
+          { id: '5', name: 'Detergente', quantity: 3, unit: 'Litros', actions: '' }
+        ]
+      }
+    ];
+
+    // Modificar datos según el ID para simular diferentes requisiciones
+    if (requisitionId.includes('002') || requisitionId.includes('008')) {
+      baseData.push({
+        area: 'Mantenimiento',
+        products: [
+          { id: '6', name: 'Escobas', quantity: 3, unit: 'Piezas', actions: '' },
+          { id: '7', name: 'Cloro', quantity: 2, unit: 'Litros', actions: '' }
+        ]
+      });
+    }
+
+    return baseData;
+  }
+
+  getSimulatedResponsibleEmployee(requisitionId: string): Employee | null {
+    // Simular empleado responsable según el ID de la requisición
+    const employeeMapping: { [key: string]: Employee } = {
+      'REQ-001': this.employees[1], // María González García
+      'REQ-002': this.employees[2], // Carlos Rodríguez Martín
+      'REQ-003': this.employees[4], // Luis Martínez Sánchez
+      'REQ-004': this.employees[7], // Patricia López Hernández
+      'REQ-005': this.employees[1], // María González García
+      'REQ-006': this.employees[3], // Ana Fernández Ruiz
+      'REQ-007': this.employees[0], // Juan Pérez López
+      'REQ-008': this.employees[6], // Roberto Silva Mendoza
+      'REQ-009': this.employees[7], // Patricia López Hernández
+      'REQ-010': this.employees[1], // María González García
+      'REQ-011': this.employees[4], // Luis Martínez Sánchez
+      'REQ-012': this.employees[2], // Carlos Rodríguez Martín
+      'REQ-013': this.employees[0], // Juan Pérez López
+      'REQ-014': this.employees[7], // Patricia López Hernández
+      'REQ-015': this.employees[3], // Ana Fernández Ruiz
+      'REQ-016': this.employees[1], // María González García
+      'REQ-017': this.employees[4], // Luis Martínez Sánchez
+      'REQ-018': this.employees[6]  // Roberto Silva Mendoza
+    };
+
+    return employeeMapping[requisitionId] || this.employees[0]; // Default al primer empleado si no se encuentra
   }
 
   consolidateProducts(): void {
@@ -146,15 +241,20 @@ export class RequisitionConfirmationComponent implements OnInit {
   }
 
   goBack(): void {
-    // Navegar de vuelta con todos los datos para cargar la información nuevamente
-    this.router.navigate(['/requisicion'], {
-      state: {
-        loadExistingData: true,
-        requisitionSummary: this.requisitionData,
-        deliveryDate: this.deliveryDate,
-        selectedEmployee: this.selectedEmployee
-      }
-    });
+    // Si vino desde la lista, regresar a la lista
+    if (this.requisitionId) {
+      this.router.navigate(['/requisicion/lista']);
+    } else {
+      // Si vino del flujo normal de creación, navegar de vuelta con todos los datos
+      this.router.navigate(['/requisicion'], {
+        state: {
+          loadExistingData: true,
+          requisitionSummary: this.requisitionData,
+          deliveryDate: this.deliveryDate,
+          selectedEmployee: this.selectedEmployee
+        }
+      });
+    }
   }
 
   // Métodos para el manejo de empleados
