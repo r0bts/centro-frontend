@@ -27,7 +27,7 @@
               </div>
             </div>
             
-            <div class="card-body">
+            <div class="card-body d-flex flex-column">
               <!-- Información de fecha de entrega -->
               <div class="alert alert-light border mb-4" *ngIf="deliveryDate">
                 <div class="d-flex align-items-center">
@@ -144,7 +144,7 @@
               </div>
 
               <!-- Lista de áreas y productos -->
-              <div class="overflow-auto" style="max-height: 40vh;">
+              <div class="overflow-auto flex-grow-1" style="max-height: 40vh;">
                 <div *ngFor="let summary of requisitionData; let i = index" class="mb-4">
                   <div class="card border shadow-sm">
                     <div class="card-header bg-light border-bottom">
@@ -185,14 +185,14 @@
               </div>
 
               <!-- Botón "Volver a editar" - Solo mostrar si NO viene de la lista -->
-              <div class="text-end mt-4" *ngIf="!isFromList">
+              <div class="text-end mt-auto pt-4" *ngIf="!isFromList">
                 <button class="btn btn-primary border" (click)="goBack()">
                   Volver a editar
                 </button>
               </div>
 
               <!-- Botón "Cerrar" - Solo mostrar si viene de la lista -->
-              <div class="text-end mt-4" *ngIf="isFromList">
+              <div class="text-end mt-auto pt-4" *ngIf="isFromList">
                 <button class="btn btn-secondary border" (click)="goBack()">
                   <i class="bi bi-arrow-left me-2"></i>Volver a la lista
                 </button>
@@ -215,9 +215,9 @@
               </div>
             </div>
             
-            <div class="card-body">
+            <div class="card-body d-flex flex-column">
               <!-- Tabla consolidada -->
-              <div class="overflow-auto" style="max-height: 60vh;">
+              <div class="overflow-auto flex-grow-1" style="max-height: 60vh;">
                 <div class="table-responsive">
                   <table class="table table-hover">
                     <thead class="table-light">
@@ -281,7 +281,7 @@
               </div>
               
               <!-- Botón "Enviar Requisición" - Solo mostrar si NO viene de la lista -->
-              <div class="text-end mt-4" *ngIf="!isFromList">
+              <div class="text-end mt-auto pt-4" *ngIf="!isFromList">
                 <button 
                   class="btn btn-success" 
                   (click)="confirmFinalRequisition()"
