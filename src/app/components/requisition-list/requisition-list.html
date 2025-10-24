@@ -16,6 +16,14 @@
                <!--<button type="button" class="btn btn-outline-secondary btn-sm">
                 <i class="bi bi-house"></i> Inicio
               </button> -->
+              <!-- Botón para consolidado de almacén -->
+              <button type="button" 
+                      class="btn btn-primary btn-sm" 
+                      (click)="goToWarehouseConsolidated()"
+                      [disabled]="!hasAuthorizedRequisitions()"
+                      title="Ver consolidado de todos los productos por surtir">
+                <i class="bi bi-boxes"></i> Consolidado Almacén
+              </button>
               <button type="button" class="btn btn-outline-secondary btn-sm" (click)="exportData()">
                 <i class="bi bi-download"></i> Exportar
               </button>
@@ -146,6 +154,16 @@
                             (click)="supplyRequisition(requisition)"
                             title="Editar">
                             <i class="bi bi-pencil"></i>
+                          </button>
+                          
+                          <!-- Almacén/Surtir -->
+                          <button 
+                            type="button" 
+                            class="btn btn-outline-success btn-sm"
+                            [disabled]="!canWarehouseSupply(requisition)"
+                            (click)="warehouseSupply(requisition)"
+                            title="Gestionar en almacén">
+                            <i class="bi bi-box-seam"></i>
                           </button>
                           
                           <!-- Eliminar -->

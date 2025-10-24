@@ -1,0 +1,80 @@
+// Warehouse Supply Component Styles - Principalmente Bootstrap con mínimos estilos personalizados
+
+// Transiciones suaves para Bootstrap components
+.card, .btn, .badge {
+  transition: all 0.3s ease;
+}
+
+// Hover effects para cards
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+}
+
+// Progress bar personalizada
+.progress {
+  height: 10px;
+  border-radius: 10px;
+}
+
+// Iconos más grandes en estados
+.fs-4 {
+  font-size: 1.5rem !important;
+}
+
+// Input groups centrados
+.input-group.mx-auto {
+  width: fit-content;
+}
+
+// Colores de stock usando Bootstrap utilities
+.text-success {
+  color: var(--bs-success) !important;
+}
+
+.text-warning {
+  color: var(--bs-warning) !important;
+}
+
+.text-danger {
+  color: var(--bs-danger) !important;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .badge {
+    font-size: 0.7rem;
+  }
+  
+  .btn-sm {
+    font-size: 0.75rem;
+  }
+}
+
+// Estados de tabla con mejor contraste
+.table-success {
+  --bs-table-accent-bg: rgba(25, 135, 84, 0.1);
+}
+
+.table-warning {
+  --bs-table-accent-bg: rgba(255, 193, 7, 0.1);
+}
+
+.table-danger {
+  --bs-table-accent-bg: rgba(220, 53, 69, 0.1);
+}
+
+// Scanner input focus
+.form-control:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+// Spinner personalizado
+.spinner-border.text-primary {
+  color: var(--bs-primary) !important;
+}

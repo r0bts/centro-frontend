@@ -391,6 +391,33 @@ export class RequisitionListComponent implements OnInit {
     return requisition.status === 'Autorizada';
   }
 
+  canWarehouseSupply(requisition: RequisitionItem): boolean {
+    return requisition.status === 'Autorizada' || requisition.status === 'En Proceso';
+  }
+
+  warehouseSupply(requisition: RequisitionItem): void {
+    console.log('Gestionar en almacén:', requisition);
+    // Navegar a la vista de almacén/surtido
+    this.router.navigate(['/almacen/surtir'], {
+      queryParams: {
+        id: requisition.id,
+        mode: 'supply'
+      }
+    });
+  }
+
+  // Función para ir al consolidado general del almacén
+  goToWarehouseConsolidated(): void {
+    console.log('Navegando al consolidado de almacén');
+    // Navegar directamente al consolidado sin parámetros específicos
+    this.router.navigate(['/almacen/surtir']);
+  }
+
+  // Función para verificar si hay requisiciones para consolidar
+  hasAuthorizedRequisitions(): boolean {
+    return this.requisitions.some((req: RequisitionItem) => req.status === 'Autorizada' || req.status === 'En Proceso');
+  }
+
   // Métodos para exportar e imprimir
   exportData(): void {
     // Crear CSV con los datos filtrados agrupados por fecha
