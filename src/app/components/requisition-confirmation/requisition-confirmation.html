@@ -21,9 +21,9 @@
                     <i class="bi bi-eye me-2"></i>Vista de Requisición: {{ requisitionId }}
                   </span>
                 </h4>
-                <!--<span class="badge bg-light text-dark fs-6">
+                <span class="badge bg-light text-dark fs-6">
                   {{ getTotalAreasCount() }} área(s)
-                </span>-->
+                </span>
               </div>
             </div>
             
@@ -186,15 +186,15 @@
 
               <!-- Botón "Volver a editar" - Solo mostrar si NO viene de la lista -->
               <div class="text-end mt-auto pt-4" *ngIf="!isFromList">
-                <button class="btn btn-primary border" (click)="goBack()">
+                <button class="btn btn-outline-secondary" (click)="goBack()">
                   Volver a editar
                 </button>
               </div>
 
               <!-- Botón "Cerrar" - Solo mostrar si viene de la lista -->
               <div class="text-end mt-auto pt-4" *ngIf="isFromList">
-                <button class="btn btn-secondary border" (click)="goBack()">
-                  <i class="bi bi-arrow-left me-2"></i>Volver a la lista
+                <button class="btn btn-outline-secondary" (click)="goBack()">
+                  Volver a la lista
                 </button>
               </div>
             </div>
@@ -209,9 +209,9 @@
                 <h4 class="mb-0">
                   Consolidado Total
                 </h4>
-               <!-- <span class="badge bg-light text-dark fs-6">
+               <span class="badge bg-light text-dark fs-6">
                   {{ getTotalProductsCount() }} producto(s)
-                </span>-->
+                </span>
               </div>
             </div>
             

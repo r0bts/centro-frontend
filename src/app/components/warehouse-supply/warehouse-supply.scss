@@ -5,12 +5,6 @@
   transition: all 0.3s ease;
 }
 
-// Hover effects para cards
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
-}
-
 // Progress bar personalizada
 .progress {
   height: 10px;
