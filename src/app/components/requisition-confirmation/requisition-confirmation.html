@@ -291,6 +291,21 @@
                   {{ selectedEmployee ? 'Enviar Requisición' : 'Selecciona un empleado' }}
                 </button>
               </div>
+
+              <!-- Botones para modo edición - Panel derecho -->
+              <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList && viewMode === 'edit'">
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-danger" (click)="cancelEdit()">
+                    Cancelar
+                  </button>
+                  <button class="btn btn-outline-success" (click)="saveAsTemplate()">
+                    Guardar como frecuente
+                  </button>
+                </div>
+                <button class="btn btn-success" (click)="confirmEdit()">
+                  Autorizar
+                </button>
+              </div>
             </div>
           </div>
         </div>

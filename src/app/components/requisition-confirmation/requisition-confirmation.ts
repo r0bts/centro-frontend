@@ -319,4 +319,65 @@ export class RequisitionConfirmationComponent implements OnInit {
     alert('¡Requisición enviada exitosamente!');
     this.router.navigate(['/requisicion']);
   }
+
+  // Métodos para el modo edición desde la lista
+  confirmEdit(): void {
+    if (confirm('¿Confirmar los cambios realizados en esta requisición?')) {
+      console.log('Confirmando cambios para requisición:', this.requisitionId);
+      
+      // Aquí se enviarían los cambios al servidor
+      const updatedRequisition = {
+        id: this.requisitionId,
+        deliveryDate: this.deliveryDate,
+        responsibleEmployee: this.selectedEmployee,
+        areas: this.requisitionData,
+        consolidatedProducts: this.consolidatedProducts,
+        lastModified: new Date()
+      };
+      
+      console.log('Requisición actualizada:', updatedRequisition);
+      
+      // Mostrar mensaje de éxito y volver a la lista
+      alert('¡Cambios confirmados exitosamente!');
+      this.router.navigate(['/requisicion/lista']);
+    }
+  }
+
+  cancelEdit(): void {
+    if (confirm('¿Cancelar los cambios? Se perderán todas las modificaciones realizadas.')) {
+      console.log('Cancelando edición para requisición:', this.requisitionId);
+      this.router.navigate(['/requisicion/lista']);
+    }
+  }
+
+  saveAsTemplate(): void {
+    const templateName = prompt('Ingrese un nombre para esta lista frecuente:');
+    
+    if (templateName && templateName.trim()) {
+      console.log('Guardando como plantilla:', {
+        name: templateName.trim(),
+        areas: this.requisitionData,
+        consolidatedProducts: this.consolidatedProducts,
+        createdFrom: this.requisitionId,
+        createdDate: new Date()
+      });
+      
+      // Aquí se guardaría la plantilla en el servidor o localStorage
+      const template = {
+        id: `TEMPLATE-${Date.now()}`,
+        name: templateName.trim(),
+        areas: this.requisitionData,
+        consolidatedProducts: this.consolidatedProducts,
+        createdFrom: this.requisitionId,
+        createdDate: new Date()
+      };
+      
+      // Simular guardado en localStorage
+      const existingTemplates = JSON.parse(localStorage.getItem('requisitionTemplates') || '[]');
+      existingTemplates.push(template);
+      localStorage.setItem('requisitionTemplates', JSON.stringify(existingTemplates));
+      
+      alert(`¡Lista frecuente "${templateName}" guardada exitosamente!`);
+    }
+  }
 }
