@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
+import Swal from 'sweetalert2';
 
 export interface RequisitionSummary {
   area: string;
@@ -303,7 +304,12 @@ export class RequisitionConfirmationComponent implements OnInit {
   confirmFinalRequisition(): void {
     // Validar que se haya seleccionado un empleado
     if (!this.selectedEmployee) {
-      alert('Por favor selecciona un empleado responsable antes de confirmar la requisición.');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Empleado requerido',
+        text: 'Por favor selecciona un empleado responsable antes de confirmar la requisición.',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
 
@@ -316,68 +322,112 @@ export class RequisitionConfirmationComponent implements OnInit {
     });
     
     // Mostrar mensaje de éxito y navegar
-    alert('¡Requisición enviada exitosamente!');
-    this.router.navigate(['/requisicion']);
+    Swal.fire({
+      icon: 'success',
+      title: '¡Éxito!',
+      text: 'Requisición enviada exitosamente',
+      confirmButtonText: 'Continuar'
+    }).then(() => {
+      this.router.navigate(['/requisicion']);
+    });
   }
 
   // Métodos para el modo edición desde la lista
   confirmEdit(): void {
-    if (confirm('¿Confirmar los cambios realizados en esta requisición?')) {
-      console.log('Confirmando cambios para requisición:', this.requisitionId);
-      
-      // Aquí se enviarían los cambios al servidor
-      const updatedRequisition = {
-        id: this.requisitionId,
-        deliveryDate: this.deliveryDate,
-        responsibleEmployee: this.selectedEmployee,
-        areas: this.requisitionData,
-        consolidatedProducts: this.consolidatedProducts,
-        lastModified: new Date()
-      };
-      
-      console.log('Requisición actualizada:', updatedRequisition);
-      
-      // Mostrar mensaje de éxito y volver a la lista
-      alert('¡Cambios confirmados exitosamente!');
-      this.router.navigate(['/requisicion/lista']);
-    }
+    Swal.fire({
+      title: '¿Confirmar autorización?',
+      text: 'Esta acción autorizará la requisición y no se podrá deshacer.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, autorizar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#28a745',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Aquí se enviaría la requisición autorizada al servidor
+        console.log('Requisición autorizada');
+        
+        Swal.fire({
+          icon: 'success',
+          title: '¡Autorizada!',
+          text: 'La requisición ha sido autorizada exitosamente.',
+          confirmButtonText: 'Continuar'
+        }).then(() => {
+          this.router.navigate(['/requisitions']);
+        });
+      }
+    });
   }
 
   cancelEdit(): void {
-    if (confirm('¿Cancelar los cambios? Se perderán todas las modificaciones realizadas.')) {
-      console.log('Cancelando edición para requisición:', this.requisitionId);
-      this.router.navigate(['/requisicion/lista']);
-    }
+    Swal.fire({
+      title: '¿Cancelar edición?',
+      text: 'Se perderán todos los cambios no guardados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cancelar',
+      cancelButtonText: 'Continuar editando',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.router.navigate(['/requisitions']);
+      }
+    });
   }
 
   saveAsTemplate(): void {
-    const templateName = prompt('Ingrese un nombre para esta lista frecuente:');
-    
-    if (templateName && templateName.trim()) {
-      console.log('Guardando como plantilla:', {
-        name: templateName.trim(),
-        areas: this.requisitionData,
-        consolidatedProducts: this.consolidatedProducts,
-        createdFrom: this.requisitionId,
-        createdDate: new Date()
-      });
-      
-      // Aquí se guardaría la plantilla en el servidor o localStorage
-      const template = {
-        id: `TEMPLATE-${Date.now()}`,
-        name: templateName.trim(),
-        areas: this.requisitionData,
-        consolidatedProducts: this.consolidatedProducts,
-        createdFrom: this.requisitionId,
-        createdDate: new Date()
-      };
-      
-      // Simular guardado en localStorage
-      const existingTemplates = JSON.parse(localStorage.getItem('requisitionTemplates') || '[]');
-      existingTemplates.push(template);
-      localStorage.setItem('requisitionTemplates', JSON.stringify(existingTemplates));
-      
-      alert(`¡Lista frecuente "${templateName}" guardada exitosamente!`);
-    }
+    Swal.fire({
+      title: 'Guardar como lista frecuente',
+      text: 'Ingrese un nombre para esta lista frecuente:',
+      input: 'text',
+      inputPlaceholder: 'Nombre de la lista frecuente',
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#007bff',
+      cancelButtonColor: '#6c757d',
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return 'Debes ingresar un nombre para la lista frecuente';
+        }
+        return null;
+      }
+    }).then((result) => {
+      if (result.isConfirmed && result.value) {
+        const templateName = result.value.trim();
+        
+        console.log('Guardando como plantilla:', {
+          name: templateName,
+          areas: this.requisitionData,
+          consolidatedProducts: this.consolidatedProducts,
+          createdFrom: this.requisitionId,
+          createdDate: new Date()
+        });
+        
+        // Aquí se guardaría la plantilla en el servidor o localStorage
+        const template = {
+          id: `TEMPLATE-${Date.now()}`,
+          name: templateName,
+          areas: this.requisitionData,
+          consolidatedProducts: this.consolidatedProducts,
+          createdFrom: this.requisitionId,
+          createdDate: new Date()
+        };
+        
+        // Simular guardado en localStorage
+        const existingTemplates = JSON.parse(localStorage.getItem('requisitionTemplates') || '[]');
+        existingTemplates.push(template);
+        localStorage.setItem('requisitionTemplates', JSON.stringify(existingTemplates));
+        
+        Swal.fire({
+          icon: 'success',
+          title: '¡Lista frecuente guardada!',
+          text: `La lista frecuente "${templateName}" ha sido guardada exitosamente.`,
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 }
