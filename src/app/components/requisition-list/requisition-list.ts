@@ -248,6 +248,17 @@ export class RequisitionListComponent implements OnInit {
     return `${day}-${month}-${year}`;
   }
 
+  formatTime(date: Date): string {
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  formatDateWithTime(date: Date): string {
+    return `${this.formatDate(date)} ${this.formatTime(date)}`;
+  }
+
   formatDateSection(date: Date): string {
     const months = [
       'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
@@ -442,17 +453,19 @@ export class RequisitionListComponent implements OnInit {
   // Métodos para exportar e imprimir
   exportData(): void {
     // Crear CSV con los datos filtrados agrupados por fecha
-    let csvContent = 'Fecha de Entrega,ID,Creador,Autorizador,Estatus,Fecha de Creación\n';
+    let csvContent = 'Fecha de Entrega,Hora de Entrega,ID,Creador,Autorizador,Estatus,Fecha de Creación,Hora de Creación\n';
     
     this.filteredDateGroups.forEach(dateGroup => {
       this.filteredGroupedRequisitions[dateGroup].forEach(req => {
         const row = [
-          dateGroup,
+          this.formatDate(req.deliveryDate),
+          this.formatTime(req.deliveryDate),
           req.id,
           req.creator,
           req.authorizer || 'Pendiente',
           req.status,
-          this.formatDate(req.creationDate)
+          this.formatDate(req.creationDate),
+          this.formatTime(req.creationDate)
         ];
         csvContent += row.map(field => `"${field}"`).join(',') + '\n';
       });
@@ -505,6 +518,7 @@ export class RequisitionListComponent implements OnInit {
               <th>Autorizado por</th>
               <th>Estatus</th>
               <th>Fecha de Creación</th>
+              <th>Hora de Entrega</th>
             </tr>
           </thead>
           <tbody>
@@ -517,7 +531,8 @@ export class RequisitionListComponent implements OnInit {
             <td>${req.creator}</td>
             <td>${req.authorizer || 'Pendiente'}</td>
             <td><span class="${this.getStatusClass(req.status)}">${req.status}</span></td>
-            <td>${this.formatDate(req.creationDate)}</td>
+            <td>${this.formatDate(req.creationDate)} ${this.formatTime(req.creationDate)}</td>
+            <td><strong>${this.formatTime(req.deliveryDate)}</strong></td>
           </tr>
         `;
       });

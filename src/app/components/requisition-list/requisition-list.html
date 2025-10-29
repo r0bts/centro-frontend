@@ -131,7 +131,10 @@
                       
                       <!-- Fecha de Entrega -->
                       <td class="align-middle border">
-                        {{ formatDate(requisition.deliveryDate) }}
+                        <div class="d-flex flex-column">
+                          <span class="fw-bold">{{ formatDate(requisition.deliveryDate) }}</span>
+                          <small class="text-muted">{{ formatTime(requisition.deliveryDate) }}</small>
+                        </div>
                       </td>
                       
                       <!-- Acciones -->

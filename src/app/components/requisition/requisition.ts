@@ -33,6 +33,9 @@ export interface RequisitionSummary {
 export class RequisitionComponent implements OnInit {
   activeSection: string = 'requisicion';
   
+  // Propiedad para devolución
+  isDevolucion: boolean = false;
+  
   // Propiedades para fechas (OBLIGATORIO)
   selectedEvent: string = '';
   customDeliveryDate: string = '';
@@ -125,11 +128,17 @@ export class RequisitionComponent implements OnInit {
       this.customDeliveryDate = this.formatDateForInput(this.currentDeliveryDate);
     }
     
+    // Cargar el estado de devolución
+    if (state['isDevolucion'] !== undefined) {
+      this.isDevolucion = state['isDevolucion'];
+    }
+    
     // Mostrar mensaje de carga exitosa
     console.log('Datos cargados desde confirmación:', {
       areas: this.requisitionSummary.length,
       deliveryDate: this.currentDeliveryDate,
-      selectedEmployee: state['selectedEmployee']
+      selectedEmployee: state['selectedEmployee'],
+      isDevolucion: this.isDevolucion
     });
   }
 
@@ -372,7 +381,8 @@ export class RequisitionComponent implements OnInit {
     this.router.navigate(['/requisicion/confirmacion'], {
       state: {
         requisitionData: this.requisitionSummary,
-        deliveryDate: this.currentDeliveryDate
+        deliveryDate: this.currentDeliveryDate,
+        isDevolucion: this.isDevolucion
       }
     });
   }

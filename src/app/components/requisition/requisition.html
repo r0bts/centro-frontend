@@ -22,11 +22,25 @@
             <div class="col-12">
               <div class="card ">
                 <div class="card-body p-3">
-                  <div class="row align-i tems-center g-3">
-                    <div class="col-12">
+                  <div class="row align-items-center g-3">
+                    <div class="col-12 col-md-8">
                       <h6 class="fw-bold text-warning-emphasis mb-3">
                         <i class="bi bi-calendar-event me-2"></i>Fecha de entrega (Obligatorio)
                       </h6>
+                    </div>
+                    
+                    <!-- Checkbox de Devolución -->
+                    <div class="col-12 col-md-4">
+                      <div class="form-check">
+                        <input 
+                          class="form-check-input" 
+                          type="checkbox" 
+                          id="devolucionCheck"
+                          [(ngModel)]="isDevolucion">
+                        <label class="form-check-label fw-bold text-danger" for="devolucionCheck">
+                          Devolución
+                        </label>
+                      </div>
                     </div>
                     
                     <div class="col-12 col-md-3">
