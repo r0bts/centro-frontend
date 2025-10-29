@@ -36,6 +36,7 @@ export class RequisitionComponent implements OnInit {
   // Propiedades para fechas (OBLIGATORIO)
   selectedEvent: string = '';
   customDeliveryDate: string = '';
+  deliveryTime: string = '08:00'; // Un solo campo de hora para ambas opciones
   currentDeliveryDate: Date | null = null;
 
   constructor(private router: Router) {
@@ -526,9 +527,14 @@ export class RequisitionComponent implements OnInit {
     if (this.selectedEvent) {
       const selectedEventObj = this.events.find(event => event.id === this.selectedEvent);
       if (selectedEventObj) {
-        // Establecer fecha un día antes del evento
+        // Establecer fecha un día antes del evento con la hora seleccionada
         const deliveryDate = new Date(selectedEventObj.date);
         deliveryDate.setDate(deliveryDate.getDate() - 1);
+        
+        // Agregar la hora seleccionada
+        const [hours, minutes] = this.deliveryTime.split(':').map(Number);
+        deliveryDate.setHours(hours, minutes, 0, 0);
+        
         this.currentDeliveryDate = deliveryDate;
         this.customDeliveryDate = ''; // Limpiar fecha personalizada
       }
@@ -539,16 +545,28 @@ export class RequisitionComponent implements OnInit {
 
   onCustomDateChange(): void {
     if (this.customDeliveryDate) {
-      // Si es fecha personalizada, usa el día exacto seleccionado
-      // Crear la fecha con componentes específicos para evitar problemas de zona horaria
+      // Si es fecha personalizada, usa el día exacto seleccionado con la hora
       const dateParts = this.customDeliveryDate.split('-');
       const year = parseInt(dateParts[0]);
       const month = parseInt(dateParts[1]) - 1; // Los meses en JavaScript van de 0-11
       const day = parseInt(dateParts[2]);
-      this.currentDeliveryDate = new Date(year, month, day);
+      
+      // Agregar la hora seleccionada
+      const [hours, minutes] = this.deliveryTime.split(':').map(Number);
+      
+      this.currentDeliveryDate = new Date(year, month, day, hours, minutes, 0, 0);
       this.selectedEvent = ''; // Limpiar evento seleccionado
     } else {
       this.currentDeliveryDate = null;
+    }
+  }
+
+  onTimeChange(): void {
+    // Cuando cambia la hora, actualizar la fecha actual según la opción seleccionada
+    if (this.selectedEvent) {
+      this.onEventChange();
+    } else if (this.customDeliveryDate) {
+      this.onCustomDateChange();
     }
   }
 
@@ -558,6 +576,13 @@ export class RequisitionComponent implements OnInit {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
+    });
+  }
+
+  formatTime(date: Date): string {
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   }
 
