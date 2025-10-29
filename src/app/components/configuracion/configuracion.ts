@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
+import Swal from 'sweetalert2';
 
 interface ConfigSection {
   id: string;
@@ -293,26 +294,51 @@ export class ConfiguracionComponent implements OnInit {
   saveConfiguration(): void {
     console.log('💾 Guardando configuración:', this.systemConfig);
     // Aquí implementarías la lógica para guardar en el backend
-    alert('Configuración guardada exitosamente');
+    Swal.fire({
+      icon: 'success',
+      title: '¡Configuración guardada!',
+      text: 'La configuración ha sido guardada exitosamente',
+      confirmButtonText: 'Continuar',
+      timer: 2000,
+      timerProgressBar: true
+    });
   }
 
   resetToDefaults(): void {
-    if (confirm('¿Estás seguro de que deseas restaurar la configuración por defecto?')) {
-      this.systemConfig = {
-        siteName: 'Centro de Control',
-        adminEmail: 'admin@centro.com',
-        maxFileSize: 10,
-        sessionTimeout: 30,
-        enableNotifications: true,
-        enableTwoFactor: false,
-        maintenanceMode: false,
-        autoBackup: true,
-        backupInterval: 24,
-        themeMode: 'light',
-        language: 'es'
-      };
-      console.log('🔄 Configuración restaurada a valores por defecto');
-    }
+    Swal.fire({
+      title: '¿Restaurar configuración?',
+      text: '¿Estás seguro de que deseas restaurar la configuración por defecto?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, restaurar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#007bff',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.systemConfig = {
+          siteName: 'Centro de Control',
+          adminEmail: 'admin@centro.com',
+          maxFileSize: 10,
+          sessionTimeout: 30,
+          enableNotifications: true,
+          enableTwoFactor: false,
+          maintenanceMode: false,
+          autoBackup: true,
+          backupInterval: 24,
+          themeMode: 'light',
+          language: 'es'
+        };
+        console.log('🔄 Configuración restaurada a valores por defecto');
+        
+        Swal.fire({
+          icon: 'success',
+          title: '¡Configuración restaurada!',
+          text: 'La configuración ha sido restaurada a los valores por defecto',
+          confirmButtonText: 'Continuar'
+        });
+      }
+    });
   }
 
   exportConfiguration(): void {
@@ -331,7 +357,14 @@ export class ConfiguracionComponent implements OnInit {
     console.log('🔗 Probando conexión...');
     // Simulación de prueba de conexión
     setTimeout(() => {
-      alert('Conexión exitosa ✅');
+      Swal.fire({
+        icon: 'success',
+        title: 'Conexión exitosa ✅',
+        text: 'La conexión se ha establecido correctamente',
+        confirmButtonText: 'Continuar',
+        timer: 3000,
+        timerProgressBar: true
+      });
     }, 1000);
   }
 
@@ -339,7 +372,14 @@ export class ConfiguracionComponent implements OnInit {
     console.log('💾 Creando respaldo manual...');
     // Simulación de creación de backup
     setTimeout(() => {
-      alert('Respaldo creado exitosamente ✅');
+      Swal.fire({
+        icon: 'success',
+        title: 'Respaldo creado exitosamente ✅',
+        text: 'El respaldo del sistema se ha creado correctamente',
+        confirmButtonText: 'Continuar',
+        timer: 3000,
+        timerProgressBar: true
+      });
     }, 2000);
   }
 
@@ -347,7 +387,14 @@ export class ConfiguracionComponent implements OnInit {
     console.log('🔔 Enviando notificación de prueba...');
     // Simulación de envío de notificación
     setTimeout(() => {
-      alert('Notificación de prueba enviada ✅');
+      Swal.fire({
+        icon: 'success',
+        title: 'Notificación de prueba enviada ✅',
+        text: 'La notificación de prueba se ha enviado correctamente',
+        confirmButtonText: 'Continuar',
+        timer: 3000,
+        timerProgressBar: true
+      });
     }, 500);
   }
 
@@ -357,19 +404,55 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   clearCache(): void {
-    if (confirm('¿Estás seguro de que deseas limpiar la caché del sistema?')) {
-      console.log('🧹 Limpiando caché...');
-      setTimeout(() => {
-        alert('Caché limpiada exitosamente ✅');
-      }, 1000);
-    }
+    Swal.fire({
+      title: '¿Limpiar caché del sistema?',
+      text: '¿Estás seguro de que deseas limpiar la caché del sistema?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, limpiar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#007bff',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        console.log('🧹 Limpiando caché...');
+        setTimeout(() => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Caché limpiada exitosamente ✅',
+            text: 'La caché del sistema ha sido limpiada correctamente',
+            confirmButtonText: 'Continuar',
+            timer: 3000,
+            timerProgressBar: true
+          });
+        }, 1000);
+      }
+    });
   }
 
   restartSystem(): void {
-    if (confirm('¿Estás seguro de que deseas reiniciar el sistema? Esto afectará a todos los usuarios conectados.')) {
-      console.log('🔄 Reiniciando sistema...');
-      alert('Comando de reinicio enviado. El sistema se reiniciará en 2 minutos.');
-    }
+    Swal.fire({
+      title: '¿Reiniciar el sistema?',
+      text: '¿Estás seguro de que deseas reiniciar el sistema? Esto afectará a todos los usuarios conectados.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, reiniciar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        console.log('🔄 Reiniciando sistema...');
+        Swal.fire({
+          icon: 'info',
+          title: 'Comando de reinicio enviado',
+          text: 'El sistema se reiniciará en 2 minutos.',
+          confirmButtonText: 'Entendido',
+          timer: 5000,
+          timerProgressBar: true
+        });
+      }
+    });
   }
 
   // Métodos para gestión de roles y permisos
@@ -417,7 +500,12 @@ export class ConfiguracionComponent implements OnInit {
 
   saveRole(): void {
     if (!this.newRole.name || !this.newRole.description) {
-      alert('Por favor completa todos los campos obligatorios');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos obligatorios',
+        text: 'Por favor completa todos los campos obligatorios',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
 
@@ -455,16 +543,41 @@ export class ConfiguracionComponent implements OnInit {
     if (!role) return;
 
     if (role.isSystem) {
-      alert('No se pueden eliminar roles del sistema');
+      Swal.fire({
+        icon: 'error',
+        title: 'Acción no permitida',
+        text: 'No se pueden eliminar roles del sistema',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
 
-    if (confirm(`¿Estás seguro de que deseas eliminar el rol "${role.name}"?`)) {
-      this.roles = this.roles.filter(r => r.id !== roleId);
-      // También remover usuarios con este rol
-      this.roleUsers = this.roleUsers.filter(ru => ru.role !== roleId);
-      console.log('🗑️ Rol eliminado:', role.name);
-    }
+    Swal.fire({
+      title: '¿Eliminar rol?',
+      text: `¿Estás seguro de que deseas eliminar el rol "${role.name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.roles = this.roles.filter(r => r.id !== roleId);
+        // También remover usuarios con este rol
+        this.roleUsers = this.roleUsers.filter(ru => ru.role !== roleId);
+        console.log('🗑️ Rol eliminado:', role.name);
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Rol eliminado',
+          text: `El rol "${role.name}" ha sido eliminado exitosamente`,
+          confirmButtonText: 'Continuar',
+          timer: 2000,
+          timerProgressBar: true
+        });
+      }
+    });
   }
 
   toggleRoleStatus(roleId: string): void {

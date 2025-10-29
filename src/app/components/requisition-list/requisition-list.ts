@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
+import Swal from 'sweetalert2';
 
 // Definir interfaces para los datos
 export interface RequisitionItem {
@@ -362,14 +363,34 @@ export class RequisitionListComponent implements OnInit {
   }
 
   deleteRequisition(requisition: RequisitionItem): void {
-    if (confirm(`¿Estás seguro de que deseas eliminar la requisición ${requisition.id}?`)) {
-      console.log('Eliminar requisición:', requisition);
-      // Aquí implementarías la lógica de eliminación
-      this.requisitions = this.requisitions.filter(r => r.id !== requisition.id);
-      
-      // Reagrupar después de eliminar
-      this.groupRequisitionsByDate();
-    }
+    Swal.fire({
+      title: '¿Eliminar requisición?',
+      text: `¿Estás seguro de que deseas eliminar la requisición ${requisition.id}?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        console.log('Eliminar requisición:', requisition);
+        // Aquí implementarías la lógica de eliminación
+        this.requisitions = this.requisitions.filter(r => r.id !== requisition.id);
+        
+        // Reagrupar después de eliminar
+        this.groupRequisitionsByDate();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Requisición eliminada',
+          text: `La requisición ${requisition.id} ha sido eliminada exitosamente`,
+          confirmButtonText: 'Continuar',
+          timer: 2000,
+          timerProgressBar: true
+        });
+      }
+    });
   }
 
   supplyRequisition(requisition: RequisitionItem): void {

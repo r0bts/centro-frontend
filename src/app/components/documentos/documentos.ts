@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContentMenu } from '../content-menu/content-menu';
+import Swal from 'sweetalert2';
 
 interface Document {
   id: number;
@@ -194,10 +195,30 @@ export class DocumentosComponent implements OnInit {
 
   deleteDocument(doc: Document): void {
     console.log('🗑️ Eliminando documento:', doc.name);
-    if (confirm(`¿Estás seguro de que deseas eliminar el documento "${doc.name}"?`)) {
-      this.documents = this.documents.filter(d => d.id !== doc.id);
-      this.filterDocuments();
-    }
+    Swal.fire({
+      title: '¿Eliminar documento?',
+      text: `¿Estás seguro de que deseas eliminar el documento "${doc.name}"?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.documents = this.documents.filter(d => d.id !== doc.id);
+        this.filterDocuments();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Documento eliminado',
+          text: `El documento "${doc.name}" ha sido eliminado exitosamente`,
+          confirmButtonText: 'Continuar',
+          timer: 2000,
+          timerProgressBar: true
+        });
+      }
+    });
   }
 
   uploadDocument(): void {

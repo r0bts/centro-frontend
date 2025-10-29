@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
+import Swal from 'sweetalert2';
 
 // Interfaces para el manejo de datos de requisición individual
 interface WarehouseProduct {
@@ -456,7 +457,12 @@ export class WarehouseSupplyComponent implements OnInit {
     if (product) {
       this.selectProductForSupply(product);
     } else {
-      alert(`No se encontró producto con código: ${this.currentScannedCode}`);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Producto no encontrado',
+        text: `No se encontró producto con código: ${this.currentScannedCode}`,
+        confirmButtonText: 'Entendido'
+      });
     }
     
     this.currentScannedCode = '';
@@ -471,22 +477,39 @@ export class WarehouseSupplyComponent implements OnInit {
 
   selectProductForSupply(product: WarehouseProduct): void {
     if (product.isSupplied) {
-      alert(`El producto "${product.name}" ya fue surtido completamente.`);
+      Swal.fire({
+        icon: 'info',
+        title: 'Producto ya surtido',
+        text: `El producto "${product.name}" ya fue surtido completamente.`,
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
     
     if (product.availableStock < product.requestedQuantity) {
-      const confirmed = confirm(
-        `Stock insuficiente para "${product.name}". 
-        Cantidad solicitada: ${product.requestedQuantity} ${product.unit}
-        Disponible: ${product.availableStock} ${product.unit}
-        ¿Surtir cantidad disponible?`
-      );
-      
-      if (confirmed) {
-        product.suppliedQuantity = product.availableStock;
-        product.isSupplied = true;
-      }
+      Swal.fire({
+        title: 'Stock insuficiente',
+        html: `
+          <p><strong>${product.name}</strong></p>
+          <p>Cantidad solicitada: <strong>${product.requestedQuantity} ${product.unit}</strong></p>
+          <p>Disponible: <strong>${product.availableStock} ${product.unit}</strong></p>
+          <p>¿Surtir cantidad disponible?</p>
+        `,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, surtir disponible',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          product.suppliedQuantity = product.availableStock;
+          product.isSupplied = product.suppliedQuantity >= product.requestedQuantity;
+          this.calculateProgress();
+          this.updateRequisitionStatus();
+        }
+      });
+      return;
     } else {
       product.suppliedQuantity = product.requestedQuantity;
       product.isSupplied = true;
@@ -501,7 +524,12 @@ export class WarehouseSupplyComponent implements OnInit {
     const quantity = parseInt(event.target.value) || 0;
     
     if (quantity > product.availableStock) {
-      alert(`No se puede surtir más de ${product.availableStock} ${product.unit}`);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad excedida',
+        text: `No se puede surtir más de ${product.availableStock} ${product.unit}`,
+        confirmButtonText: 'Entendido'
+      });
       product.suppliedQuantity = product.availableStock;
       return;
     }
@@ -629,7 +657,14 @@ export class WarehouseSupplyComponent implements OnInit {
     });
     
     // Mostrar mensaje de confirmación
-    alert('Progreso guardado exitosamente');
+    Swal.fire({
+      icon: 'success',
+      title: '¡Progreso guardado!',
+      text: 'El progreso ha sido guardado exitosamente',
+      confirmButtonText: 'Continuar',
+      timer: 2000,
+      timerProgressBar: true
+    });
   }
 
   completeSupply(): void {
@@ -638,9 +673,28 @@ export class WarehouseSupplyComponent implements OnInit {
     const allSupplied = this.requisition.products.every(p => p.isSupplied);
     
     if (!allSupplied) {
-      const confirmPartial = confirm('¿Desea completar el suministro aunque no todos los productos hayan sido surtidos?');
-      if (!confirmPartial) return;
+      Swal.fire({
+        title: 'Suministro incompleto',
+        text: '¿Desea completar el suministro aunque no todos los productos hayan sido surtidos?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, completar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.finalizeSupply();
+        }
+      });
+      return;
     }
+    
+    this.finalizeSupply();
+  }
+
+  private finalizeSupply(): void {
+    if (!this.requisition) return;
     
     // Simular completar suministro
     console.log('Suministro completado:', {
@@ -650,8 +704,14 @@ export class WarehouseSupplyComponent implements OnInit {
       totalProducts: this.requisition.totalProducts
     });
     
-    alert('Suministro completado exitosamente');
-    this.goBack();
+    Swal.fire({
+      icon: 'success',
+      title: '¡Suministro completado!',
+      text: 'El suministro ha sido completado exitosamente',
+      confirmButtonText: 'Continuar'
+    }).then(() => {
+      this.goBack();
+    });
   }
 
   canCompleteSupply(): boolean {
