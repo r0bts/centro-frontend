@@ -13,6 +13,7 @@ interface WarehouseProduct {
   category: string;
   requestedQuantity: number;
   suppliedQuantity: number;
+  returnQuantity?: number;
   availableStock: number;
   unit: string;
   location: string;
@@ -27,6 +28,11 @@ interface RequisitionWarehouse {
   creator: string;
   deliveryDate: Date;
   status: string;
+  authorizedBy?: string;
+  authorizationDate?: Date;
+  electronicSignature?: boolean;
+  signatureHash?: string;
+  signatureDate?: Date;
   products: WarehouseProduct[];
   totalProducts: number;
   suppliedProducts: number;
@@ -78,9 +84,15 @@ export class WarehouseSupplyComponent implements OnInit {
   showOnlyPending: boolean = false;
   showScanner: boolean = false;
   scannerEnabled: boolean = false;
+  showReturnColumn: boolean = false; // Nueva variable para mostrar/ocultar columna de devolución
   
   // Estado de carga
   isLoading: boolean = false;
+  
+  // Variables para el modal de NIP
+  enteredNip: string = '';
+  nipError: string = '';
+  private readonly validNip: string = '1234'; // NIP para pruebas
   
   constructor(private router: Router, private route: ActivatedRoute) {
     this.supplySession = {
@@ -119,149 +131,65 @@ export class WarehouseSupplyComponent implements OnInit {
 
   getSimulatedWarehouseData(requisitionId: string): RequisitionWarehouse {
     const products: WarehouseProduct[] = [
-      // Mantenimiento
+      // Mantenimiento - 2 productos
       {
         id: '101',
         name: 'Aceite Lubricante Multiusos',
         requestedQuantity: 2,
         availableStock: 5,
-        suppliedQuantity: 0,
+        suppliedQuantity: 0, // YA SURTIDO para pruebas
         unit: 'Litros',
         location: 'M-01-A',
         barcode: '7501234560101',
         code: '101',
         category: 'Mantenimiento',
-        isSupplied: false,
+        isSupplied: false, // MARCADO COMO SURTIDO
         area: 'Mantenimiento'
       },
       {
         id: '102',
         name: 'Foco LED E27 Luz Blanca',
-        requestedQuantity: 10,
+        requestedQuantity: 3,
         availableStock: 25,
-        suppliedQuantity: 0,
+        suppliedQuantity: 0, // YA SURTIDO para pruebas
         unit: 'Piezas',
         location: 'M-02-B',
         barcode: '7501234560102',
         code: '102',
         category: 'Mantenimiento',
-        isSupplied: false,
+        isSupplied: false, // MARCADO COMO SURTIDO
         area: 'Mantenimiento'
       },
-      {
-        id: '103',
-        name: 'Clavos de Acero 2"',
-        requestedQuantity: 1,
-        availableStock: 8,
-        suppliedQuantity: 0,
-        unit: 'Kg',
-        location: 'M-03-C',
-        barcode: '7501234560103',
-        code: '103',
-        category: 'Mantenimiento',
-        isSupplied: false,
-        area: 'Mantenimiento'
-      },
-      {
-        id: '104',
-        name: 'Pintura Acrílica Blanca (Galón)',
-        requestedQuantity: 3,
-        availableStock: 4,
-        suppliedQuantity: 0,
-        unit: 'Galones',
-        location: 'M-04-D',
-        barcode: '7501234560104',
-        code: '104',
-        category: 'Mantenimiento',
-        isSupplied: false,
-        area: 'Mantenimiento'
-      },
-      {
-        id: '105',
-        name: 'Cinta Adhesiva Aislante Negra',
-        requestedQuantity: 5,
-        availableStock: 12,
-        suppliedQuantity: 0,
-        unit: 'Rollos',
-        location: 'M-05-A',
-        barcode: '7501234560105',
-        code: '105',
-        category: 'Mantenimiento',
-        isSupplied: false,
-        area: 'Mantenimiento'
-      },
-      // Cafetería
+      // Cafetería - 2 productos
       {
         id: '201',
         name: 'Galletas de Avena (Paquete)',
-        requestedQuantity: 15,
+        requestedQuantity: 4,
         availableStock: 20,
-        suppliedQuantity: 0,
+        suppliedQuantity: 0, // YA SURTIDO para pruebas
         unit: 'Paquetes',
         location: 'C-01-A',
         barcode: '7501234560201',
         code: '201',
         category: 'Cafetería',
-        isSupplied: false,
+        isSupplied: false, // MARCADO COMO SURTIDO
         area: 'Cafetería'
       },
       {
         id: '202',
         name: 'Café Soluble Clásico 200g',
-        requestedQuantity: 8,
+        requestedQuantity: 2,
         availableStock: 15,
-        suppliedQuantity: 0,
+        suppliedQuantity: 0, // YA SURTIDO para pruebas
         unit: 'Frascos',
         location: 'C-02-B',
         barcode: '7501234560202',
         code: '202',
         category: 'Cafetería',
-        isSupplied: false,
+        isSupplied: false, // MARCADO COMO SURTIDO
         area: 'Cafetería'
       },
-      {
-        id: '203',
-        name: 'Leche en Polvo Entera 1kg',
-        requestedQuantity: 5,
-        availableStock: 10,
-        suppliedQuantity: 0,
-        unit: 'Kg',
-        location: 'C-03-C',
-        barcode: '7501234560203',
-        code: '203',
-        category: 'Cafetería',
-        isSupplied: false,
-        area: 'Cafetería'
-      },
-      {
-        id: '204',
-        name: 'Azúcar Estándar (Kilo)',
-        requestedQuantity: 12,
-        availableStock: 18,
-        suppliedQuantity: 0,
-        unit: 'Kg',
-        location: 'C-04-D',
-        barcode: '7501234560204',
-        code: '204',
-        category: 'Cafetería',
-        isSupplied: false,
-        area: 'Cafetería'
-      },
-      {
-        id: '205',
-        name: 'Tazas Desechables para Café 8oz',
-        requestedQuantity: 200,
-        availableStock: 300,
-        suppliedQuantity: 0,
-        unit: 'Piezas',
-        location: 'C-05-A',
-        barcode: '7501234560205',
-        code: '205',
-        category: 'Cafetería',
-        isSupplied: false,
-        area: 'Cafetería'
-      },
-      // Limpieza
+      // Limpieza - 2 productos (pendientes)
       {
         id: '301',
         name: 'Cloro Desinfectante 4L',
@@ -290,49 +218,7 @@ export class WarehouseSupplyComponent implements OnInit {
         isSupplied: false,
         area: 'Limpieza'
       },
-      {
-        id: '303',
-        name: 'Toallas de Papel Desechables (Paquete)',
-        requestedQuantity: 25,
-        availableStock: 30,
-        suppliedQuantity: 0,
-        unit: 'Paquetes',
-        location: 'L-03-C',
-        barcode: '7501234560303',
-        code: '303',
-        category: 'Limpieza',
-        isSupplied: false,
-        area: 'Limpieza'
-      },
-      {
-        id: '304',
-        name: 'Limpiador Multiusos con Aroma 1L',
-        requestedQuantity: 8,
-        availableStock: 12,
-        suppliedQuantity: 0,
-        unit: 'Litros',
-        location: 'L-04-D',
-        barcode: '7501234560304',
-        code: '304',
-        category: 'Limpieza',
-        isSupplied: false,
-        area: 'Limpieza'
-      },
-      {
-        id: '305',
-        name: 'Bolsas para Basura Negras Extra Grandes',
-        requestedQuantity: 50,
-        availableStock: 75,
-        suppliedQuantity: 0,
-        unit: 'Piezas',
-        location: 'L-05-A',
-        barcode: '7501234560305',
-        code: '305',
-        category: 'Limpieza',
-        isSupplied: false,
-        area: 'Limpieza'
-      },
-      // Papelería
+      // Papelería - 1 producto (pendiente)
       {
         id: '401',
         name: 'Carpetas de Anillos Tamaño Carta',
@@ -347,63 +233,6 @@ export class WarehouseSupplyComponent implements OnInit {
         isSupplied: false,
         area: 'Administración'
       },
-      {
-        id: '402',
-        name: 'Hojas Blancas Carta (Paquete 500)',
-        requestedQuantity: 10,
-        availableStock: 25,
-        suppliedQuantity: 0,
-        unit: 'Paquetes',
-        location: 'P-02-B',
-        barcode: '7501234560402',
-        code: '402',
-        category: 'Papelería',
-        isSupplied: false,
-        area: 'Administración'
-      },
-      {
-        id: '403',
-        name: 'Tóner para Impresora (Modelo Genérico)',
-        requestedQuantity: 3,
-        availableStock: 2,
-        suppliedQuantity: 0,
-        unit: 'Piezas',
-        location: 'P-03-C',
-        barcode: '7501234560403',
-        code: '403',
-        category: 'Papelería',
-        isSupplied: false,
-        area: 'Administración',
-        notes: 'Stock insuficiente'
-      },
-      {
-        id: '404',
-        name: 'Folders Tamaño Carta Manila',
-        requestedQuantity: 50,
-        availableStock: 100,
-        suppliedQuantity: 0,
-        unit: 'Piezas',
-        location: 'P-04-D',
-        barcode: '7501234560404',
-        code: '404',
-        category: 'Papelería',
-        isSupplied: false,
-        area: 'Administración'
-      },
-      {
-        id: '405',
-        name: 'Plumas de Gel Negras (Caja)',
-        requestedQuantity: 8,
-        availableStock: 15,
-        suppliedQuantity: 0,
-        unit: 'Cajas',
-        location: 'P-05-A',
-        barcode: '7501234560405',
-        code: '405',
-        category: 'Papelería',
-        isSupplied: false,
-        area: 'Administración'
-      }
     ];
 
     return {
@@ -411,10 +240,15 @@ export class WarehouseSupplyComponent implements OnInit {
       creator: 'Ana López Martínez',
       deliveryDate: new Date('2025-10-28T14:00:00'),
       status: 'Autorizada',
+      authorizedBy: 'Dr. Carlos Mendoza',
+      authorizationDate: new Date('2025-10-27T10:30:00'),
+      electronicSignature: true,
+      signatureHash: 'A3F7-8B2C-D9E1-5A6F-C4B8-7D3E-9F1A-2C5B',
+      signatureDate: new Date('2025-10-27T10:32:15'),
       products: products,
       totalProducts: products.length,
-      suppliedProducts: 0,
-      pendingProducts: products.length
+      suppliedProducts: 0, // 4 productos ya surtidos para pruebas
+      pendingProducts: products.length - 4
     };
   }
 
@@ -521,21 +355,41 @@ export class WarehouseSupplyComponent implements OnInit {
 
   // Funciones de control manual
   updateSuppliedQuantity(product: WarehouseProduct, event: any): void {
-    const quantity = parseInt(event.target.value) || 0;
+    const value = event.target.value;
+    
+    // Solo permitir números
+    const numericValue = value.replace(/[^0-9]/g, '');
+    event.target.value = numericValue;
+    
+    const quantity = parseInt(numericValue) || 0;
+    
+    if (quantity > product.requestedQuantity) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad excedida',
+        text: `No se puede surtir más de ${product.requestedQuantity} ${product.unit} (cantidad solicitada)`,
+        confirmButtonText: 'Entendido'
+      });
+      product.suppliedQuantity = product.requestedQuantity;
+      event.target.value = product.requestedQuantity.toString();
+      return;
+    }
     
     if (quantity > product.availableStock) {
       Swal.fire({
         icon: 'warning',
-        title: 'Cantidad excedida',
-        text: `No se puede surtir más de ${product.availableStock} ${product.unit}`,
+        title: 'Stock insuficiente',
+        text: `Solo hay ${product.availableStock} ${product.unit} disponibles en stock`,
         confirmButtonText: 'Entendido'
       });
       product.suppliedQuantity = product.availableStock;
+      event.target.value = product.availableStock.toString();
       return;
     }
     
     if (quantity < 0) {
       product.suppliedQuantity = 0;
+      event.target.value = '0';
       return;
     }
     
@@ -544,6 +398,23 @@ export class WarehouseSupplyComponent implements OnInit {
     
     this.calculateProgress();
     this.updateRequisitionStatus();
+  }
+
+  updateReturnQuantity(product: WarehouseProduct, event: any): void {
+    const value = event.target.value;
+    
+    // Solo permitir números
+    const numericValue = value.replace(/[^0-9]/g, '');
+    event.target.value = numericValue;
+    
+    const quantity = parseInt(numericValue) || 0;
+    
+    if (quantity < 0) {
+      product.returnQuantity = 0;
+      return;
+    }
+    
+    product.returnQuantity = quantity;
   }
 
   markAsComplete(product: WarehouseProduct): void {
@@ -716,7 +587,155 @@ export class WarehouseSupplyComponent implements OnInit {
 
   canCompleteSupply(): boolean {
     if (!this.requisition) return false;
-    return this.requisition.products.some(p => p.isSupplied);
+    // Solo permitir cuando TODOS los productos que tienen stock disponible estén surtidos
+    const productsWithStock = this.requisition.products.filter(p => p.availableStock > 0);
+    if (productsWithStock.length === 0) return false;
+    return productsWithStock.every(p => p.isSupplied);
+  }
+
+  hasProductsToReturn(): boolean {
+    if (!this.requisition) return false;
+    return this.requisition.products.some(p => p.returnQuantity && p.returnQuantity > 0);
+  }
+
+  toggleReturnColumn(): void {
+    this.showReturnColumn = !this.showReturnColumn;
+    
+    // Si se oculta la columna, limpiar todas las cantidades de devolución
+    if (!this.showReturnColumn && this.requisition) {
+      this.requisition.products.forEach(product => {
+        product.returnQuantity = 0;
+      });
+    }
+  }
+
+  markReadyForCollection(): void {
+    if (!this.requisition) return;
+    
+    // Limpiar estado anterior
+    this.enteredNip = '';
+    this.nipError = '';
+    
+    // Abrir modal usando Bootstrap
+    const modalElement = document.getElementById('nipModal');
+    if (modalElement) {
+      const modal = new (window as any).bootstrap.Modal(modalElement);
+      modal.show();
+    }
+  }
+
+  validateNipAndProceed(): void {
+    if (!this.enteredNip || this.enteredNip.length < 4) {
+      this.nipError = 'El NIP debe tener 4 dígitos';
+      return;
+    }
+
+    if (this.enteredNip !== this.validNip) {
+      this.nipError = 'NIP incorrecto. Intente nuevamente.';
+      // Limpiar el input después de error
+      setTimeout(() => {
+        this.enteredNip = '';
+      }, 1500);
+      return;
+    }
+
+    // NIP correcto - cerrar modal y proceder
+    const modalElement = document.getElementById('nipModal');
+    if (modalElement) {
+      const modal = (window as any).bootstrap.Modal.getInstance(modalElement);
+      modal.hide();
+    }
+
+    // Proceder con la confirmación
+    this.proceedWithCollection();
+  }
+
+  private proceedWithCollection(): void {
+    if (!this.requisition) return;
+
+    Swal.fire({
+      title: '¡Autorización exitosa!',
+      html: `
+        <div class="text-center">
+          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+          <p class="mt-3 mb-2">La requisición <strong>${this.requisition.id}</strong> ha sido autorizada.</p>
+          <p class="text-muted">El solicitante será notificado para recoger los productos.</p>
+        </div>
+      `,
+      icon: 'success',
+      confirmButtonText: 'Continuar',
+      confirmButtonColor: '#43B581' // Success color from global styles
+    }).then(() => {
+      // Simular marcado como listo para recolección
+      console.log('Requisición autorizada y lista para recolección:', {
+        requisitionId: this.requisition?.id,
+        authorizedAt: new Date(),
+        authorizedBy: 'Usuario actual',
+        nipUsed: true,
+        suppliedProducts: this.requisition?.suppliedProducts,
+        totalProducts: this.requisition?.totalProducts
+      });
+      
+      this.goBackToList();
+    });
+  }
+
+  returnProductsToWarehouse(): void {
+    if (!this.requisition) return;
+    
+    const productsToReturn = this.requisition.products.filter(p => p.returnQuantity && p.returnQuantity > 0);
+    
+    if (productsToReturn.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No hay productos para devolver',
+        text: 'No se han especificado cantidades de devolución en ningún producto.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    let returnListHtml = '<div class="text-start"><h6>Productos a devolver:</h6><ul class="list-unstyled">';
+    productsToReturn.forEach(product => {
+      returnListHtml += `<li class="mb-2">
+        <strong>${product.name}</strong><br>
+        <small class="text-muted">Cantidad: ${product.returnQuantity} ${product.unit}</small>
+      </li>`;
+    });
+    returnListHtml += '</ul></div>';
+
+    Swal.fire({
+      title: '¿Confirmar devolución al almacén?',
+      html: returnListHtml,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, devolver productos',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#F4D35E', // Warning color from global styles
+      cancelButtonColor: '#5B5B5B',  // Neutral-700 from global styles
+      width: '600px'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Simular devolución de productos
+        console.log('Productos devueltos al almacén:', {
+          requisitionId: this.requisition?.id,
+          returnedProducts: productsToReturn,
+          timestamp: new Date()
+        });
+        
+        // Limpiar cantidades de devolución después del proceso
+        productsToReturn.forEach(product => {
+          product.returnQuantity = 0;
+        });
+        
+        Swal.fire({
+          icon: 'success',
+          title: '¡Productos devueltos!',
+          text: `${productsToReturn.length} producto(s) han sido devueltos al almacén exitosamente.`,
+          confirmButtonText: 'Continuar'
+        });
+      }
+    });
   }
 
   goBack(): void {
@@ -745,6 +764,8 @@ export class WarehouseSupplyComponent implements OnInit {
       products = products.filter(p => 
         p.name.toLowerCase().includes(term) ||
         p.code.toLowerCase().includes(term) ||
+        p.barcode.toLowerCase().includes(term) ||
+        p.location.toLowerCase().includes(term) ||
         p.area?.toLowerCase().includes(term)
       );
     }
@@ -753,7 +774,31 @@ export class WarehouseSupplyComponent implements OnInit {
   }
 
   getProductsByCategory(category: string): WarehouseProduct[] {
-    return this.productsByCategory[category] || [];
+    let products = this.productsByCategory[category] || [];
+    
+    // Aplicar filtro de búsqueda si hay un término
+    if (this.searchTerm.trim()) {
+      const term = this.searchTerm.toLowerCase();
+      products = products.filter(p => 
+        p.name.toLowerCase().includes(term) ||
+        p.code.toLowerCase().includes(term) ||
+        p.barcode.toLowerCase().includes(term) ||
+        p.location.toLowerCase().includes(term) ||
+        p.area?.toLowerCase().includes(term)
+      );
+    }
+    
+    return products;
+  }
+
+  // Función para verificar si una categoría tiene productos después del filtrado
+  hasProductsInCategory(category: string): boolean {
+    return this.getProductsByCategory(category).length > 0;
+  }
+
+  // Función para verificar si hay alguna categoría con productos después de la búsqueda
+  hasAnyProductsInSearch(): boolean {
+    return this.categories.some(category => this.hasProductsInCategory(category));
   }
 
   // Funciones de utilidad

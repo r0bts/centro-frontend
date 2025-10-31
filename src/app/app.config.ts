@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
 
 import { routes } from './app.routes';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import { provideClientHydration } from '@angular/platform-browser';
 import { authInterceptor } from './interceptors/auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
@@ -12,6 +12,6 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),
     provideHttpClient(withInterceptors([authInterceptor]), withFetch()),
-    provideClientHydration(withEventReplay())
+    provideClientHydration()
   ]
 };

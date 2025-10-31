@@ -46,26 +46,53 @@
                 </div>
               </div>
             </div>
+            
+            <!-- Información de autorización -->
+            <div class="card-body bg-light border-top">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <div class="d-flex align-items-center">
+                    <div>
+                      <small class="text-muted d-block">Autorizado por</small>
+                      <strong class="text-dark">{{ requisition.authorizedBy || 'Sin asignar' }}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="d-flex align-items-center">
+                    <div>
+                      <small class="text-muted d-block">Fecha de autorización</small>
+                      <strong class="text-dark">{{ requisition.authorizationDate ? formatDate(requisition.authorizationDate) : 'Pendiente' }}</strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="d-flex align-items-center">
+                    <div>
+                      <small class="text-muted d-block">Firma electrónica</small>
+                      <div *ngIf="requisition.electronicSignature; else noSignature">
+                        <div class="text-dark">
+                          <small class="d-block font-monospace">{{ requisition.signatureHash || 'A3F7-8B2C-D9E1-5A6F' }}</small>
+                        </div>
+                      </div>
+                      <ng-template #noSignature>
+                        <span class="badge bg-secondary">
+                          Pendiente 
+                        </span>
+                      </ng-template>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Barra de herramientas -->
           <div class="card mb-4 border-0 shadow-sm">
             <div class="card-body">
               <div class="row align-items-center g-3">
-                <!-- Scanner de códigos -->
-                <div class="col-lg-3 col-md-6">
-                  <button 
-                    type="button" 
-                    class="btn w-100"
-                    [class.btn-primary]="showScanner"
-                    [class.btn-outline-primary]="!showScanner"
-                    (click)="toggleScanner()">
-                    {{ showScanner ? 'Cerrar Scanner' : 'Activar Scanner' }}
-                  </button>
-                </div>
-
                 <!-- Filtros -->
-                <div class="col-lg-6 col-md-6">
+                <div class="col-lg-9 col-md-12">
                   <div class="row g-2">
                     <div class="col-md-4 col-12">
                       <select 
@@ -85,34 +112,6 @@
                         [(ngModel)]="searchTerm">
                     </div>
                     <div class="col-md-2 col-12">
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Scanner Input -->
-              <div *ngIf="showScanner" class="row mt-3">
-                <div class="col-12">
-                  <div class="alert alert-info border-0 shadow-sm">
-                    <div class="row align-items-center">
-                      <div class="col-lg-8">
-                        <div class="d-flex align-items-center">
-                          <div>
-                            <strong>Scanner activo</strong>
-                            <p class="mb-0 small">Escanea el código de barras del producto</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div class="col-lg-4 mt-2 mt-lg-0">
-                        <input 
-                          #barcodeInput
-                          type="text" 
-                          class="form-control"
-                          placeholder="Código de barras..."
-                          [(ngModel)]="currentScannedCode"
-                          (keyup.enter)="onBarcodeScanned()"
-                          autocomplete="off">
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -163,17 +162,18 @@
           <!-- Lista de productos por categoría -->
           <div *ngIf="selectedCategory === 'all'">
             <div *ngFor="let category of categories" class="card mb-4 border-0 shadow-sm">
-              <!-- Header de categoría -->
-              <div class="card-header bg-secondary text-white">
-                <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0">
-                    {{ category }}
-                  </h5>
-                  <span class="badge bg-light text-dark">
-                    {{ getProductsByCategory(category).length }} productos
-                  </span>
+              <div *ngIf="hasProductsInCategory(category)">
+                <!-- Header de categoría -->
+                <div class="card-header bg-secondary text-white">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                      {{ category }}
+                    </h5>
+                    <span class="badge bg-light text-dark">
+                      {{ getProductsByCategory(category).length }} productos
+                    </span>
+                  </div>
                 </div>
-              </div>
 
               <!-- Productos de la categoría -->
               <div class="card-body p-0">
@@ -187,7 +187,7 @@
                         <th class="text-center">Solicitado</th>
                         <th class="text-center">Stock</th>
                         <th class="text-center">Surtir</th>
-                        <th class="text-center">Área</th>
+                        <th *ngIf="showReturnColumn" class="text-center">Devolución</th>
                         <th class="text-center">Acciones</th>
                       </tr>
                     </thead>
@@ -242,24 +242,32 @@
 
                         <!-- Surtir -->
                         <td class="text-center align-middle">
-                          <div class="input-group input-group-sm mx-auto" style="width: 120px;">
+                          <div class="input-group input-group-sm mx-auto" style="width: 80px;">
                             <input 
-                              type="number" 
+                              type="text" 
                               class="form-control text-center"
-                              [value]="product.suppliedQuantity"
-                              [max]="product.availableStock"
-                              min="0"
-                              (change)="updateSuppliedQuantity(product, $event)"
+                              [value]="product.suppliedQuantity || ''"
+                              pattern="[0-9]*"
+                              inputmode="numeric"
+                              placeholder="0"
+                              (input)="updateSuppliedQuantity(product, $event)"
                               [disabled]="product.availableStock === 0">
-                            <span class="input-group-text">{{ product.unit }}</span>
                           </div>
                         </td>
 
-                        <!-- Área -->
-                        <td class="text-center align-middle">
-                          <span class="badge bg-info text-white">
-                            {{ product.area }}
-                          </span>
+                        <!-- Devolución -->
+                        <td *ngIf="showReturnColumn" class="text-center align-middle">
+                          <div class="input-group input-group-sm mx-auto" style="width: 80px;">
+                            <input 
+                              type="text" 
+                              class="form-control text-center"
+                              [value]="product.returnQuantity || ''"
+                              pattern="[0-9]*"
+                              inputmode="numeric"
+                              placeholder="0"
+                              (input)="updateReturnQuantity(product, $event)"
+                              [disabled]="product.availableStock === 0">
+                          </div>
                         </td>
 
                         <!-- Acciones -->
@@ -280,6 +288,20 @@
                     </tbody>
                   </table>
                 </div>
+              </div>
+              </div>
+            </div>
+            
+            <!-- Mensaje cuando no hay resultados de búsqueda -->
+            <div *ngIf="searchTerm.trim() && !hasAnyProductsInSearch()" class="card border-0 shadow-sm">
+              <div class="card-body text-center py-5">
+                <i class="bi bi-search display-1 text-muted opacity-25"></i>
+                <h5 class="text-muted mt-3">No se encontraron productos</h5>
+                <p class="text-muted">No hay productos que coincidan con "{{ searchTerm }}"</p>
+                <button class="btn btn-outline-secondary btn-sm" (click)="searchTerm = ''">
+                  <i class="bi bi-x me-1"></i>
+                  Limpiar búsqueda
+                </button>
               </div>
             </div>
           </div>
@@ -304,7 +326,7 @@
                       <th class="text-center">Solicitado</th>
                       <th class="text-center">Stock</th>
                       <th class="text-center">Surtir</th>
-                      <th class="text-center">Área</th>
+                      <th *ngIf="showReturnColumn" class="text-center">Devolución</th>
                       <th class="text-center">Acciones</th>
                     </tr>
                   </thead>
@@ -366,24 +388,32 @@
 
                       <!-- Surtir -->
                       <td class="text-center align-middle">
-                        <div class="input-group input-group-sm mx-auto" style="width: 120px;">
+                        <div class="input-group input-group-sm mx-auto" style="width: 80px;">
                           <input 
-                            type="number" 
+                            type="text" 
                             class="form-control text-center"
-                            [value]="product.suppliedQuantity"
-                            [max]="product.availableStock"
-                            min="0"
-                            (change)="updateSuppliedQuantity(product, $event)"
+                            [value]="product.suppliedQuantity || ''"
+                            pattern="[0-9]*"
+                            inputmode="numeric"
+                            placeholder="0"
+                            (input)="updateSuppliedQuantity(product, $event)"
                             [disabled]="product.availableStock === 0">
-                          <span class="input-group-text">{{ product.unit }}</span>
                         </div>
                       </td>
 
-                      <!-- Área -->
-                      <td class="text-center align-middle">
-                        <span class="badge bg-info text-white">
-                          {{ product.area }}
-                        </span>
+                      <!-- Devolución -->
+                      <td *ngIf="showReturnColumn" class="text-center align-middle">
+                        <div class="input-group input-group-sm mx-auto" style="width: 80px;">
+                          <input 
+                            type="text" 
+                            class="form-control text-center"
+                            [value]="product.returnQuantity || ''"
+                            pattern="[0-9]*"
+                            inputmode="numeric"
+                            placeholder="0"
+                            (input)="updateReturnQuantity(product, $event)"
+                            [disabled]="product.availableStock === 0">
+                        </div>
                       </td>
 
                       <!-- Acciones -->
@@ -426,14 +456,13 @@
                 </button>
 
                <div class="d-flex flex-column flex-sm-row gap-2">
-                  <!-- <button 
+                  <button 
                     type="button" 
-                    class="btn btn-outline-primary"
-                    (click)="saveProgress()">
-                    <i class="bi bi-save me-2"></i>
-                    Guardar progreso
-                  </button>-->
-                  
+                    class="btn btn-primary"
+                    [disabled]="!canCompleteSupply()"
+                    (click)="markReadyForCollection()">
+                    Listo para recolección
+                  </button>
                   <button 
                     type="button" 
                     class="btn btn-success"
@@ -441,6 +470,24 @@
                     (click)="completeSupply()">
                     Completar surtido
                   </button>
+                  
+                  <button 
+                    type="button" 
+                    class="btn btn-warning text-dark"
+                    (click)="toggleReturnColumn()">
+                    {{ showReturnColumn ? 'Ocultar' : 'Mostrar' }} devoluciones
+                  </button>
+                  
+                  <button 
+                    *ngIf="showReturnColumn"
+                    type="button" 
+                    class="btn btn-outline-warning"
+                    [disabled]="!hasProductsToReturn()"
+                    (click)="returnProductsToWarehouse()">
+                    Procesar devoluciones
+                  </button>
+                  
+                  
                 </div>
               </div>
             </div>
@@ -452,14 +499,66 @@
       <div *ngIf="!isLoading && !requisition" class="text-center py-5">
         <div class="card border-0 shadow-sm mx-auto" style="max-width: 400px;">
           <div class="card-body">
-            <i class="bi bi-exclamation-circle display-1 text-warning"></i>
             <h4 class="text-muted mt-3">Requisición no encontrada</h4>
             <p class="text-muted">La requisición solicitada no existe o no está disponible para surtido.</p>
             <button class="btn btn-primary" (click)="goBackToList()">
-              <i class="bi bi-arrow-left me-2"></i>
               Volver a la lista
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para NIP de entrega -->
+  <div class="modal fade" id="nipModal" tabindex="-1" aria-labelledby="nipModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title" id="nipModalLabel">
+            Autorización de Entrega
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="text-center mb-4">
+            <h6 class="mt-3 mb-2">Ingrese el NIP de autorización</h6>
+            <p class="text-muted small">Se requiere autorización para marcar la requisición como lista para recolección</p>
+          </div>
+          
+          <div class="mb-3">
+            <label for="nipInput" class="form-label fw-bold">NIP de Autorización:</label>
+            <input 
+              type="password" 
+              class="form-control form-control-lg text-center" 
+              id="nipInput"
+              [(ngModel)]="enteredNip"
+              maxlength="4"
+              placeholder="****"
+              style="letter-spacing: 0.5rem; font-size: 1.5rem;">
+          </div>
+          
+          <div *ngIf="nipError" class="alert alert-danger d-flex align-items-center" role="alert">
+            <div>{{ nipError }}</div>
+          </div>
+          
+          <div class="text-center">
+            <small class="text-muted">
+              Para pruebas use: <span class="fw-bold">1234</span>
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-primary" 
+            (click)="validateNipAndProceed()"
+            [disabled]="!enteredNip || enteredNip.length < 4">
+            Confirmar
+          </button>
         </div>
       </div>
     </div>
