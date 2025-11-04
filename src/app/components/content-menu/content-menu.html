@@ -1,6 +1,8 @@
 <div class="mb-5 pt-3">
   <div class="container">
-    <ul class="nav nav-pills nav-custom d-flex justify-content-center">
+    <div class="d-flex align-items-center justify-content-center mb-3">
+      <img src="assets/images/LOGO_CL.png" alt="Logo CL" class="me-3" style="height: 40px;">
+      <ul class="nav nav-pills nav-custom d-flex justify-content-center mb-0">
       <li class="nav-item" *ngFor="let item of menuItems">
         <!-- Items con submenu -->
         <div *ngIf="item.children && item.children.length > 0; else simpleItem" class="dropdown">
@@ -48,6 +50,7 @@
           <span class="d-none d-md-inline">Salir</span>
         </a>
       </li>
-    </ul>
+      </ul>
+    </div>
   </div>
 </div>

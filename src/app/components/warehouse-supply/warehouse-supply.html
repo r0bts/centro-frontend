@@ -514,16 +514,17 @@
   <div class="modal fade" id="nipModal" tabindex="-1" aria-labelledby="nipModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-header bg-primary text-white">
+        <div class="modal-header bg-success text-white">
           <h5 class="modal-title" id="nipModalLabel">
-            Autorización de Entrega
+            Autorización para Completar Surtido
           </h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div class="text-center mb-4">
+            <i class="bi bi-shield-check text-success" style="font-size: 3rem;"></i>
             <h6 class="mt-3 mb-2">Ingrese el NIP de autorización</h6>
-            <p class="text-muted small">Se requiere autorización para marcar la requisición como lista para recolección</p>
+            <p class="text-muted small">Se requiere autorización para completar el surtido de la requisición</p>
           </div>
           
           <div class="mb-3">
@@ -544,7 +545,8 @@
           
           <div class="text-center">
             <small class="text-muted">
-              Para pruebas use: <span class="fw-bold">1234</span>
+              <span *ngIf="generatedNip">Use el NIP generado para recolección: <span class="fw-bold text-primary">{{ generatedNip }}</span></span>
+              <span *ngIf="!generatedNip">Para pruebas use: <span class="fw-bold">1234</span></span>
             </small>
           </div>
         </div>
@@ -554,10 +556,10 @@
           </button>
           <button 
             type="button" 
-            class="btn btn-primary" 
+            class="btn btn-success" 
             (click)="validateNipAndProceed()"
             [disabled]="!enteredNip || enteredNip.length < 4">
-            Confirmar
+            Completar Surtido
           </button>
         </div>
       </div>

@@ -92,6 +92,7 @@ export class WarehouseSupplyComponent implements OnInit {
   // Variables para el modal de NIP
   enteredNip: string = '';
   nipError: string = '';
+  generatedNip: string = ''; // NIP generado para recolección
   private readonly validNip: string = '1234'; // NIP para pruebas
   
   constructor(private router: Router, private route: ActivatedRoute) {
@@ -545,9 +546,9 @@ export class WarehouseSupplyComponent implements OnInit {
     
     if (!allSupplied) {
       Swal.fire({
-        title: 'Suministro incompleto',
-        text: '¿Desea completar el suministro aunque no todos los productos hayan sido surtidos?',
-        icon: 'question',
+        title: '¿Completar con productos pendientes?',
+        text: 'Algunos productos aún no han sido surtidos completamente. ¿Deseas completar el suministro de todas formas?',
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, completar',
         cancelButtonText: 'Cancelar',
@@ -555,13 +556,27 @@ export class WarehouseSupplyComponent implements OnInit {
         cancelButtonColor: '#6c757d'
       }).then((result) => {
         if (result.isConfirmed) {
-          this.finalizeSupply();
+          this.openNipModalForCompletion();
         }
       });
       return;
     }
     
-    this.finalizeSupply();
+    this.openNipModalForCompletion();
+  }
+
+  private openNipModalForCompletion(): void {
+    // Limpiar estado anterior
+    this.enteredNip = '';
+    this.nipError = '';
+    
+    // Abrir modal usando Bootstrap
+    const modalElement = document.getElementById('nipModal');
+    if (modalElement) {
+      const bootstrap = (window as any).bootstrap;
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    }
   }
 
   private finalizeSupply(): void {
@@ -612,72 +627,64 @@ export class WarehouseSupplyComponent implements OnInit {
   markReadyForCollection(): void {
     if (!this.requisition) return;
     
-    // Limpiar estado anterior
-    this.enteredNip = '';
-    this.nipError = '';
+    // Generar un NIP de 4 dígitos aleatorio
+    this.generatedNip = Math.floor(1000 + Math.random() * 9000).toString();
     
-    // Abrir modal usando Bootstrap
-    const modalElement = document.getElementById('nipModal');
-    if (modalElement) {
-      const modal = new (window as any).bootstrap.Modal(modalElement);
-      modal.show();
-    }
+    // Mostrar el NIP generado al usuario
+    Swal.fire({
+      title: '¡Requisición lista para recolección!',
+      html: `
+        <div class="text-center">
+          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+          <p class="mt-3 mb-2">La requisición <strong>${this.requisition.id}</strong> está lista.</p>
+          <div class="alert alert-info mt-3">
+            <h5 class="mb-2">NIP de recolección generado:</h5>
+            <div class="display-4 fw-bold text-primary">${this.generatedNip}</div>
+            <small class="text-muted">Proporcione este NIP al solicitante para la recolección</small>
+          </div>
+          <p class="text-muted mt-3">El solicitante podrá usar este NIP para recoger los productos.</p>
+        </div>
+      `,
+      icon: 'success',
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#28a745',
+      width: '500px'
+    }).then(() => {
+      console.log('NIP generado para recolección:', this.generatedNip);
+      
+      // Aquí puedes agregar lógica para guardar el NIP en el backend
+      // Por ejemplo: this.saveCollectionNip(this.requisition.id, this.generatedNip);
+    });
   }
 
   validateNipAndProceed(): void {
     if (!this.enteredNip || this.enteredNip.length < 4) {
-      this.nipError = 'El NIP debe tener 4 dígitos';
+      this.nipError = 'Debe ingresar un NIP de 4 dígitos';
       return;
     }
 
-    if (this.enteredNip !== this.validNip) {
+    // Validar contra el NIP generado para recolección
+    const currentValidNip = this.generatedNip || this.validNip;
+    
+    if (this.enteredNip !== currentValidNip) {
       this.nipError = 'NIP incorrecto. Intente nuevamente.';
-      // Limpiar el input después de error
+      this.enteredNip = '';
       setTimeout(() => {
-        this.enteredNip = '';
-      }, 1500);
+        this.nipError = '';
+      }, 3000);
       return;
     }
 
-    // NIP correcto - cerrar modal y proceder
+    // NIP correcto - cerrar modal y proceder con completar surtido
     const modalElement = document.getElementById('nipModal');
     if (modalElement) {
-      const modal = (window as any).bootstrap.Modal.getInstance(modalElement);
-      modal.hide();
+      const bootstrap = (window as any).bootstrap;
+      const modal = bootstrap.Modal.getInstance(modalElement);
+      modal?.hide();
     }
 
-    // Proceder con la confirmación
-    this.proceedWithCollection();
-  }
-
-  private proceedWithCollection(): void {
-    if (!this.requisition) return;
-
-    Swal.fire({
-      title: '¡Autorización exitosa!',
-      html: `
-        <div class="text-center">
-          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-          <p class="mt-3 mb-2">La requisición <strong>${this.requisition.id}</strong> ha sido autorizada.</p>
-          <p class="text-muted">El solicitante será notificado para recoger los productos.</p>
-        </div>
-      `,
-      icon: 'success',
-      confirmButtonText: 'Continuar',
-      confirmButtonColor: '#43B581' // Success color from global styles
-    }).then(() => {
-      // Simular marcado como listo para recolección
-      console.log('Requisición autorizada y lista para recolección:', {
-        requisitionId: this.requisition?.id,
-        authorizedAt: new Date(),
-        authorizedBy: 'Usuario actual',
-        nipUsed: true,
-        suppliedProducts: this.requisition?.suppliedProducts,
-        totalProducts: this.requisition?.totalProducts
-      });
-      
-      this.goBackToList();
-    });
+    // Proceder con completar el surtido
+    this.finalizeSupply();
   }
 
   returnProductsToWarehouse(): void {

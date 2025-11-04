@@ -74,13 +74,16 @@ export class RequisitionComponent implements OnInit {
   areas: string[] = ['Restaurante', 'Cocina', 'Bar', 'Limpieza', 'Administración'];
   units: string[] = ['ml', 'Lt', 'Kg', 'g', 'Pzs', 'Cajas'];
   
-  // Eventos predefinidos
+  // Eventos predefinidos (actualizados desde 4 de noviembre de 2025)
   events: Event[] = [
-    { id: '1', name: 'Cena de Gala', date: new Date('2025-10-15') },
-    { id: '2', name: 'Evento Corporativo', date: new Date('2025-10-20') },
-    { id: '3', name: 'Banquete de Bodas', date: new Date('2025-10-25') },
-    { id: '4', name: 'Reunión de Directivos', date: new Date('2025-11-05') },
-    { id: '5', name: 'Celebración de Aniversario', date: new Date('2025-11-10') }
+    { id: '1', name: 'Cena de Gala', date: new Date('2025-11-05') },
+    { id: '2', name: 'Evento Corporativo', date: new Date('2025-11-08') },
+    { id: '3', name: 'Banquete de Bodas', date: new Date('2025-11-12') },
+    { id: '4', name: 'Reunión de Directivos', date: new Date('2025-11-15') },
+    { id: '5', name: 'Celebración de Aniversario', date: new Date('2025-11-20') },
+    { id: '6', name: 'Conferencia Anual', date: new Date('2025-11-25') },
+    { id: '7', name: 'Evento de Fin de Año', date: new Date('2025-12-15') },
+    { id: '8', name: 'Celebración Navideña', date: new Date('2025-12-22') }
   ];
   
   // Lista de productos disponibles para seleccionar
@@ -537,19 +540,21 @@ export class RequisitionComponent implements OnInit {
     if (this.selectedEvent) {
       const selectedEventObj = this.events.find(event => event.id === this.selectedEvent);
       if (selectedEventObj) {
-        // Establecer fecha un día antes del evento con la hora seleccionada
+        // Establecer fecha el mismo día del evento con la hora seleccionada
         const deliveryDate = new Date(selectedEventObj.date);
-        deliveryDate.setDate(deliveryDate.getDate() - 1);
         
         // Agregar la hora seleccionada
         const [hours, minutes] = this.deliveryTime.split(':').map(Number);
         deliveryDate.setHours(hours, minutes, 0, 0);
         
         this.currentDeliveryDate = deliveryDate;
-        this.customDeliveryDate = ''; // Limpiar fecha personalizada
+        
+        // Llenar automáticamente el campo de fecha personalizada
+        this.customDeliveryDate = this.formatDateForInput(deliveryDate);
       }
     } else {
       this.currentDeliveryDate = null;
+      this.customDeliveryDate = ''; // Limpiar fecha personalizada solo si no hay evento
     }
   }
 
@@ -565,7 +570,9 @@ export class RequisitionComponent implements OnInit {
       const [hours, minutes] = this.deliveryTime.split(':').map(Number);
       
       this.currentDeliveryDate = new Date(year, month, day, hours, minutes, 0, 0);
-      this.selectedEvent = ''; // Limpiar evento seleccionado
+      
+      // NO limpiar el evento seleccionado - mantener ambos sincronizados
+      // this.selectedEvent = ''; // COMENTADO: El evento se mantiene seleccionado
     } else {
       this.currentDeliveryDate = null;
     }
