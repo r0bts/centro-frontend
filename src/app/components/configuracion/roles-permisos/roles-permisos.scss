@@ -1,0 +1,37 @@
+// Estilos principales del componente de roles y permisos// ============================================
+
+.roles-permisos {// ROLES Y PERMISOS - ESTILOS MÍNIMOS
+
+  // Los estilos específicos están en cada componente hijo// ============================================
+
+}
+// Solo estilos específicos que no están en Bootstrap
+.config-panel {
+  .card-header {
+    background-color: #f8f9fa;
+  }
+}
+
+// Estilos específicos para el modal de permisos
+.permissions-modal {
+  .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+// Checkbox indeterminado para módulos
+.form-check-input[indeterminate] {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+// Códigos de permisos
+code.permission-code {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+  color: #6c757d;
+}

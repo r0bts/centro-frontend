@@ -40,15 +40,15 @@ export class RequisitionListComponent implements OnInit {
   originalGroupedRequisitions: { [key: string]: RequisitionItem[] } = {};
   originalDateGroups: string[] = [];
   
-  // Datos de ejemplo para las requisiciones
+  // Datos de ejemplo para las requisiciones (fechas actualizadas desde 3 de noviembre de 2025)
   requisitions: RequisitionItem[] = [
     {
       id: 'REQ-001',
       creator: 'Juan Pérez López',
       authorizer: 'María González García',
       status: 'Autorizada',
-      creationDate: new Date('2025-10-15T09:30:00'),
-      deliveryDate: new Date('2025-10-18T10:00:00'), // Pasada
+      creationDate: new Date('2025-11-01T09:30:00'),
+      deliveryDate: new Date('2025-11-03T10:00:00'), // Hoy
       areas: ['Cocina', 'Restaurante'],
       totalProducts: 15
     },
@@ -57,8 +57,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Carlos Rodríguez Martín',
       authorizer: null,
       status: 'Pendiente',
-      creationDate: new Date('2025-10-16T14:20:00'),
-      deliveryDate: new Date('2025-10-21T08:00:00'), // Hoy
+      creationDate: new Date('2025-11-02T14:20:00'),
+      deliveryDate: new Date('2025-11-03T08:00:00'), // Hoy
       areas: ['Almacén', 'Mantenimiento'],
       totalProducts: 8
     },
@@ -67,8 +67,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Ana Fernández Ruiz',
       authorizer: 'Luis Martínez Sánchez',
       status: 'En Proceso',
-      creationDate: new Date('2025-10-14T11:45:00'),
-      deliveryDate: new Date('2025-10-21T15:30:00'), // Hoy
+      creationDate: new Date('2025-10-31T11:45:00'),
+      deliveryDate: new Date('2025-11-03T15:30:00'), // Hoy
       areas: ['Limpieza'],
       totalProducts: 22
     },
@@ -77,8 +77,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Carmen Jiménez Torres',
       authorizer: 'Patricia López Hernández',
       status: 'Surtida',
-      creationDate: new Date('2025-10-12T16:10:00'),
-      deliveryDate: new Date('2025-10-20T12:00:00'), // Ayer
+      creationDate: new Date('2025-11-01T16:10:00'),
+      deliveryDate: new Date('2025-11-04T12:00:00'), // Mañana
       areas: ['Cocina', 'Bar', 'Restaurante'],
       totalProducts: 35
     },
@@ -87,8 +87,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Roberto Silva Mendoza',
       authorizer: 'María González García',
       status: 'Entregada',
-      creationDate: new Date('2025-10-10T08:15:00'),
-      deliveryDate: new Date('2025-10-19T09:00:00'), // Hace 2 días
+      creationDate: new Date('2025-10-30T08:15:00'),
+      deliveryDate: new Date('2025-11-05T09:00:00'), // En 2 días
       areas: ['Oficina Administrativa'],
       totalProducts: 12
     },
@@ -97,8 +97,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Luis Martínez Sánchez',
       authorizer: null,
       status: 'Cancelada',
-      creationDate: new Date('2025-10-13T13:25:00'),
-      deliveryDate: new Date('2025-10-22T10:30:00'), // Mañana
+      creationDate: new Date('2025-11-01T13:25:00'),
+      deliveryDate: new Date('2025-11-06T10:30:00'), // En 3 días
       areas: ['Mantenimiento', 'Seguridad'],
       totalProducts: 6
     },
@@ -107,8 +107,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Sofía Ramírez Castro',
       authorizer: 'Carlos Herrera Vega',
       status: 'Autorizada',
-      creationDate: new Date('2025-10-18T10:15:00'),
-      deliveryDate: new Date('2025-10-25T14:00:00'), // En 4 días
+      creationDate: new Date('2025-11-02T10:15:00'),
+      deliveryDate: new Date('2025-11-07T14:00:00'), // En 4 días
       areas: ['Farmacia', 'Consultorios'],
       totalProducts: 28
     },
@@ -117,8 +117,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Diego Morales Soto',
       authorizer: null,
       status: 'Pendiente',
-      creationDate: new Date('2025-10-19T16:45:00'),
-      deliveryDate: new Date('2025-10-23T08:30:00'), // En 2 días
+      creationDate: new Date('2025-11-03T16:45:00'),
+      deliveryDate: new Date('2025-11-05T08:30:00'), // En 2 días
       areas: ['Laboratorio'],
       totalProducts: 45
     },
@@ -127,8 +127,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Elena Vargas Mendez',
       authorizer: 'Patricia López Hernández',
       status: 'En Proceso',
-      creationDate: new Date('2025-10-17T09:20:00'),
-      deliveryDate: new Date('2025-10-21T11:00:00'), // Hoy
+      creationDate: new Date('2025-11-01T09:20:00'),
+      deliveryDate: new Date('2025-11-03T11:00:00'), // Hoy
       areas: ['Quirófano', 'Recuperación'],
       totalProducts: 67
     },
@@ -137,8 +137,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Alejandro Torres Gil',
       authorizer: 'María González García',
       status: 'Surtida',
-      creationDate: new Date('2025-10-11T14:30:00'),
-      deliveryDate: new Date('2025-10-18T10:15:00'), // Hace 3 días
+      creationDate: new Date('2025-10-29T14:30:00'),
+      deliveryDate: new Date('2025-11-04T10:15:00'), // Mañana
       areas: ['Emergencias'],
       totalProducts: 33
     },
@@ -147,8 +147,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Natalia Cruz Flores',
       authorizer: 'Luis Martínez Sánchez',
       status: 'Entregada',
-      creationDate: new Date('2025-10-08T11:00:00'),
-      deliveryDate: new Date('2025-10-17T16:30:00'), // Hace 4 días
+      creationDate: new Date('2025-10-28T11:00:00'),
+      deliveryDate: new Date('2025-11-06T16:30:00'), // En 3 días
       areas: ['Pediatría', 'Neonatología'],
       totalProducts: 41
     },
@@ -157,8 +157,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Fernando Aguilar Ramos',
       authorizer: null,
       status: 'Pendiente',
-      creationDate: new Date('2025-10-20T08:45:00'),
-      deliveryDate: new Date('2025-10-26T12:00:00'), // En 5 días
+      creationDate: new Date('2025-11-02T08:45:00'),
+      deliveryDate: new Date('2025-11-08T12:00:00'), // En 5 días
       areas: ['Radiología'],
       totalProducts: 19
     },
@@ -167,8 +167,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Gabriela Ortiz Luna',
       authorizer: 'Carlos Herrera Vega',
       status: 'Autorizada',
-      creationDate: new Date('2025-10-16T13:15:00'),
-      deliveryDate: new Date('2025-10-24T09:45:00'), // En 3 días
+      creationDate: new Date('2025-11-01T13:15:00'),
+      deliveryDate: new Date('2025-11-06T09:45:00'), // En 3 días
       areas: ['Cardiología', 'UCI'],
       totalProducts: 52
     },
@@ -177,8 +177,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Ricardo Peña Jiménez',
       authorizer: 'Patricia López Hernández',
       status: 'En Proceso',
-      creationDate: new Date('2025-10-15T15:30:00'),
-      deliveryDate: new Date('2025-10-21T14:20:00'), // Hoy
+      creationDate: new Date('2025-10-31T15:30:00'),
+      deliveryDate: new Date('2025-11-03T14:20:00'), // Hoy
       areas: ['Ginecología'],
       totalProducts: 24
     },
@@ -187,8 +187,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Valeria Campos Reyes',
       authorizer: null,
       status: 'Cancelada',
-      creationDate: new Date('2025-10-14T12:40:00'),
-      deliveryDate: new Date('2025-10-19T16:00:00'), // Hace 2 días
+      creationDate: new Date('2025-11-01T12:40:00'),
+      deliveryDate: new Date('2025-11-05T16:00:00'), // En 2 días
       areas: ['Dermatología'],
       totalProducts: 14
     },
@@ -197,8 +197,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Andrés Ruiz Moreno',
       authorizer: 'María González García',
       status: 'Surtida',
-      creationDate: new Date('2025-10-09T10:25:00'),
-      deliveryDate: new Date('2025-10-16T08:45:00'), // Hace 5 días
+      creationDate: new Date('2025-10-30T10:25:00'),
+      deliveryDate: new Date('2025-11-04T08:45:00'), // Mañana
       areas: ['Neurología', 'Neurocirugía'],
       totalProducts: 38
     },
@@ -207,8 +207,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Claudia Espinoza Valle',
       authorizer: 'Luis Martínez Sánchez',
       status: 'Entregada',
-      creationDate: new Date('2025-10-07T16:15:00'),
-      deliveryDate: new Date('2025-10-15T12:30:00'), // Hace 6 días
+      creationDate: new Date('2025-10-29T16:15:00'),
+      deliveryDate: new Date('2025-11-07T12:30:00'), // En 4 días
       areas: ['Oftalmología'],
       totalProducts: 27
     },
@@ -217,8 +217,8 @@ export class RequisitionListComponent implements OnInit {
       creator: 'Miguel Santos Herrera',
       authorizer: null,
       status: 'Pendiente',
-      creationDate: new Date('2025-10-21T09:10:00'),
-      deliveryDate: new Date('2025-10-27T15:45:00'), // En 6 días
+      creationDate: new Date('2025-11-03T09:10:00'),
+      deliveryDate: new Date('2025-11-09T15:45:00'), // En 6 días
       areas: ['Traumatología'],
       totalProducts: 46
     }

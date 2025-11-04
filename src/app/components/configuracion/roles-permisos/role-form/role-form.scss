@@ -1,0 +1,55 @@
+.role-form {
+  .permissions-section {
+    max-height: 600px;
+    overflow-y: auto;
+    
+    .module-section {
+      .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        
+        .card-title {
+          color: #495057;
+          font-weight: 600;
+        }
+      }
+      
+      .submodule-section {
+        border-left: 3px solid #e9ecef;
+        padding-left: 15px;
+        margin-left: 10px;
+        
+        .badge {
+          font-size: 0.75rem;
+        }
+        
+        .form-check {
+          margin-bottom: 0.5rem;
+        }
+        
+        .form-check-label {
+          font-size: 0.875rem;
+          color: #6c757d;
+        }
+      }
+    }
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .form-control {
+    border: 1px solid #ced4da;
+    
+    &:focus {
+      border-color: #495057;
+      box-shadow: 0 0 0 0.2rem rgba(73, 80, 87, 0.25);
+    }
+  }
+  
+  .btn {
+    font-weight: 500;
+  }
+}

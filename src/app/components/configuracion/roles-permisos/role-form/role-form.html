@@ -1,0 +1,125 @@
+<div class="role-form">
+  <!-- Botón de regreso -->
+  <div class="d-flex justify-content-start mb-3">
+    <button class="btn btn-light" (click)="onCancel()" style="border: 1px solid #dee2e6;">
+      ← Volver a la Lista
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title mb-0">{{ isEditMode ? 'Editar Rol' : 'Crear Nuevo Rol' }}</h4>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="onSave()" #roleFormRef="ngForm">
+        <!-- Información básica del rol -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <label for="roleName" class="form-label">Nombre del Rol *</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="roleName"
+                   [(ngModel)]="roleForm.name" 
+                   name="roleName"
+                   required>
+          </div>
+          <div class="col-md-6">
+            <label for="roleDisplayName" class="form-label">Nombre Visible *</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="roleDisplayName"
+                   [(ngModel)]="roleForm.display_name" 
+                   name="roleDisplayName"
+                   required>
+          </div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-8">
+            <label for="roleDescription" class="form-label">Descripción *</label>
+            <textarea class="form-control" 
+                      id="roleDescription"
+                      [(ngModel)]="roleForm.description" 
+                      name="roleDescription"
+                      rows="3"
+                      required></textarea>
+          </div>
+          <div class="col-md-4">
+            <div class="form-check mt-4">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="roleActive"
+                     [(ngModel)]="roleForm.is_active" 
+                     name="roleActive">
+              <label class="form-check-label" for="roleActive">
+                Rol Activo
+              </label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="roleDefault"
+                     [(ngModel)]="roleForm.is_default" 
+                     name="roleDefault">
+              <label class="form-check-label" for="roleDefault">
+                Rol por Defecto
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Permisos por módulo -->
+        <h5 class="mb-3">Asignación de Permisos</h5>
+        <div class="permissions-section">
+          <div *ngFor="let module of modules" class="module-section mb-4">
+            <div class="card">
+              <div class="card-header">
+                <h6 class="card-title mb-0">{{ module.display_name }}</h6>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let submodule of getSubmodulesByModule(module.id)" class="submodule-section mb-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <input type="checkbox" 
+                           class="form-check-input me-2"
+                           [checked]="isSubmoduleAllSelected(submodule.id)"
+                           [indeterminate]="isSubmoduleIndeterminate(submodule.id)"
+                           (change)="toggleAllSubmodulePermissions(submodule.id)">
+                    <strong>{{ submodule.display_name }}</strong>
+                    <span class="badge bg-light text-dark ms-2">
+                      {{ getSelectedPermissionsCount(submodule.id) }}/{{ dbPermissions.length }}
+                    </span>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-2" *ngFor="let permission of dbPermissions">
+                      <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               [id]="'perm_' + submodule.id + '_' + permission.id"
+                               [checked]="hasPermission(submodule.id, permission.id)"
+                               (change)="togglePermission(submodule.id, permission.id)">
+                        <label class="form-check-label" 
+                               [for]="'perm_' + submodule.id + '_' + permission.id">
+                          {{ permission.display_name }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-light" (click)="onCancel()" style="border: 1px solid #dee2e6;">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            {{ isEditMode ? 'Actualizar Rol' : 'Crear Rol' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,22 @@
+<div class="container-fluid py-4">
+  <h2 class="text-center mb-4">Gestión de Roles</h2>
+
+  <!-- Vista de Lista -->
+  <app-roles-list 
+    *ngIf="currentView === 'list'"
+    [roles]="roles"
+    (createRole)="onCreateRole()"
+    (editRole)="onEditRole($event)"
+    (deleteRole)="onDeleteRole($event)"
+    (toggleRoleStatus)="onToggleRoleStatus($event)">
+  </app-roles-list>
+
+  <!-- Vista de Formulario -->
+  <app-role-form 
+    *ngIf="currentView === 'form'"
+    [isEditMode]="isEditMode"
+    [selectedRole]="selectedRole"
+    (cancel)="onCancelForm()"
+    (save)="onSaveRole($event)">
+  </app-role-form>
+</div>
