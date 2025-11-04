@@ -1,22 +1,273 @@
-// Estilos mínimos para el login, usando principalmente Bootstrap
+// Estilos modernos para el login con imagen de fondo
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: url('/assets/images/f_atala.jpg') center center / cover no-repeat;
+  position: relative;
+  overflow: hidden;
 }
 
-.login-form-container {
+// Overlay oscuro para mejorar legibilidad
+.login-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 0, 0, 0.6) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  z-index: 1;
+}
+
+// Contenedor principal
+.login-content {
+  position: relative;
+  z-index: 2;
+  padding: 2rem 1rem;
+}
+
+// Card principal del formulario
+.login-card {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 1.25rem; // 20px
-  padding: 2.5rem;
-  box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(20px);
+  border-radius: 2rem;
+  padding: 3rem 2.5rem;
+  box-shadow: 
+    0 2rem 4rem rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  margin: 1rem;
+  transition: all 0.3s ease;
+  animation: slideUp 0.8s ease-out;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 3rem 6rem rgba(0, 0, 0, 0.35),
+      0 0 0 1px rgba(255, 255, 255, 0.15);
+  }
 
   @media (max-width: 768px) {
-    padding: 2rem 1.5rem;
-    margin: 0.5rem;
-    border-radius: 0.9375rem; // 15px
+    padding: 2.5rem 2rem;
+    border-radius: 1.5rem;
   }
+
+  @media (max-width: 576px) {
+    padding: 2rem 1.5rem;
+    border-radius: 1.25rem;
+  }
+}
+
+// Header del login
+.login-header {
+  .logo-container {
+    margin-bottom: 1.5rem;
+  }
+
+  .login-logo {
+    height: 60px;
+    max-width: 200px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  .login-title {
+    color: #2c3e50;
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .login-subtitle {
+    color: #7f8c8d;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-bottom: 0;
+  }
+}
+
+// Estilos del formulario
+.form-label {
+  font-weight: 600;
+  color: #34495e;
+  margin-bottom: 0.75rem;
+  
+  i {
+    color: #3498db;
+  }
+}
+
+.form-control {
+  border: 2px solid #e9ecef;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1.25rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.9);
+
+  &:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    background: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
+  }
+
+  &.form-control-lg {
+    padding: 1rem 1.5rem;
+    font-size: 1.1rem;
+  }
+
+  &::placeholder {
+    color: #bdc3c7;
+    opacity: 1;
+  }
+}
+
+// Botón de mostrar/ocultar contraseña
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #7f8c8d;
+  z-index: 3;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+  }
+
+  &:focus {
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+  }
+}
+
+// Botón principal
+.login-btn {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  border: none;
+  border-radius: 0.75rem;
+  padding: 1rem 2rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  box-shadow: 0 0.5rem 1.5rem rgba(52, 152, 219, 0.3);
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #2980b9 0%, #1abc9c 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 1rem 2rem rgba(52, 152, 219, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+}
+
+// Footer del login
+.login-footer {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(149, 165, 166, 0.2);
+
+  small {
+    color: #7f8c8d;
+    font-weight: 500;
+  }
+
+  i {
+    color: #27ae60;
+  }
+}
+
+// Mensajes de error mejorados
+.alert-danger {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid rgba(231, 76, 60, 0.3);
+  border-radius: 0.75rem;
+  color: #c0392b;
+  
+  i {
+    color: #e74c3c;
+  }
+}
+
+.invalid-feedback {
+  color: #e74c3c;
+  font-weight: 500;
+  
+  i {
+    color: #e74c3c;
+  }
+}
+
+// Animaciones
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive mejoras
+@media (max-width: 576px) {
+  .login-content {
+    padding: 1rem 0.5rem;
+  }
+
+  .login-header {
+    .login-title {
+      font-size: 1.75rem;
+    }
+    
+    .login-logo {
+      height: 50px;
+    }
+  }
+
+  .form-control.form-control-lg {
+    padding: 0.875rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .login-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+// Efectos de hover y focus mejorados
+.form-control:not(:placeholder-shown) {
+  background: rgba(255, 255, 255, 1);
+}
+
+// Mejoras de accesibilidad
+.login-card:focus-within {
+  box-shadow: 
+    0 2rem 4rem rgba(0, 0, 0, 0.3),
+    0 0 0 3px rgba(52, 152, 219, 0.3);
 }
 

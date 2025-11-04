@@ -1,90 +1,99 @@
 <div class="login-container">
-  <div class="container-fluid vh-100">
-    <div class="row h-100">
-      <!-- Lado izquierdo - Imagen o información -->
-      <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center bg-primary text-white">
-        <div class="text-center">
-          <h1 class="display-4 mb-4">Centro</h1>
-          <p class="lead">Sistema de Gestión Integral</p>
-          <p>Bienvenido al sistema de gestión del centro. Ingresa tus credenciales para acceder.</p>
-        </div>
-      </div>
-      
-      <!-- Lado derecho - Formulario de login -->
-      <div class="col-md-6 d-flex align-items-center justify-content-center">
-        <div class="login-form-container w-100" style="max-width: 400px;">
-          <div class="text-center mb-4">
-            <h2 class="mb-3">Iniciar Sesión</h2>
-            <p class="text-muted">Ingresa tus credenciales para acceder al sistema</p>
-          </div>
-
-          <!-- Mensaje de error global -->
-          <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ errorMessage }}
-            <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
-          </div>
-
-          <!-- Formulario -->
-          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
-            <!-- Campo Usuario -->
-            <div class="mb-3">
-              <label for="username" class="form-label">Usuario</label>
-              <input 
-                type="text" 
-                class="form-control"
-                [class.is-invalid]="isFieldInvalid('username')"
-                id="username" 
-                formControlName="username"
-                placeholder="Ingresa tu usuario"
-                autocomplete="username">
-              <div *ngIf="isFieldInvalid('username')" class="invalid-feedback">
-                {{ getFieldError('username') }}
+  <div class="login-overlay"></div>
+  
+  <!-- Contenedor principal centrado -->
+  <div class="login-content d-flex align-items-center justify-content-center min-vh-100">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
+          
+          <!-- Card del formulario -->
+          <div class="login-card">
+            <!-- Header con logo/título -->
+            <div class="login-header text-center mb-4">
+              <div class="logo-container mb-3">
+                <img src="/assets/images/LOGO_CL.png" alt="Centro Libanés" class="login-logo">
               </div>
+              <h2 class="login-title">Bienvenido</h2>
+              <p class="login-subtitle">Centro Libanés - Sistema de Gestión</p>
             </div>
 
-            <!-- Campo Contraseña -->
-            <div class="mb-3">
-              <label for="password" class="form-label">Contraseña</label>
-              <div class="position-relative">
+            <!-- Mensaje de error global -->
+            <div *ngIf="errorMessage" class="alert alert-danger alert-dismissible fade show" role="alert">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>
+              {{ errorMessage }}
+              <button type="button" class="btn-close" (click)="errorMessage = ''" aria-label="Close"></button>
+            </div>
+
+            <!-- Formulario -->
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate>
+              <!-- Campo Usuario -->
+              <div class="mb-3">
+                <label for="username" class="form-label">
+                  <i class="bi bi-person-fill me-2"></i>Usuario
+                </label>
                 <input 
-                  [type]="showPassword ? 'text' : 'password'" 
-                  class="form-control"
-                  [class.is-invalid]="isFieldInvalid('password')"
-                  id="password" 
-                  formControlName="password"
-                  placeholder="Ingresa tu contraseña"
-                  autocomplete="current-password">
+                  type="text" 
+                  class="form-control form-control-lg"
+                  [class.is-invalid]="isFieldInvalid('username')"
+                  id="username" 
+                  formControlName="username"
+                  placeholder="Ingresa tu usuario"
+                  autocomplete="username">
+                <div *ngIf="isFieldInvalid('username')" class="invalid-feedback">
+                  <i class="bi bi-exclamation-circle me-1"></i>
+                  {{ getFieldError('username') }}
+                </div>
+              </div>
+
+              <!-- Campo Contraseña -->
+              <div class="mb-3">
+                <label for="password" class="form-label">
+                  <i class="bi bi-lock-fill me-2"></i>Contraseña
+                </label>
+                <div class="position-relative">
+                  <input 
+                    [type]="showPassword ? 'text' : 'password'" 
+                    class="form-control form-control-lg"
+                    [class.is-invalid]="isFieldInvalid('password')"
+                    id="password" 
+                    formControlName="password"
+                    placeholder="Ingresa tu contraseña"
+                    autocomplete="current-password">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary password-toggle"
+                    (click)="togglePasswordVisibility()">
+                    <i [class]="showPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                  </button>
+                </div>
                 <div *ngIf="isFieldInvalid('password')" class="invalid-feedback">
+                  <i class="bi bi-exclamation-circle me-1"></i>
                   {{ getFieldError('password') }}
                 </div>
               </div>
-            </div>
 
-            <!-- Mostrar contraseña -->
-            <div class="mb-3 form-check">
-              <input type="checkbox" class="form-check-input" id="showPassword" [(ngModel)]="showPassword" [ngModelOptions]="{standalone: true}">
-              <label class="form-check-label" for="showPassword">
-                Mostrar contraseña
-              </label>
-            </div>
+              <!-- Botón de submit -->
+              <div class="d-grid mb-3">
+                <button 
+                  type="submit" 
+                  class="btn btn-primary btn-lg login-btn"
+                  [disabled]="isLoading">
+                  <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  <i *ngIf="!isLoading" class="bi bi-box-arrow-in-right me-2"></i>
+                  {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
+                </button>
+              </div>
+            </form>
 
-            <!-- Botón de submit -->
-            <div class="d-grid">
-              <button 
-                type="submit" 
-                class="btn btn-primary btn-lg"
-                [disabled]="isLoading">
-                <span *ngIf="isLoading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
-              </button>
+            <!-- Footer del formulario -->
+            <div class="login-footer text-center">
+              <small class="text-muted">
+                <i class="bi bi-shield-check me-1"></i>
+                Acceso seguro al sistema
+              </small>
             </div>
-          </form>
-
-          <!-- Enlaces adicionales -->
-          
-          <!--<div class="text-center mt-4">
-            <a href="#" class="text-decoration-none">¿Olvidaste tu contraseña?</a>
-          </div> -->
+          </div>
         </div>
       </div>
     </div>
