@@ -435,4 +435,34 @@ export class RequisitionConfirmationComponent implements OnInit {
       }
     });
   }
+
+  cerrarDevolucion(): void {
+    Swal.fire({
+      title: '¿Cerrar devolución?',
+      text: '¿Estás seguro de que deseas cerrar esta devolución?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar devolución',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ffc107',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        console.log('Cerrando devolución para requisición:', this.requisitionId);
+        
+        // Aquí implementarías la lógica para cerrar la devolución
+        // Por ejemplo, cambiar el estado de la requisición
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Devolución cerrada',
+          text: 'La devolución ha sido cerrada exitosamente.',
+          confirmButtonText: 'Continuar'
+        }).then(() => {
+          // Redirigir a la lista de requisiciones
+          this.router.navigate(['/requisicion/lista']);
+        });
+      }
+    });
+  }
 }
