@@ -280,8 +280,9 @@
                             [disabled]="product.availableStock === 0"
                             (click)="toggleProductSupply(product.id)"
                             [title]="product.isSupplied ? 'Revertir surtido' : 'Marcar como surtido'">
-                            <i *ngIf="!product.isSupplied" class="bi bi-x"></i>
-                            <i *ngIf="product.isSupplied" class="bi bi-arrow-counterclockwise"></i>
+                            <i *ngIf="!product.isSupplied" class="bi bi-check-lg"></i>
+                            <!--<i *ngIf="product.isSupplied" class="bi bi-arrow-counterclockwise"></i> -->
+                            <i *ngIf="product.isSupplied" class="bi bi-x"></i> 
                           </button>
                         </td>
                       </tr>
