@@ -338,8 +338,13 @@
           </div>
           
           <div class="text-end mt-auto pt-4" *ngIf="requisitionSummary.length > 0">
-            <button class="btn btn-success px-5" (click)="onConfirmRequisition()">
-              Confirmar solicitud
+            <button 
+              class="btn btn-success px-5" 
+              (click)="onConfirmRequisition()"
+              [disabled]="!currentDeliveryDate"
+              [class.btn-secondary]="!currentDeliveryDate"
+              [class.btn-success]="currentDeliveryDate">
+              {{ currentDeliveryDate ? 'Confirmar solicitud' : 'Selecciona una fecha de entrega' }}
             </button>
           </div>
         </div>

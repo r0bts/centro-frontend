@@ -43,6 +43,7 @@ export class ContentMenu {
       children: [
         { id: 'requisicion-crear', label: 'Crear Requisición', icon: 'bi-plus-circle', route: '/requisicion/crear' },
         { id: 'requisicion-lista', label: 'Lista de Requisiciones', icon: 'bi-list-ul', route: '/requisicion/lista' },
+        { id: 'requisicion-frecuentes', label: 'Plantillas Frecuentes', icon: 'bi-bookmark-star', route: '/requisicion/frecuentes' },
         { id: 'requisicion-surtir', label: 'Surtir Requisición', icon: 'bi-check-circle', route: '/requisicion/surtir' },
         { id: 'requisicion-recibir', label: 'Recibir Requisición', icon: 'bi-inbox', route: '/requisicion/recibir' }
       ]

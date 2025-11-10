@@ -49,6 +49,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'requisicion/frecuentes',
+    loadComponent: () => import('./components/frequent-templates/frequent-templates').then(m => m.FrequentTemplatesComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'almacen/surtir',
     loadComponent: () => import('./components/warehouse-supply/warehouse-supply').then(m => m.WarehouseSupplyComponent),
     canActivate: [authGuard]

@@ -48,6 +48,10 @@ export class RequisitionComponent implements OnInit {
     if (navigation?.extras.state?.['loadExistingData']) {
       this.loadExistingRequisitionData(navigation.extras.state);
     }
+    // Verificar si vienen datos de una plantilla frecuente
+    if (navigation?.extras.state?.['loadFromTemplate']) {
+      this.loadTemplateData(navigation.extras.state);
+    }
   }
   
   // Propiedades para área
@@ -143,6 +147,24 @@ export class RequisitionComponent implements OnInit {
       selectedEmployee: state['selectedEmployee'],
       isDevolucion: this.isDevolucion
     });
+  }
+
+  loadTemplateData(state: any): void {
+    // Cargar los datos de la plantilla frecuente
+    if (state['templateData']) {
+      this.requisitionSummary = JSON.parse(JSON.stringify(state['templateData']));
+      
+      console.log('Plantilla cargada:', {
+        templateName: state['templateName'],
+        areas: this.requisitionSummary.length
+      });
+      
+      // Opcional: Mostrar notificación al usuario
+      if (state['templateName']) {
+        // Aquí podrías mostrar un toast o mensaje indicando que se cargó la plantilla
+        console.log(`Plantilla "${state['templateName']}" cargada exitosamente`);
+      }
+    }
   }
 
   formatDateForInput(date: Date): string {
