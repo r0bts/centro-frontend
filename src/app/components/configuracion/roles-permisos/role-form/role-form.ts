@@ -94,6 +94,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 5, module_id: 3, name: 'requisition', display_name: 'Requisiciones', route: '/requisition', is_active: true },
     { id: 6, module_id: 3, name: 'requisition_list', display_name: 'Lista de Requisiciones', route: '/requisition-list', is_active: true },
     { id: 7, module_id: 3, name: 'requisition_confirmation', display_name: 'Confirmación de Requisiciones', route: '/requisition-confirmation', is_active: true },
+    { id: 14, module_id: 3, name: 'frequent_list', display_name: 'Lista de Frecuentes', route: '/frequent-templates', is_active: true },
     
     // Configuración
     { id: 8, module_id: 4, name: 'configuracion_general', display_name: 'Configuración General', route: '/configuracion', is_active: true },
@@ -106,9 +107,30 @@ export class RoleFormComponent implements OnInit, OnChanges {
   dbPermissions: DbPermission[] = [
     { id: 1, name: 'create', display_name: 'Crear', description: 'Permite crear nuevos registros' },
     { id: 2, name: 'read', display_name: 'Leer', description: 'Permite visualizar registros' },
-    { id: 3, name: 'update', display_name: 'Actualizar', description: 'Permite modificar registros existentes' },
+    { id: 3, name: 'update', display_name: 'Editar', description: 'Permite modificar registros existentes' },
     { id: 4, name: 'delete', display_name: 'Eliminar', description: 'Permite eliminar registros' },
+    { id: 5, name: 'events', display_name: 'Eventos', description: 'Permite gestionar eventos' },
+    { id: 6, name: 'warehouse', display_name: 'Almacén', description: 'Permite gestionar almacén' },
+    { id: 7, name: 'authorize', display_name: 'Autorizar', description: 'Permite autorizar requisiciones' },
+    { id: 9, name: 'return', display_name: 'Devolución', description: 'Permite gestionar devoluciones' },
+    { id: 10, name: 'frequent', display_name: 'Frecuentes', description: 'Permite gestionar plantillas frecuentes' },
+    { id: 11, name: 'cancel', display_name: 'Cancelar', description: 'Permite cancelar requisiciones' },
+    { id: 12, name: 'share', display_name: 'Compartir', description: 'Permite compartir registros' },
   ];
+
+  // Configuración de permisos permitidos por submódulo
+  private submodulePermissionsConfig: { [key: number]: number[] } = {
+    1: [2], // Dashboard Overview - solo permite "Leer"
+    5: [1, 5], // Requisiciones - permite "Crear" y "Eventos"
+    6: [3, 4, 6], // Lista de Requisiciones - permite "Editar", "Eliminar" y "Almacén"
+    7: [7, 9, 10, 11], // Confirmación de Requisiciones - permite "Autorizar", "Devolución", "Frecuentes" y "Cancelar"
+    8: [2], // Configuración General - solo permite "Leer"
+    9: [1, 2, 3, 4], // Usuarios - permite "Crear", "Leer", "Editar" y "Eliminar"
+    10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Leer", "Editar" y "Eliminar"
+    12: [2], // Reportes - solo permite "Leer"
+    13: [2], // Panel de Administración - solo permite "Leer"
+    14: [2, 3, 4, 12], // Lista de Frecuentes - permite "Leer", "Editar", "Eliminar" y "Compartir"
+  };
 
   constructor() {}
 
@@ -148,6 +170,19 @@ export class RoleFormComponent implements OnInit, OnChanges {
     return this.submodules.filter(sub => sub.module_id === moduleId);
   }
 
+  // Obtiene los permisos disponibles para un submódulo específico
+  getAvailablePermissions(submoduleId: number): DbPermission[] {
+    const allowedPermissionIds = this.submodulePermissionsConfig[submoduleId];
+    
+    // Si el submódulo no tiene configuración especial, retorna todos los permisos
+    if (!allowedPermissionIds) {
+      return this.dbPermissions;
+    }
+    
+    // Si tiene configuración, retorna solo los permisos permitidos
+    return this.dbPermissions.filter(p => allowedPermissionIds.includes(p.id));
+  }
+
   // Métodos para manejar permisos en el formulario
   hasPermission(submoduleId: number, permissionId: number): boolean {
     return this.selectedPermissions.some(sp => 
@@ -177,14 +212,15 @@ export class RoleFormComponent implements OnInit, OnChanges {
   }
 
   toggleAllSubmodulePermissions(submoduleId: number): void {
+    const availablePermissions = this.getAvailablePermissions(submoduleId);
     const submodulePermissions = this.selectedPermissions.filter(sp => sp.submodule_id === submoduleId);
-    const allSelected = submodulePermissions.length === this.dbPermissions.length && 
+    const allSelected = submodulePermissions.length === availablePermissions.length && 
                        submodulePermissions.every(sp => sp.is_granted);
 
     if (allSelected) {
       this.selectedPermissions = this.selectedPermissions.filter(sp => sp.submodule_id !== submoduleId);
     } else {
-      this.dbPermissions.forEach(permission => {
+      availablePermissions.forEach(permission => {
         const existingIndex = this.selectedPermissions.findIndex(sp => 
           sp.submodule_id === submoduleId && sp.permission_id === permission.id
         );
@@ -210,11 +246,13 @@ export class RoleFormComponent implements OnInit, OnChanges {
 
   isSubmoduleIndeterminate(submoduleId: number): boolean {
     const selectedCount = this.getSelectedPermissionsCount(submoduleId);
-    return selectedCount > 0 && selectedCount < this.dbPermissions.length;
+    const availablePermissions = this.getAvailablePermissions(submoduleId);
+    return selectedCount > 0 && selectedCount < availablePermissions.length;
   }
 
   isSubmoduleAllSelected(submoduleId: number): boolean {
-    return this.getSelectedPermissionsCount(submoduleId) === this.dbPermissions.length;
+    const availablePermissions = this.getAvailablePermissions(submoduleId);
+    return this.getSelectedPermissionsCount(submoduleId) === availablePermissions.length;
   }
 
   onCancel(): void {
