@@ -140,12 +140,24 @@ export class RequisitionComponent implements OnInit {
       this.isDevolucion = state['isDevolucion'];
     }
     
+    // Cargar el evento seleccionado si existe
+    if (state['selectedEventId']) {
+      this.selectedEvent = state['selectedEventId'];
+      // Si hay un evento seleccionado, establecer automáticamente el área "Eventos"
+      if (this.selectedEvent) {
+        this.selectedArea = 'Eventos';
+        this.areaSearchTerm = 'Eventos';
+        this.loadProductsForArea();
+      }
+    }
+    
     // Mostrar mensaje de carga exitosa
     console.log('Datos cargados desde confirmación:', {
       areas: this.requisitionSummary.length,
       deliveryDate: this.currentDeliveryDate,
       selectedEmployee: state['selectedEmployee'],
-      isDevolucion: this.isDevolucion
+      isDevolucion: this.isDevolucion,
+      selectedEvent: this.selectedEvent
     });
   }
 
@@ -384,8 +396,12 @@ export class RequisitionComponent implements OnInit {
     this.products = [];
     this.productSearchTerm = '';
     this.currentQuantity = '';
-    this.selectedArea = '';
-    this.areaSearchTerm = '';
+    
+    // Solo limpiar el área si NO es un evento (área "Eventos")
+    if (this.selectedArea !== 'Eventos') {
+      this.selectedArea = '';
+      this.areaSearchTerm = '';
+    }
     // NO limpiar la fecha porque es para toda la solicitud
   }
 
@@ -407,7 +423,8 @@ export class RequisitionComponent implements OnInit {
       state: {
         requisitionData: this.requisitionSummary,
         deliveryDate: this.currentDeliveryDate,
-        isDevolucion: this.isDevolucion
+        isDevolucion: this.isDevolucion,
+        selectedEventId: this.selectedEvent // Pasar el evento seleccionado
       }
     });
   }
@@ -573,10 +590,20 @@ export class RequisitionComponent implements OnInit {
         
         // Llenar automáticamente el campo de fecha personalizada
         this.customDeliveryDate = this.formatDateForInput(deliveryDate);
+        
+        // Seleccionar automáticamente el área "Eventos"
+        this.selectedArea = 'Eventos';
+        this.areaSearchTerm = 'Eventos';
+        this.loadProductsForArea();
       }
     } else {
       this.currentDeliveryDate = null;
       this.customDeliveryDate = ''; // Limpiar fecha personalizada solo si no hay evento
+      // Limpiar el área de eventos
+      if (this.selectedArea === 'Eventos') {
+        this.selectedArea = '';
+        this.areaSearchTerm = '';
+      }
     }
   }
 
@@ -597,6 +624,11 @@ export class RequisitionComponent implements OnInit {
       // this.selectedEvent = ''; // COMENTADO: El evento se mantiene seleccionado
     } else {
       this.currentDeliveryDate = null;
+      // Limpiar el área de eventos si no hay fecha
+      if (this.selectedArea === 'Eventos' && !this.selectedEvent) {
+        this.selectedArea = '';
+        this.areaSearchTerm = '';
+      }
     }
   }
 
@@ -639,6 +671,11 @@ export class RequisitionComponent implements OnInit {
 
   getRequestDeliveryDate(): Date | null {
     return this.currentDeliveryDate;
+  }
+
+  // Verificar si el área debe estar deshabilitada (cuando hay un evento seleccionado)
+  isAreaDisabled(): boolean {
+    return this.selectedEvent !== '';
   }
 
   // Métodos para manejar el modal de cambio de área

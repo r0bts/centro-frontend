@@ -77,6 +77,9 @@ export class RequisitionConfirmationComponent implements OnInit {
   
   // Propiedad para devolución
   isDevolucion: boolean = false;
+  
+  // Propiedad para almacenar el evento seleccionado
+  selectedEventId: string = '';
 
   constructor(private router: Router, private route: ActivatedRoute) {
     // Obtener datos del estado de navegación (para flujo normal)
@@ -85,6 +88,7 @@ export class RequisitionConfirmationComponent implements OnInit {
       this.requisitionData = navigation.extras.state['requisitionData'] || [];
       this.deliveryDate = navigation.extras.state['deliveryDate'] || null;
       this.isDevolucion = navigation.extras.state['isDevolucion'] || false;
+      this.selectedEventId = navigation.extras.state['selectedEventId'] || '';
     }
   }
 
@@ -264,7 +268,8 @@ export class RequisitionConfirmationComponent implements OnInit {
           requisitionSummary: this.requisitionData,
           deliveryDate: this.deliveryDate,
           selectedEmployee: this.selectedEmployee,
-          isDevolucion: this.isDevolucion
+          isDevolucion: this.isDevolucion,
+          selectedEventId: this.selectedEventId // Pasar el evento seleccionado original
         }
       });
     }
