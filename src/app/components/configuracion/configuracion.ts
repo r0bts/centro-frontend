@@ -4,6 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
 import { RolesPermisosComponent } from './roles-permisos/roles-permisos';
+import { UsersListComponent, User } from './usuarios/users-list/users-list';
+import { UserFormComponent } from './usuarios/user-form/user-form';
+import { ProductsListComponent, Product } from './products-list/products-list';
+import { UserService } from '../../services/user.service';
+import { ProductService } from '../../services/product.service';
 import Swal from 'sweetalert2';
 
 interface ConfigSection {
@@ -31,12 +36,19 @@ interface SystemConfig {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
 export class ConfiguracionComponent implements OnInit {
   activeSection = 'general';
+  users: User[] = [];
+  products: Product[] = [];
+  
+  // Control para mostrar el formulario de usuario (solo edición/visualización)
+  showUserForm = false;
+  isUserEditMode = false;
+  selectedUserForEdit: User | null = null;
   
   configSections: ConfigSection[] = [
     {
@@ -73,13 +85,6 @@ export class ConfiguracionComponent implements OnInit {
       icon: 'bi-cloud-arrow-up',
       description: 'Configuración de integración con NetSuite',
       active: false
-    },
-    {
-      id: 'system',
-      title: 'Sistema',
-      icon: 'bi-cpu',
-      description: 'Configuraciones avanzadas del sistema',
-      active: false
     }
   ];
 
@@ -111,11 +116,17 @@ export class ConfiguracionComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private userService: UserService,
+    private productService: ProductService
   ) {}
 
   ngOnInit(): void {
     console.log('✅ ConfiguracionComponent initialized');
+    
+    // Cargar usuarios y productos
+    this.loadUsers();
+    this.loadProducts();
     
     // Detectar la sección desde la URL
     const urlPath = this.router.url;
@@ -132,11 +143,63 @@ export class ConfiguracionComponent implements OnInit {
     }
   }
 
+  loadUsers(): void {
+    this.userService.getAllUsers().subscribe({
+      next: (users) => {
+        this.users = users;
+        console.log('✅ Usuarios cargados:', users.length);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar usuarios:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar usuarios',
+          text: error.message,
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
+  }
+
+  loadProducts(): void {
+    this.productService.getAllProducts().subscribe({
+      next: (products) => {
+        this.products = products;
+        console.log('✅ Productos cargados:', products.length);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar productos:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar productos',
+          text: error.message,
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
+  }
+
   setActiveSection(sectionId: string): void {
     this.configSections.forEach(section => {
       section.active = section.id === sectionId;
     });
     this.activeSection = sectionId;
+  }
+
+  getActiveUsersCount(): number {
+    return this.users.filter(u => u.isActive).length;
+  }
+
+  getInactiveUsersCount(): number {
+    return this.users.filter(u => !u.isActive).length;
+  }
+
+  getActiveProductsCount(): number {
+    return this.products.filter(p => p.isActive).length;
+  }
+
+  getInactiveProductsCount(): number {
+    return this.products.filter(p => !p.isActive).length;
   }
 
   saveConfiguration(): void {
@@ -302,5 +365,226 @@ export class ConfiguracionComponent implements OnInit {
         });
       }
     });
+  }
+
+  // Métodos de gestión de usuarios
+  onSyncUsers(): void {
+    console.log('🔄 Sincronizando usuarios...');
+    Swal.fire({
+      title: 'Sincronizando usuarios',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Simular sincronización
+    setTimeout(() => {
+      this.loadUsers();
+      Swal.fire({
+        icon: 'success',
+        title: 'Sincronización completa',
+        text: 'Los usuarios han sido sincronizados exitosamente',
+        confirmButtonText: 'Continuar',
+        timer: 2000,
+        timerProgressBar: true
+      });
+    }, 2000);
+  }
+
+  onViewUser(user: User): void {
+    console.log('👁️ Ver detalles del usuario:', user);
+    Swal.fire({
+      title: 'Detalles del Usuario',
+      html: `
+        <div class="text-start">
+          <p><strong>Usuario:</strong> ${user.username}</p>
+          <p><strong>Nombre:</strong> ${user.firstName} ${user.lastName}</p>
+          <p><strong>Email:</strong> ${user.email}</p>
+          <p><strong>No. Empleado:</strong> ${user.employeeNumber}</p>
+          <p><strong>Rol:</strong> ${user.role}</p>
+          <p><strong>Estado:</strong> ${user.isActive ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</p>
+          <p><strong>Fecha de creación:</strong> ${new Date(user.createdAt).toLocaleDateString('es-ES')}</p>
+        </div>
+      `,
+      confirmButtonText: 'Cerrar',
+      width: '600px'
+    });
+  }
+
+  onEditUser(user: User): void {
+    console.log('✏️ Editar usuario:', user);
+    this.showUserForm = true;
+    this.isUserEditMode = true;
+    this.selectedUserForEdit = user;
+  }
+
+  onCancelUserForm(): void {
+    console.log('❌ Cancelar formulario de usuario');
+    this.showUserForm = false;
+    this.isUserEditMode = false;
+    this.selectedUserForEdit = null;
+  }
+
+  onSaveUser(userData: any): void {
+    console.log('💾 Actualizar usuario:', userData);
+    
+    // Solo actualizar usuario existente (no se permite crear nuevos)
+    Swal.fire({
+      title: 'Actualizando usuario',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Simular guardado
+    setTimeout(() => {
+      // Aquí harías la llamada al backend
+      // this.userService.updateUser(this.selectedUserForEdit!.id, userData).subscribe({...})
+      
+      this.showUserForm = false;
+      this.isUserEditMode = false;
+      this.selectedUserForEdit = null;
+      this.loadUsers();
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Usuario actualizado',
+        text: 'El usuario ha sido actualizado exitosamente',
+        confirmButtonText: 'Continuar',
+        timer: 2000,
+        timerProgressBar: true
+      });
+    }, 1000);
+  }
+
+  onDeleteUser(userId: string): void {
+    console.log('🗑️ Usuario eliminado:', userId);
+    // Eliminar el usuario de la lista local
+    this.users = this.users.filter(u => u.id !== userId);
+    
+    // Aquí se haría la llamada al backend
+    // this.userService.deleteUser(userId).subscribe({
+    //   next: () => {
+    //     this.loadUsers();
+    //   },
+    //   error: (error) => {
+    //     console.error('Error al eliminar usuario:', error);
+    //   }
+    // });
+  }
+
+  onToggleUserStatus(userId: string): void {
+    console.log('🔄 Cambiar estado del usuario:', userId);
+    // Actualizar el estado localmente
+    const user = this.users.find(u => u.id === userId);
+    if (user) {
+      user.isActive = !user.isActive;
+    }
+    
+    // Aquí se haría la llamada al backend
+    // this.userService.toggleUserStatus(userId).subscribe({
+    //   next: () => {
+    //     this.loadUsers();
+    //   },
+    //   error: (error) => {
+    //     console.error('Error al cambiar estado:', error);
+    //   }
+    // });
+  }
+
+  // Métodos de gestión de productos
+  onSyncProducts(): void {
+    console.log('🔄 Sincronizando productos...');
+    Swal.fire({
+      title: 'Sincronizando productos',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Simular sincronización
+    setTimeout(() => {
+      this.loadProducts();
+      Swal.fire({
+        icon: 'success',
+        title: 'Sincronización completa',
+        text: 'Los productos han sido sincronizados exitosamente desde NetSuite',
+        confirmButtonText: 'Continuar',
+        timer: 2000,
+        timerProgressBar: true
+      });
+    }, 2000);
+  }
+
+  onViewProduct(product: Product): void {
+    console.log('👁️ Ver detalles del producto:', product);
+    
+    Swal.fire({
+      title: 'Detalles del Producto',
+      html: `
+        <div class="text-start">
+          <p><strong>Código:</strong> ${product.code}</p>
+          <p><strong>Nombre:</strong> ${product.name}</p>
+          <p><strong>Descripción:</strong> ${product.description}</p>
+          <p><strong>Categoría:</strong> ${product.category}</p>
+          <p><strong>Unidad:</strong> ${product.unit}</p>
+          <p><strong>Estado:</strong> ${product.isActive ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</p>
+          <p><strong>Fecha de creación:</strong> ${new Date(product.createdAt).toLocaleDateString('es-ES')}</p>
+        </div>
+      `,
+      confirmButtonText: 'Cerrar',
+      width: '600px'
+    });
+  }
+
+  onEditProduct(product: Product): void {
+    console.log('✏️ Editar producto:', product);
+    Swal.fire({
+      icon: 'info',
+      title: 'Editar Producto',
+      text: `Funcionalidad de editar producto "${product.name}" en desarrollo`,
+      confirmButtonText: 'Entendido'
+    });
+  }
+
+  onDeleteProduct(productId: string): void {
+    console.log('🗑️ Producto eliminado:', productId);
+    // Eliminar el producto de la lista local
+    this.products = this.products.filter(p => p.id !== productId);
+    
+    // Aquí se haría la llamada al backend
+    // this.productService.deleteProduct(productId).subscribe({
+    //   next: () => {
+    //     this.loadProducts();
+    //   },
+    //   error: (error) => {
+    //     console.error('Error al eliminar producto:', error);
+    //   }
+    // });
+  }
+
+  onToggleProductStatus(productId: string): void {
+    console.log('🔄 Cambiar estado del producto:', productId);
+    // Actualizar el estado localmente
+    const product = this.products.find(p => p.id === productId);
+    if (product) {
+      product.isActive = !product.isActive;
+    }
+    
+    // Aquí se haría la llamada al backend
+    // this.productService.toggleProductStatus(productId).subscribe({
+    //   next: () => {
+    //     this.loadProducts();
+    //   },
+    //   error: (error) => {
+    //     console.error('Error al cambiar estado:', error);
+    //   }
+    // });
   }
 }

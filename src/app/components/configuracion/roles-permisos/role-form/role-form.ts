@@ -94,42 +94,45 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 5, module_id: 3, name: 'requisition', display_name: 'Requisiciones', route: '/requisition', is_active: true },
     { id: 6, module_id: 3, name: 'requisition_list', display_name: 'Lista de Requisiciones', route: '/requisition-list', is_active: true },
     { id: 7, module_id: 3, name: 'requisition_confirmation', display_name: 'Confirmación de Requisiciones', route: '/requisition-confirmation', is_active: true },
-    { id: 14, module_id: 3, name: 'frequent_list', display_name: 'Lista de Frecuentes', route: '/frequent-templates', is_active: true },
+    { id: 14, module_id: 3, name: 'frequent_list', display_name: 'Plantilla de Frecuentes', route: '/frequent-templates', is_active: true },
     
     // Configuración
     { id: 8, module_id: 4, name: 'configuracion_general', display_name: 'Configuración General', route: '/configuracion', is_active: true },
     { id: 9, module_id: 4, name: 'usuarios', display_name: 'Usuarios', route: '/usuarios', is_active: true },
     { id: 10, module_id: 4, name: 'roles_permisos', display_name: 'Roles y Permisos', route: '/roles-permisos', is_active: true },
+    { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
     { id: 12, module_id: 4, name: 'reportes', display_name: 'Reportes', route: '/reportes', is_active: true },
-    { id: 13, module_id: 4, name: 'admin_panel', display_name: 'Panel de Administración', route: '/admin-panel', is_active: true }
   ];
 
   dbPermissions: DbPermission[] = [
     { id: 1, name: 'create', display_name: 'Crear', description: 'Permite crear nuevos registros' },
-    { id: 2, name: 'read', display_name: 'Leer', description: 'Permite visualizar registros' },
+    { id: 2, name: 'view', display_name: 'Ver', description: 'Permite visualizar registros' },
     { id: 3, name: 'update', display_name: 'Editar', description: 'Permite modificar registros existentes' },
     { id: 4, name: 'delete', display_name: 'Eliminar', description: 'Permite eliminar registros' },
     { id: 5, name: 'events', display_name: 'Eventos', description: 'Permite gestionar eventos' },
-    { id: 6, name: 'warehouse', display_name: 'Almacén', description: 'Permite gestionar almacén' },
+    { id: 6, name: 'supply', display_name: 'Surtir', description: 'Permite gestionar almacén' },
     { id: 7, name: 'authorize', display_name: 'Autorizar', description: 'Permite autorizar requisiciones' },
+    { id: 8, name: 'sync', display_name: 'Sincronizar', description: 'Permite sincronizar datos desde NetSuite' },
     { id: 9, name: 'return', display_name: 'Devolución', description: 'Permite gestionar devoluciones' },
     { id: 10, name: 'frequent', display_name: 'Frecuentes', description: 'Permite gestionar plantillas frecuentes' },
     { id: 11, name: 'cancel', display_name: 'Cancelar', description: 'Permite cancelar requisiciones' },
     { id: 12, name: 'share', display_name: 'Compartir', description: 'Permite compartir registros' },
+    { id: 13, name: 'copy', display_name: 'Copiar', description: 'Permite copiar/duplicar registros' },
   ];
 
   // Configuración de permisos permitidos por submódulo
   private submodulePermissionsConfig: { [key: number]: number[] } = {
-    1: [2], // Dashboard Overview - solo permite "Leer"
+    1: [2], // Dashboard Overview - solo permite "Ver"
     5: [1, 5], // Requisiciones - permite "Crear" y "Eventos"
-    6: [3, 4, 6], // Lista de Requisiciones - permite "Editar", "Eliminar" y "Almacén"
+    6: [3, 4, 6], // Lista de Requisiciones - permite "Editar", "Eliminar" y "Surtir"
     7: [7, 9, 10, 11], // Confirmación de Requisiciones - permite "Autorizar", "Devolución", "Frecuentes" y "Cancelar"
-    8: [2], // Configuración General - solo permite "Leer"
-    9: [1, 2, 3, 4], // Usuarios - permite "Crear", "Leer", "Editar" y "Eliminar"
-    10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Leer", "Editar" y "Eliminar"
-    12: [2], // Reportes - solo permite "Leer"
-    13: [2], // Panel de Administración - solo permite "Leer"
-    14: [2, 3, 4, 12], // Lista de Frecuentes - permite "Leer", "Editar", "Eliminar" y "Compartir"
+    8: [2, 3], // Configuración General - permite "Ver" y "Editar"
+    9: [2, 3, 8], // Usuarios - permite "Ver", "Editar" y "Sincronizar" (NO crear)
+    10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Ver", "Editar" y "Eliminar"
+    11: [2, 8], // Productos - permite "Ver" y "Sincronizar" (NO crear, editar, eliminar)
+    12: [2], // Reportes - solo permite "Ver"
+    13: [2], // Panel de Administración - solo permite "Ver"
+    14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
   };
 
   constructor() {}

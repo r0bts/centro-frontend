@@ -1,0 +1,186 @@
+.user-form {
+  // Pestañas de navegación
+  .nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+
+    .nav-link {
+      color: #6c757d;
+      font-weight: 500;
+      border: none;
+      border-bottom: 3px solid transparent;
+      padding: 0.75rem 1.5rem;
+      transition: all 0.3s ease;
+
+      &:hover {
+        color: #495057;
+        border-color: #dee2e6;
+      }
+
+      &.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+        background-color: transparent;
+      }
+
+      i {
+        font-size: 1rem;
+      }
+
+      .badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+      }
+    }
+  }
+
+  .tab-content {
+    padding-top: 1.5rem;
+  }
+
+  .permissions-section {
+    max-height: 600px;
+    overflow-y: auto;
+    
+    .module-section {
+      .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        
+        .card-title {
+          color: #495057;
+          font-weight: 600;
+        }
+      }
+      
+      .submodule-section {
+        border-left: 3px solid #e9ecef;
+        padding-left: 15px;
+        margin-left: 10px;
+        
+        .badge {
+          font-size: 0.75rem;
+        }
+        
+        .form-check {
+          margin-bottom: 0.5rem;
+        }
+        
+        .form-check-label {
+          font-size: 0.875rem;
+          color: #6c757d;
+        }
+        
+        .form-check-input {
+          cursor: pointer;
+        }
+      }
+    }
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.875rem;
+  }
+  
+  .form-control,
+  .form-select {
+    border: 1px solid #ced4da;
+    font-size: 0.875rem;
+    
+    &:focus {
+      border-color: #495057;
+      box-shadow: 0 0 0 0.2rem rgba(73, 80, 87, 0.25);
+    }
+    
+    &::placeholder {
+      color: #adb5bd;
+      font-style: italic;
+    }
+  }
+  
+  .form-check-input {
+    cursor: pointer;
+    
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+  
+  .btn {
+    font-weight: 500;
+    padding: 0.5rem 1.5rem;
+  }
+  
+  .alert-info {
+    background-color: #e7f3ff;
+    border-color: #b3d9ff;
+    color: #004085;
+    
+    i {
+      color: #0066cc;
+    }
+  }
+  
+  .alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+    
+    i {
+      color: #f0ad4e;
+    }
+  }
+  
+  h5 {
+    color: #343a40;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 0.5rem;
+  }
+
+  // Sección de asignación de productos
+  .products-assignment-section {
+    max-height: 600px;
+    overflow-y: auto;
+
+    .card {
+      border: 1px solid #dee2e6;
+
+      .card-header {
+        background-color: #f8f9fa;
+        
+        h6 {
+          color: #495057;
+          font-weight: 600;
+        }
+      }
+
+      .table {
+        tbody tr {
+          transition: background-color 0.2s;
+
+          &:hover {
+            background-color: #f8f9fa;
+          }
+        }
+
+        .form-check-input {
+          cursor: pointer;
+        }
+
+        input[type="number"] {
+          &::-webkit-inner-spin-button,
+          &::-webkit-outer-spin-button {
+            opacity: 1;
+          }
+
+          &:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+          }
+        }
+      }
+    }
+  }
+}

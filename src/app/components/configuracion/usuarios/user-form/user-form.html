@@ -1,0 +1,367 @@
+<div class="user-form">
+  <!-- Botón de regreso -->
+  <div class="d-flex justify-content-start mb-3">
+    <button class="btn btn-light" (click)="onCancel()" style="border: 1px solid #dee2e6;">
+        Volver a la Lista
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h4 class="card-title mb-0">{{ isEditMode ? 'Editar Usuario' : 'Ver Usuario' }}</h4>
+    </div>
+    <div class="card-body">
+      <form (ngSubmit)="onSave()" #userFormRef="ngForm">
+        <!-- Información básica del usuario -->
+        <h5 class="mb-3">Información del Usuario</h5>
+        <div class="row mb-4">
+          <div class="col-md-4">
+            <label for="username" class="form-label">Usuario (Username) *</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="username"
+                   [(ngModel)]="userForm.username" 
+                   name="username"
+                   placeholder="Ej: jperez"
+                   required>
+          </div>
+          <div class="col-md-4">
+            <label for="nombre" class="form-label">Nombre Completo *</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="nombre"
+                   [(ngModel)]="userForm.nombre" 
+                   name="nombre"
+                   placeholder="Ej: Juan Pérez"
+                   required>
+          </div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <label for="departamento" class="form-label">Departamento *</label>
+            <select class="form-select" 
+                    id="departamento"
+                    [(ngModel)]="userForm.departamento" 
+                    name="departamento"
+                    required>
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let dept of availableDepartments" [value]="dept">{{ dept }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="id_netsuite" class="form-label">ID NetSuite</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="id_netsuite"
+                   [(ngModel)]="userForm.id_netsuite" 
+                   name="id_netsuite"
+                   placeholder="Ej: EMP001">
+          </div>
+          <div class="col-md-3">
+            <label for="rol_id" class="form-label">Rol *</label>
+            <select class="form-select" 
+                    id="rol_id"
+                    [(ngModel)]="userForm.rol_id" 
+                    name="rol_id"
+                    (change)="onRoleChange()"
+                    required>
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let role of availableRoles" [value]="role.id">
+                {{ role.display_name }}
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label d-block">Estado</label>
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="status"
+                     [(ngModel)]="userForm.status" 
+                     name="status"
+                     style="cursor: pointer;">
+              <label class="form-check-label" for="status" style="cursor: pointer;">
+                {{ userForm.status ? 'Activo' : 'Inactivo' }}
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pestañas de Navegación -->
+        <ul class="nav nav-tabs mb-4" id="userFormTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" 
+                    id="permissions-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#permissions" 
+                    type="button" 
+                    role="tab" 
+                    aria-controls="permissions" 
+                    aria-selected="true">
+              <i class="bi bi-shield-check me-2"></i>Permisos del Usuario
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" 
+                    id="products-tab" 
+                    data-bs-toggle="tab" 
+                    data-bs-target="#products" 
+                    type="button" 
+                    role="tab" 
+                    aria-controls="products" 
+                    aria-selected="false">
+              <i class="bi bi-box-seam me-2"></i>Productos Asignados
+              <span *ngIf="getTotalAssignedProducts() > 0" class="badge bg-primary ms-2">
+                {{ getTotalAssignedProducts() }}
+              </span>
+            </button>
+          </li>
+        </ul>
+
+        <!-- Contenido de las Pestañas -->
+        <div class="tab-content" id="userFormTabsContent">
+          <!-- Pestaña de Permisos -->
+          <div class="tab-pane fade show active" 
+               id="permissions" 
+               role="tabpanel" 
+               aria-labelledby="permissions-tab">
+
+        <!-- Información del rol seleccionado -->
+        <div class="alert alert-info mb-4" *ngIf="userForm.rol_id && getSelectedRole()">
+          <div class="d-flex align-items-start">
+            <div>
+              <strong>Rol Seleccionado: {{ getSelectedRole()?.display_name }}</strong>
+              <p class="mb-0 mt-1">{{ getSelectedRole()?.description }}</p>
+              <small class="text-muted">Los permisos se cargan automáticamente del rol, pero puedes personalizarlos para este usuario.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Permisos por módulo -->
+        <h5 class="mb-3">Asignación de Permisos</h5>
+        <div class="permissions-section">
+          <div *ngFor="let module of modules" class="module-section mb-4">
+            <div class="card">
+              <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                  {{ module.display_name }}
+                </h6>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let submodule of getSubmodulesByModule(module.id)" class="submodule-section mb-3">
+                  <div class="d-flex align-items-center mb-2">
+                    <input type="checkbox" 
+                           class="form-check-input me-2"
+                           [checked]="isSubmoduleAllSelected(submodule.id)"
+                           [indeterminate]="isSubmoduleIndeterminate(submodule.id)"
+                           (change)="toggleAllSubmodulePermissions(submodule.id)">
+                    <strong>{{ submodule.display_name }}</strong>
+                    <span class="badge bg-light text-dark ms-2">
+                      {{ getSelectedPermissionsCount(submodule.id) }}/{{ getAvailablePermissions(submodule.id).length }}
+                    </span>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-2" *ngFor="let permission of getAvailablePermissions(submodule.id)">
+                      <div class="form-check">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               [id]="'perm_' + submodule.id + '_' + permission.id"
+                               [checked]="hasPermission(submodule.id, permission.id)"
+                               (change)="togglePermission(submodule.id, permission.id)">
+                        <label class="form-check-label" 
+                               [for]="'perm_' + submodule.id + '_' + permission.id">
+                          {{ permission.display_name }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+          </div>
+          <!-- Fin Pestaña de Permisos -->
+
+          <!-- Pestaña de Productos -->
+          <div class="tab-pane fade" 
+               id="products" 
+               role="tabpanel" 
+               aria-labelledby="products-tab">
+            
+            <!-- Asignación de Productos con Límites -->
+            <h5 class="mb-3">Asignación de Productos</h5>
+            <div class="alert alert-info mb-4">
+              <div class="d-flex align-items-start">
+                <i class="bi bi-info-circle me-2" style="font-size: 1.2rem;"></i>
+                <div>
+                  <strong>Límites de Requisición</strong>
+                  <p class="mb-0 mt-1">Define la cantidad máxima que este usuario puede solicitar por producto en cada requisición.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filtros de productos -->
+            <div class="row mb-3">
+          <div class="col-md-6">
+            <input 
+              type="text" 
+              class="form-control"
+              placeholder="Buscar producto por nombre o código..."
+              [(ngModel)]="productSearchTerm"
+              name="productSearch">
+          </div>
+          <div class="col-md-3">
+            <select class="form-select" [(ngModel)]="selectedProductCategory" name="productCategory">
+              <option value="">Todas las categorías</option>
+              <option *ngFor="let category of productCategories" [value]="category">{{ category }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="showOnlyAssigned"
+                     [(ngModel)]="showOnlyAssignedProducts"
+                     name="showOnlyAssigned"
+                     style="cursor: pointer;">
+              <label class="form-check-label" for="showOnlyAssigned" style="cursor: pointer;">
+                Solo asignados
+              </label>
+            </div>
+            </div>
+            </div>
+
+            <!-- Tabla de productos -->
+            <div class="products-assignment-section">
+          <div *ngFor="let category of getProductCategoriesWithProducts()" class="card mb-3">
+            <div class="card-header bg-light">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                  <i class="bi bi-box-seam me-2"></i>
+                  {{ category }}
+                </h6>
+                <span class="badge bg-primary">
+                  {{ getAssignedProductsCountByCategory(category) }}/{{ getProductsByCategory(category).length }} asignados
+                </span>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th width="50" class="text-center">
+                        <input type="checkbox" 
+                               class="form-check-input"
+                               [checked]="isCategoryAllSelected(category)"
+                               [indeterminate]="isCategoryIndeterminate(category)"
+                               (change)="toggleCategoryProducts(category)">
+                      </th>
+                      <th>Producto</th>
+                      <th width="150" class="text-center">Límite por Requisición</th>
+                      <th width="100" class="text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let product of getProductsByCategory(category)">
+                      <td class="text-center align-middle">
+                        <input type="checkbox" 
+                               class="form-check-input"
+                               [checked]="isProductAssigned(product.id)"
+                               (change)="toggleProductAssignment(product.id)">
+                      </td>
+                      <td class="align-middle">
+                        <div>
+                          <strong class="d-block">{{ product.code }} - {{ product.name }}</strong>
+                          <small class="text-muted">{{ product.description }}</small>
+                        </div>
+                      </td>
+                      <td class="text-center align-middle">
+                        <div class="input-group input-group-sm mx-auto" style="width: 120px;">
+                          <input 
+                            type="number" 
+                            class="form-control text-center"
+                            min="0"
+                            placeholder="0"
+                            [value]="getProductLimit(product.id)"
+                            (input)="updateProductLimit(product.id, $event)"
+                            [disabled]="!isProductAssigned(product.id)">
+                          <span class="input-group-text">{{ product.unit }}</span>
+                        </div>
+                      </td>
+                      <td class="text-center align-middle">
+                        <span *ngIf="isProductAssigned(product.id)" class="badge bg-success">
+                          <i class="bi bi-check-circle me-1"></i>Asignado
+                        </span>
+                        <span *ngIf="!isProductAssigned(product.id)" class="badge bg-secondary">
+                          No asignado
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+              <!-- Mensaje cuando no hay productos -->
+              <div *ngIf="getProductCategoriesWithProducts().length === 0" class="alert alert-warning text-center">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                No se encontraron productos con los filtros aplicados
+              </div>
+            </div>
+
+            <!-- Resumen de asignación -->
+            <div class="card bg-light mt-3">
+          <div class="card-body">
+            <div class="row text-center">
+              <div class="col-md-4">
+                <div class="d-flex align-items-center justify-content-center">
+                  <i class="bi bi-box-seam text-primary me-2" style="font-size: 1.5rem;"></i>
+                  <div class="text-start">
+                    <small class="text-muted d-block">Productos Asignados</small>
+                    <strong class="fs-5">{{ getTotalAssignedProducts() }}</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex align-items-center justify-content-center">
+                  <i class="bi bi-tags text-info me-2" style="font-size: 1.5rem;"></i>
+                  <div class="text-start">
+                    <small class="text-muted d-block">Categorías con Productos</small>
+                    <strong class="fs-5">{{ getCategoriesWithAssignedProducts() }}</strong>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex align-items-center justify-content-center">
+                  <i class="bi bi-clipboard-check text-success me-2" style="font-size: 1.5rem;"></i>
+                  <div class="text-start">
+                    <small class="text-muted d-block">Límites Configurados</small>
+                    <strong class="fs-5">{{ getProductsWithLimitsCount() }}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+            </div>
+          </div>
+          <!-- Fin Pestaña de Productos -->
+        </div>
+        <!-- Fin Tab Content -->
+
+        <!-- Botones de acción -->
+        <div class="d-flex justify-content-end gap-2 mt-4">
+          <button type="button" class="btn btn-light" (click)="onCancel()" style="border: 1px solid #dee2e6;">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            {{ isEditMode ? 'Actualizar Usuario' : 'Guardar' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

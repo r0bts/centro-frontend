@@ -36,6 +36,9 @@ export class RequisitionComponent implements OnInit {
   // Propiedad para devolución
   isDevolucion: boolean = false;
   
+  // Propiedad para unidad de negocio/trabajo
+  businessUnit: string = '';
+  
   // Propiedades para fechas (OBLIGATORIO)
   selectedEvent: string = '';
   customDeliveryDate: string = '';
@@ -77,6 +80,12 @@ export class RequisitionComponent implements OnInit {
 
   areas: string[] = ['Restaurante', 'Cocina', 'Bar', 'Limpieza', 'Administración'];
   units: string[] = ['ml', 'Lt', 'Kg', 'g', 'Pzs', 'Cajas'];
+  
+  // Unidades de negocio/trabajo
+  businessUnits: string[] = [
+    'Unidad Centro',
+    'Corporativo'
+  ];
   
   // Eventos predefinidos (actualizados desde 4 de noviembre de 2025)
   events: Event[] = [
@@ -140,6 +149,11 @@ export class RequisitionComponent implements OnInit {
       this.isDevolucion = state['isDevolucion'];
     }
     
+    // Cargar la unidad de negocio
+    if (state['businessUnit']) {
+      this.businessUnit = state['businessUnit'];
+    }
+    
     // Cargar el evento seleccionado si existe
     if (state['selectedEventId']) {
       this.selectedEvent = state['selectedEventId'];
@@ -157,7 +171,8 @@ export class RequisitionComponent implements OnInit {
       deliveryDate: this.currentDeliveryDate,
       selectedEmployee: state['selectedEmployee'],
       isDevolucion: this.isDevolucion,
-      selectedEvent: this.selectedEvent
+      selectedEvent: this.selectedEvent,
+      businessUnit: this.businessUnit
     });
   }
 
@@ -424,7 +439,8 @@ export class RequisitionComponent implements OnInit {
         requisitionData: this.requisitionSummary,
         deliveryDate: this.currentDeliveryDate,
         isDevolucion: this.isDevolucion,
-        selectedEventId: this.selectedEvent // Pasar el evento seleccionado
+        selectedEventId: this.selectedEvent, // Pasar el evento seleccionado
+        businessUnit: this.businessUnit // Pasar la unidad de negocio
       }
     });
   }

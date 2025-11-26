@@ -1,186 +1,236 @@
-<div class="container-fluid h-100">
-    <!-- Content Menu Component -->
-    <app-content-menu></app-content-menu>
-    
-    <!-- Configuracion Content -->
-    <div class="configuracion-content p-4">
-        <!-- Header -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1 class="configuracion-title">
-                            <i class="bi bi-gear me-3"></i>Configuración del Sistema
-                        </h1>
-                        <p class="text-muted">Administra las configuraciones y preferencias del sistema</p>
+<div class="container-fluid bg-light">
+        <!-- Content Menu Component -->
+        <app-content-menu></app-content-menu>
+        <!-- Configuracion Content -->
+        <div class="configuracion-content p-4">
+            <!-- Header -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h1 class="configuracion-title">
+                                <i class="bi bi-gear me-3"></i>Configuración del Sistema
+                            </h1>
+                            <p class="text-muted">Administra las configuraciones y preferencias del sistema</p>
+                        </div>
+                    
                     </div>
-                   
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Sidebar Navigation -->
+                <div class="col-md-3 mb-4">
+                    <div class="card config-sidebar">
+                        <div class="card-header">
+                            <h6 class="card-title mb-0 text-dark">Secciones de Configuración</h6>
+                        </div>
+                        <div class="list-group list-group-flush">
+                            <button 
+                                *ngFor="let section of configSections"
+                                class="list-group-item list-group-item-action d-flex align-items-center"
+                                [class.active]="section.active"
+                                (click)="setActiveSection(section.id)">
+                                <i [class]="'bi ' + section.icon + ' me-3'"></i>
+                                <div>
+                                    <div class="fw-semibold">{{ section.title }}</div>
+                                    <small class="text-muted">{{ section.description }}</small>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content -->
+                <div class="col-md-9">
+                    <!-- General Configuration -->
+                    <div *ngIf="activeSection === 'general'" class="card config-panel">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-gear me-2"></i>Configuración General
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="siteName" class="form-label">Nombre del Sitio</label>
+                                    <input 
+                                        type="text" 
+                                        class="form-control" 
+                                        id="siteName"
+                                        [(ngModel)]="systemConfig.siteName">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="adminEmail" class="form-label">Email del Administrador</label>
+                                    <input 
+                                        type="email" 
+                                        class="form-control" 
+                                        id="adminEmail"
+                                        [(ngModel)]="systemConfig.adminEmail">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="language" class="form-label">Idioma del Sistema</label>
+                                    <select 
+                                        class="form-select" 
+                                        id="language"
+                                        [(ngModel)]="systemConfig.language">
+                                        <option *ngFor="let lang of languages" [value]="lang.code">
+                                            {{ lang.name }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="themeMode" class="form-label">Modo de Tema</label>
+                                    <select 
+                                        class="form-select" 
+                                        id="themeMode"
+                                        [(ngModel)]="systemConfig.themeMode">
+                                        <option *ngFor="let theme of themeModes" [value]="theme.value">
+                                            {{ theme.label }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="maxFileSize" class="form-label">Tamaño Máximo de Archivo (MB)</label>
+                                    <input 
+                                        type="number" 
+                                        class="form-control" 
+                                        id="maxFileSize"
+                                        [(ngModel)]="systemConfig.maxFileSize"
+                                        min="1" max="100">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="sessionTimeout" class="form-label">Tiempo de Sesión (minutos)</label>
+                                    <input 
+                                        type="number" 
+                                        class="form-control" 
+                                        id="sessionTimeout"
+                                        [(ngModel)]="systemConfig.sessionTimeout"
+                                        min="5" max="120">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Users Management -->
+                    <div *ngIf="activeSection === 'users'" class="config-panel">
+                        <!-- Mostrar formulario de usuario o lista -->
+                        <div *ngIf="!showUserForm">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="bi bi-people me-2"></i>Gestión de Usuarios
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <p class="text-muted">Administra todos los usuarios del sistema, sus roles y permisos.</p>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body text-center">
+                                                    <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
+                                                    <h4 class="mt-2">{{ users.length }}</h4>
+                                                    <p class="text-muted mb-0">Usuarios Totales</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body text-center">
+                                                    <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
+                                                    <h4 class="mt-2">{{ getActiveUsersCount() }}</h4>
+                                                    <p class="text-muted mb-0">Usuarios Activos</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <div class="card bg-light border-0">
+                                                <div class="card-body text-center">
+                                                    <i class="bi bi-shield-x text-warning" style="font-size: 2rem;"></i>
+                                                    <h4 class="mt-2">{{ getInactiveUsersCount() }}</h4>
+                                                    <p class="text-muted mb-0">Usuarios Inactivos</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Listado de Usuarios con DataTable -->
+                                    <app-users-list 
+                                        [users]="users"
+                                        (syncUsers)="onSyncUsers()"
+                                        (viewUser)="onViewUser($event)"
+                                        (editUser)="onEditUser($event)"
+                                        (deleteUser)="onDeleteUser($event)"
+                                        (toggleUserStatus)="onToggleUserStatus($event)">
+                                    </app-users-list>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formulario de usuario -->
+                        <div *ngIf="showUserForm">
+                            <app-user-form
+                                [isEditMode]="isUserEditMode"
+                                [selectedUser]="selectedUserForEdit"
+                                (cancel)="onCancelUserForm()"
+                                (save)="onSaveUser($event)">
+                            </app-user-form>
+                        </div>
+                    </div>
+
+                    <!-- Roles y Permisos Configuration -->
+                    <div *ngIf="activeSection === 'roles'" class="config-panel">
+                        <app-roles-permisos></app-roles-permisos>
+                    </div>
+
+                    <!-- Products Management -->
+                    <div *ngIf="activeSection === 'products'" class="config-panel">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="bi bi-box me-2"></i>Gestión de Productos
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <p class="text-muted">Administra todos los productos sincronizados desde NetSuite.</p>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card bg-light border-0">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-box-seam text-primary" style="font-size: 2rem;"></i>
+                                                <h4 class="mt-2">{{ products.length }}</h4>
+                                                <p class="text-muted mb-0">Productos Totales</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card bg-light border-0">
+                                            <div class="card-body text-center">
+                                                <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                                                <h4 class="mt-2">{{ getActiveProductsCount() }}</h4>
+                                                <p class="text-muted mb-0">Productos Activos</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Listado de Productos con DataTable -->
+                                <app-products-list 
+                                    [products]="products"
+                                    (syncProducts)="onSyncProducts()"
+                                    (viewProduct)="onViewProduct($event)"
+                                    (editProduct)="onEditProduct($event)"
+                                    (deleteProduct)="onDeleteProduct($event)"
+                                    (toggleProductStatus)="onToggleProductStatus($event)">
+                                </app-products-list>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-        <div class="row">
-            <!-- Sidebar Navigation -->
-            <div class="col-md-3 mb-4">
-                <div class="card config-sidebar">
-                    <div class="card-header">
-                        <h6 class="card-title mb-0 text-dark">Secciones de Configuración</h6>
-                    </div>
-                    <div class="list-group list-group-flush">
-                        <button 
-                            *ngFor="let section of configSections"
-                            class="list-group-item list-group-item-action d-flex align-items-center"
-                            [class.active]="section.active"
-                            (click)="setActiveSection(section.id)">
-                            <i [class]="'bi ' + section.icon + ' me-3'"></i>
-                            <div>
-                                <div class="fw-semibold">{{ section.title }}</div>
-                                <small class="text-muted">{{ section.description }}</small>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Main Content -->
-            <div class="col-md-9">
-                <!-- General Configuration -->
-                <div *ngIf="activeSection === 'general'" class="card config-panel">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-gear me-2"></i>Configuración General
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="siteName" class="form-label">Nombre del Sitio</label>
-                                <input 
-                                    type="text" 
-                                    class="form-control" 
-                                    id="siteName"
-                                    [(ngModel)]="systemConfig.siteName">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="adminEmail" class="form-label">Email del Administrador</label>
-                                <input 
-                                    type="email" 
-                                    class="form-control" 
-                                    id="adminEmail"
-                                    [(ngModel)]="systemConfig.adminEmail">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="language" class="form-label">Idioma del Sistema</label>
-                                <select 
-                                    class="form-select" 
-                                    id="language"
-                                    [(ngModel)]="systemConfig.language">
-                                    <option *ngFor="let lang of languages" [value]="lang.code">
-                                        {{ lang.name }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="themeMode" class="form-label">Modo de Tema</label>
-                                <select 
-                                    class="form-select" 
-                                    id="themeMode"
-                                    [(ngModel)]="systemConfig.themeMode">
-                                    <option *ngFor="let theme of themeModes" [value]="theme.value">
-                                        {{ theme.label }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="maxFileSize" class="form-label">Tamaño Máximo de Archivo (MB)</label>
-                                <input 
-                                    type="number" 
-                                    class="form-control" 
-                                    id="maxFileSize"
-                                    [(ngModel)]="systemConfig.maxFileSize"
-                                    min="1" max="100">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="sessionTimeout" class="form-label">Tiempo de Sesión (minutos)</label>
-                                <input 
-                                    type="number" 
-                                    class="form-control" 
-                                    id="sessionTimeout"
-                                    [(ngModel)]="systemConfig.sessionTimeout"
-                                    min="5" max="120">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Users Management -->
-                <div *ngIf="activeSection === 'users'" class="card config-panel">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-people me-2"></i>Gestión de Usuarios
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <p class="text-muted">Configuraciones relacionadas con la gestión de usuarios y permisos del sistema.</p>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card bg-light">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
-                                        <h4 class="mt-2">1,247</h4>
-                                        <p class="text-muted mb-0">Usuarios Totales</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div class="card bg-light">
-                                    <div class="card-body text-center">
-                                        <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
-                                        <h4 class="mt-2">45</h4>
-                                        <p class="text-muted mb-0">Administradores</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Roles y Permisos Configuration -->
-                <div *ngIf="activeSection === 'roles'" class="config-panel">
-                    <app-roles-permisos></app-roles-permisos>
-                </div>
-
-                <!-- System Configuration -->
-                <div *ngIf="activeSection === 'system'" class="card config-panel">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">
-                            <i class="bi bi-cpu me-2"></i>Configuración del Sistema
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <p class="text-muted">Configuraciones avanzadas y herramientas de mantenimiento del sistema.</p>
-                            </div>
-                            <div class="col-12">
-                                <div class="d-flex flex-wrap gap-2">
-                                    <button class="btn btn-outline-info" (click)="viewLogs()">
-                                        <i class="bi bi-list-ul me-2"></i>Ver Logs del Sistema
-                                    </button>
-                                    <button class="btn btn-outline-warning" (click)="clearCache()">
-                                        <i class="bi bi-trash me-2"></i>Limpiar Caché
-                                    </button>
-                                    <button class="btn btn-outline-danger" (click)="restartSystem()">
-                                        <i class="bi bi-arrow-clockwise me-2"></i>Reiniciar Sistema
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>

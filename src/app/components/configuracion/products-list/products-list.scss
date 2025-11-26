@@ -1,0 +1,47 @@
+.products-list {
+  .btn-light {
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: #f8f9fa;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  .table {
+    thead {
+      th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
+      }
+    }
+
+    tbody {
+      tr {
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: #f8f9fa !important;
+        }
+      }
+    }
+  }
+
+  .badge {
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+
+  .card {
+    border: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  }
+}
