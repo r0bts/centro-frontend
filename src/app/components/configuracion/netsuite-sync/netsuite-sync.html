@@ -1,0 +1,224 @@
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">
+                Sincronización NetSuite
+            </h5>
+            <button class="btn btn-primary btn-sm" (click)="syncAll()">
+                Sincronizar Todo
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Descripción -->
+        <div class="alert alert-info mb-4" role="alert">
+            <strong>Configuración de Integración NetSuite</strong>
+            <p class="mb-0 mt-2">
+                Desde aquí puedes sincronizar los datos principales desde NetSuite hacia el sistema. 
+                Cada sincronización actualiza los registros existentes y añade nuevos si es necesario.
+            </p>
+        </div>
+
+        <!-- Tarjetas de Sincronización -->
+        <div class="row">
+            <!-- Sincronizar Usuarios -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <h5 class="card-title">Usuarios</h5>
+                        <p class="text-muted small mb-3">Sincronizar empleados del sistema</p>
+                        
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['users'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['users'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                   {{ syncStatus['users'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button 
+                            class="btn btn-primary w-100"
+                            (click)="syncUsers()"
+                            [disabled]="syncStatus['users'].isLoading">
+                            <span *ngIf="!syncStatus['users'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['users'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sincronizar Productos -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                        <h5 class="card-title">Productos</h5>
+                        <p class="text-muted small mb-3">Sincronizar catálogo de productos</p>
+                        
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['products'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['products'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['products'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button 
+                            class="btn btn-primary w-100"
+                            (click)="syncProducts()"
+                            [disabled]="syncStatus['products'].isLoading">
+                            <span *ngIf="!syncStatus['products'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['products'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sincronizar Centros de Costos -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-building"></i>
+                        </div>
+                        <h5 class="card-title">Centros de Costos</h5>
+                        <p class="text-muted small mb-3">Sincronizar centros de costos</p>
+                        
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['costcenters'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['costcenters'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['costcenters'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button 
+                            class="btn btn-primary w-100"
+                            (click)="syncCostCenters()"
+                            [disabled]="syncStatus['costcenters'].isLoading">
+                            <span *ngIf="!syncStatus['costcenters'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['costcenters'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sincronizar Departamentos -->
+            <div class="col-md-6 col-lg-3 mb-4">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-diagram-3"></i>
+                        </div>
+                        <h5 class="card-title">Departamentos</h5>
+                        <p class="text-muted small mb-3">Sincronizar estructura de departamentos</p>
+                        
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['departments'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['departments'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['departments'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button 
+                            class="btn btn-primary w-100"
+                            (click)="syncDepartments()"
+                            [disabled]="syncStatus['departments'].isLoading">
+                            <span *ngIf="!syncStatus['departments'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['departments'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0" style="background-color: var(--neutral-50);">
+                    <div class="card-body">
+                        <h6 class="card-title" style="color: var(--neutral-900);">
+                            <i class="bi bi-info-circle me-2"></i>Información de Sincronización
+                        </h6>
+                        <ul class="mb-0" style="color: var(--neutral-700);">
+                            <li class="mb-2">
+                                <strong style="color: var(--neutral-800);">Frecuencia recomendada:</strong> Se recomienda sincronizar los datos al menos una vez al día para mantener la información actualizada.
+                            </li>
+                            <li class="mb-2">
+                                <strong style="color: var(--neutral-800);">Duración del proceso:</strong> Cada sincronización puede tomar entre 1-5 minutos dependiendo de la cantidad de datos.
+                            </li>
+                            <li class="mb-2">
+                                <strong style="color: var(--neutral-800);">Sincronización automática:</strong> El sistema realiza sincronizaciones automáticas diariamente a las 2:00 AM.
+                            </li>
+                            <li class="mb-0">
+                                <strong style="color: var(--neutral-800);">Conexión NetSuite:</strong> Asegúrate de que las credenciales de NetSuite estén configuradas correctamente en las variables de entorno.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

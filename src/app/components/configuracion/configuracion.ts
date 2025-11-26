@@ -7,6 +7,7 @@ import { RolesPermisosComponent } from './roles-permisos/roles-permisos';
 import { UsersListComponent, User } from './usuarios/users-list/users-list';
 import { UserFormComponent } from './usuarios/user-form/user-form';
 import { ProductsListComponent, Product } from './products-list/products-list';
+import { NetsuiteSyncComponent } from './netsuite-sync/netsuite-sync';
 import { UserService } from '../../services/user.service';
 import { ProductService } from '../../services/product.service';
 import Swal from 'sweetalert2';
@@ -36,7 +37,7 @@ interface SystemConfig {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })

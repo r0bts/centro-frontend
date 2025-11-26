@@ -230,6 +230,11 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- NetSuite Sync Configuration -->
+                    <div *ngIf="activeSection === 'netsuite'" class="config-panel">
+                        <app-netsuite-sync></app-netsuite-sync>
+                    </div>
                 </div>
             </div>
         </div>
