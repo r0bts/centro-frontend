@@ -30,6 +30,9 @@
                   <p class="mb-0 opacity-75">
                     Creada por: {{ requisition.creator }} | 
                     Entrega: {{ formatDate(requisition.deliveryDate) }}
+                    <span *ngIf="requisition.businessUnit">
+                      | <i class="bi bi-building me-1"></i>{{ requisition.businessUnit }}
+                    </span>
                   </p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-2 mt-lg-0">

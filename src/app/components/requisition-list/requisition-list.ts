@@ -15,6 +15,7 @@ export interface RequisitionItem {
   deliveryDate: Date;
   areas: string[];
   totalProducts: number;
+  businessUnit?: string;
 }
 
 @Component({
@@ -50,7 +51,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-01T09:30:00'),
       deliveryDate: new Date('2025-11-03T10:00:00'), // Hoy
       areas: ['Cocina', 'Restaurante'],
-      totalProducts: 15
+      totalProducts: 15,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-002',
@@ -60,7 +62,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-02T14:20:00'),
       deliveryDate: new Date('2025-11-03T08:00:00'), // Hoy
       areas: ['Almacén', 'Mantenimiento'],
-      totalProducts: 8
+      totalProducts: 8,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-003',
@@ -70,7 +73,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-31T11:45:00'),
       deliveryDate: new Date('2025-11-03T15:30:00'), // Hoy
       areas: ['Limpieza'],
-      totalProducts: 22
+      totalProducts: 22,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-004',
@@ -80,7 +84,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-01T16:10:00'),
       deliveryDate: new Date('2025-11-04T12:00:00'), // Mañana
       areas: ['Cocina', 'Bar', 'Restaurante'],
-      totalProducts: 35
+      totalProducts: 35,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-005',
@@ -90,7 +95,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-30T08:15:00'),
       deliveryDate: new Date('2025-11-05T09:00:00'), // En 2 días
       areas: ['Oficina Administrativa'],
-      totalProducts: 12
+      totalProducts: 12,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-006',
@@ -100,7 +106,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-01T13:25:00'),
       deliveryDate: new Date('2025-11-06T10:30:00'), // En 3 días
       areas: ['Mantenimiento', 'Seguridad'],
-      totalProducts: 6
+      totalProducts: 6,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-007',
@@ -110,7 +117,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-02T10:15:00'),
       deliveryDate: new Date('2025-11-07T14:00:00'), // En 4 días
       areas: ['Farmacia', 'Consultorios'],
-      totalProducts: 28
+      totalProducts: 28,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-008',
@@ -120,7 +128,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-03T16:45:00'),
       deliveryDate: new Date('2025-11-05T08:30:00'), // En 2 días
       areas: ['Laboratorio'],
-      totalProducts: 45
+      totalProducts: 45,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-009',
@@ -130,7 +139,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-01T09:20:00'),
       deliveryDate: new Date('2025-11-03T11:00:00'), // Hoy
       areas: ['Quirófano', 'Recuperación'],
-      totalProducts: 67
+      totalProducts: 67,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-010',
@@ -140,7 +150,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-29T14:30:00'),
       deliveryDate: new Date('2025-11-04T10:15:00'), // Mañana
       areas: ['Emergencias'],
-      totalProducts: 33
+      totalProducts: 33,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-011',
@@ -150,7 +161,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-28T11:00:00'),
       deliveryDate: new Date('2025-11-06T16:30:00'), // En 3 días
       areas: ['Pediatría', 'Neonatología'],
-      totalProducts: 41
+      totalProducts: 41,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-012',
@@ -160,7 +172,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-02T08:45:00'),
       deliveryDate: new Date('2025-11-08T12:00:00'), // En 5 días
       areas: ['Radiología'],
-      totalProducts: 19
+      totalProducts: 19,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-013',
@@ -170,7 +183,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-01T13:15:00'),
       deliveryDate: new Date('2025-11-06T09:45:00'), // En 3 días
       areas: ['Cardiología', 'UCI'],
-      totalProducts: 52
+      totalProducts: 52,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-014',
@@ -180,7 +194,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-31T15:30:00'),
       deliveryDate: new Date('2025-11-03T14:20:00'), // Hoy
       areas: ['Ginecología'],
-      totalProducts: 24
+      totalProducts: 24,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-015',
@@ -190,7 +205,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-01T12:40:00'),
       deliveryDate: new Date('2025-11-05T16:00:00'), // En 2 días
       areas: ['Dermatología'],
-      totalProducts: 14
+      totalProducts: 14,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-016',
@@ -200,7 +216,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-30T10:25:00'),
       deliveryDate: new Date('2025-11-04T08:45:00'), // Mañana
       areas: ['Neurología', 'Neurocirugía'],
-      totalProducts: 38
+      totalProducts: 38,
+      businessUnit: 'Corporativo'
     },
     {
       id: 'REQ-017',
@@ -210,7 +227,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-10-29T16:15:00'),
       deliveryDate: new Date('2025-11-07T12:30:00'), // En 4 días
       areas: ['Oftalmología'],
-      totalProducts: 27
+      totalProducts: 27,
+      businessUnit: 'Unidad Centro'
     },
     {
       id: 'REQ-018',
@@ -220,7 +238,8 @@ export class RequisitionListComponent implements OnInit {
       creationDate: new Date('2025-11-03T09:10:00'),
       deliveryDate: new Date('2025-11-09T15:45:00'), // En 6 días
       areas: ['Traumatología'],
-      totalProducts: 46
+      totalProducts: 46,
+      businessUnit: 'Corporativo'
     }
   ];
 
@@ -369,6 +388,9 @@ export class RequisitionListComponent implements OnInit {
       queryParams: {
         id: requisition.id,
         mode: 'view'
+      },
+      state: {
+        businessUnit: requisition.businessUnit
       }
     });
   }
@@ -411,6 +433,9 @@ export class RequisitionListComponent implements OnInit {
       queryParams: {
         id: requisition.id,
         mode: 'edit'
+      },
+      state: {
+        businessUnit: requisition.businessUnit
       }
     });
   }
@@ -453,7 +478,7 @@ export class RequisitionListComponent implements OnInit {
   // Métodos para exportar e imprimir
   exportData(): void {
     // Crear CSV con los datos filtrados agrupados por fecha
-    let csvContent = 'Fecha de Entrega,Hora de Entrega,ID,Creador,Autorizador,Estatus,Fecha de Creación,Hora de Creación\n';
+    let csvContent = 'Fecha de Entrega,Hora de Entrega,ID,Creador,Unidad de Negocio,Autorizador,Estatus,Fecha de Creación,Hora de Creación\n';
     
     this.filteredDateGroups.forEach(dateGroup => {
       this.filteredGroupedRequisitions[dateGroup].forEach(req => {
@@ -462,6 +487,7 @@ export class RequisitionListComponent implements OnInit {
           this.formatTime(req.deliveryDate),
           req.id,
           req.creator,
+          req.businessUnit || 'Sin asignar',
           req.authorizer || 'Pendiente',
           req.status,
           this.formatDate(req.creationDate),
@@ -501,6 +527,7 @@ export class RequisitionListComponent implements OnInit {
             .bg-primary { background-color: #007bff; color: white; }
             .bg-danger { background-color: #dc3545; color: white; }
             .bg-secondary { background-color: #6c757d; color: white; }
+            .bg-info { background-color: #17a2b8; color: white; }
           </style>
         </head>
         <body>
@@ -515,6 +542,7 @@ export class RequisitionListComponent implements OnInit {
             <tr>
               <th>ID</th>
               <th>Creador</th>
+              <th>Unidad de Negocio</th>
               <th>Autorizado por</th>
               <th>Estatus</th>
               <th>Fecha de Creación</th>
@@ -529,6 +557,7 @@ export class RequisitionListComponent implements OnInit {
           <tr>
             <td><strong>${req.id}</strong></td>
             <td>${req.creator}</td>
+            <td><span class="badge bg-info">${req.businessUnit || 'Sin asignar'}</span></td>
             <td>${req.authorizer || 'Pendiente'}</td>
             <td><span class="${this.getStatusClass(req.status)}">${req.status}</span></td>
             <td>${this.formatDate(req.creationDate)} ${this.formatTime(req.creationDate)}</td>
@@ -572,6 +601,7 @@ export class RequisitionListComponent implements OnInit {
         return (
           requisition.id.toLowerCase().includes(searchTermLower) ||
           requisition.creator.toLowerCase().includes(searchTermLower) ||
+          (requisition.businessUnit && requisition.businessUnit.toLowerCase().includes(searchTermLower)) ||
           (requisition.authorizer && requisition.authorizer.toLowerCase().includes(searchTermLower)) ||
           requisition.status.toLowerCase().includes(searchTermLower) ||
           deliveryDateFormatted.includes(searchTermLower) ||

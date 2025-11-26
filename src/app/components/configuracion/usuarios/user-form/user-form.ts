@@ -162,6 +162,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
     { id: 12, module_id: 4, name: 'reportes', display_name: 'Reportes', route: '/reportes', is_active: true },
     { id: 13, module_id: 4, name: 'centro_costo', display_name: 'Centro de Costo', route: '/centro-costo', is_active: true },
+    { id: 15, module_id: 4, name: 'departamento', display_name: 'Departamentos', route: '/departamento', is_active: true },
   ];
 
   dbPermissions: DbPermission[] = [
@@ -193,6 +194,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     12: [2], // Reportes - solo permite "Ver"
     13: [8], // Centro de Costo - solo permite "Sincronizar"
     14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
+    15: [8], // Departamento - solo permite "Sincronizar"
   };
 
   constructor(private productService: ProductService) {}

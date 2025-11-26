@@ -94,6 +94,7 @@
                     <tr>
                       <th class="border">ID <i class="bi bi-caret-up-fill text-muted"></i></th>
                       <th class="border">Creado por</th>
+                      <th class="border">Unidad de Negocio</th>
                       <th class="border">Autorizado por</th>
                       <th class="border">Estatus</th>
                       <th class="border">Fecha entrega</th>
@@ -110,6 +111,16 @@
                       <!-- Creador -->
                       <td class="align-middle border">
                         {{ requisition.creator }}
+                      </td>
+                      
+                      <!-- Unidad de Negocio -->
+                      <td class="align-middle border">
+                        <span *ngIf="requisition.businessUnit" class="badge bg-info text-white">
+                          <i class="bi bi-building me-1"></i>{{ requisition.businessUnit }}
+                        </span>
+                        <span *ngIf="!requisition.businessUnit" class="text-muted">
+                          Sin asignar
+                        </span>
                       </td>
                       
                       <!-- Autorizador -->

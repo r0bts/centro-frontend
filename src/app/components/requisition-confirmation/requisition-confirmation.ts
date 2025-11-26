@@ -85,7 +85,7 @@ export class RequisitionConfirmationComponent implements OnInit {
   businessUnit: string = '';
 
   constructor(private router: Router, private route: ActivatedRoute) {
-    // Obtener datos del estado de navegación (para flujo normal)
+    // Obtener datos del estado de navegación (para flujo normal y desde listado)
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state) {
       this.requisitionData = navigation.extras.state['requisitionData'] || [];

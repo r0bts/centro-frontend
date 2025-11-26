@@ -28,6 +28,7 @@ interface RequisitionWarehouse {
   creator: string;
   deliveryDate: Date;
   status: string;
+  businessUnit?: string;
   authorizedBy?: string;
   authorizationDate?: Date;
   electronicSignature?: boolean;
@@ -246,6 +247,7 @@ export class WarehouseSupplyComponent implements OnInit {
       electronicSignature: true,
       signatureHash: 'A3F7-8B2C-D9E1-5A6F-C4B8-7D3E-9F1A-2C5B',
       signatureDate: new Date('2025-10-27T10:32:15'),
+      businessUnit: 'Unidad Centro', // Unidad de negocio simulada
       products: products,
       totalProducts: products.length,
       suppliedProducts: 0, // 4 productos ya surtidos para pruebas
