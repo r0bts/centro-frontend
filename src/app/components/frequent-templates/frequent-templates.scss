@@ -44,3 +44,42 @@
     }
   }
 }
+
+// Share Modal styles
+.user-list-container {
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+}
+
+.user-item {
+  transition: all 0.2s ease;
+  background-color: white;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #f0f0f0;
+  }
+
+  &.selected {
+    background-color: #e7f3ff;
+    border-left: 3px solid #007bff;
+  }
+
+  .form-check-input {
+    cursor: pointer;
+  }
+
+  .form-check-label {
+    cursor: pointer;
+    margin-bottom: 0;
+  }
+
+  .user-avatar {
+    color: #6c757d;
+  }
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}

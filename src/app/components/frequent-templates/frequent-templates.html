@@ -151,6 +151,12 @@
                   </button>
                   <button 
                     class="btn btn-outline-secondary"
+                    (click)="shareTemplate(template)"
+                    title="Compartir plantilla">
+                    <i class="bi bi-share"></i>
+                  </button>
+                  <button 
+                    class="btn btn-outline-secondary"
                     (click)="editTemplate(template)"
                     title="Editar nombre">
                     <i class="bi bi-pencil"></i>
@@ -279,6 +285,142 @@
         </button>
         <button type="button" class="btn btn-primary" (click)="loadTemplate(selectedTemplate); closeDetails()">
           Usar esta Plantilla
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Compartir Plantilla -->
+<div class="modal fade show d-block" *ngIf="showShareModal && templateToShare" 
+     style="background-color: rgba(0,0,0,0.5);" 
+     (click)="closeShareModal()">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" 
+       (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">
+          <i class="bi bi-share me-2"></i>
+          Compartir Plantilla
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeShareModal()"></button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Información de la plantilla -->
+        <div class="alert alert-light border mb-4">
+          <h6 class="mb-2"><i class="bi bi-file-text me-2"></i>{{ templateToShare.name }}</h6>
+          <small class="text-muted">
+            {{ getTotalAreas(templateToShare) }} áreas • 
+            {{ getTotalProducts(templateToShare) }} productos
+          </small>
+        </div>
+
+        <!-- Selección de Unidad de Negocio -->
+        <div class="mb-4">
+          <label class="form-label fw-bold">
+            <i class="bi bi-building me-2"></i>Unidad de Negocio *
+          </label>
+          <select 
+            class="form-select" 
+            [(ngModel)]="selectedBusinessUnit"
+            (change)="onBusinessUnitChange()">
+            <option value="">Selecciona una unidad</option>
+            <option *ngFor="let unit of businessUnits" [value]="unit">{{ unit }}</option>
+          </select>
+          <small class="form-text text-muted">
+            Primero selecciona la unidad para ver sus empleados
+          </small>
+        </div>
+
+        <!-- Lista de Usuarios -->
+        <div class="mb-4">
+          <label class="form-label fw-bold">
+            <i class="bi bi-people me-2"></i>Seleccionar Usuarios *
+          </label>
+          
+          <!-- Mensaje cuando no hay unidad seleccionada -->
+          <div *ngIf="!selectedBusinessUnit" class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Selecciona primero una unidad de negocio para ver los empleados disponibles
+          </div>
+
+          <!-- Lista de usuarios cuando hay unidad seleccionada -->
+          <div *ngIf="selectedBusinessUnit && availableUsers.length > 0" class="user-list-container border rounded p-3">
+            <div 
+              *ngFor="let user of availableUsers" 
+              class="form-check user-item p-2 rounded mb-2"
+              [class.selected]="user.selected">
+              <input 
+                class="form-check-input" 
+                type="checkbox" 
+                [id]="'user-' + user.id"
+                [checked]="user.selected"
+                (change)="toggleUserSelection(user.id)">
+              <label 
+                class="form-check-label w-100 cursor-pointer" 
+                [for]="'user-' + user.id">
+                <div class="d-flex align-items-center">
+                  <div class="user-avatar me-2">
+                    <i class="bi bi-person-circle fs-4"></i>
+                  </div>
+                  <div>
+                    <div class="fw-bold">{{ user.name }}</div>
+                    <small class="text-muted">{{ user.email }}</small>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Mensaje cuando no hay usuarios en la unidad -->
+          <div *ngIf="selectedBusinessUnit && availableUsers.length === 0" class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            No hay usuarios disponibles en esta unidad
+          </div>
+
+          <small class="form-text text-muted" *ngIf="selectedBusinessUnit && availableUsers.length > 0">
+            Seleccionados: {{ getSelectedUsers().length }} usuario(s) de {{ availableUsers.length }}
+          </small>
+        </div>
+
+        <!-- Permisos de Modificación -->
+        <div class="mb-3">
+          <label class="form-label fw-bold">
+            <i class="bi bi-shield-check me-2"></i>Permisos
+          </label>
+          <div class="form-check form-switch">
+            <input 
+              class="form-check-input" 
+              type="checkbox" 
+              id="canModifySwitch"
+              [(ngModel)]="canModify">
+            <label class="form-check-label" for="canModifySwitch">
+              Permitir modificar la plantilla
+            </label>
+          </div>
+          <small class="form-text text-muted">
+            <i class="bi bi-info-circle me-1"></i>
+            {{ canModify ? 
+              'Los usuarios podrán editar y modificar esta plantilla' : 
+              'Los usuarios solo podrán ver y usar esta plantilla (solo lectura)' 
+            }}
+          </small>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeShareModal()">
+          <i class="bi bi-x-circle me-2"></i>
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary" 
+          (click)="confirmShare()"
+          [disabled]="!selectedBusinessUnit || getSelectedUsers().length === 0">
+          <i class="bi bi-share me-2"></i>
+          Compartir Plantilla
         </button>
       </div>
     </div>
