@@ -1,6 +1,7 @@
 import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ProductService, Product } from '../../../../services/product.service';
 import Swal from 'sweetalert2';
 
 interface Role {
@@ -26,6 +27,12 @@ interface SelectedPermission {
   submodule_id: number;
   permission_id: number;
   is_granted: boolean;
+}
+
+interface ProductAssignment {
+  product_id: string;
+  limit_per_requisition: number;
+  is_assigned: boolean;
 }
 
 interface Module {
@@ -79,6 +86,21 @@ export class RoleFormComponent implements OnInit, OnChanges {
   // Permisos seleccionados para el formulario
   selectedPermissions: SelectedPermission[] = [];
 
+  // Productos disponibles
+  availableProducts: Product[] = [];
+  filteredProducts: Product[] = [];
+  
+  // Filtros de productos
+  productSearchTerm: string = '';
+  selectedProductCategory: string = '';
+  showOnlyAssignedProducts: boolean = false;
+  
+  // Asignación de productos
+  productAssignments: ProductAssignment[] = [];
+  
+  // Categorías de productos
+  productCategories: string[] = ['Mantenimiento', 'Cafetería', 'Limpieza', 'Papelería'];
+
   // Estructura real de la base de datos
   modules: Module[] = [
     { id: 1, name: 'dashboard', display_name: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard', is_active: true },
@@ -102,6 +124,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 10, module_id: 4, name: 'roles_permisos', display_name: 'Roles y Permisos', route: '/roles-permisos', is_active: true },
     { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
     { id: 12, module_id: 4, name: 'reportes', display_name: 'Reportes', route: '/reportes', is_active: true },
+    { id: 13, module_id: 4, name: 'centro_costo', display_name: 'Centro de Costo', route: '/centro-costo', is_active: true },
   ];
 
   dbPermissions: DbPermission[] = [
@@ -113,8 +136,8 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 6, name: 'supply', display_name: 'Surtir', description: 'Permite gestionar almacén' },
     { id: 7, name: 'authorize', display_name: 'Autorizar', description: 'Permite autorizar requisiciones' },
     { id: 8, name: 'sync', display_name: 'Sincronizar', description: 'Permite sincronizar datos desde NetSuite' },
-    { id: 9, name: 'return', display_name: 'Devolución', description: 'Permite gestionar devoluciones' },
-    { id: 10, name: 'frequent', display_name: 'Frecuentes', description: 'Permite gestionar plantillas frecuentes' },
+    { id: 9, name: 'return', display_name: 'Cerrar sin devolución', description: 'Permite cerrar requisiciones sin devolución' },
+    { id: 10, name: 'frequent', display_name: 'Guardar como frecuente', description: 'Permite guardar requisiciones como plantillas frecuentes' },
     { id: 11, name: 'cancel', display_name: 'Cancelar', description: 'Permite cancelar requisiciones' },
     { id: 12, name: 'share', display_name: 'Compartir', description: 'Permite compartir registros' },
     { id: 13, name: 'copy', display_name: 'Copiar', description: 'Permite copiar/duplicar registros' },
@@ -131,18 +154,20 @@ export class RoleFormComponent implements OnInit, OnChanges {
     10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Ver", "Editar" y "Eliminar"
     11: [2, 8], // Productos - permite "Ver" y "Sincronizar" (NO crear, editar, eliminar)
     12: [2], // Reportes - solo permite "Ver"
-    13: [2], // Panel de Administración - solo permite "Ver"
+    13: [8], // Centro de Costo - solo permite "Sincronizar"
     14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
   };
 
-  constructor() {}
+  constructor(private productService: ProductService) {}
 
   ngOnInit(): void {
     this.loadRoleData();
+    this.loadProducts();
   }
 
   ngOnChanges(): void {
     this.loadRoleData();
+    this.loadProducts();
   }
 
   private loadRoleData(): void {
@@ -166,7 +191,20 @@ export class RoleFormComponent implements OnInit, OnChanges {
         is_active: true
       };
       this.selectedPermissions = [];
+      this.productAssignments = [];
     }
+  }
+
+  private loadProducts(): void {
+    this.productService.getAllProducts().subscribe({
+      next: (products) => {
+        this.availableProducts = products.filter(p => p.isActive);
+        this.filteredProducts = this.availableProducts;
+      },
+      error: (error) => {
+        console.error('Error al cargar productos:', error);
+      }
+    });
   }
 
   getSubmodulesByModule(moduleId: number) {
@@ -275,9 +313,164 @@ export class RoleFormComponent implements OnInit, OnChanges {
 
     const roleData = {
       ...this.roleForm,
-      permissions: this.selectedPermissions.filter(sp => sp.is_granted)
+      permissions: this.selectedPermissions.filter(sp => sp.is_granted),
+      products: this.productAssignments.filter(pa => pa.is_assigned)
     };
 
     this.save.emit(roleData);
+  }
+
+  // ==================== MÉTODOS PARA PRODUCTOS ====================
+  
+  getProductsByCategory(category: string): Product[] {
+    let products = this.availableProducts.filter(p => p.category === category);
+    
+    // Aplicar filtro de búsqueda
+    if (this.productSearchTerm.trim()) {
+      const searchLower = this.productSearchTerm.toLowerCase();
+      products = products.filter(p => 
+        p.name.toLowerCase().includes(searchLower) ||
+        p.code.toLowerCase().includes(searchLower) ||
+        p.description.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    // Aplicar filtro de solo asignados
+    if (this.showOnlyAssignedProducts) {
+      products = products.filter(p => this.isProductAssigned(p.id));
+    }
+    
+    return products;
+  }
+
+  getProductCategoriesWithProducts(): string[] {
+    const categories: string[] = [];
+    
+    for (const category of this.productCategories) {
+      const productsInCategory = this.getProductsByCategory(category);
+      
+      // Aplicar filtro de categoría seleccionada
+      if (this.selectedProductCategory && this.selectedProductCategory !== category) {
+        continue;
+      }
+      
+      if (productsInCategory.length > 0) {
+        categories.push(category);
+      }
+    }
+    
+    return categories;
+  }
+
+  isProductAssigned(productId: string): boolean {
+    return this.productAssignments.some(pa => pa.product_id === productId && pa.is_assigned);
+  }
+
+  toggleProductAssignment(productId: string): void {
+    const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === productId);
+    
+    if (existingIndex !== -1) {
+      this.productAssignments[existingIndex].is_assigned = !this.productAssignments[existingIndex].is_assigned;
+      
+      // Si se desasigna, limpiar el límite
+      if (!this.productAssignments[existingIndex].is_assigned) {
+        this.productAssignments[existingIndex].limit_per_requisition = 0;
+      }
+    } else {
+      this.productAssignments.push({
+        product_id: productId,
+        limit_per_requisition: 0,
+        is_assigned: true
+      });
+    }
+  }
+
+  getProductLimit(productId: string): number {
+    const assignment = this.productAssignments.find(pa => pa.product_id === productId);
+    return assignment ? assignment.limit_per_requisition : 0;
+  }
+
+  updateProductLimit(productId: string, event: any): void {
+    const value = parseInt(event.target.value) || 0;
+    const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === productId);
+    
+    if (existingIndex !== -1) {
+      this.productAssignments[existingIndex].limit_per_requisition = value;
+    } else {
+      this.productAssignments.push({
+        product_id: productId,
+        limit_per_requisition: value,
+        is_assigned: true
+      });
+    }
+  }
+
+  isCategoryAllSelected(category: string): boolean {
+    const productsInCategory = this.getProductsByCategory(category);
+    if (productsInCategory.length === 0) return false;
+    
+    return productsInCategory.every(p => this.isProductAssigned(p.id));
+  }
+
+  isCategoryIndeterminate(category: string): boolean {
+    const productsInCategory = this.getProductsByCategory(category);
+    const assignedCount = productsInCategory.filter(p => this.isProductAssigned(p.id)).length;
+    
+    return assignedCount > 0 && assignedCount < productsInCategory.length;
+  }
+
+  toggleCategoryProducts(category: string): void {
+    const productsInCategory = this.getProductsByCategory(category);
+    const allSelected = this.isCategoryAllSelected(category);
+    
+    productsInCategory.forEach(product => {
+      const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === product.id);
+      
+      if (allSelected) {
+        // Desasignar todos
+        if (existingIndex !== -1) {
+          this.productAssignments[existingIndex].is_assigned = false;
+          this.productAssignments[existingIndex].limit_per_requisition = 0;
+        }
+      } else {
+        // Asignar todos
+        if (existingIndex !== -1) {
+          this.productAssignments[existingIndex].is_assigned = true;
+        } else {
+          this.productAssignments.push({
+            product_id: product.id,
+            limit_per_requisition: 0,
+            is_assigned: true
+          });
+        }
+      }
+    });
+  }
+
+  getAssignedProductsCountByCategory(category: string): number {
+    return this.getProductsByCategory(category).filter(p => this.isProductAssigned(p.id)).length;
+  }
+
+  getTotalAssignedProducts(): number {
+    return this.productAssignments.filter(pa => pa.is_assigned).length;
+  }
+
+  getCategoriesWithAssignedProducts(): number {
+    const categoriesWithProducts = new Set<string>();
+    
+    this.productAssignments
+      .filter(pa => pa.is_assigned)
+      .forEach(pa => {
+        const product = this.availableProducts.find(p => p.id === pa.product_id);
+        if (product) {
+          categoriesWithProducts.add(product.category);
+        }
+      });
+    
+    return categoriesWithProducts.size;
+  }
+
+  getProductsWithLimitsCount(): number {
+    return this.productAssignments.filter(pa => pa.is_assigned && pa.limit_per_requisition > 0).length;
   }
 }

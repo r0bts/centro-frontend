@@ -161,6 +161,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     { id: 10, module_id: 4, name: 'roles_permisos', display_name: 'Roles y Permisos', route: '/roles-permisos', is_active: true },
     { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
     { id: 12, module_id: 4, name: 'reportes', display_name: 'Reportes', route: '/reportes', is_active: true },
+    { id: 13, module_id: 4, name: 'centro_costo', display_name: 'Centro de Costo', route: '/centro-costo', is_active: true },
   ];
 
   dbPermissions: DbPermission[] = [
@@ -172,8 +173,8 @@ export class UserFormComponent implements OnInit, OnChanges {
     { id: 6, name: 'supply', display_name: 'Surtir', description: 'Permite gestionar almacén' },
     { id: 7, name: 'authorize', display_name: 'Autorizar', description: 'Permite autorizar requisiciones' },
     { id: 8, name: 'sync', display_name: 'Sincronizar', description: 'Permite sincronizar datos desde NetSuite' },
-    { id: 9, name: 'return', display_name: 'Devolución', description: 'Permite gestionar devoluciones' },
-    { id: 10, name: 'frequent', display_name: 'Frecuentes', description: 'Permite gestionar plantillas frecuentes' },
+    { id: 9, name: 'return', display_name: 'Cerrar sin devolución', description: 'Permite cerrar requisiciones sin devolución' },
+    { id: 10, name: 'frequent', display_name: 'Guardar como frecuente', description: 'Permite guardar requisiciones como plantillas frecuentes' },
     { id: 11, name: 'cancel', display_name: 'Cancelar', description: 'Permite cancelar requisiciones' },
     { id: 12, name: 'share', display_name: 'Compartir', description: 'Permite compartir registros' },
     { id: 13, name: 'copy', display_name: 'Copiar', description: 'Permite copiar/duplicar registros' },
@@ -190,6 +191,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Ver", "Editar" y "Eliminar"
     11: [2, 8], // Productos - permite "Ver" y "Sincronizar" (NO crear, editar, eliminar)
     12: [2], // Reportes - solo permite "Ver"
+    13: [8], // Centro de Costo - solo permite "Sincronizar"
     14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
   };
 
