@@ -8,6 +8,7 @@ import { UsersListComponent, User } from './usuarios/users-list/users-list';
 import { UserFormComponent } from './usuarios/user-form/user-form';
 import { ProductsListComponent, Product } from './products-list/products-list';
 import { NetsuiteSyncComponent } from './netsuite-sync/netsuite-sync';
+import { UserProfileComponent } from './user-profile/user-profile';
 import { UserService } from '../../services/user.service';
 import { ProductService } from '../../services/product.service';
 import Swal from 'sweetalert2';
@@ -37,7 +38,7 @@ interface SystemConfig {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
@@ -54,9 +55,9 @@ export class ConfiguracionComponent implements OnInit {
   configSections: ConfigSection[] = [
     {
       id: 'general',
-      title: 'Configuración General',
-      icon: 'bi-gear',
-      description: 'Configuraciones básicas del sistema',
+      title: 'Mi Perfil',
+      icon: 'bi-person-circle',
+      description: 'Información personal y seguridad',
       active: true
     },
     {

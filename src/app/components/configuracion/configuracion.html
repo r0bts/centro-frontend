@@ -43,73 +43,9 @@
 
                 <!-- Main Content -->
                 <div class="col-md-9">
-                    <!-- General Configuration -->
-                    <div *ngIf="activeSection === 'general'" class="card config-panel">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">
-                                <i class="bi bi-gear me-2"></i>Configuración General
-                            </h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="siteName" class="form-label">Nombre del Sitio</label>
-                                    <input 
-                                        type="text" 
-                                        class="form-control" 
-                                        id="siteName"
-                                        [(ngModel)]="systemConfig.siteName">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="adminEmail" class="form-label">Email del Administrador</label>
-                                    <input 
-                                        type="email" 
-                                        class="form-control" 
-                                        id="adminEmail"
-                                        [(ngModel)]="systemConfig.adminEmail">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="language" class="form-label">Idioma del Sistema</label>
-                                    <select 
-                                        class="form-select" 
-                                        id="language"
-                                        [(ngModel)]="systemConfig.language">
-                                        <option *ngFor="let lang of languages" [value]="lang.code">
-                                            {{ lang.name }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="themeMode" class="form-label">Modo de Tema</label>
-                                    <select 
-                                        class="form-select" 
-                                        id="themeMode"
-                                        [(ngModel)]="systemConfig.themeMode">
-                                        <option *ngFor="let theme of themeModes" [value]="theme.value">
-                                            {{ theme.label }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="maxFileSize" class="form-label">Tamaño Máximo de Archivo (MB)</label>
-                                    <input 
-                                        type="number" 
-                                        class="form-control" 
-                                        id="maxFileSize"
-                                        [(ngModel)]="systemConfig.maxFileSize"
-                                        min="1" max="100">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="sessionTimeout" class="form-label">Tiempo de Sesión (minutos)</label>
-                                    <input 
-                                        type="number" 
-                                        class="form-control" 
-                                        id="sessionTimeout"
-                                        [(ngModel)]="systemConfig.sessionTimeout"
-                                        min="5" max="120">
-                                </div>
-                            </div>
-                        </div>
+                    <!-- User Profile Configuration -->
+                    <div *ngIf="activeSection === 'general'" class="config-panel">
+                        <app-user-profile></app-user-profile>
                     </div>
                     
                     <!-- Users Management -->

@@ -1,0 +1,260 @@
+<div class="user-profile-container">
+<!-- Profile Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                Información de Perfil
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Avatar Column -->
+                <div class="col-md-3 text-center mb-4 mb-md-0">
+                    <div class="avatar-container mb-3">
+                        <div class="avatar-circle mx-auto">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">{{ userProfile.firstName }} {{ userProfile.lastName }}</h5>
+                    <span class="badge bg-primary mt-2">{{ userProfile.role }}</span>
+                </div>
+
+                <!-- Profile Information Column -->
+                <div class="col-md-9">
+                    <div class="row">
+                        <!-- Read-only fields -->
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Usuario
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.username"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Email
+                            </label>
+                            <input 
+                                type="email" 
+                                class="form-control" 
+                                [value]="userProfile.email"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Nombre
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.firstName"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Apellido
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.lastName"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                No. Empleado
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.employeeNumber"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Rol
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.role"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Fecha de Registro
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.createdAt | date:'dd/MM/yyyy'"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">
+                                Último Acceso
+                            </label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                [value]="userProfile.lastLogin | date:'dd/MM/yyyy HH:mm'"
+                                readonly>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info d-flex align-items-center mt-3" role="alert">
+                        <div>
+                            <small>Los datos de perfil son solo de lectura. Para modificar tu información, contacta al administrador del sistema.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assigned Products Card (Optional - if user has assigned products) -->
+    <div class="card mb-4" *ngIf="userProfile.assignedProducts && userProfile.assignedProducts.length > 0">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                Productos Asignados
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+                <div>
+                    <small>Estos son los productos que tienes autorizados para solicitar en tus requisiciones.</small>
+                </div>
+            </div>
+
+            <!-- Products DataTable -->
+            <div class="table-responsive">
+                <table id="productsTable" class="table table-striped table-hover" style="width:100%">
+                    <!-- DataTable se inicializa dinámicamente en el TypeScript -->
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                Cambiar Contraseña
+            </h5>
+        </div>
+        <div class="card-body">
+            <form (ngSubmit)="onChangePassword()">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="newPassword" class="form-label">
+                            Nueva Contraseña <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input 
+                                [type]="showNewPassword ? 'text' : 'password'"
+                                class="form-control" 
+                                id="newPassword"
+                                [(ngModel)]="passwordForm.newPassword"
+                                name="newPassword"
+                                placeholder="Ingresa la nueva contraseña"
+                                required
+                                minlength="8">
+                            <button 
+                                class="btn btn-outline-secondary" 
+                                type="button"
+                                (click)="showNewPassword = !showNewPassword">
+                                <i [class]="showNewPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Mínimo 8 caracteres</small>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="confirmPassword" class="form-label">
+                            Confirmar Nueva Contraseña <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input 
+                                [type]="showConfirmPassword ? 'text' : 'password'"
+                                class="form-control" 
+                                id="confirmPassword"
+                                [(ngModel)]="passwordForm.confirmPassword"
+                                name="confirmPassword"
+                                placeholder="Confirma la nueva contraseña"
+                                required
+                                minlength="8">
+                            <button 
+                                class="btn btn-outline-secondary" 
+                                type="button"
+                                (click)="showConfirmPassword = !showConfirmPassword">
+                                <i [class]="showConfirmPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">Debe coincidir con la nueva contraseña</small>
+                    </div>
+
+                    <!-- Password Requirements -->
+                    <div class="col-12 mb-3">
+                        <div class="card bg-light border-0">
+                            <div class="card-body">
+                                <h6 class="card-title mb-3">
+                                    Requisitos de la Contraseña:
+                                </h6>
+                                <ul class="mb-0 small">
+                                    <li [class.text-success]="passwordForm.newPassword.length >= 8">
+                                        <i [class]="passwordForm.newPassword.length >= 8 ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                        Mínimo 8 caracteres
+                                    </li>
+                                    <li [class.text-success]="hasUpperCase(passwordForm.newPassword)">
+                                        <i [class]="hasUpperCase(passwordForm.newPassword) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                        Al menos una letra mayúscula
+                                    </li>
+                                    <li [class.text-success]="hasLowerCase(passwordForm.newPassword)">
+                                        <i [class]="hasLowerCase(passwordForm.newPassword) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                        Al menos una letra minúscula
+                                    </li>
+                                    <li [class.text-success]="hasNumber(passwordForm.newPassword)">
+                                        <i [class]="hasNumber(passwordForm.newPassword) ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                        Al menos un número
+                                    </li>
+                                    <li [class.text-success]="passwordsMatch()">
+                                        <i [class]="passwordsMatch() ? 'bi bi-check-circle-fill' : 'bi bi-circle'"></i>
+                                        Las contraseñas coinciden
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <button 
+                                type="button" 
+                                class="btn btn-secondary"
+                                (click)="onCancelPasswordChange()">
+                                Cancelar
+                            </button>
+                            <button 
+                                type="submit" 
+                                class="btn btn-primary"
+                                [disabled]="!isPasswordFormValid()">
+                                Cambiar Contraseña
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
