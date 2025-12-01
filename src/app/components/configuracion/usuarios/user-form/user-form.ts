@@ -141,6 +141,7 @@ export class UserFormComponent implements OnInit, OnChanges {
   // Estructura de módulos y submódulos (igual que en role-form)
   modules: Module[] = [
     { id: 1, name: 'dashboard', display_name: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard', is_active: true },
+    { id: 2, name: 'reportes', display_name: 'Reportes', icon: 'bi-graph-up', route: '/reportes', is_active: true },
     { id: 3, name: 'almacen', display_name: 'Almacén', icon: 'bi-box-seam', route: '/almacen', is_active: true },
     { id: 4, name: 'configuracion', display_name: 'Configuración', icon: 'bi-gear-fill', route: '/configuracion', is_active: true }
   ];
@@ -149,6 +150,9 @@ export class UserFormComponent implements OnInit, OnChanges {
     // Dashboard
     { id: 1, module_id: 1, name: 'dashboard_overview', display_name: 'Vista General', route: '/dashboard', is_active: true },
     
+    // Reportes
+    { id: 2, module_id: 2, name: 'reportes_historial', display_name: 'Historial de Requisiciones', route: '/reportes/historial', is_active: true },
+    
     // Almacén
     { id: 5, module_id: 3, name: 'requisition', display_name: 'Requisiciones', route: '/requisition', is_active: true },
     { id: 6, module_id: 3, name: 'requisition_list', display_name: 'Lista de Requisiciones', route: '/requisition-list', is_active: true },
@@ -156,13 +160,13 @@ export class UserFormComponent implements OnInit, OnChanges {
     { id: 14, module_id: 3, name: 'frequent_list', display_name: 'Plantilla de Frecuentes', route: '/frequent-templates', is_active: true },
     
     // Configuración
-    { id: 8, module_id: 4, name: 'configuracion_general', display_name: 'Configuración General', route: '/configuracion', is_active: true },
+    { id: 8, module_id: 4, name: 'configuracion_general', display_name: 'Mi Perfil', route: '/configuracion/general', is_active: true },
     { id: 9, module_id: 4, name: 'usuarios', display_name: 'Usuarios', route: '/usuarios', is_active: true },
     { id: 10, module_id: 4, name: 'roles_permisos', display_name: 'Roles y Permisos', route: '/roles-permisos', is_active: true },
     { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
-    { id: 12, module_id: 4, name: 'reportes', display_name: 'Reportes', route: '/reportes', is_active: true },
     { id: 13, module_id: 4, name: 'centro_costo', display_name: 'Centro de Costo', route: '/centro-costo', is_active: true },
     { id: 15, module_id: 4, name: 'departamento', display_name: 'Departamentos', route: '/departamento', is_active: true },
+    { id: 16, module_id: 4, name: 'netsuite_sync', display_name: 'Sincronización NetSuite', route: '/configuracion/netsuite', is_active: true },
   ];
 
   dbPermissions: DbPermission[] = [
@@ -184,17 +188,18 @@ export class UserFormComponent implements OnInit, OnChanges {
   // Configuración de permisos permitidos por submódulo
   private submodulePermissionsConfig: { [key: number]: number[] } = {
     1: [2], // Dashboard Overview - solo permite "Ver"
+    2: [2], // Reportes: Historial - solo permite "Ver"
     5: [1, 5], // Requisiciones - permite "Crear" y "Eventos"
     6: [3, 4, 6], // Lista de Requisiciones - permite "Editar", "Eliminar" y "Surtir"
     7: [7, 9, 10, 11], // Confirmación de Requisiciones - permite "Autorizar", "Devolución", "Frecuentes" y "Cancelar"
-    8: [2, 3], // Configuración General - permite "Ver" y "Editar"
+    8: [2, 3], // Mi Perfil - permite "Ver" y "Editar"
     9: [2, 3, 8], // Usuarios - permite "Ver", "Editar" y "Sincronizar" (NO crear)
     10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Ver", "Editar" y "Eliminar"
     11: [2, 8], // Productos - permite "Ver" y "Sincronizar" (NO crear, editar, eliminar)
-    12: [2], // Reportes - solo permite "Ver"
     13: [8], // Centro de Costo - solo permite "Sincronizar"
     14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
     15: [8], // Departamento - solo permite "Sincronizar"
+    16: [2, 8], // Sincronización NetSuite - permite "Ver" y "Sincronizar"
   };
 
   constructor(private productService: ProductService) {}

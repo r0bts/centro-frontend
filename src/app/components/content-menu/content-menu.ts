@@ -43,9 +43,7 @@ export class ContentMenu {
       children: [
         { id: 'requisicion-crear', label: 'Crear Requisición', icon: 'bi-plus-circle', route: '/requisicion/crear' },
         { id: 'requisicion-lista', label: 'Lista de Requisiciones', icon: 'bi-list-ul', route: '/requisicion/lista' },
-        { id: 'requisicion-frecuentes', label: 'Plantillas Frecuentes', icon: 'bi-bookmark-star', route: '/requisicion/frecuentes' },
-        { id: 'requisicion-surtir', label: 'Surtir Requisición', icon: 'bi-check-circle', route: '/requisicion/surtir' },
-        { id: 'requisicion-recibir', label: 'Recibir Requisición', icon: 'bi-inbox', route: '/requisicion/recibir' }
+        { id: 'requisicion-frecuentes', label: 'Plantillas Frecuentes', icon: 'bi-bookmark-star', route: '/requisicion/frecuentes' }
       ]
     },
     { 
@@ -55,9 +53,7 @@ export class ContentMenu {
       isParent: true,
       isExpanded: false,
       children: [
-        { id: 'reportes-historial', label: 'Historial de Requisiciones', icon: 'bi-clock-history', route: '/reportes/historial' },
-        { id: 'reportes-consumo', label: 'Reportes de Consumo', icon: 'bi-bar-chart', route: '/reportes/consumo' },
-        { id: 'reportes-inventario', label: 'Inventario', icon: 'bi-boxes', route: '/reportes/inventario' }
+        { id: 'reportes-historial', label: 'Historial de Requisiciones', icon: 'bi-clock-history', route: '/reportes/historial' }
       ]
     },
     { 
@@ -67,7 +63,7 @@ export class ContentMenu {
       isParent: true,
       isExpanded: false,
       children: [
-        { id: 'configuracion-general', label: 'General', icon: 'bi-gear-fill', route: '/configuracion/general' },
+        { id: 'configuracion-general', label: 'Mi Perfil', icon: 'bi-person-circle', route: '/configuracion/general' },
         { id: 'configuracion-usuarios', label: 'Usuarios', icon: 'bi-people', route: '/configuracion/usuarios' },
         { id: 'configuracion-productos', label: 'Productos', icon: 'bi-box', route: '/configuracion/productos' },
         { id: 'configuracion-netsuite', label: 'Sincronización NetSuite', icon: 'bi-cloud-arrow-up', route: '/configuracion/netsuite' },

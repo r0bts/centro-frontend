@@ -34,16 +34,6 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
-    path: 'requisicion/surtir',
-    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'requisicion/recibir',
-    loadComponent: () => import('./components/requisition/requisition').then(m => m.RequisitionComponent),
-    canActivate: [authGuard]
-  },
-  {
     path: 'requisicion/confirmacion',
     loadComponent: () => import('./components/requisition-confirmation/requisition-confirmation').then(m => m.RequisitionConfirmationComponent),
     canActivate: [authGuard]
@@ -65,16 +55,6 @@ export const routes: Routes = [
   },
   {
     path: 'reportes/historial',
-    loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'reportes/consumo',
-    loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
-    canActivate: [authGuard]
-  },
-  {
-    path: 'reportes/inventario',
     loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
     canActivate: [authGuard]
   },
