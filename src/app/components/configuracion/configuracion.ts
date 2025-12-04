@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -120,7 +120,8 @@ export class ConfiguracionComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private userService: UserService,
-    private productService: ProductService
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -168,6 +169,9 @@ export class ConfiguracionComponent implements OnInit {
       next: (products) => {
         this.products = products;
         console.log('✅ Productos cargados:', products.length);
+        
+        // Forzar detección de cambios para evitar NG0100
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('❌ Error al cargar productos:', error);
@@ -500,28 +504,54 @@ export class ConfiguracionComponent implements OnInit {
 
   // Métodos de gestión de productos
   onSyncProducts(): void {
-    console.log('🔄 Sincronizando productos...');
+    console.log('🔄 Iniciando sincronización de productos desde NetSuite...');
+    
     Swal.fire({
       title: 'Sincronizando productos',
-      text: 'Por favor espera...',
+      html: 'Conectando con NetSuite y obteniendo productos...<br><small>Esto puede tomar varios minutos</small>',
       allowOutsideClick: false,
+      allowEscapeKey: false,
       didOpen: () => {
         Swal.showLoading();
       }
     });
 
-    // Simular sincronización
-    setTimeout(() => {
-      this.loadProducts();
-      Swal.fire({
-        icon: 'success',
-        title: 'Sincronización completa',
-        text: 'Los productos han sido sincronizados exitosamente desde NetSuite',
-        confirmButtonText: 'Continuar',
-        timer: 2000,
-        timerProgressBar: true
-      });
-    }, 2000);
+    this.productService.syncProducts().subscribe({
+      next: (response) => {
+        console.log('✅ Sincronización exitosa:', response);
+        
+        const stats = response.data;
+        const htmlMessage = `
+          <div class="text-start">
+            <p><strong>Total desde NetSuite:</strong> ${stats.total_from_netsuite || 0}</p>
+            <p><strong>Productos nuevos:</strong> ${stats.created || 0}</p>
+            <p><strong>Productos actualizados:</strong> ${stats.updated || 0}</p>
+            <p><strong>Sincronizados exitosamente:</strong> ${stats.synced || 0}</p>
+            ${stats.errors > 0 ? `<p class="text-danger"><strong>Errores:</strong> ${stats.errors}</p>` : ''}
+          </div>
+        `;
+        
+        // Recargar productos después de sincronizar
+        this.loadProducts();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Sincronización completa',
+          html: htmlMessage,
+          confirmButtonText: 'Entendido',
+          width: '500px'
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error en sincronización:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al sincronizar',
+          text: error.message || 'No se pudieron sincronizar los productos desde NetSuite',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   onViewProduct(product: Product): void {

@@ -1,18 +1,10 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-
-export interface MenuItem {
-  id: string;
-  label: string;
-  icon: string;
-  route?: string;
-  active?: boolean;
-  children?: MenuItem[];
-  isParent?: boolean;
-  isExpanded?: boolean;
-}
+import { MenuService } from '../../services/menu.service';
+import { MenuItem } from '../../models/auth.model';
+import { filter } from 'rxjs/operators';
 
 @Component({
   selector: 'app-content-menu',
@@ -21,67 +13,48 @@ export interface MenuItem {
   templateUrl: './content-menu.html',
   styleUrls: ['./content-menu.scss']
 })
-export class ContentMenu {
-  @Input() menuItems: MenuItem[] = [];
+export class ContentMenu implements OnInit {
   @Input() activeSection: string = '';
   @Output() sectionChange = new EventEmitter<string>();
 
-  // Menú por defecto si no se proporciona uno externo
-  private defaultMenuItems: MenuItem[] = [
-    { 
-      id: 'dashboard', 
-      label: 'Dashboard', 
-      icon: 'bi-speedometer2', 
-      route: '/dashboard' 
-    },
-    { 
-      id: 'requisicion', 
-      label: 'Requisición', 
-      icon: 'bi-clipboard-check',
-      isParent: true,
-      isExpanded: false,
-      children: [
-        { id: 'requisicion-crear', label: 'Crear Requisición', icon: 'bi-plus-circle', route: '/requisicion/crear' },
-        { id: 'requisicion-lista', label: 'Lista de Requisiciones', icon: 'bi-list-ul', route: '/requisicion/lista' },
-        { id: 'requisicion-frecuentes', label: 'Plantillas Frecuentes', icon: 'bi-bookmark-star', route: '/requisicion/frecuentes' }
-      ]
-    },
-    { 
-      id: 'reportes', 
-      label: 'Reportes', 
-      icon: 'bi-graph-up',
-      isParent: true,
-      isExpanded: false,
-      children: [
-        { id: 'reportes-historial', label: 'Historial de Requisiciones', icon: 'bi-clock-history', route: '/reportes/historial' }
-      ]
-    },
-    { 
-      id: 'configuracion', 
-      label: 'Configuración', 
-      icon: 'bi-gear',
-      isParent: true,
-      isExpanded: false,
-      children: [
-        { id: 'configuracion-general', label: 'Mi Perfil', icon: 'bi-person-circle', route: '/configuracion/general' },
-        { id: 'configuracion-usuarios', label: 'Usuarios', icon: 'bi-people', route: '/configuracion/usuarios' },
-        { id: 'configuracion-productos', label: 'Productos', icon: 'bi-box', route: '/configuracion/productos' },
-        { id: 'configuracion-netsuite', label: 'Sincronización NetSuite', icon: 'bi-cloud-arrow-up', route: '/configuracion/netsuite' },
-        { id: 'configuracion-roles', label: 'Roles y Permisos', icon: 'bi-shield-check', route: '/configuracion/roles' }
-      ]
-    }
-  ];
+  menuItems: MenuItem[] = [];
 
   constructor(
     private authService: AuthService,
+    private menuService: MenuService,
     private router: Router
-  ) {}
+  ) {
+    // Suscribirse a cambios en permisos para regenerar menú
+    this.authService.permissions$.subscribe(() => {
+      this.loadMenu();
+    });
+
+    // Actualizar estado activo cuando cambie la ruta
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      this.updateActiveStates();
+    });
+  }
 
   ngOnInit(): void {
-    // Si no se proporcionan menuItems, usar los por defecto
-    if (this.menuItems.length === 0) {
-      this.menuItems = this.defaultMenuItems;
-    }
+    this.loadMenu();
+    this.updateActiveStates();
+  }
+
+  /**
+   * Cargar menú dinámico desde permisos del usuario
+   */
+  private loadMenu(): void {
+    this.menuItems = this.menuService.generateMenu();
+  }
+
+  /**
+   * Actualizar estados activos según ruta actual
+   */
+  private updateActiveStates(): void {
+    const currentRoute = this.router.url;
+    this.menuService.updateActiveState(this.menuItems, currentRoute);
   }
 
   onSectionClick(sectionId: string, event: Event): void {
@@ -89,8 +62,10 @@ export class ContentMenu {
     
     const menuItem = this.findMenuItemById(sectionId);
     
+    // Cerrar todos los dropdowns cuando se selecciona una opción
+    this.closeAllDropdowns();
+    
     if (menuItem?.route) {
-      
       // Navegar usando el router
       this.router.navigate([menuItem.route]).then((success) => {
         if (success) {
@@ -112,15 +87,19 @@ export class ContentMenu {
     event.preventDefault();
     event.stopPropagation();
     
-    // Cerrar otros submenus
-    this.menuItems.forEach(menuItem => {
-      if (menuItem !== item && menuItem.isExpanded) {
-        menuItem.isExpanded = false;
+    // Toggle del submenu actual usando el MenuService
+    this.menuService.toggleExpanded(item);
+  }
+
+  /**
+   * Cerrar todos los dropdowns abiertos
+   */
+  private closeAllDropdowns(): void {
+    this.menuItems.forEach(item => {
+      if (item.isExpanded) {
+        item.isExpanded = false;
       }
     });
-    
-    // Toggle del submenu actual
-    item.isExpanded = !item.isExpanded;
   }
 
   findMenuItemById(id: string): MenuItem | null {

@@ -23,9 +23,10 @@
             <tr *ngFor="let role of roles">
 
               <td>
-                <strong>{{ role.name }}</strong>
+                <strong>{{ role.display_name || role.name }}</strong>
                 <br>
-                <small class="text-muted">{{ role.userCount }} usuarios</small>
+                <small class="text-muted">{{ role.userCount }} usuario{{ role.userCount !== 1 ? 's' : '' }}</small>
+                <span *ngIf="role.isSystem" class="badge bg-primary ms-2">Sistema</span>
               </td>
               <td>{{ role.description }}</td>
               <td class="text-center">

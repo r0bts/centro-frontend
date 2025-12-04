@@ -1,19 +1,9 @@
 import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
+import { Role } from '../../../../services/role.service';
 
 declare var $: any; // Para jQuery/DataTables
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  isActive: boolean;
-  isSystem: boolean;
-  permissions: string[];
-  userCount: number;
-  createdAt: Date;
-}
 
 @Component({
   selector: 'app-roles-list',

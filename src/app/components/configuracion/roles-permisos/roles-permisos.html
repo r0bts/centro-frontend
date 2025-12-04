@@ -15,7 +15,7 @@
   <app-role-form 
     *ngIf="currentView === 'form'"
     [isEditMode]="isEditMode"
-    [selectedRole]="selectedRole"
+    [roleId]="selectedRoleId"
     (cancel)="onCancelForm()"
     (save)="onSaveRole($event)">
   </app-role-form>

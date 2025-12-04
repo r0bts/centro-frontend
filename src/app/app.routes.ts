@@ -89,6 +89,10 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'unauthorized',
+    loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }

@@ -1,19 +1,9 @@
-import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService, Product } from '../../../../services/product.service';
+import { RoleService } from '../../../../services/role.service';
 import Swal from 'sweetalert2';
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  isActive: boolean;
-  isSystem: boolean;
-  permissions: string[];
-  userCount: number;
-  createdAt: Date;
-}
 
 interface RoleForm {
   name: string;
@@ -70,9 +60,11 @@ interface DbPermission {
 })
 export class RoleFormComponent implements OnInit, OnChanges {
   @Input() isEditMode = false;
-  @Input() selectedRole: Role | null = null;
+  @Input() roleId: string | null = null;
   @Output() cancel = new EventEmitter<void>();
   @Output() save = new EventEmitter<any>();
+  
+  isLoading = false;
 
   // Formulario de rol
   roleForm: RoleForm = {
@@ -165,41 +157,117 @@ export class RoleFormComponent implements OnInit, OnChanges {
     16: [2, 8], // Sincronización NetSuite - permite "Ver" y "Sincronizar"
   };
 
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private roleService: RoleService
+  ) {}
 
   ngOnInit(): void {
-    this.loadRoleData();
     this.loadProducts();
+    if (this.isEditMode && this.roleId) {
+      this.loadRoleData();
+    }
   }
 
-  ngOnChanges(): void {
-    this.loadRoleData();
-    this.loadProducts();
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['roleId'] && !changes['roleId'].firstChange) {
+      if (this.isEditMode && this.roleId) {
+        this.loadRoleData();
+      } else {
+        this.resetForm();
+      }
+    }
   }
 
   private loadRoleData(): void {
-    if (this.selectedRole && this.isEditMode) {
-      // Cargar datos del rol existente
-      this.roleForm = {
-        name: this.selectedRole.name,
-        display_name: this.selectedRole.name,
-        description: this.selectedRole.description,
+    if (!this.roleId) return;
+    
+    this.isLoading = true;
+    
+    // 🔥 JSON HARDCODED PARA PRUEBAS - TODO: Reemplazar con API call
+    const mockResponse = {
+      success: true,
+      message: "Rol obtenido exitosamente",
+      data: {
+        id: "1",
+        name: "super_admin",
+        display_name: "Super Administrador",
+        description: "Acceso completo al sistema con todos los permisos",
         is_default: false,
-        is_active: this.selectedRole.isActive
-      };
-      // Aquí cargarías los permisos del rol desde la BD
-    } else {
-      // Limpiar formulario para nuevo rol
-      this.roleForm = {
-        name: '',
-        display_name: '',
-        description: '',
-        is_default: false,
-        is_active: true
-      };
-      this.selectedPermissions = [];
-      this.productAssignments = [];
-    }
+        is_active: true,
+        is_system: true,
+        user_count: 5,
+        created_at: "2024-01-15T10:30:00Z",
+        permissions: [
+          { submodule_id: 1, permission_id: 2, is_granted: true },  // Dashboard - Ver
+          { submodule_id: 2, permission_id: 2, is_granted: true },  // Reportes - Ver
+          { submodule_id: 5, permission_id: 1, is_granted: true },  // Requisiciones - Crear
+          { submodule_id: 5, permission_id: 5, is_granted: true },  // Requisiciones - Eventos
+          { submodule_id: 6, permission_id: 3, is_granted: true },  // Lista Requisiciones - Editar
+          { submodule_id: 6, permission_id: 4, is_granted: true },  // Lista Requisiciones - Eliminar
+          { submodule_id: 6, permission_id: 6, is_granted: true },  // Lista Requisiciones - Surtir
+          { submodule_id: 7, permission_id: 7, is_granted: true },  // Confirmación - Autorizar
+          { submodule_id: 8, permission_id: 2, is_granted: true },  // Mi Perfil - Ver
+          { submodule_id: 8, permission_id: 3, is_granted: true },  // Mi Perfil - Editar
+          { submodule_id: 9, permission_id: 2, is_granted: true },  // Usuarios - Ver
+          { submodule_id: 9, permission_id: 3, is_granted: true },  // Usuarios - Editar
+          { submodule_id: 10, permission_id: 1, is_granted: true }, // Roles - Crear
+          { submodule_id: 10, permission_id: 2, is_granted: true }, // Roles - Ver
+          { submodule_id: 10, permission_id: 3, is_granted: true }, // Roles - Editar
+          { submodule_id: 10, permission_id: 4, is_granted: true }  // Roles - Eliminar
+        ],
+        products: []
+      }
+    };
+    
+    // Simular delay de red
+    setTimeout(() => {
+      const response = mockResponse;
+      
+      if (response.success && response.data) {
+        const roleData = response.data;
+        
+        // Cargar datos básicos del rol
+        this.roleForm = {
+          name: roleData.name,
+          display_name: roleData.display_name || roleData.name,
+          description: roleData.description || '',
+          is_default: roleData.is_default || false,
+          is_active: roleData.is_active !== undefined ? roleData.is_active : true
+        };
+        
+        // Cargar permisos si existen
+        if (roleData.permissions && Array.isArray(roleData.permissions)) {
+          this.selectedPermissions = roleData.permissions.map((perm: any) => ({
+            submodule_id: perm.submodule_id,
+            permission_id: perm.permission_id,
+            is_granted: perm.is_granted !== undefined ? perm.is_granted : true
+          }));
+        }
+        
+        // Cargar productos asignados si existen
+        if (roleData.products && Array.isArray(roleData.products)) {
+          this.productAssignments = roleData.products.map((prod: any) => ({
+            product_id: prod.product_id,
+            limit_per_requisition: prod.limit_per_requisition || 0,
+            is_assigned: true
+          }));
+        }
+      }
+      this.isLoading = false;
+    }, 300);
+  }
+
+  private resetForm(): void {
+    this.roleForm = {
+      name: '',
+      display_name: '',
+      description: '',
+      is_default: false,
+      is_active: true
+    };
+    this.selectedPermissions = [];
+    this.productAssignments = [];
   }
 
   private loadProducts(): void {

@@ -1,19 +1,9 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RolesListComponent } from './roles-list/roles-list';
 import { RoleFormComponent } from './role-form/role-form';
+import { RoleService, Role } from '../../../services/role.service';
 import Swal from 'sweetalert2';
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  isActive: boolean;
-  isSystem: boolean;
-  permissions: string[];
-  userCount: number;
-  createdAt: Date;
-}
 
 @Component({
   selector: 'app-roles-permisos',
@@ -27,83 +17,147 @@ export class RolesPermisosComponent implements OnInit {
 
   currentView: 'list' | 'form' = 'list';
   isEditMode = false;
-  selectedRole: Role | null = null;
+  selectedRoleId: string | null = null;
+  roles: Role[] = [];
+  isLoading = false;
 
-  roles: Role[] = [
-    {
-      id: '1',
-      name: 'Administrador',
-      description: 'Acceso total al sistema',
-      isActive: true,
-      isSystem: true,
-      permissions: ['all'],
-      userCount: 2,
-      createdAt: new Date('2024-01-15')
-    },
-    {
-      id: '2',
-      name: 'Supervisor',
-      description: 'Supervisor de operaciones',
-      isActive: true,
-      isSystem: false,
-      permissions: ['read', 'update'],
-      userCount: 5,
-      createdAt: new Date('2024-01-20')
-    }
-  ];
-
-  constructor() {}
+  constructor(
+    private roleService: RoleService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     console.log('RolesPermisosComponent initialized');
+    this.loadRoles();
+  }
+
+  /**
+   * Cargar roles desde la API
+   */
+  loadRoles(): void {
+    this.isLoading = true;
+    this.roleService.getRoles().subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.roles = response.data.roles;
+          console.log(`✅ ${response.data.total} roles cargados:`, this.roles);
+          
+          // Forzar detección de cambios
+          this.cdr.detectChanges();
+          
+          // Refrescar DataTables si ya existe
+          if (this.rolesListComponent) {
+            setTimeout(() => {
+              this.rolesListComponent.refreshDataTables();
+            }, 100);
+          }
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar roles:', error);
+        this.isLoading = false;
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar roles',
+          text: error.message || 'No se pudieron cargar los roles del sistema',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   onCreateRole(): void {
     this.currentView = 'form';
     this.isEditMode = false;
-    this.selectedRole = null;
+    this.selectedRoleId = null;
   }
 
   onEditRole(role: Role): void {
     this.currentView = 'form';
     this.isEditMode = true;
-    this.selectedRole = role;
+    this.selectedRoleId = role.id;
   }
 
   onDeleteRole(roleId: string): void {
-    this.roles = this.roles.filter(r => r.id !== roleId);
-    if (this.rolesListComponent) {
-      this.rolesListComponent.refreshDataTables();
-    }
+    this.roleService.deleteRole(roleId).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Recargar lista de roles
+          this.loadRoles();
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error al eliminar rol:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al eliminar',
+          text: error.message || 'No se pudo eliminar el rol',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   onToggleRoleStatus(roleId: string): void {
-    const role = this.roles.find(r => r.id === roleId);
-    if (role && !role.isSystem) {
-      role.isActive = !role.isActive;
-    }
+    this.roleService.toggleRoleStatus(roleId).subscribe({
+      next: (response) => {
+        if (response.success) {
+          // Recargar lista de roles
+          this.loadRoles();
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error al cambiar estado:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cambiar estado',
+          text: error.message || 'No se pudo cambiar el estado del rol',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   onCancelForm(): void {
     this.currentView = 'list';
     this.isEditMode = false;
-    this.selectedRole = null;
+    this.selectedRoleId = null;
   }
 
   onSaveRole(roleData: any): void {
-    Swal.fire({
-      icon: 'success',
-      title: this.isEditMode ? 'Rol actualizado' : 'Rol creado',
-      text: 'Operación exitosa',
-      confirmButtonText: 'Continuar',
-      timer: 2000,
-      timerProgressBar: true
-    }).then(() => {
-      this.currentView = 'list';
-      this.isEditMode = false;
-      this.selectedRole = null;
-      if (this.rolesListComponent) {
-        this.rolesListComponent.refreshDataTables();
+    const request = this.isEditMode 
+      ? this.roleService.updateRole(this.selectedRoleId!, roleData)
+      : this.roleService.createRole(roleData);
+
+    request.subscribe({
+      next: (response) => {
+        if (response.success) {
+          Swal.fire({
+            icon: 'success',
+            title: this.isEditMode ? 'Rol actualizado' : 'Rol creado',
+            text: 'Operación exitosa',
+            confirmButtonText: 'Continuar',
+            timer: 2000,
+            timerProgressBar: true
+          }).then(() => {
+            this.currentView = 'list';
+            this.isEditMode = false;
+            this.selectedRoleId = null;
+            // Recargar lista de roles
+            this.loadRoles();
+          });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error al guardar rol:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al guardar',
+          text: error.message || 'No se pudo guardar el rol',
+          confirmButtonText: 'Entendido'
+        });
       }
     });
   }
