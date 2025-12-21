@@ -51,7 +51,7 @@
                     <!-- Users Management -->
                     <div *ngIf="activeSection === 'users'" class="config-panel">
                         <!-- Mostrar formulario de usuario o lista -->
-                        <div *ngIf="!showUserForm">
+                        <div [class.d-none]="showUserForm">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
@@ -76,7 +76,7 @@
                                             <div class="card bg-light border-0">
                                                 <div class="card-body text-center">
                                                     <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
-                                                    <h4 class="mt-2">{{ getActiveUsersCount() }}</h4>
+                                                    <h4 class="mt-2">{{ activeUsersCount }}</h4>
                                                     <p class="text-muted mb-0">Usuarios Activos</p>
                                                 </div>
                                             </div>
@@ -85,7 +85,7 @@
                                             <div class="card bg-light border-0">
                                                 <div class="card-body text-center">
                                                     <i class="bi bi-shield-x text-warning" style="font-size: 2rem;"></i>
-                                                    <h4 class="mt-2">{{ getInactiveUsersCount() }}</h4>
+                                                    <h4 class="mt-2">{{ inactiveUsersCount }}</h4>
                                                     <p class="text-muted mb-0">Usuarios Inactivos</p>
                                                 </div>
                                             </div>
@@ -106,10 +106,11 @@
                         </div>
 
                         <!-- Formulario de usuario -->
-                        <div *ngIf="showUserForm">
+                        <div [class.d-none]="!showUserForm">
                             <app-user-form
                                 [isEditMode]="isUserEditMode"
                                 [selectedUser]="selectedUserForEdit"
+                                [userDetails]="selectedUserDetails"
                                 (cancel)="onCancelUserForm()"
                                 (save)="onSaveUser($event)">
                             </app-user-form>
@@ -147,7 +148,7 @@
                                         <div class="card bg-light border-0">
                                             <div class="card-body text-center">
                                                 <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
-                                                <h4 class="mt-2">{{ getActiveProductsCount() }}</h4>
+                                                <h4 class="mt-2">{{ activeProductsCount }}</h4>
                                                 <p class="text-muted mb-0">Productos Activos</p>
                                             </div>
                                         </div>
@@ -158,8 +159,7 @@
                                 <app-products-list 
                                     [products]="products"
                                     (syncProducts)="onSyncProducts()"
-                                    (viewProduct)="onViewProduct($event)"
-                                    (toggleProductStatus)="onToggleProductStatus($event)">
+                                    (viewProduct)="onViewProduct($event)">
                                 </app-products-list>
                             </div>
                         </div>

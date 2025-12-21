@@ -3,9 +3,7 @@
   <div class="d-flex justify-content-end mb-3">
     <button 
       class="btn btn-primary" 
-      (click)="onSyncProducts()"
-      *hasPermission="{submodule: 'productos', permission: 'sync'}">
-      <i class="bi bi-arrow-repeat me-2"></i>
+      (click)="onSyncProducts()">
       Sincronizar Productos
     </button>
   </div>
@@ -20,10 +18,41 @@
               <th>Producto</th>
               <th>Categoría</th>
               <th width="100" class="text-center">Estado</th>
-              <th width="150" class="text-center">Acciones</th>
+              <th width="120" class="text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
+            <tr *ngFor="let product of products">
+              <td>
+                <div class="d-flex align-items-center">
+                  <div>
+                    <strong>{{ product.code }}</strong> - {{ product.name }}
+                    <br>
+                    <small class="text-muted">{{ product.description }}</small>
+                    <br>
+                    <small><span class="badge bg-info">{{ product.unit }}</span></small>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="badge bg-primary">{{ product.category_name }}</span>
+                <br>
+                <small class="text-muted">{{ product.subcategory_name }}</small>
+              </td>
+              <td class="text-center">
+                <span class="badge" [ngClass]="product.isActive ? 'bg-success' : 'bg-secondary'">
+                  {{ product.isActive ? 'Activo' : 'Inactivo' }}
+                </span>
+              </td>
+              <td class="text-center">
+                <button 
+                  class="btn btn-sm btn-light view-btn" 
+                  (click)="onViewProduct(product)"
+                  title="Ver detalles">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>

@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, Input, Output, EventEmitter, SimpleChanges } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, Output, EventEmitter, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService, Product } from '../../../../services/product.service';
@@ -65,6 +65,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
   @Output() save = new EventEmitter<any>();
   
   isLoading = false;
+  isLoadingProducts = true; // 🔥 Estado de carga de productos
 
   // Formulario de rol
   roleForm: RoleForm = {
@@ -91,7 +92,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
   productAssignments: ProductAssignment[] = [];
   
   // Categorías de productos
-  productCategories: string[] = ['Mantenimiento', 'Cafetería', 'Limpieza', 'Papelería'];
+  productCategories: string[] = ['Mantenimiento', 'Cafetería', 'Limpieza', 'Papelería', 'Obras de arte'];
 
   // Estructura real de la base de datos
   modules: Module[] = [
@@ -119,8 +120,6 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 9, module_id: 4, name: 'usuarios', display_name: 'Usuarios', route: '/usuarios', is_active: true },
     { id: 10, module_id: 4, name: 'roles_permisos', display_name: 'Roles y Permisos', route: '/roles-permisos', is_active: true },
     { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
-    { id: 13, module_id: 4, name: 'centro_costo', display_name: 'Centro de Costo', route: '/centro-costo', is_active: true },
-    { id: 15, module_id: 4, name: 'departamento', display_name: 'Departamentos', route: '/departamento', is_active: true },
     { id: 16, module_id: 4, name: 'netsuite_sync', display_name: 'Sincronización NetSuite', route: '/configuracion/netsuite', is_active: true },
   ];
 
@@ -138,6 +137,14 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 11, name: 'cancel', display_name: 'Cancelar', description: 'Permite cancelar requisiciones' },
     { id: 12, name: 'share', display_name: 'Compartir', description: 'Permite compartir registros' },
     { id: 13, name: 'copy', display_name: 'Copiar', description: 'Permite copiar/duplicar registros' },
+    
+    // Permisos específicos de sincronización NetSuite (cada uno independiente)
+    { id: 14, name: 'sync_usuarios', display_name: 'Usuarios', description: 'Permite sincronizar usuarios desde NetSuite' },
+    { id: 15, name: 'sync_productos', display_name: 'Productos', description: 'Permite sincronizar productos desde NetSuite' },
+    { id: 16, name: 'sync_centros', display_name: 'Centros de Costo', description: 'Permite sincronizar centros de costo desde NetSuite' },
+    { id: 17, name: 'sync_departamentos', display_name: 'Departamentos', description: 'Permite sincronizar departamentos desde NetSuite' },
+    { id: 18, name: 'sync_categorias', display_name: 'Categorías', description: 'Permite sincronizar categorías desde NetSuite' },
+    { id: 19, name: 'sync_subcategorias', display_name: 'Subcategorías', description: 'Permite sincronizar subcategorías desde NetSuite' },
   ];
 
   // Configuración de permisos permitidos por submódulo
@@ -148,22 +155,26 @@ export class RoleFormComponent implements OnInit, OnChanges {
     6: [3, 4, 6], // Lista de Requisiciones - permite "Editar", "Eliminar" y "Surtir"
     7: [7, 9, 10, 11], // Confirmación de Requisiciones - permite "Autorizar", "Devolución", "Frecuentes" y "Cancelar"
     8: [2, 3], // Mi Perfil - permite "Ver" y "Editar"
-    9: [2, 3, 8], // Usuarios - permite "Ver", "Editar" y "Sincronizar" (NO crear)
+    9: [2, 3], // Usuarios - permite "Ver" y "Editar"
     10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Ver", "Editar" y "Eliminar"
-    11: [2, 8], // Productos - permite "Ver" y "Sincronizar" (NO crear, editar, eliminar)
-    13: [8], // Centro de Costo - solo permite "Sincronizar"
+    11: [2], // Productos - solo permite "Ver"
     14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
-    15: [8], // Departamento - solo permite "Sincronizar"
-    16: [2, 8], // Sincronización NetSuite - permite "Ver" y "Sincronizar"
+    
+    // NetSuite Sync - Un solo submódulo con múltiples permisos específicos
+    16: [2, 14, 15, 16, 17, 18, 19], // Sincronización NetSuite - Ver + Sincronizar (Usuarios, Productos, Centros, Departamentos, Categorías, Subcategorías)
   };
 
   constructor(
     private productService: ProductService,
-    private roleService: RoleService
+    private roleService: RoleService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
-    this.loadProducts();
+    // 🔥 NO cargar productos automáticamente
+    // Solo cargar cuando el usuario vaya a la pestaña de productos
+    
+    // Si es modo edición, cargar datos del rol (sin productos completos)
     if (this.isEditMode && this.roleId) {
       this.loadRoleData();
     }
@@ -179,83 +190,105 @@ export class RoleFormComponent implements OnInit, OnChanges {
     }
   }
 
+  /**
+   * 🔥 Cargar productos SOLO cuando el usuario hace click en la pestaña
+   * Este método se llama desde el HTML cuando se activa la pestaña de productos
+   */
+  onProductsTabActivated(): void {
+    // Si ya cargamos los productos, no volver a cargar
+    if (this.availableProducts.length > 0) {
+      console.log('✅ Productos ya cargados, usando cache');
+      return;
+    }
+    
+    console.log('🔥 Pestaña de productos activada - cargando productos...');
+    this.loadProducts();
+  }
+
+  /**
+   * Cargar datos del rol para edición
+   * Incluye: información básica, permisos asignados y productos asignados
+   */
   private loadRoleData(): void {
     if (!this.roleId) return;
     
     this.isLoading = true;
+    console.log(`🔄 Cargando datos del rol ID: ${this.roleId}...`);
     
-    // 🔥 JSON HARDCODED PARA PRUEBAS - TODO: Reemplazar con API call
-    const mockResponse = {
-      success: true,
-      message: "Rol obtenido exitosamente",
-      data: {
-        id: "1",
-        name: "super_admin",
-        display_name: "Super Administrador",
-        description: "Acceso completo al sistema con todos los permisos",
-        is_default: false,
-        is_active: true,
-        is_system: true,
-        user_count: 5,
-        created_at: "2024-01-15T10:30:00Z",
-        permissions: [
-          { submodule_id: 1, permission_id: 2, is_granted: true },  // Dashboard - Ver
-          { submodule_id: 2, permission_id: 2, is_granted: true },  // Reportes - Ver
-          { submodule_id: 5, permission_id: 1, is_granted: true },  // Requisiciones - Crear
-          { submodule_id: 5, permission_id: 5, is_granted: true },  // Requisiciones - Eventos
-          { submodule_id: 6, permission_id: 3, is_granted: true },  // Lista Requisiciones - Editar
-          { submodule_id: 6, permission_id: 4, is_granted: true },  // Lista Requisiciones - Eliminar
-          { submodule_id: 6, permission_id: 6, is_granted: true },  // Lista Requisiciones - Surtir
-          { submodule_id: 7, permission_id: 7, is_granted: true },  // Confirmación - Autorizar
-          { submodule_id: 8, permission_id: 2, is_granted: true },  // Mi Perfil - Ver
-          { submodule_id: 8, permission_id: 3, is_granted: true },  // Mi Perfil - Editar
-          { submodule_id: 9, permission_id: 2, is_granted: true },  // Usuarios - Ver
-          { submodule_id: 9, permission_id: 3, is_granted: true },  // Usuarios - Editar
-          { submodule_id: 10, permission_id: 1, is_granted: true }, // Roles - Crear
-          { submodule_id: 10, permission_id: 2, is_granted: true }, // Roles - Ver
-          { submodule_id: 10, permission_id: 3, is_granted: true }, // Roles - Editar
-          { submodule_id: 10, permission_id: 4, is_granted: true }  // Roles - Eliminar
-        ],
-        products: []
-      }
-    };
-    
-    // Simular delay de red
-    setTimeout(() => {
-      const response = mockResponse;
-      
-      if (response.success && response.data) {
-        const roleData = response.data;
+    // Llamada real al API
+    this.roleService.getRoleById(this.roleId).subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          const roleData = response.data;
+          
+          // 1️⃣ Cargar datos básicos del rol
+          this.roleForm = {
+            name: roleData.name,
+            display_name: roleData.display_name || roleData.name,
+            description: roleData.description || '',
+            is_default: roleData.is_default || false,
+            is_active: roleData.is_active !== undefined ? roleData.is_active : true
+          };
+          
+          // 2️⃣ Cargar permisos asignados
+          if (roleData.permissions && Array.isArray(roleData.permissions)) {
+            this.selectedPermissions = roleData.permissions.map((perm: any) => ({
+              submodule_id: perm.submodule_id,
+              permission_id: perm.permission_id,
+              is_granted: perm.is_granted !== undefined ? perm.is_granted : true
+            }));
+            console.log(`✅ ${this.selectedPermissions.length} permisos cargados`);
+          }
+          
+          // 3️⃣ Cargar SOLO productos asignados (no todos los productos)
+          if (roleData.products && Array.isArray(roleData.products)) {
+            this.productAssignments = roleData.products.map((prod: any) => ({
+              product_id: String(prod.product_id),  // 🔥 Asegurar que sea string
+              limit_per_requisition: prod.limit_per_requisition || 0,
+              is_assigned: prod.is_assigned !== undefined ? prod.is_assigned : true
+            }));
+            console.log(`✅ ${this.productAssignments.length} productos asignados cargados`);
+            console.log('📋 Productos asignados:', JSON.stringify(this.productAssignments, null, 2));
+          }
+          
+          console.log('✅ Datos del rol cargados correctamente');
+          
+          // 🔥 Forzar la detección de cambios para actualizar la vista inmediatamente
+          this.cdr.detectChanges();
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar rol:', error);
+        this.isLoading = false;
         
-        // Cargar datos básicos del rol
-        this.roleForm = {
-          name: roleData.name,
-          display_name: roleData.display_name || roleData.name,
-          description: roleData.description || '',
-          is_default: roleData.is_default || false,
-          is_active: roleData.is_active !== undefined ? roleData.is_active : true
-        };
+        // Manejar errores según el código de respuesta
+        let errorTitle = 'Error al cargar rol';
+        let errorMessage = 'No se pudieron cargar los datos del rol';
         
-        // Cargar permisos si existen
-        if (roleData.permissions && Array.isArray(roleData.permissions)) {
-          this.selectedPermissions = roleData.permissions.map((perm: any) => ({
-            submodule_id: perm.submodule_id,
-            permission_id: perm.permission_id,
-            is_granted: perm.is_granted !== undefined ? perm.is_granted : true
-          }));
+        if (error.status === 403) {
+          errorTitle = 'Permiso Denegado';
+          errorMessage = error.error?.message || 'No tienes permisos para realizar esta acción';
+        } else if (error.status === 404) {
+          errorTitle = 'Rol no encontrado';
+          errorMessage = error.error?.message || 'El rol solicitado no existe';
+        } else if (error.error?.message) {
+          errorMessage = error.error.message;
         }
         
-        // Cargar productos asignados si existen
-        if (roleData.products && Array.isArray(roleData.products)) {
-          this.productAssignments = roleData.products.map((prod: any) => ({
-            product_id: prod.product_id,
-            limit_per_requisition: prod.limit_per_requisition || 0,
-            is_assigned: true
-          }));
-        }
+        Swal.fire({
+          icon: 'error',
+          title: errorTitle,
+          text: errorMessage,
+          confirmButtonText: 'Entendido'
+        }).then(() => {
+          // Si es error de permisos o no encontrado, cerrar el formulario
+          if (error.status === 403 || error.status === 404) {
+            this.onCancel();
+          }
+        });
       }
-      this.isLoading = false;
-    }, 300);
+    });
   }
 
   private resetForm(): void {
@@ -270,14 +303,35 @@ export class RoleFormComponent implements OnInit, OnChanges {
     this.productAssignments = [];
   }
 
+  /**
+   * Cargar TODOS los productos disponibles del sistema
+   * Este método se ejecuta SOLO cuando el usuario hace click en la pestaña de productos
+   */
   private loadProducts(): void {
+    console.log('📦 Cargando TODOS los productos disponibles...');
+    this.isLoadingProducts = true; // 🔥 Mostrar spinner
+    
     this.productService.getAllProducts().subscribe({
       next: (products) => {
         this.availableProducts = products.filter(p => p.isActive);
         this.filteredProducts = this.availableProducts;
+        console.log(`✅ ${this.availableProducts.length} productos cargados desde la API`);
+        
+        // 🔥 Ocultar spinner y forzar re-render
+        this.isLoadingProducts = false;
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error al cargar productos:', error);
+        console.error('❌ Error al cargar productos:', error);
+        this.isLoadingProducts = false; // 🔥 Ocultar spinner incluso en error
+        this.cdr.detectChanges();
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar productos',
+          text: error.message || 'No se pudieron cargar los productos del sistema',
+          confirmButtonText: 'Entendido'
+        });
       }
     });
   }
@@ -398,7 +452,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
   // ==================== MÉTODOS PARA PRODUCTOS ====================
   
   getProductsByCategory(category: string): Product[] {
-    let products = this.availableProducts.filter(p => p.category === category);
+    let products = this.availableProducts.filter(p => p.category_name === category);
     
     // Aplicar filtro de búsqueda
     if (this.productSearchTerm.trim()) {
@@ -438,11 +492,37 @@ export class RoleFormComponent implements OnInit, OnChanges {
   }
 
   isProductAssigned(productId: string): boolean {
-    return this.productAssignments.some(pa => pa.product_id === productId && pa.is_assigned);
+    // Debug: Ver todos los IDs disponibles (solo primeras 3 llamadas para no saturar)
+    if (!this._debugCounter) this._debugCounter = 0;
+    this._debugCounter++;
+    
+    if (this._debugCounter <= 3) {
+      console.log(`🔍 Buscando producto ID: "${productId}" (tipo: ${typeof productId})`);
+      console.log(`📦 ProductAssignments actuales:`, this.productAssignments.map(pa => 
+        `ID:"${pa.product_id}" (tipo:${typeof pa.product_id}, assigned:${pa.is_assigned})`
+      ));
+    }
+    
+    const isAssigned = this.productAssignments.some(pa => {
+      // Convertir ambos a string para comparación segura
+      const paId = String(pa.product_id);
+      const pId = String(productId);
+      const match = paId === pId && pa.is_assigned;
+      
+      if (match && this._debugCounter <= 3) {
+        console.log(`✅ MATCH ENCONTRADO! "${paId}" === "${pId}"`);
+      }
+      
+      return match;
+    });
+    
+    return isAssigned;
   }
 
+  private _debugCounter = 0;
+
   toggleProductAssignment(productId: string): void {
-    const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === productId);
+    const existingIndex = this.productAssignments.findIndex(pa => String(pa.product_id) === String(productId));
     
     if (existingIndex !== -1) {
       this.productAssignments[existingIndex].is_assigned = !this.productAssignments[existingIndex].is_assigned;
@@ -453,7 +533,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
       }
     } else {
       this.productAssignments.push({
-        product_id: productId,
+        product_id: String(productId), // 🔥 Asegurar que sea string
         limit_per_requisition: 0,
         is_assigned: true
       });
@@ -461,19 +541,19 @@ export class RoleFormComponent implements OnInit, OnChanges {
   }
 
   getProductLimit(productId: string): number {
-    const assignment = this.productAssignments.find(pa => pa.product_id === productId);
+    const assignment = this.productAssignments.find(pa => String(pa.product_id) === String(productId));
     return assignment ? assignment.limit_per_requisition : 0;
   }
 
   updateProductLimit(productId: string, event: any): void {
     const value = parseInt(event.target.value) || 0;
-    const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === productId);
+    const existingIndex = this.productAssignments.findIndex(pa => String(pa.product_id) === String(productId));
     
     if (existingIndex !== -1) {
       this.productAssignments[existingIndex].limit_per_requisition = value;
     } else {
       this.productAssignments.push({
-        product_id: productId,
+        product_id: String(productId), // 🔥 Asegurar que sea string
         limit_per_requisition: value,
         is_assigned: true
       });
@@ -538,7 +618,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
       .forEach(pa => {
         const product = this.availableProducts.find(p => p.id === pa.product_id);
         if (product) {
-          categoriesWithProducts.add(product.category);
+          categoriesWithProducts.add(product.category_name);
         }
       });
     
@@ -547,5 +627,50 @@ export class RoleFormComponent implements OnInit, OnChanges {
 
   getProductsWithLimitsCount(): number {
     return this.productAssignments.filter(pa => pa.is_assigned && pa.limit_per_requisition > 0).length;
+  }
+
+  /**
+   * Asignar TODOS los productos disponibles al rol
+   * @param defaultLimit Límite por defecto para todos los productos (0 = sin límite)
+   */
+  assignAllProducts(defaultLimit: number = 0): void {
+    this.productAssignments = this.availableProducts.map(product => ({
+      product_id: product.id,
+      limit_per_requisition: defaultLimit,
+      is_assigned: true
+    }));
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Productos Asignados',
+      text: `Se han asignado ${this.availableProducts.length} productos al rol`,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  }
+
+  /**
+   * Desasignar TODOS los productos del rol
+   */
+  unassignAllProducts(): void {
+    Swal.fire({
+      title: '¿Desasignar todos los productos?',
+      text: 'Esta acción quitará todos los productos asignados a este rol',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, desasignar',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.productAssignments = [];
+        Swal.fire({
+          icon: 'success',
+          title: 'Productos Desasignados',
+          text: 'Todos los productos han sido removidos',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+    });
   }
 }

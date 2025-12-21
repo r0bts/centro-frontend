@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Input, Output, EventEmitter, OnDestroy, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
 
@@ -28,26 +28,66 @@ export interface Product {
   templateUrl: './products-list.html',
   styleUrls: ['./products-list.scss']
 })
-export class ProductsListComponent implements OnInit, AfterViewInit {
+export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy, OnChanges {
   @ViewChild('productsTable', { static: false }) productsTable!: ElementRef;
-  @Input() products: Product[] = [];
+  
+  private _products: Product[] = [];
+  @Input() 
+  set products(value: Product[]) {
+    console.log('📥 [SETTER] products recibido:', value?.length || 0, 'productos');
+    this._products = value;
+    
+    // Si ya se inicializó la vista, refrescar
+    if (this.viewInitialized && value && value.length > 0) {
+      console.log('🔄 [SETTER] Vista inicializada, refrescando DataTable');
+      setTimeout(() => {
+        this.refreshDataTables();
+      }, 100);
+    }
+  }
+  get products(): Product[] {
+    return this._products;
+  }
+  
   @Output() viewProduct = new EventEmitter<Product>();
   @Output() syncProducts = new EventEmitter<void>();
 
   // DataTables
   private productsDataTable: any;
+  private viewInitialized = false;
 
   constructor() {}
 
   ngOnInit(): void {
-    console.log('✅ ProductsListComponent initialized');
+    console.log('✅ ProductsListComponent initialized, productos:', this.products.length);
   }
 
   ngAfterViewInit(): void {
+    console.log('🔄 [ngAfterViewInit] Vista inicializada, productos:', this.products.length);
+    this.viewInitialized = true;
+    
     // Inicializar DataTables después de que la vista esté lista
     setTimeout(() => {
       this.initProductsDataTable();
     }, 100);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('🔔 [ngOnChanges] Detectado cambio:', changes);
+    
+    // Cuando cambia el input de products, refrescar la tabla
+    if (changes['products']) {
+      const current = changes['products'].currentValue;
+      const previous = changes['products'].previousValue;
+      
+      console.log('� [ngOnChanges] Productos - anterior:', previous?.length || 0, 'actual:', current?.length || 0);
+      
+      // Si no es el primer cambio Y hay productos
+      if (!changes['products'].firstChange && current && current.length > 0) {
+        console.log('🔄 [ngOnChanges] Refrescando DataTable con', current.length, 'productos');
+        this.refreshDataTables();
+      }
+    }
   }
 
   ngOnDestroy(): void {
@@ -57,15 +97,7 @@ export class ProductsListComponent implements OnInit, AfterViewInit {
   }
 
   private initProductsDataTable(): void {
-    // 🔥 Verificar si DataTable ya existe
-    if (this.productsDataTable) {
-      console.log('⚠️ DataTable ya existe, destruyendo primero...');
-      this.productsDataTable.destroy();
-      this.productsDataTable = null;
-    }
-    
     if (this.productsTable && this.products.length > 0) {
-      console.log('✅ Inicializando DataTable con', this.products.length, 'productos');
       this.productsDataTable = $(this.productsTable.nativeElement).DataTable({
         language: {
           "decimal": "",
@@ -103,11 +135,8 @@ export class ProductsListComponent implements OnInit, AfterViewInit {
   }
 
   refreshDataTables(): void {
-    console.log('🔄 refreshDataTables llamado para productos');
     if (this.productsDataTable) {
-      console.log('🗑️ Destruyendo DataTable existente de productos');
       this.productsDataTable.destroy();
-      this.productsDataTable = null;
     }
     
     setTimeout(() => {

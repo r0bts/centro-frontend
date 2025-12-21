@@ -1,0 +1,325 @@
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Input, Output, EventEmitter, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import Swal from 'sweetalert2';
+
+declare var $: any; // Para jQuery/DataTables
+
+export interface Product {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  category_id: number;
+  category_name: string;
+  category_is_inactive: boolean;
+  subcategory_id: number;
+  subcategory_name: string;
+  subcategory_is_inactive: boolean;
+  unit: string;
+  isActive: boolean;
+  createdAt: Date;
+  lastSync?: Date;
+}
+
+@Component({
+  selector: 'app-products-list',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './products-list.html',
+  styleUrls: ['./products-list.scss']
+})
+export class ProductsListComponent implements OnInit, AfterViewInit, OnChanges, OnDestroy {
+  @ViewChild('productsTable', { static: false }) productsTable!: ElementRef;
+  
+  private _products: Product[] = [];
+  @Input() 
+  set products(value: Product[]) {
+    console.log('📥 [SETTER] products llamado con', value?.length || 0, 'productos, viewInitialized:', this.viewInitialized);
+    this._products = value;
+    
+    // Solo actualizar si la vista ya está lista
+    if (this.viewInitialized) {
+      console.log('🔄 [SETTER] Llamando updateDataTable desde setter');
+      this.updateDataTable();
+    } else {
+      console.log('⏸️ [SETTER] Vista no inicializada, esperando ngAfterViewInit');
+    }
+  }
+  get products(): Product[] {
+    return this._products;
+  }
+  
+  @Output() editProduct = new EventEmitter<Product>();
+  @Output() viewProduct = new EventEmitter<Product>();
+  @Output() syncProducts = new EventEmitter<void>();
+  @Output() deleteProduct = new EventEmitter<string>();
+  @Output() toggleProductStatus = new EventEmitter<string>();
+
+  // DataTables
+  private productsDataTable: any;
+  private viewInitialized = false;
+  private initTimeout: any = null;  // Guardar referencia al timeout
+  private isInitializing = false;  // Flag para evitar inicializaciones concurrentes
+
+  constructor() {}
+
+  ngOnInit(): void {
+    console.log('✅ ProductsListComponent initialized, productos:', this.products.length);
+  }
+
+  ngAfterViewInit(): void {
+    console.log('🔄 [LIFECYCLE] ngAfterViewInit, productos:', this.products.length, 'viewInitialized antes:', this.viewInitialized);
+    this.viewInitialized = true;
+    
+    // Inicializar DataTable una vez que la vista esté lista
+    this.initTimeout = setTimeout(() => {
+      console.log('⏰ [TIMEOUT] Ejecutando updateDataTable desde ngAfterViewInit timeout');
+      this.updateDataTable();
+    }, 150);
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('🔔 [LIFECYCLE] ngOnChanges detectado:', changes);
+    // NO hacer nada aquí, dejar que el setter maneje los cambios
+  }
+
+  ngOnDestroy(): void {
+    console.log('💀 [LIFECYCLE] ngOnDestroy - Limpieza completa');
+    
+    // Cancelar timeout pendiente si existe
+    if (this.initTimeout) {
+      console.log('⏰ [DESTROY] Cancelando timeout pendiente');
+      clearTimeout(this.initTimeout);
+      this.initTimeout = null;
+    }
+    
+    // Destruir DataTable si existe - ORDEN IMPORTANTE
+    if (this.productsTable && this.productsTable.nativeElement) {
+      const tableElement = this.productsTable.nativeElement;
+      
+      // 1. Verificar si es DataTable usando la API
+      if ($.fn.DataTable.isDataTable(tableElement)) {
+        console.log('🧹 [DESTROY] Destruyendo DataTable existente');
+        
+        // 2. Remover event listeners
+        $(tableElement).off('click', '.view-btn');
+        
+        // 3. Obtener la instancia y destruirla completamente
+        const dt = $(tableElement).DataTable();
+        dt.destroy(true); // true = remover del DOM completamente
+        
+        // 4. Limpiar el elemento tabla manualmente
+        $(tableElement).empty();
+        
+        console.log('✅ [DESTROY] DataTable destruido completamente');
+      }
+    }
+    
+    // 5. Limpiar referencias
+    this.productsDataTable = null;
+    this.isInitializing = false;
+    
+    console.log('✅ [DESTROY] Limpieza completa terminada');
+  }
+
+  private updateDataTable(): void {
+    console.log('🔄 [UPDATE] updateDataTable llamado, productos:', this.products.length, 'isInitializing:', this.isInitializing);
+    
+    // Cancelar cualquier inicialización pendiente
+    if (this.initTimeout) {
+      console.log('⏰ [UPDATE] Cancelando timeout pendiente');
+      clearTimeout(this.initTimeout);
+      this.initTimeout = null;
+    }
+    
+    // Verificar si la tabla YA es un DataTable usando la API de DataTables
+    const isDataTable = $.fn.DataTable.isDataTable(this.productsTable.nativeElement);
+    console.log('🔍 [UPDATE] ¿Es DataTable?', isDataTable);
+    
+    if (isDataTable) {
+      console.log('🧹 [UPDATE] Tabla ya es DataTable, destruyendo...');
+      $(this.productsTable.nativeElement).off('click', '.view-btn');
+      $(this.productsTable.nativeElement).DataTable().destroy(true);
+      this.productsDataTable = null;
+    }
+    
+    // Solo inicializar si hay productos
+    if (this.products.length > 0) {
+      console.log('🚀 [UPDATE] Hay productos, llamando initProductsDataTable');
+      this.initProductsDataTable();
+    } else {
+      console.log('⚠️ [UPDATE] No hay productos, no se inicializa DataTable');
+    }
+  }
+
+  private initProductsDataTable(): void {
+    console.log('🎯 [INIT] initProductsDataTable llamado, isInitializing:', this.isInitializing);
+    
+    if (!this.productsTable || this.products.length === 0) {
+      console.log('⚠️ [INIT] No hay tabla o productos, saliendo');
+      return;
+    }
+    
+    // PROTECCIÓN 1: Evitar inicializaciones concurrentes
+    if (this.isInitializing) {
+      console.log('⚠️ [INIT] Ya hay una inicialización en progreso, abortando');
+      return;
+    }
+    
+    // PROTECCIÓN 2: Si la tabla ya es DataTable, NO inicializar
+    const tableElement = this.productsTable.nativeElement;
+    const isDataTable = $.fn.DataTable.isDataTable(tableElement);
+    console.log('🔍 [INIT] ¿Es DataTable antes de inicializar?', isDataTable);
+    
+    if (isDataTable) {
+      console.log('⚠️ [INIT] ADVERTENCIA: La tabla ya es DataTable, destruyendo primero');
+      $(tableElement).off('click', '.view-btn');
+      $(tableElement).DataTable().destroy(true);
+      $(tableElement).empty(); // Limpiar el elemento
+      this.productsDataTable = null;
+    }
+    
+    // PROTECCIÓN 3: Limpiar el elemento antes de inicializar
+    $(tableElement).empty();
+    
+    this.isInitializing = true;
+    console.log('🚦 [INIT] isInitializing = true, creando DataTable con', this.products.length, 'productos');
+    
+    try {
+      // Convertir productos a formato de datos para DataTables
+      const tableData = this.products.map(product => {
+        return [
+          `<div class="d-flex align-items-center">
+            <div>
+              <strong>${product.code}</strong> - ${product.name}
+              <br>
+              <small class="text-muted">${product.description}</small>
+              <br>
+              <small><span class="badge bg-info">${product.unit}</span></small>
+            </div>
+          </div>`,
+          `<div>
+            <span class="badge bg-primary">${product.category_name}</span>
+            <br>
+            <small class="text-muted">${product.subcategory_name}</small>
+          </div>`,
+          `<span class="badge ${product.isActive ? 'bg-success' : 'bg-secondary'}">
+            ${product.isActive ? 'Activo' : 'Inactivo'}
+          </span>`,
+          `<button class="btn btn-sm btn-light view-btn" data-id="${product.id}" title="Ver detalles">
+            <i class="bi bi-eye"></i>
+          </button>`
+        ];
+      });
+
+      this.productsDataTable = $(this.productsTable.nativeElement).DataTable({
+        data: tableData,
+        columns: [
+          { title: 'Producto' },
+          { title: 'Categoría' },
+          { title: 'Estado', className: 'text-center' },
+          { title: 'Acciones', className: 'text-center', orderable: false }
+        ],
+        language: {
+          "decimal": "",
+          "emptyTable": "No hay datos disponibles en la tabla",
+          "info": "Mostrando _START_ a _END_ de _TOTAL_ entradas",
+          "infoEmpty": "Mostrando 0 a 0 de 0 entradas",
+          "infoFiltered": "(filtrado de _MAX_ entradas totales)",
+          "infoPostFix": "",
+          "thousands": ",",
+          "lengthMenu": "Mostrar _MENU_ entradas",
+          "loadingRecords": "Cargando...",
+          "processing": "Procesando...",
+          "search": "Buscar:",
+          "zeroRecords": "No se encontraron registros coincidentes",
+          "paginate": {
+            "first": "Primero",
+            "last": "Último",
+            "next": "Siguiente",
+            "previous": "Anterior"
+          },
+          "aria": {
+            "sortAscending": ": activar para ordenar la columna ascendente",
+            "sortDescending": ": activar para ordenar la columna descendente"
+          }
+        },
+        responsive: true,
+        pageLength: 10,
+        order: [[0, 'asc']]
+      });
+
+      // Event listener para botones de ver
+      $(this.productsTable.nativeElement).on('click', '.view-btn', (e: any) => {
+        const productId = $(e.currentTarget).data('id');
+        const product = this.products.find(p => p.id === productId);
+        if (product) {
+          this.onViewProduct(product);
+        }
+      });
+
+      console.log('✅ [INIT] DataTable inicializado correctamente');
+    } catch (error) {
+      console.error('❌ [INIT] Error creando DataTable:', error);
+      throw error;
+    } finally {
+      this.isInitializing = false;
+      console.log('🚦 [INIT] isInitializing = false');
+    }
+  }
+
+  refreshDataTables(): void {
+    console.log('🔄 [REFRESH] refreshDataTables llamado');
+    
+    // Verificar si la tabla YA es un DataTable usando la API de DataTables
+    const isDataTable = $.fn.DataTable.isDataTable(this.productsTable.nativeElement);
+    console.log('🔍 [REFRESH] ¿Es DataTable?', isDataTable);
+    
+    if (isDataTable) {
+      console.log('🧹 [REFRESH] Destruyendo DataTable...');
+      $(this.productsTable.nativeElement).off('click', '.view-btn');
+      $(this.productsTable.nativeElement).DataTable().destroy(true);
+    }
+    
+    setTimeout(() => {
+      console.log('⏰ [REFRESH] Llamando initProductsDataTable desde timeout');
+      this.initProductsDataTable();
+    }, 100);
+  }
+
+  onSyncProducts(): void {
+    this.syncProducts.emit();
+  }
+
+  onViewProduct(product: Product): void {
+    this.viewProduct.emit(product);
+  }
+
+  onToggleProductStatus(productId: string): void {
+    const product = this.products.find(p => p.id === productId);
+    if (product) {
+      this.toggleProductStatus.emit(productId);
+      
+      Swal.fire({
+        icon: 'success',
+        title: 'Estado actualizado',
+        text: `El producto "${product.name}" ahora está ${!product.isActive ? 'activo' : 'inactivo'}`,
+        confirmButtonText: 'Continuar',
+        timer: 1500,
+        timerProgressBar: true
+      });
+    }
+  }
+
+  formatDate(date: Date | undefined): string {
+    if (!date) return 'Nunca';
+    const d = new Date(date);
+    return d.toLocaleDateString('es-ES', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+}

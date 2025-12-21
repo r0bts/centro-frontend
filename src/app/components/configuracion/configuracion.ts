@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -43,14 +43,25 @@ interface SystemConfig {
   styleUrls: ['./configuracion.scss']
 })
 export class ConfiguracionComponent implements OnInit {
+  @ViewChild(ProductsListComponent) productsListComponent!: ProductsListComponent;
+  @ViewChild(UsersListComponent) usersListComponent!: UsersListComponent;
+  
   activeSection = 'general';
+  
   users: User[] = [];
   products: Product[] = [];
+  
+  // Propiedades calculadas para evitar múltiples evaluaciones en el template
+  activeProductsCount = 0;
+  inactiveProductsCount = 0;
+  activeUsersCount = 0;
+  inactiveUsersCount = 0;
   
   // Control para mostrar el formulario de usuario (solo edición/visualización)
   showUserForm = false;
   isUserEditMode = false;
   selectedUserForEdit: User | null = null;
+  selectedUserDetails: any = null; // Detalles completos del usuario (permisos y productos)
   
   configSections: ConfigSection[] = [
     {
@@ -125,11 +136,9 @@ export class ConfiguracionComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    console.log('✅ ConfiguracionComponent initialized');
     
-    // Cargar usuarios y productos
-    this.loadUsers();
-    this.loadProducts();
+    // 🔥 NO cargar datos automáticamente
+    // Los datos se cargarán cuando el usuario entre a cada sección
     
     // Detectar la sección desde la URL
     const urlPath = this.router.url;
@@ -147,10 +156,38 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   loadUsers(): void {
+    // 🔥 Mostrar modal de carga con Swal
+    Swal.fire({
+      title: 'Cargando usuarios',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
     this.userService.getAllUsers().subscribe({
       next: (users) => {
+        // Asignar usuarios
         this.users = users;
-        console.log('✅ Usuarios cargados:', users.length);
+        
+        // Calcular contadores
+        this.activeUsersCount = users.filter(u => u.isActive).length;
+        this.inactiveUsersCount = users.filter(u => !u.isActive).length;
+        
+        
+        // Forzar detección de cambios
+        this.cdr.detectChanges();
+        
+        // Refrescar DataTables si ya existe
+        if (this.usersListComponent) {
+          setTimeout(() => {
+            this.usersListComponent.refreshDataTables();
+            Swal.close(); // 🔥 Cerrar modal DESPUÉS de que DataTable termine
+          }, 200);
+        } else {
+          Swal.close(); // 🔥 Cerrar modal si no hay componente
+        }
       },
       error: (error) => {
         console.error('❌ Error al cargar usuarios:', error);
@@ -165,13 +202,39 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   loadProducts(): void {
+    // 🔥 Mostrar modal de carga con Swal
+    Swal.fire({
+      title: 'Cargando productos',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
     this.productService.getAllProducts().subscribe({
       next: (products) => {
+        // Asignar productos
         this.products = products;
+        
+        // Calcular contadores
+        this.activeProductsCount = products.filter(p => p.isActive).length;
+        this.inactiveProductsCount = products.filter(p => !p.isActive).length;
+        
         console.log('✅ Productos cargados:', products.length);
         
-        // Forzar detección de cambios para evitar NG0100
+        // Forzar detección de cambios
         this.cdr.detectChanges();
+        
+        // Refrescar DataTables si ya existe
+        if (this.productsListComponent) {
+          setTimeout(() => {
+            this.productsListComponent.refreshDataTables();
+            Swal.close(); // 🔥 Cerrar modal DESPUÉS de que DataTable termine
+          }, 200);
+        } else {
+          Swal.close(); // 🔥 Cerrar modal si no hay componente
+        }
       },
       error: (error) => {
         console.error('❌ Error al cargar productos:', error);
@@ -186,26 +249,31 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   setActiveSection(sectionId: string): void {
+    console.log('🔄 Cambiando a sección:', sectionId);
+    
+    // 🔥 Resetear vista de usuario si está activa
+    if (this.showUserForm && sectionId !== 'users') {
+      console.log('🧹 Reseteando vista de usuario al cambiar de sección');
+      this.showUserForm = false;
+      this.isUserEditMode = false;
+      this.selectedUserForEdit = null;
+      this.selectedUserDetails = null;
+    }
+    
     this.configSections.forEach(section => {
       section.active = section.id === sectionId;
     });
     this.activeSection = sectionId;
-  }
-
-  getActiveUsersCount(): number {
-    return this.users.filter(u => u.isActive).length;
-  }
-
-  getInactiveUsersCount(): number {
-    return this.users.filter(u => !u.isActive).length;
-  }
-
-  getActiveProductsCount(): number {
-    return this.products.filter(p => p.isActive).length;
-  }
-
-  getInactiveProductsCount(): number {
-    return this.products.filter(p => !p.isActive).length;
+    
+    // 🔥 Cargar datos SOLO cuando se entra a cada sección
+    if (sectionId === 'users' && this.users.length === 0) {
+      console.log('🔄 Cargando usuarios por primera vez...');
+      this.loadUsers();
+    } else if (sectionId === 'products' && this.products.length === 0) {
+      console.log('🔄 Cargando productos por primera vez...');
+      this.loadProducts();
+    }
+    // roles se cargan dentro de RolesPermisosComponent (y se resetean con ngOnDestroy)
   }
 
   saveConfiguration(): void {
@@ -400,30 +468,74 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   onViewUser(user: User): void {
-    console.log('👁️ Ver detalles del usuario:', user);
+    
+    // Cargar datos completos del usuario
     Swal.fire({
-      title: 'Detalles del Usuario',
-      html: `
-        <div class="text-start">
-          <p><strong>Usuario:</strong> ${user.username}</p>
-          <p><strong>Nombre:</strong> ${user.firstName} ${user.lastName}</p>
-          <p><strong>Email:</strong> ${user.email}</p>
-          <p><strong>No. Empleado:</strong> ${user.employeeNumber}</p>
-          <p><strong>Rol:</strong> ${user.role}</p>
-          <p><strong>Estado:</strong> ${user.isActive ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</p>
-          <p><strong>Fecha de creación:</strong> ${new Date(user.createdAt).toLocaleDateString('es-ES')}</p>
-        </div>
-      `,
-      confirmButtonText: 'Cerrar',
-      width: '600px'
+      title: 'Cargando datos del usuario',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    this.userService.getUserById(user.id).subscribe({
+      next: (userDetails) => {
+        Swal.close();
+        this.showUserForm = true;
+        this.isUserEditMode = false; // Modo solo lectura
+        this.selectedUserForEdit = user;
+        this.selectedUserDetails = userDetails; // Guardar detalles completos
+        console.log('📋 Detalles completos del usuario cargados:', userDetails);
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar usuario',
+          text: error.message || 'No se pudieron cargar los datos del usuario',
+          confirmButtonText: 'Entendido'
+        });
+      }
     });
   }
 
   onEditUser(user: User): void {
     console.log('✏️ Editar usuario:', user);
-    this.showUserForm = true;
-    this.isUserEditMode = true;
-    this.selectedUserForEdit = user;
+    console.log('🔍 Estado ANTES - showUserForm:', this.showUserForm, 'isUserEditMode:', this.isUserEditMode);
+    
+    // Cargar datos completos del usuario
+    Swal.fire({
+      title: 'Cargando datos del usuario',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    this.userService.getUserById(user.id).subscribe({
+      next: (userDetails) => {
+        Swal.close();
+        this.showUserForm = true;
+        this.isUserEditMode = true;
+        this.selectedUserForEdit = user;
+        this.selectedUserDetails = userDetails; // Guardar detalles completos
+        console.log('✏️ Detalles completos del usuario cargados para edición:', userDetails);
+        console.log('🔍 Estado DESPUÉS - showUserForm:', this.showUserForm, 'isUserEditMode:', this.isUserEditMode);
+        
+        // Forzar detección de cambios
+        this.cdr.detectChanges();
+        console.log('✅ detectChanges ejecutado');
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar usuario',
+          text: error.message || 'No se pudieron cargar los datos del usuario',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   onCancelUserForm(): void {
@@ -431,12 +543,23 @@ export class ConfiguracionComponent implements OnInit {
     this.showUserForm = false;
     this.isUserEditMode = false;
     this.selectedUserForEdit = null;
+    this.selectedUserDetails = null; // Limpiar detalles
   }
 
   onSaveUser(userData: any): void {
     console.log('💾 Actualizar usuario:', userData);
     
-    // Solo actualizar usuario existente (no se permite crear nuevos)
+    if (!this.selectedUserForEdit) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No hay usuario seleccionado para actualizar',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+    
+    // Mostrar modal de carga
     Swal.fire({
       title: 'Actualizando usuario',
       text: 'Por favor espera...',
@@ -446,25 +569,39 @@ export class ConfiguracionComponent implements OnInit {
       }
     });
 
-    // Simular guardado
-    setTimeout(() => {
-      // Aquí harías la llamada al backend
-      // this.userService.updateUser(this.selectedUserForEdit!.id, userData).subscribe({...})
-      
-      this.showUserForm = false;
-      this.isUserEditMode = false;
-      this.selectedUserForEdit = null;
-      this.loadUsers();
-      
-      Swal.fire({
-        icon: 'success',
-        title: 'Usuario actualizado',
-        text: 'El usuario ha sido actualizado exitosamente',
-        confirmButtonText: 'Continuar',
-        timer: 2000,
-        timerProgressBar: true
-      });
-    }, 1000);
+    // Llamar al backend para actualizar usuario
+    this.userService.updateUser(this.selectedUserForEdit.id, userData).subscribe({
+      next: (response) => {
+        console.log('✅ Usuario actualizado exitosamente:', response);
+        
+        this.showUserForm = false;
+        this.isUserEditMode = false;
+        this.selectedUserForEdit = null;
+        this.selectedUserDetails = null;
+        
+        // Recargar lista de usuarios
+        this.loadUsers();
+        
+        Swal.fire({
+          icon: 'success',
+          title: 'Usuario actualizado',
+          text: response.message || 'El usuario ha sido actualizado exitosamente',
+          confirmButtonText: 'Continuar',
+          timer: 2000,
+          timerProgressBar: true
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error al actualizar usuario:', error);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al actualizar',
+          text: error.message || 'No se pudo actualizar el usuario. Por favor intenta de nuevo.',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   onDeleteUser(userId: string): void {
@@ -564,7 +701,7 @@ export class ConfiguracionComponent implements OnInit {
           <p><strong>Código:</strong> ${product.code}</p>
           <p><strong>Nombre:</strong> ${product.name}</p>
           <p><strong>Descripción:</strong> ${product.description}</p>
-          <p><strong>Categoría:</strong> ${product.category}</p>
+          <p><strong>Categoría:</strong> ${product.category_name}</p>
           <p><strong>Unidad:</strong> ${product.unit}</p>
           <p><strong>Estado:</strong> ${product.isActive ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</p>
           <p><strong>Fecha de creación:</strong> ${new Date(product.createdAt).toLocaleDateString('es-ES')}</p>
@@ -597,25 +734,6 @@ export class ConfiguracionComponent implements OnInit {
     //   },
     //   error: (error) => {
     //     console.error('Error al eliminar producto:', error);
-    //   }
-    // });
-  }
-
-  onToggleProductStatus(productId: string): void {
-    console.log('🔄 Cambiar estado del producto:', productId);
-    // Actualizar el estado localmente
-    const product = this.products.find(p => p.id === productId);
-    if (product) {
-      product.isActive = !product.isActive;
-    }
-    
-    // Aquí se haría la llamada al backend
-    // this.productService.toggleProductStatus(productId).subscribe({
-    //   next: () => {
-    //     this.loadProducts();
-    //   },
-    //   error: (error) => {
-    //     console.error('Error al cambiar estado:', error);
     //   }
     // });
   }

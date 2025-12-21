@@ -1,4 +1,4 @@
-import { Component, OnInit, OnChanges, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, OnChanges, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService, Product } from '../../../../services/product.service';
@@ -12,7 +12,7 @@ interface User {
   employeeNumber: string;
   role: string;
   isActive: boolean;
-  createdAt: Date;
+  createdAt: Date; 
   lastLogin?: Date;
 }
 
@@ -81,8 +81,11 @@ interface ProductAssignment {
 export class UserFormComponent implements OnInit, OnChanges {
   @Input() isEditMode = false;
   @Input() selectedUser: User | null = null;
+  @Input() userDetails: any = null; // Detalles completos del usuario (user, permissions, products)
   @Output() cancel = new EventEmitter<void>();
   @Output() save = new EventEmitter<any>();
+
+  isLoadingProducts = true; // 🔥 Estado de carga de productos
 
   // Formulario de usuario
   userForm: UserForm = {
@@ -136,9 +139,14 @@ export class UserFormComponent implements OnInit, OnChanges {
   productAssignments: ProductAssignment[] = [];
   
   // Categorías de productos
-  productCategories: string[] = ['Mantenimiento', 'Cafetería', 'Limpieza', 'Papelería'];
+  productCategories: string[] = ['Mantenimiento', 'Cafetería', 'Limpieza', 'Papelería', 'Obras de arte'];
+  
+  // Cache para categorías filtradas (evitar NG0100)
+  private _cachedCategories: string[] | null = null;
+  private _lastSelectedCategory: string | null = null;
 
   // Estructura de módulos y submódulos (igual que en role-form)
+  // Estructura real de la base de datos (IGUAL QUE ROLE-FORM)
   modules: Module[] = [
     { id: 1, name: 'dashboard', display_name: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard', is_active: true },
     { id: 2, name: 'reportes', display_name: 'Reportes', icon: 'bi-graph-up', route: '/reportes', is_active: true },
@@ -164,8 +172,6 @@ export class UserFormComponent implements OnInit, OnChanges {
     { id: 9, module_id: 4, name: 'usuarios', display_name: 'Usuarios', route: '/usuarios', is_active: true },
     { id: 10, module_id: 4, name: 'roles_permisos', display_name: 'Roles y Permisos', route: '/roles-permisos', is_active: true },
     { id: 11, module_id: 4, name: 'productos', display_name: 'Productos', route: '/productos', is_active: true },
-    { id: 13, module_id: 4, name: 'centro_costo', display_name: 'Centro de Costo', route: '/centro-costo', is_active: true },
-    { id: 15, module_id: 4, name: 'departamento', display_name: 'Departamentos', route: '/departamento', is_active: true },
     { id: 16, module_id: 4, name: 'netsuite_sync', display_name: 'Sincronización NetSuite', route: '/configuracion/netsuite', is_active: true },
   ];
 
@@ -183,9 +189,17 @@ export class UserFormComponent implements OnInit, OnChanges {
     { id: 11, name: 'cancel', display_name: 'Cancelar', description: 'Permite cancelar requisiciones' },
     { id: 12, name: 'share', display_name: 'Compartir', description: 'Permite compartir registros' },
     { id: 13, name: 'copy', display_name: 'Copiar', description: 'Permite copiar/duplicar registros' },
+    
+    // Permisos específicos de sincronización NetSuite (cada uno independiente)
+    { id: 14, name: 'sync_usuarios', display_name: 'Usuarios', description: 'Permite sincronizar usuarios desde NetSuite' },
+    { id: 15, name: 'sync_productos', display_name: 'Productos', description: 'Permite sincronizar productos desde NetSuite' },
+    { id: 16, name: 'sync_centros', display_name: 'Centros de Costo', description: 'Permite sincronizar centros de costo desde NetSuite' },
+    { id: 17, name: 'sync_departamentos', display_name: 'Departamentos', description: 'Permite sincronizar departamentos desde NetSuite' },
+    { id: 18, name: 'sync_categorias', display_name: 'Categorías', description: 'Permite sincronizar categorías desde NetSuite' },
+    { id: 19, name: 'sync_subcategorias', display_name: 'Subcategorías', description: 'Permite sincronizar subcategorías desde NetSuite' },
   ];
 
-  // Configuración de permisos permitidos por submódulo
+  // Configuración de permisos permitidos por submódulo (IGUAL QUE ROLE-FORM)
   private submodulePermissionsConfig: { [key: number]: number[] } = {
     1: [2], // Dashboard Overview - solo permite "Ver"
     2: [2], // Reportes: Historial - solo permite "Ver"
@@ -193,40 +207,88 @@ export class UserFormComponent implements OnInit, OnChanges {
     6: [3, 4, 6], // Lista de Requisiciones - permite "Editar", "Eliminar" y "Surtir"
     7: [7, 9, 10, 11], // Confirmación de Requisiciones - permite "Autorizar", "Devolución", "Frecuentes" y "Cancelar"
     8: [2, 3], // Mi Perfil - permite "Ver" y "Editar"
-    9: [2, 3, 8], // Usuarios - permite "Ver", "Editar" y "Sincronizar" (NO crear)
+    9: [2, 3], // Usuarios - permite "Ver" y "Editar"
     10: [1, 2, 3, 4], // Roles y Permisos - permite "Crear", "Ver", "Editar" y "Eliminar"
-    11: [2, 8], // Productos - permite "Ver" y "Sincronizar" (NO crear, editar, eliminar)
-    13: [8], // Centro de Costo - solo permite "Sincronizar"
+    11: [2], // Productos - solo permite "Ver"
     14: [2, 3, 4, 12, 13], // Plantilla de Frecuentes - permite "Ver", "Editar", "Eliminar", "Compartir" y "Copiar"
-    15: [8], // Departamento - solo permite "Sincronizar"
-    16: [2, 8], // Sincronización NetSuite - permite "Ver" y "Sincronizar"
+    
+    // NetSuite Sync - Un solo submódulo con múltiples permisos específicos
+    16: [2, 14, 15, 16, 17, 18, 19], // Sincronización NetSuite - Ver + Sincronizar (Usuarios, Productos, Centros, Departamentos, Categorías, Subcategorías)
   };
 
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
+    // 🔥 NO cargar productos automáticamente
+    // Solo cargar cuando el usuario vaya a la pestaña de productos
     this.loadUserData();
-    this.loadProducts();
   }
 
   ngOnChanges(): void {
     this.loadUserData();
+  }
+
+  /**
+   * 🔥 Cargar productos SOLO cuando el usuario hace click en la pestaña
+   * Este método se llama desde el HTML cuando se activa la pestaña de productos
+   */
+  onProductsTabActivated(): void {
+    // Si ya cargamos los productos, no volver a cargar
+    if (this.availableProducts.length > 0) {
+      console.log('✅ Productos ya cargados, usando cache');
+      return;
+    }
+    
+    console.log('🔥 Pestaña de productos activada - cargando productos...');
     this.loadProducts();
   }
 
   private loadUserData(): void {
-    if (this.selectedUser && this.isEditMode) {
-      // Cargar datos del usuario existente
+    if (this.userDetails) {
+      console.log('📥 Cargando datos completos del usuario:', this.userDetails);
+      
+      // Cargar datos del usuario desde userDetails
+      const user = this.userDetails.user;
+      
+      this.userForm = {
+        username: user.username,
+        nombre: `${user.firstName} ${user.lastName}`,
+        departamento: user.department || '',
+        status: user.isActive,
+        id_netsuite: user.employeeNumber,
+        rol_id: user.role.id
+      };
+      
+      // Cargar permisos del usuario
+      this.userPermissions = this.userDetails.permissions || [];
+      
+      // 🔥 Cargar productos asignados (asegurar que product_id sea string)
+      if (this.userDetails.products && Array.isArray(this.userDetails.products)) {
+        this.productAssignments = this.userDetails.products.map((p: any) => ({
+          product_id: String(p.product_id),
+          limit_per_requisition: p.limit_per_requisition || 0,
+          is_assigned: p.is_assigned !== undefined ? p.is_assigned : true
+        }));
+      }
+      
+      console.log('✅ Datos cargados:', {
+        form: this.userForm,
+        permissions: this.userPermissions.length,
+        products: this.productAssignments.length
+      });
+    } else if (this.selectedUser && this.isEditMode) {
+      // Fallback: Cargar datos básicos del usuario (sin detalles completos)
       this.userForm = {
         username: this.selectedUser.username,
         nombre: `${this.selectedUser.firstName} ${this.selectedUser.lastName}`,
-        departamento: '', // Aquí cargarías el departamento desde la BD
+        departamento: '',
         status: this.selectedUser.isActive,
         id_netsuite: this.selectedUser.employeeNumber,
-        rol_id: '' // Aquí cargarías el ID del rol desde la BD
+        rol_id: ''
       };
-      // Cargar permisos del rol del usuario
-      this.loadRolePermissions(this.userForm.rol_id);
     } else {
       // Limpiar formulario para nuevo usuario
       this.userForm = {
@@ -243,14 +305,40 @@ export class UserFormComponent implements OnInit, OnChanges {
     }
   }
 
+  /**
+   * Cargar TODOS los productos disponibles del sistema
+   * Este método se ejecuta SOLO cuando el usuario hace click en la pestaña de productos
+   */
   private loadProducts(): void {
+    console.log('📦 Cargando TODOS los productos disponibles...');
+    this.isLoadingProducts = true; // 🔥 Mostrar spinner
+    
     this.productService.getAllProducts().subscribe({
       next: (products) => {
         this.availableProducts = products.filter(p => p.isActive);
         this.filteredProducts = this.availableProducts;
+        
+        // 🔥 INVALIDAR EL CACHE
+        this._cachedCategories = null;
+        this._lastSelectedCategory = null;
+        
+        console.log(`✅ ${this.availableProducts.length} productos cargados desde la API`);
+        
+        // 🔥 Ocultar spinner y forzar re-render
+        this.isLoadingProducts = false;
+        this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('Error al cargar productos:', error);
+        console.error('❌ Error al cargar productos:', error);
+        this.isLoadingProducts = false; // 🔥 Ocultar spinner incluso en error
+        this.cdr.detectChanges();
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar productos',
+          text: error.message || 'No se pudieron cargar los productos del sistema',
+          confirmButtonText: 'Entendido'
+        });
       }
     });
   }
@@ -418,7 +506,7 @@ export class UserFormComponent implements OnInit, OnChanges {
   // ==================== MÉTODOS PARA PRODUCTOS ====================
   
   getProductsByCategory(category: string): Product[] {
-    let products = this.availableProducts.filter(p => p.category === category);
+    let products = this.availableProducts.filter(p => p.category_name === category);
     
     // Aplicar filtro de búsqueda
     if (this.productSearchTerm.trim()) {
@@ -432,13 +520,18 @@ export class UserFormComponent implements OnInit, OnChanges {
     
     // Aplicar filtro de solo asignados
     if (this.showOnlyAssignedProducts) {
-      products = products.filter(p => this.isProductAssigned(p.id));
+      return products.filter(p => this.isProductAssigned(p.id));
     }
     
     return products;
   }
 
   getProductCategoriesWithProducts(): string[] {
+    // Usar cache si el filtro no ha cambiado
+    if (this._cachedCategories && this._lastSelectedCategory === this.selectedProductCategory) {
+      return this._cachedCategories;
+    }
+    
     const categories: string[] = [];
     
     for (const category of this.productCategories) {
@@ -454,15 +547,22 @@ export class UserFormComponent implements OnInit, OnChanges {
       }
     }
     
+    // Guardar en cache
+    this._cachedCategories = categories;
+    this._lastSelectedCategory = this.selectedProductCategory;
+    
     return categories;
   }
 
   isProductAssigned(productId: string): boolean {
-    return this.productAssignments.some(pa => pa.product_id === productId && pa.is_assigned);
+    const pId = String(productId);
+    return this.productAssignments.some(pa => 
+      String(pa.product_id) === pId && pa.is_assigned
+    );
   }
 
   toggleProductAssignment(productId: string): void {
-    const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === productId);
+    const existingIndex = this.productAssignments.findIndex(pa => String(pa.product_id) === String(productId));
     
     if (existingIndex !== -1) {
       this.productAssignments[existingIndex].is_assigned = !this.productAssignments[existingIndex].is_assigned;
@@ -473,7 +573,7 @@ export class UserFormComponent implements OnInit, OnChanges {
       }
     } else {
       this.productAssignments.push({
-        product_id: productId,
+        product_id: String(productId), // 🔥 Asegurar que sea string
         limit_per_requisition: 0,
         is_assigned: true
       });
@@ -481,19 +581,19 @@ export class UserFormComponent implements OnInit, OnChanges {
   }
 
   getProductLimit(productId: string): number {
-    const assignment = this.productAssignments.find(pa => pa.product_id === productId);
+    const assignment = this.productAssignments.find(pa => String(pa.product_id) === String(productId));
     return assignment ? assignment.limit_per_requisition : 0;
   }
 
   updateProductLimit(productId: string, event: any): void {
     const value = parseInt(event.target.value) || 0;
-    const existingIndex = this.productAssignments.findIndex(pa => pa.product_id === productId);
+    const existingIndex = this.productAssignments.findIndex(pa => String(pa.product_id) === String(productId));
     
     if (existingIndex !== -1) {
       this.productAssignments[existingIndex].limit_per_requisition = value;
     } else {
       this.productAssignments.push({
-        product_id: productId,
+        product_id: String(productId), // 🔥 Asegurar que sea string
         limit_per_requisition: value,
         is_assigned: true
       });
@@ -558,7 +658,7 @@ export class UserFormComponent implements OnInit, OnChanges {
       .forEach(pa => {
         const product = this.availableProducts.find(p => p.id === pa.product_id);
         if (product) {
-          categoriesWithProducts.add(product.category);
+          categoriesWithProducts.add(product.category_name);
         }
       });
     

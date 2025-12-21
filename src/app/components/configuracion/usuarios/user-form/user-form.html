@@ -110,7 +110,8 @@
                     type="button" 
                     role="tab" 
                     aria-controls="products" 
-                    aria-selected="false">
+                    aria-selected="false"
+                    (click)="onProductsTabActivated()">
               <i class="bi bi-box-seam me-2"></i>Productos Asignados
               <span *ngIf="getTotalAssignedProducts() > 0" class="badge bg-primary ms-2">
                 {{ getTotalAssignedProducts() }}
@@ -190,19 +191,29 @@
                role="tabpanel" 
                aria-labelledby="products-tab">
             
-            <!-- Asignación de Productos con Límites -->
-            <h5 class="mb-3">Asignación de Productos</h5>
-            <div class="alert alert-info mb-4">
-              <div class="d-flex align-items-start">
-                <i class="bi bi-info-circle me-2" style="font-size: 1.2rem;"></i>
-                <div>
-                  <strong>Límites de Requisición</strong>
-                  <p class="mb-0 mt-1">Define la cantidad máxima que este usuario puede solicitar por producto en cada requisición.</p>
-                </div>
+            <!-- 🔥 Spinner de carga de productos -->
+            <div *ngIf="isLoadingProducts" class="text-center py-5">
+              <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Cargando productos...</span>
               </div>
+              <p class="mt-3 text-muted">Cargando productos disponibles...</p>
             </div>
 
-            <!-- Filtros de productos -->
+            <!-- 🔥 Contenido de productos (solo se muestra cuando termina de cargar) -->
+            <div *ngIf="!isLoadingProducts">
+              <!-- Asignación de Productos con Límites -->
+              <h5 class="mb-3">Asignación de Productos</h5>
+              <div class="alert alert-info mb-4">
+                <div class="d-flex align-items-start">
+                  <i class="bi bi-info-circle me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <strong>Límites de Requisición</strong>
+                    <p class="mb-0 mt-1">Define la cantidad máxima que este usuario puede solicitar por producto en cada requisición.</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filtros de productos -->
             <div class="row mb-3">
           <div class="col-md-6">
             <input 
@@ -345,6 +356,8 @@
               </div>
             </div>
             </div>
+            </div>
+            <!-- 🔥 Fin del contenido de productos -->
             </div>
           </div>
           <!-- Fin Pestaña de Productos -->

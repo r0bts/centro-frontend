@@ -28,12 +28,57 @@ export interface CreateUserRequest {
 }
 
 export interface UpdateUserRequest {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  employeeNumber?: string;
-  role?: string;
-  isActive?: boolean;
+  username?: string;
+  nombre?: string;
+  id_netsuite?: string;
+  status?: boolean;
+  rol_id?: string;
+  departamento?: string;
+  permissions?: UserPermission[];
+  products?: {
+    product_id: string;
+    limit_per_requisition: number;
+    is_assigned: boolean;
+  }[];
+}
+
+export interface UserRole {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string;
+}
+
+export interface UserPermission {
+  submodule_id: number;
+  permission_id: number;
+  is_granted: boolean;
+}
+
+export interface UserProduct {
+  product_id: string;
+  product_code: string;
+  product_name: string;
+  limit_per_requisition: number;
+  is_assigned: boolean;
+}
+
+export interface UserDetails {
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    employeeNumber: string;
+    department: string;
+    role: UserRole;
+    isActive: boolean;
+    createdAt: string;
+    lastLogin: string;
+  };
+  permissions: UserPermission[];
+  products: UserProduct[];
 }
 
 @Injectable({
@@ -47,8 +92,40 @@ export class UserService {
   /**
    * Obtener todos los usuarios
    */
-  getAllUsers(): Observable<User[]> {
-    // Datos mock para pruebas - reemplazar con llamada real a API
+  getAllUsers(limit: number = 1000, page: number = 1): Observable<User[]> {
+    const params: any = { 
+      limit: limit.toString(), 
+      page: page.toString() 
+    };
+
+    return this.http.get<any>(`${this.API_URL}/users`, { params }).pipe(
+      map(response => {
+        if (response.success && response.data) {
+          return response.data.map((user: any) => ({
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            employeeNumber: user.employeeNumber,
+            role: user.role,
+            isActive: user.isActive,
+            createdAt: new Date(user.createdAt),
+            lastLogin: user.lastLogin && user.lastLogin !== 'Sin información' 
+              ? new Date(user.lastLogin) 
+              : undefined
+          }));
+        }
+        return [];
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * MOCK DATA - mantener comentado como respaldo
+   */
+  private getMockUsers(): Observable<User[]> {
     return of([
       {
         id: '1',
@@ -171,22 +248,21 @@ export class UserService {
         lastLogin: new Date('2025-11-05T15:00:00')
       }
     ]);
-
-    // Implementación real con API:
-    // return this.http.get<User[]>(`${this.API_URL}/users`)
-    //   .pipe(
-    //     catchError(this.handleError)
-    //   );
   }
 
   /**
-   * Obtener usuario por ID
+   * Obtener usuario por ID con detalles completos (permisos y productos)
    */
-  getUserById(id: string): Observable<User> {
-    return this.http.get<User>(`${this.API_URL}/users/${id}`)
-      .pipe(
-        catchError(this.handleError)
-      );
+  getUserById(id: string): Observable<UserDetails> {
+    return this.http.get<any>(`${this.API_URL}/users/${id}`).pipe(
+      map(response => {
+        if (response.success && response.data) {
+          return response.data;
+        }
+        throw new Error('Usuario no encontrado');
+      }),
+      catchError(this.handleError)
+    );
   }
 
   /**
@@ -200,11 +276,17 @@ export class UserService {
   }
 
   /**
-   * Actualizar usuario
+   * Actualizar usuario con permisos y productos
    */
-  updateUser(id: string, user: UpdateUserRequest): Observable<User> {
-    return this.http.put<User>(`${this.API_URL}/users/${id}`, user)
+  updateUser(id: string, userData: UpdateUserRequest): Observable<any> {
+    return this.http.put<any>(`${this.API_URL}/users/${id}`, userData)
       .pipe(
+        map(response => {
+          if (response.success) {
+            return response;
+          }
+          throw new Error(response.message || 'Error al actualizar usuario');
+        }),
         catchError(this.handleError)
       );
   }

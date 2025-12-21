@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Input, Output, EventEmitter, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
 
@@ -24,7 +24,7 @@ export interface User {
   templateUrl: './users-list.html',
   styleUrls: ['./users-list.scss']
 })
-export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
+export class UsersListComponent implements OnInit, AfterViewInit {
   @ViewChild('usersTable', { static: false }) usersTable!: ElementRef;
   @Input() users: User[] = [];
   @Output() editUser = new EventEmitter<User>();
@@ -56,7 +56,15 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private initUsersDataTable(): void {
+    // 🔥 Verificar si DataTable ya existe
+    if (this.usersDataTable) {
+      console.log('⚠️ DataTable ya existe, destruyendo primero...');
+      this.usersDataTable.destroy();
+      this.usersDataTable = null;
+    }
+    
     if (this.usersTable && this.users.length > 0) {
+      console.log('✅ Inicializando DataTable con', this.users.length, 'usuarios');
       this.usersDataTable = $(this.usersTable.nativeElement).DataTable({
         language: {
           "decimal": "",
@@ -84,9 +92,9 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
         },
         responsive: true,
         pageLength: 10,
-        order: [[0, 'asc']], // Ordenar por nombre de usuario
+        order: [[0, 'asc']],
         columnDefs: [
-          { orderable: false, targets: [3] }, // Deshabilitar orden en acciones (columna 3)
+          { orderable: false, targets: [3] }, // Deshabilitar orden en acciones
           { className: 'text-center', targets: [2, 3] } // Centrar Estado y Acciones
         ]
       });
@@ -94,8 +102,11 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   refreshDataTables(): void {
+    console.log('🔄 refreshDataTables llamado');
     if (this.usersDataTable) {
+      console.log('🗑️ Destruyendo DataTable existente');
       this.usersDataTable.destroy();
+      this.usersDataTable = null;
     }
     
     setTimeout(() => {

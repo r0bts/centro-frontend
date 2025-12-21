@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RolesListComponent } from './roles-list/roles-list';
 import { RoleFormComponent } from './role-form/role-form';
@@ -12,7 +12,7 @@ import Swal from 'sweetalert2';
   templateUrl: './roles-permisos.html',
   styleUrls: ['./roles-permisos.scss']
 })
-export class RolesPermisosComponent implements OnInit {
+export class RolesPermisosComponent implements OnInit, OnDestroy {
   @ViewChild(RolesListComponent) rolesListComponent!: RolesListComponent;
 
   currentView: 'list' | 'form' = 'list';
@@ -29,6 +29,21 @@ export class RolesPermisosComponent implements OnInit {
   ngOnInit(): void {
     console.log('RolesPermisosComponent initialized');
     this.loadRoles();
+  }
+  
+  ngOnDestroy(): void {
+    // 🔥 Al destruirse el componente, resetear la vista
+    console.log('🧹 RolesPermisosComponent destruido - reseteando vista');
+    this.resetView();
+  }
+  
+  /**
+   * 🔥 Resetear vista al estado inicial
+   */
+  private resetView(): void {
+    this.currentView = 'list';
+    this.isEditMode = false;
+    this.selectedRoleId = null;
   }
 
   /**
@@ -137,7 +152,7 @@ export class RolesPermisosComponent implements OnInit {
           Swal.fire({
             icon: 'success',
             title: this.isEditMode ? 'Rol actualizado' : 'Rol creado',
-            text: 'Operación exitosa',
+            text: response.message || 'Operación exitosa',
             confirmButtonText: 'Continuar',
             timer: 2000,
             timerProgressBar: true
@@ -152,10 +167,28 @@ export class RolesPermisosComponent implements OnInit {
       },
       error: (error) => {
         console.error('❌ Error al guardar rol:', error);
+        
+        let errorTitle = 'Error al guardar';
+        let errorMessage = 'No se pudo guardar el rol';
+        
+        // Manejar errores según el código HTTP
+        if (error.status === 403) {
+          errorTitle = 'Permiso Denegado';
+          errorMessage = error.error?.message || 'No tienes permisos para realizar esta acción';
+        } else if (error.status === 400) {
+          errorTitle = 'Datos Inválidos';
+          errorMessage = error.error?.message || 'Los datos proporcionados no son válidos';
+        } else if (error.status === 500) {
+          errorTitle = 'Error del Servidor';
+          errorMessage = error.error?.error || error.error?.message || 'Error interno del servidor';
+        } else if (error.error?.message) {
+          errorMessage = error.error.message;
+        }
+        
         Swal.fire({
           icon: 'error',
-          title: 'Error al guardar',
-          text: error.message || 'No se pudo guardar el rol',
+          title: errorTitle,
+          text: errorMessage,
           confirmButtonText: 'Entendido'
         });
       }

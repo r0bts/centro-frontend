@@ -9,7 +9,12 @@ export interface Product {
   code: string;
   name: string;
   description: string;
-  category: string;
+  category_id: number;
+  category_name: string;
+  category_is_inactive: boolean;
+  subcategory_id: number;
+  subcategory_name: string;
+  subcategory_is_inactive: boolean;
   unit: string;
   isActive: boolean;
   createdAt: Date;
@@ -58,13 +63,13 @@ export class ProductService {
 
   /**
    * Obtener todos los productos desde la API
-   * @param limit - Límite de productos a traer (default: 10000 para traer todos)
+   * @param limit - Límite de productos a traer (default: 1000, máximo permitido por el backend)
    * @param page - Página a consultar (default: 1)
    * @param search - Término de búsqueda opcional
    * @param active - Filtrar por activos (true) o inactivos (false), undefined para todos
    */
   getAllProducts(
-    limit: number = 10000, 
+    limit: number = 1000, 
     page: number = 1, 
     search?: string, 
     active?: boolean
@@ -85,10 +90,9 @@ export class ProductService {
     return this.http.get<ProductsResponse>(`${this.API_URL}/products`, { params }).pipe(
       map(response => {
         if (response.success && response.data && response.data.products) {
-          // Transformar productos: convertir category ID a nombre, parsear fechas e invertir isInactive
+          // Transformar productos: mantener los campos de categoría/subcategoría del backend
           return response.data.products.map((product: any) => ({
             ...product,
-            category: CATEGORY_MAP[product.category] || `Categoría ${product.category}`,
             isActive: !product.isInactive, // Backend: isInactive=false → Frontend: isActive=true
             createdAt: new Date(product.createdAt),
             lastSync: product.lastSync ? new Date(product.lastSync) : undefined
@@ -132,18 +136,13 @@ export class ProductService {
           // Transformar productos: convertir isInactive a isActive
           response.data.products = response.data.products.map((product: any) => ({
             ...product,
-            category: CATEGORY_MAP[product.category] || `Categoría ${product.category}`,
             isActive: !product.isInactive, // Backend: isInactive=false → Frontend: isActive=true
             createdAt: new Date(product.createdAt),
             lastSync: product.lastSync ? new Date(product.lastSync) : undefined
           }));
           
-          // Transformar nombres de categorías en stats
-          const categoriesWithNames: { [key: string]: number } = {};
-          Object.keys(response.data.categories).forEach(catId => {
-            const categoryName = CATEGORY_MAP[catId] || `Categoría ${catId}`;
-            categoriesWithNames[categoryName] = response.data.categories[catId];
-          });
+          // Mantener las categorías como vienen del backend (ya no necesitamos mapear)
+          const categoriesWithNames: { [key: string]: number } = response.data.categories || {};
           response.data.categories = categoriesWithNames;
         }
         return response;
