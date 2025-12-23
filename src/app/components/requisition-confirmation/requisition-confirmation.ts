@@ -1,12 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
 import Swal from 'sweetalert2';
+import { 
+  RequisitionService, 
+  RequisitionUser, 
+  CreateRequisitionPayload,
+  RequisitionItemPayload 
+} from '../../services/requisition.service';
 
 export interface RequisitionSummary {
   area: string;
+  areaId?: string; // ID del área para enviar al backend
   products: Product[];
 }
 
@@ -44,6 +51,8 @@ export interface Employee {
   styleUrls: ['./requisition-confirmation.scss']
 })
 export class RequisitionConfirmationComponent implements OnInit {
+  private requisitionService = inject(RequisitionService);
+  
   activeSection: string = 'requisicion';
   
   // Datos de la requisición recibidos del componente anterior
@@ -53,17 +62,9 @@ export class RequisitionConfirmationComponent implements OnInit {
   // Productos consolidados
   consolidatedProducts: ConsolidatedProduct[] = [];
 
-  // Variables para el select de empleados
-  employees: Employee[] = [
-    { id: '1', name: 'Juan Pérez López', position: 'Supervisor de Almacén' },
-    { id: '2', name: 'María González García', position: 'Jefe de Compras' },
-    { id: '3', name: 'Carlos Rodríguez Martín', position: 'Coordinador de Inventario' },
-    { id: '4', name: 'Ana Fernández Ruiz', position: 'Asistente de Logística' },
-    { id: '5', name: 'Luis Martínez Sánchez', position: 'Encargado de Recepción' },
-    { id: '6', name: 'Carmen Jiménez Torres', position: 'Supervisora de Distribución' },
-    { id: '7', name: 'Roberto Silva Mendoza', position: 'Coordinador de Requisiciones' },
-    { id: '8', name: 'Patricia López Hernández', position: 'Jefe de Operaciones' }
-  ];
+  // Variables para el select de empleados - ahora se cargan desde el backend
+  employees: Employee[] = [];
+  isLoadingEmployees: boolean = false;
   
   filteredEmployees: Employee[] = [];
   selectedEmployee: Employee | null = null;
@@ -83,6 +84,11 @@ export class RequisitionConfirmationComponent implements OnInit {
   
   // Propiedad para unidad de negocio
   businessUnit: string = '';
+  
+  // Propiedades adicionales para crear la requisición
+  selectedDepartmentId?: number;
+  selectedLocationId?: number;
+  selectedProjectId?: number;
 
   constructor(private router: Router, private route: ActivatedRoute) {
     // Obtener datos del estado de navegación (para flujo normal y desde listado)
@@ -93,10 +99,16 @@ export class RequisitionConfirmationComponent implements OnInit {
       this.isDevolucion = navigation.extras.state['isDevolucion'] || false;
       this.selectedEventId = navigation.extras.state['selectedEventId'] || '';
       this.businessUnit = navigation.extras.state['businessUnit'] || '';
+      this.selectedDepartmentId = navigation.extras.state['selectedDepartmentId'];
+      this.selectedLocationId = navigation.extras.state['selectedLocationId'];
+      this.selectedProjectId = navigation.extras.state['selectedProjectId'];
     }
   }
 
   ngOnInit(): void {
+    // Cargar empleados desde el backend
+    this.loadEmployees();
+    
     // Verificar si vienen parámetros de query (desde la lista)
     this.route.queryParams.subscribe(params => {
       if (params['id'] && params['mode']) {
@@ -112,6 +124,45 @@ export class RequisitionConfirmationComponent implements OnInit {
         }
         this.isFromList = false; // Viene del flujo normal
         this.consolidateProducts();
+      }
+    });
+  }
+
+  loadEmployees(): void {
+    this.isLoadingEmployees = true;
+    
+    Swal.fire({
+      title: 'Cargando empleados...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    this.requisitionService.getFormData().subscribe({
+      next: (response) => {
+        // Mapear RequisitionUser[] a Employee[]
+        this.employees = response.data.users.map((user: RequisitionUser) => ({
+          id: user.id,
+          name: user.full_name,
+          position: `#${user.employee_number}` // Mostrar número de empleado
+        }));
+        
+        this.isLoadingEmployees = false;
+        Swal.close();
+        
+        console.log(`✅ ${this.employees.length} empleados cargados desde el backend`);
+      },
+      error: (error) => {
+        console.error('Error al cargar empleados:', error);
+        this.isLoadingEmployees = false;
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron cargar los empleados. Por favor, recarga la página.',
+          confirmButtonText: 'Aceptar'
+        });
       }
     });
   }
@@ -328,22 +379,160 @@ export class RequisitionConfirmationComponent implements OnInit {
       return;
     }
 
-    // Aquí se enviaría la requisición final al servidor
-    console.log('Requisición final confirmada:', {
-      deliveryDate: this.deliveryDate,
-      responsibleEmployee: this.selectedEmployee,
-      areas: this.requisitionData,
-      consolidatedProducts: this.consolidatedProducts
-    });
+    console.log('📋 Datos de requisición recibidos:', this.requisitionData);
+    console.log('👤 Empleado seleccionado:', this.selectedEmployee);
+    console.log('📍 Location ID:', this.selectedLocationId);
+    console.log('📁 Project ID:', this.selectedProjectId);
+    console.log('🏢 Department ID:', this.selectedDepartmentId);
+
+    // Construir el payload para enviar al backend
+    const items: RequisitionItemPayload[] = [];
     
-    // Mostrar mensaje de éxito y navegar
+    // Iterar por cada área y sus productos
+    this.requisitionData.forEach(summary => {
+      console.log(`📦 Procesando área: ${summary.area}, ID: ${summary.areaId}`);
+      
+      summary.products.forEach(product => {
+        console.log(`  - Producto: ${product.name}, ID: ${product.id}, Cantidad: ${product.quantity}, Unit: ${product.unit}`);
+        
+        const productId = parseInt(product.id);
+        const areaId = summary.areaId ? parseInt(summary.areaId) : undefined;
+        
+        if (isNaN(productId)) {
+          console.error(`❌ Product ID inválido: ${product.id}`);
+          return;
+        }
+        
+        items.push({
+          product_id: productId,
+          requested_quantity: product.quantity,
+          area_id: areaId || 1, // Usar 1 como default si no hay área
+          unit: product.unit
+        });
+      });
+    });
+
+    // Validar que haya fecha de entrega
+    if (!this.deliveryDate) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Falta la fecha de entrega. Por favor regresa y selecciona una fecha.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    // Validar que se haya seleccionado una locación (OBLIGATORIO)
+    if (!this.selectedLocationId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Locación requerida',
+        text: 'Por favor regresa y selecciona una locación (GLACIAR o HERMES).',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    // Formatear delivery_date a YYYY-MM-DD
+    const deliveryDateStr = this.deliveryDate.toISOString().split('T')[0];
+    
+    // Formatear delivery_time a HH:MM:SS (con segundos en 00)
+    const hours = this.deliveryDate.getHours().toString().padStart(2, '0');
+    const minutes = this.deliveryDate.getMinutes().toString().padStart(2, '0');
+    const deliveryTimeStr = `${hours}:${minutes}:00`; // ⭐ Segundos siempre en 00
+
+    const payload: CreateRequisitionPayload = {
+      requester_id: parseInt(this.selectedEmployee.id),
+      delivery_date: deliveryDateStr, // ⭐ CAMPO OBLIGATORIO (YYYY-MM-DD)
+      delivery_time: deliveryTimeStr, // ⭐ CAMPO OBLIGATORIO (HH:MM:SS)
+      location_id: this.selectedLocationId, // ⭐ CAMPO OBLIGATORIO (1=HERMES, 9=GLACIAR)
+      awaiting_return: this.isDevolucion,
+      items: items
+    };
+
+    // Solo agregar campos opcionales si tienen valor
+    if (this.selectedDepartmentId) {
+      payload.department_id = this.selectedDepartmentId;
+    }
+    if (this.selectedProjectId) {
+      payload.project_id = this.selectedProjectId;
+    }
+
+    console.log('📦 Payload final a enviar:', JSON.stringify(payload, null, 2));
+
+    // Mostrar loading
     Swal.fire({
-      icon: 'success',
-      title: '¡Éxito!',
-      text: 'Requisición enviada exitosamente',
-      confirmButtonText: 'Continuar'
-    }).then(() => {
-      this.router.navigate(['/requisicion']);
+      title: 'Enviando requisición...',
+      text: 'Por favor espera mientras se procesa tu solicitud',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    // Enviar la requisición al backend
+    this.requisitionService.createRequisition(payload).subscribe({
+      next: (response) => {
+        console.log('✅ Requisición creada exitosamente:', response);
+        
+        // Determinar el mensaje según si fue auto-autorizada o no
+        const wasAutoAuthorized = response.data.auto_authorized === true;
+        const statusBadgeClass = response.data.status === 'autorizado' ? 'bg-success' : 'bg-warning';
+        const statusText = response.data.status === 'autorizado' ? 'Autorizado' : 'Solicitado';
+        
+        let htmlContent = `
+          <div class="text-start">
+            <p class="mb-2"><strong>ID de requisición:</strong> ${response.data.requisition_id}</p>
+            <p class="mb-2"><strong>Estado:</strong> <span class="badge ${statusBadgeClass}">${statusText}</span></p>
+            <p class="mb-2"><strong>Fecha de solicitud:</strong> ${new Date(response.data.request_date).toLocaleDateString('es-ES')}</p>
+        `;
+        
+        // Si fue auto-autorizada, agregar información adicional
+        if (wasAutoAuthorized) {
+          htmlContent += `
+            <div class="alert alert-success mt-3 mb-3">
+              <h6 class="alert-heading mb-2">
+                Autorización Automática
+              </h6>
+              <p class="mb-0 small">Todos los productos solicitados están asignados a tu usuario. Esta requisición ha sido autorizada automáticamente.</p>
+            </div>
+          `;
+        }
+        
+        htmlContent += `
+            <hr>
+            <div class="alert alert-warning mb-0">
+              <h5 class="alert-heading">
+                PIN de Seguridad
+              </h5>
+              <p class="mb-2">Guarda este PIN para recoger tu requisición:</p>
+              <h2 class="text-center mb-0 fw-bold" style="font-size: 3rem; letter-spacing: 0.5rem;">${response.data.pin}</h2>
+            </div>
+          </div>
+        `;
+        
+        Swal.fire({
+          icon: 'success',
+          title: wasAutoAuthorized ? '¡Requisición autorizada automáticamente!' : '¡Requisición creada exitosamente!',
+          html: htmlContent,
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#28a745',
+          width: '600px'
+        }).then(() => {
+          this.router.navigate(['/requisicion']);
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error al crear requisición:', error);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.error?.message || 'No se pudo crear la requisición. Por favor intenta de nuevo.',
+          confirmButtonText: 'Aceptar'
+        });
+      }
     });
   }
 

@@ -29,14 +29,15 @@
                       </h6>
                     </div>
 
-                    <!-- Select de Unidad de Negocio -->
+                    <!-- Select de Locación (GLACIAR, HERMES) -->
                     <div class="col-12 col-md-3">
-                      <label class="form-label mb-1 fw-bold">Unidad de Negocio:</label>
+                      <label class="form-label mb-1 fw-bold">Locación:</label>
                       <select 
                         class="form-select" 
-                        [(ngModel)]="businessUnit">
-                        <option value="">Seleccionar unidad</option>
-                        <option *ngFor="let unit of businessUnits" [value]="unit">{{ unit }}</option>
+                        [(ngModel)]="businessUnit"
+                        (change)="onLocationChange()">
+                        <option value="">Seleccionar locación</option>
+                        <option *ngFor="let location of locations" [value]="location.name">{{ location.name }}</option>
                       </select>
                     </div>
                     
@@ -62,10 +63,10 @@
                         (change)="onEventChange()">
                         <option value="">Seleccionar evento</option>
                         <option 
-                          *ngFor="let event of events" 
-                          [value]="event.id"
-                          [disabled]="isEventDatePassed(event.date)">
-                          {{ event.name }} ({{ formatDate(event.date) }})
+                          *ngFor="let project of projects" 
+                          [value]="project.id"
+                          [disabled]="isEventDatePassed(project.date)">
+                          {{ project.name }} ({{ formatDate(project.date) }})
                         </option>
                       </select>
                       <small class="text-muted">*Entrega el mismo día del evento</small>
@@ -203,9 +204,13 @@
             </div>
             <div class="col-md-3">
               <label class="form-label ">Presentación</label>
-              <select class="form-select" [(ngModel)]="selectedUnit" [disabled]="!currentDeliveryDate || !selectedArea">
-                <option *ngFor="let unit of units" [value]="unit">{{ unit }}</option>
-              </select>
+              <input 
+                type="text" 
+                class="form-control" 
+                [value]="selectedProductData?.unit || ''"
+                [placeholder]="selectedProductData ? selectedProductData.unit : 'Selecciona producto'"
+                readonly
+                disabled>
             </div>
             <div class="col-md-2 d-flex align-items-end">
               <button class="btn btn-primary w-100" (click)="onAddProduct()" 

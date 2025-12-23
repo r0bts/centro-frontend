@@ -3,8 +3,17 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
+import { RequisitionService, RequisitionProduct, Project as BackendProject, RequisitionArea, Location } from '../../services/requisition.service';
+import Swal from 'sweetalert2';
 
 export interface Event {
+  id: string;
+  name: string;
+  date: Date;
+}
+
+// Project con fecha como Date (convertida del backend)
+export interface Project {
   id: string;
   name: string;
   date: Date;
@@ -20,6 +29,7 @@ export interface Product {
 
 export interface RequisitionSummary {
   area: string;
+  areaId?: string; // ID del área para enviar al backend
   products: Product[];
 }
 
@@ -39,13 +49,21 @@ export class RequisitionComponent implements OnInit {
   // Propiedad para unidad de negocio/trabajo
   businessUnit: string = '';
   
+  // IDs seleccionados para enviar al backend
+  selectedLocationId?: number;
+  selectedProjectId?: number;
+  selectedDepartmentId?: number;
+  
   // Propiedades para fechas (OBLIGATORIO)
   selectedEvent: string = '';
   customDeliveryDate: string = '';
   deliveryTime: string = '08:00'; // Un solo campo de hora para ambas opciones
   currentDeliveryDate: Date | null = null;
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private requisitionService: RequisitionService
+  ) {
     // Verificar si vienen datos del estado de navegación (desde confirmation)
     const navigation = this.router.getCurrentNavigation();
     if (navigation?.extras.state?.['loadExistingData']) {
@@ -74,51 +92,23 @@ export class RequisitionComponent implements OnInit {
   productSearchTerm: string = '';
   showProductDropdown: boolean = false;
   filteredProducts: string[] = [];
-  selectedUnit: string = 'ml';
   currentQuantity: string = '';
   isResumeCollapsed: boolean = false;
 
-  areas: string[] = ['Restaurante', 'Cocina', 'Bar', 'Limpieza', 'Administración'];
-  units: string[] = ['ml', 'Lt', 'Kg', 'g', 'Pzs', 'Cajas'];
+  // ✅ Datos del backend (se cargan en ngOnInit)
+  backendProducts: RequisitionProduct[] = []; // Catálogo completo de productos del backend
+  productNames: string[] = []; // Nombres para búsqueda
+  selectedProductData: RequisitionProduct | null = null; // Producto seleccionado completo
   
-  // Unidades de negocio/trabajo
-  businessUnits: string[] = [
-    'Unidad Centro',
-    'Corporativo'
-  ];
+  projects: Project[] = []; // Proyectos/eventos del backend (141)
   
-  // Eventos predefinidos (actualizados desde 4 de noviembre de 2025)
-  events: Event[] = [
-    { id: '1', name: 'Cena de Gala', date: new Date('2025-11-05') },
-    { id: '2', name: 'Evento Corporativo', date: new Date('2025-11-08') },
-    { id: '3', name: 'Banquete de Bodas', date: new Date('2025-11-12') },
-    { id: '4', name: 'Reunión de Directivos', date: new Date('2025-11-15') },
-    { id: '5', name: 'Celebración de Aniversario', date: new Date('2025-11-20') },
-    { id: '6', name: 'Conferencia Anual', date: new Date('2025-11-25') },
-    { id: '7', name: 'Evento de Fin de Año', date: new Date('2025-12-15') },
-    { id: '8', name: 'Celebración Navideña', date: new Date('2025-12-22') }
-  ];
+  backendAreas: RequisitionArea[] = []; // Áreas del backend (78)
+  areas: string[] = []; // Nombres de áreas para compatibilidad con código existente
   
-  // Lista de productos disponibles para seleccionar
-  availableProducts: string[] = [
-    'Detergente líquido',
-    'Jabón en polvo', 
-    'Desinfectante',
-    'Papel higiénico',
-    'Toallas de papel',
-    'Cloro',
-    'Aceite de cocina',
-    'Sal',
-    'Azúcar',
-    'Harina',
-    'Arroz',
-    'Pasta',
-    'Cerveza',
-    'Vino tinto',
-    'Whisky',
-    'Ron',
-    'Vodka'
-  ];
+  locations: Location[] = []; // Locaciones (GLACIAR, HERMES)
+  
+  // Estado de carga
+  isLoadingFormData: boolean = false;
 
   // Productos temporales del área actual
   products: Product[] = [];
@@ -129,7 +119,76 @@ export class RequisitionComponent implements OnInit {
   ngOnInit(): void {
     // Cargar productos del área inicial si ya existen
     this.loadProductsForArea();
-    //consultas a endpoints para cargar areas y productos
+    
+    // ✅ Cargar datos del backend
+    this.loadFormData();
+  }
+
+  /**
+   * Carga todos los datos del formulario desde el backend
+   * - 651 productos
+   * - 141 proyectos/eventos
+   * - 78 áreas
+   * - 2 locaciones (GLACIAR, HERMES)
+   */
+  loadFormData(): void {
+    this.isLoadingFormData = true;
+    
+    Swal.fire({
+      title: 'Cargando datos...',
+      text: 'Por favor espera',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    this.requisitionService.getFormData().subscribe({
+      next: (response) => {
+        if (response.success) {
+          // ✅ Cargar productos del catálogo (651)
+          this.backendProducts = response.data.products;
+          this.productNames = this.backendProducts.map(p => p.name);
+          
+          // ✅ Cargar proyectos/eventos (141)
+          this.projects = response.data.projects.map(project => ({
+            ...project,
+            date: new Date(project.date) // Convertir string a Date
+          }));
+          
+          // ✅ Cargar áreas (78)
+          this.backendAreas = response.data.areas;
+          this.areas = this.backendAreas.map(a => a.name);
+          
+          // ✅ Cargar locaciones (2: GLACIAR, HERMES)
+          this.locations = response.data.locations;
+          
+          // Inicializar filtros
+          this.filteredAreas = this.areas;
+          this.filteredProducts = this.productNames;
+          
+          Swal.close();
+          this.isLoadingFormData = false;
+          
+          console.log('✅ Datos del formulario cargados:', {
+            productos: this.backendProducts.length,
+            proyectos: this.projects.length,
+            areas: this.backendAreas.length,
+            locaciones: this.locations.length
+          });
+        }
+      },
+      error: (error) => {
+        this.isLoadingFormData = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar datos',
+          text: error.message || 'No se pudieron cargar los datos del formulario',
+          confirmButtonText: 'Entendido'
+        });
+        console.error('❌ Error cargando datos del formulario:', error);
+      }
+    });
   }
 
   loadExistingRequisitionData(state: any): void {
@@ -287,6 +346,18 @@ export class RequisitionComponent implements OnInit {
   selectProduct(product: string): void {
     this.productSearchTerm = product;
     this.showProductDropdown = false;
+    
+    // ✅ Buscar el producto completo del backend para obtener su unidad
+    this.selectedProductData = this.backendProducts.find(p => p.name === product) || null;
+    
+    if (this.selectedProductData) {
+      console.log('Producto seleccionado:', {
+        id: this.selectedProductData.id,
+        name: this.selectedProductData.name,
+        unit: this.selectedProductData.unit,
+        code: this.selectedProductData.code
+      });
+    }
   }
 
   onProductFocus(): void {
@@ -340,38 +411,58 @@ export class RequisitionComponent implements OnInit {
 
   onAddProduct(): void {
     // Validar que haya producto seleccionado
-    if (!this.productSearchTerm.trim()) {
-      console.log('Debe seleccionar un producto');
+    if (!this.selectedProductData) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Selecciona un producto',
+        text: 'Debes seleccionar un producto válido de la lista',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
     
     // Validar que el producto no esté ya agregado en el área actual
     const productAlreadyExists = this.products.some(product => 
-      product.name.toLowerCase() === this.productSearchTerm.toLowerCase()
+      product.name.toLowerCase() === this.selectedProductData!.name.toLowerCase()
     );
     
     if (productAlreadyExists) {
-      console.log('Este producto ya está agregado en el área actual');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Producto duplicado',
+        text: 'Este producto ya está agregado en el área actual',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
     
     // Validar que haya cantidad y que sea mayor a 0
     const quantity = parseInt(this.currentQuantity);
     if (!this.currentQuantity.trim() || isNaN(quantity) || quantity <= 0) {
-      console.log('Debe ingresar una cantidad válida mayor a 0');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad inválida',
+        text: 'Debes ingresar una cantidad mayor a 0',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
     
+    // ✅ Crear producto usando datos del backend
     const newProduct: Product = {
-      id: Date.now().toString(),
-      name: this.productSearchTerm,
+      id: this.selectedProductData.id, // ID del backend
+      name: this.selectedProductData.name,
       quantity: quantity,
-      unit: this.selectedUnit,
+      unit: this.selectedProductData.unit, // ✅ Unidad del backend (PIEZA, KILO, LITRO, METRO)
       actions: ''
     };
+    
     this.products.push(newProduct);
+    
+    // Limpiar campos
     this.productSearchTerm = '';
     this.currentQuantity = '';
+    this.selectedProductData = null;
   }
 
   onAccept(): void {
@@ -393,13 +484,21 @@ export class RequisitionComponent implements OnInit {
     // Buscar si ya existe una requisición para esta área
     const existingIndex = this.requisitionSummary.findIndex(req => req.area === this.selectedArea);
     
+    // Encontrar el ID del área seleccionada
+    const selectedAreaObj = this.backendAreas.find(a => a.name === this.selectedArea);
+    const areaId = selectedAreaObj?.id;
+    
     if (existingIndex !== -1) {
       // Si existe, actualizar los productos
       this.requisitionSummary[existingIndex].products = [...this.products];
+      if (areaId) {
+        this.requisitionSummary[existingIndex].areaId = areaId;
+      }
     } else {
       // Si no existe, crear nueva requisición
       this.requisitionSummary.push({
         area: this.selectedArea,
+        areaId: areaId,
         products: [...this.products]
       });
     }
@@ -440,7 +539,10 @@ export class RequisitionComponent implements OnInit {
         deliveryDate: this.currentDeliveryDate,
         isDevolucion: this.isDevolucion,
         selectedEventId: this.selectedEvent, // Pasar el evento seleccionado
-        businessUnit: this.businessUnit // Pasar la unidad de negocio
+        businessUnit: this.businessUnit, // Pasar la unidad de negocio
+        selectedLocationId: this.selectedLocationId,
+        selectedProjectId: this.selectedProjectId,
+        selectedDepartmentId: this.selectedDepartmentId
       }
     });
   }
@@ -497,7 +599,7 @@ export class RequisitionComponent implements OnInit {
 
   getAvailableProductsForCurrentArea(): string[] {
     if (!this.selectedArea) {
-      return this.availableProducts;
+      return this.productNames; // ✅ Usar productNames del backend
     }
 
     // Obtener productos que ya están en el área actual (en la lista temporal y en el resumen)
@@ -521,7 +623,7 @@ export class RequisitionComponent implements OnInit {
     }
     
     // Filtrar productos disponibles excluyendo los que ya están en el área actual
-    return this.availableProducts.filter(product => !currentAreaProducts.includes(product));
+    return this.productNames.filter(productName => !currentAreaProducts.includes(productName));
   }
 
   removeProduct(productId: string): void {
@@ -591,10 +693,25 @@ export class RequisitionComponent implements OnInit {
     this.isResumeCollapsed = !this.isResumeCollapsed;
   }
 
+  onLocationChange(): void {
+    if (this.businessUnit) {
+      const selectedLocation = this.locations.find(loc => loc.name === this.businessUnit);
+      if (selectedLocation) {
+        this.selectedLocationId = parseInt(selectedLocation.id);
+        console.log(`✅ Locación seleccionada: ${this.businessUnit} (ID: ${this.selectedLocationId})`);
+      }
+    } else {
+      this.selectedLocationId = undefined;
+    }
+  }
+
   onEventChange(): void {
     if (this.selectedEvent) {
-      const selectedEventObj = this.events.find(event => event.id === this.selectedEvent);
+      const selectedEventObj = this.projects.find(project => project.id === this.selectedEvent);
       if (selectedEventObj) {
+        // Guardar el ID del proyecto para enviar al backend
+        this.selectedProjectId = parseInt(this.selectedEvent);
+        
         // Establecer fecha el mismo día del evento con la hora seleccionada
         const deliveryDate = new Date(selectedEventObj.date);
         
@@ -613,6 +730,7 @@ export class RequisitionComponent implements OnInit {
         this.loadProductsForArea();
       }
     } else {
+      this.selectedProjectId = undefined; // Limpiar el ID del proyecto
       this.currentDeliveryDate = null;
       this.customDeliveryDate = ''; // Limpiar fecha personalizada solo si no hay evento
       // Limpiar el área de eventos
@@ -723,13 +841,21 @@ export class RequisitionComponent implements OnInit {
       // Buscar si ya existe una requisición para esta área
       const existingIndex = this.requisitionSummary.findIndex(req => req.area === this.currentAreaWithProducts);
       
+      // Encontrar el ID del área actual
+      const selectedAreaObj = this.backendAreas.find(a => a.name === this.currentAreaWithProducts);
+      const areaId = selectedAreaObj?.id;
+      
       if (existingIndex !== -1) {
         // Si existe, actualizar los productos
         this.requisitionSummary[existingIndex].products = [...this.products];
+        if (areaId) {
+          this.requisitionSummary[existingIndex].areaId = areaId;
+        }
       } else {
         // Si no existe, crear nueva requisición
         this.requisitionSummary.push({
           area: this.currentAreaWithProducts,
+          areaId: areaId,
           products: [...this.products]
         });
       }
