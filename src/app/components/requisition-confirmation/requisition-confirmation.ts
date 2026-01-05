@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -10,6 +10,7 @@ import {
   CreateRequisitionPayload,
   RequisitionItemPayload 
 } from '../../services/requisition.service';
+import { AuthService } from '../../services/auth.service';
 
 export interface RequisitionSummary {
   area: string;
@@ -52,6 +53,8 @@ export interface Employee {
 })
 export class RequisitionConfirmationComponent implements OnInit {
   private requisitionService = inject(RequisitionService);
+  private authService = inject(AuthService);
+  private cdr = inject(ChangeDetectorRef);
   
   activeSection: string = 'requisicion';
   
@@ -168,83 +171,108 @@ export class RequisitionConfirmationComponent implements OnInit {
   }
 
   loadRequisitionData(requisitionId: string): void {
-    // Aquí cargarías los datos de la requisición desde el servicio
-    // Por ahora, voy a simular datos basándose en el ID
-    console.log(`Cargando datos para requisición: ${requisitionId} en modo: ${this.viewMode}`);
+    console.log('🔍 Cargando requisición con ID:', requisitionId);
     
-    // Datos simulados basándose en el ID de la requisición
-    this.requisitionData = this.getSimulatedRequisitionData(requisitionId);
-    
-    // Simular fecha de entrega
-    this.deliveryDate = new Date('2025-10-25T10:00:00');
-    
-    // Simular empleado responsable asignado
-    this.selectedEmployee = this.getSimulatedResponsibleEmployee(requisitionId);
-    if (this.selectedEmployee) {
-      this.employeeSearchTerm = this.selectedEmployee.name;
-    }
-    
-    this.consolidateProducts();
-  }
-
-  getSimulatedRequisitionData(requisitionId: string): RequisitionSummary[] {
-    // Datos simulados que varían según el ID
-    const baseData: RequisitionSummary[] = [
-      {
-        area: 'Cocina',
-        products: [
-          { id: '1', name: 'Aceite vegetal', quantity: 5, unit: 'Litros', actions: '' },
-          { id: '2', name: 'Sal marina', quantity: 2, unit: 'Kg', actions: '' },
-          { id: '3', name: 'Azúcar refinada', quantity: 10, unit: 'Kg', actions: '' }
-        ]
-      },
-      {
-        area: 'Almacén',
-        products: [
-          { id: '4', name: 'Papel higiénico', quantity: 24, unit: 'Rollos', actions: '' },
-          { id: '5', name: 'Detergente', quantity: 3, unit: 'Litros', actions: '' }
-        ]
+    // Mostrar loading
+    Swal.fire({
+      title: 'Cargando requisición...',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
       }
-    ];
+    });
 
-    // Modificar datos según el ID para simular diferentes requisiciones
-    if (requisitionId.includes('002') || requisitionId.includes('008')) {
-      baseData.push({
-        area: 'Mantenimiento',
-        products: [
-          { id: '6', name: 'Escobas', quantity: 3, unit: 'Piezas', actions: '' },
-          { id: '7', name: 'Cloro', quantity: 2, unit: 'Litros', actions: '' }
-        ]
-      });
-    }
-
-    return baseData;
-  }
-
-  getSimulatedResponsibleEmployee(requisitionId: string): Employee | null {
-    // Simular empleado responsable según el ID de la requisición
-    const employeeMapping: { [key: string]: Employee } = {
-      'REQ-001': this.employees[1], // María González García
-      'REQ-002': this.employees[2], // Carlos Rodríguez Martín
-      'REQ-003': this.employees[4], // Luis Martínez Sánchez
-      'REQ-004': this.employees[7], // Patricia López Hernández
-      'REQ-005': this.employees[1], // María González García
-      'REQ-006': this.employees[3], // Ana Fernández Ruiz
-      'REQ-007': this.employees[0], // Juan Pérez López
-      'REQ-008': this.employees[6], // Roberto Silva Mendoza
-      'REQ-009': this.employees[7], // Patricia López Hernández
-      'REQ-010': this.employees[1], // María González García
-      'REQ-011': this.employees[4], // Luis Martínez Sánchez
-      'REQ-012': this.employees[2], // Carlos Rodríguez Martín
-      'REQ-013': this.employees[0], // Juan Pérez López
-      'REQ-014': this.employees[7], // Patricia López Hernández
-      'REQ-015': this.employees[3], // Ana Fernández Ruiz
-      'REQ-016': this.employees[1], // María González García
-      'REQ-017': this.employees[4], // Luis Martínez Sánchez
-      'REQ-018': this.employees[6]  // Roberto Silva Mendoza
-    };
-
-    return employeeMapping[requisitionId] || this.employees[0]; // Default al primer empleado si no se encuentra
+    // Cargar datos desde el API
+    this.requisitionService.getRequisitionById(requisitionId).subscribe({
+      next: (response: any) => {
+        console.log('✅ Requisición cargada desde API:', response);
+        console.log('📋 Estructura completa de response:', JSON.stringify(response, null, 2));
+        
+        if (response.success && response.data) {
+          const data = response.data;
+          console.log('📋 Data extraído:', data);
+          console.log('📋 Items:', data.items);
+          
+          // Mapear datos principales
+          this.deliveryDate = data.deliveryDateTime ? new Date(data.deliveryDateTime) : null;
+          this.isDevolucion = data.awaitingReturn;
+          this.businessUnit = data.businessUnit || '';
+          this.selectedLocationId = data.locationId;
+          this.selectedDepartmentId = data.departmentId;
+          this.selectedProjectId = data.projectId;
+          
+          // Mapear empleado responsable (persona que recoge)
+          if (data.pickupPersonId && data.pickupPerson) {
+            this.selectedEmployee = {
+              id: data.pickupPersonId.toString(),
+              name: data.pickupPerson,
+              position: '' // Se llenará al cargar empleados
+            };
+            this.employeeSearchTerm = data.pickupPerson;
+          }
+          
+          // Agrupar items por área
+          const areaMap = new Map<string, RequisitionSummary>();
+          
+          data.items.forEach((item: any) => {
+            const areaKey = item.areaName || 'Sin área';
+            
+            if (!areaMap.has(areaKey)) {
+              areaMap.set(areaKey, {
+                area: areaKey,
+                areaId: item.areaId?.toString(),
+                products: []
+              });
+            }
+            
+            const area = areaMap.get(areaKey)!;
+            area.products.push({
+              id: item.productId.toString(),
+              name: item.productName || 'Producto sin nombre',
+              quantity: item.requestedQuantity,
+              unit: item.unit || '',
+              actions: ''
+            });
+          });
+          
+          // Convertir map a array
+          this.requisitionData = Array.from(areaMap.values());
+          
+          console.log('📦 Datos mapeados:', {
+            requisitionData: this.requisitionData,
+            deliveryDate: this.deliveryDate,
+            selectedEmployee: this.selectedEmployee,
+            businessUnit: this.businessUnit,
+            locationId: this.selectedLocationId
+          });
+          
+          console.log('🔍 requisitionData en detalle:', JSON.stringify(this.requisitionData, null, 2));
+          console.log('🔍 Número de áreas:', this.requisitionData.length);
+          console.log('🔍 Primera área:', this.requisitionData[0]);
+          
+          // Consolidar productos
+          this.consolidateProducts();
+          
+          // Forzar detección de cambios
+          this.cdr.detectChanges();
+          
+          Swal.close();
+        }
+      },
+      error: (error: any) => {
+        console.error('❌ Error al cargar requisición:', error);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.error?.message || 'No se pudo cargar la requisición',
+          confirmButtonText: 'Volver'
+        }).then(() => {
+          this.router.navigate(['/requisicion/lista']);
+        });
+      }
+    });
   }
 
   consolidateProducts(): void {
@@ -301,6 +329,10 @@ export class RequisitionConfirmationComponent implements OnInit {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  formatDateWithTime(date: Date): string {
+    return `${this.formatDate(date)} ${this.formatTime(date)}`;
   }
 
   getTotalProductsCount(): number {
@@ -442,8 +474,21 @@ export class RequisitionConfirmationComponent implements OnInit {
     const minutes = this.deliveryDate.getMinutes().toString().padStart(2, '0');
     const deliveryTimeStr = `${hours}:${minutes}:00`; // ⭐ Segundos siempre en 00
 
+    // Obtener el ID del usuario logueado
+    const currentUser = this.authService.getCurrentUser();
+    if (!currentUser || !currentUser.id) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error de autenticación',
+        text: 'No se pudo obtener el usuario logueado. Por favor, inicia sesión nuevamente.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
     const payload: CreateRequisitionPayload = {
-      requester_id: parseInt(this.selectedEmployee.id),
+      requester_id: currentUser.id, // ⭐ ID del usuario logueado (quien crea)
+      pickup_user_id: parseInt(this.selectedEmployee.id), // ⭐ ID del empleado que recogerá
       delivery_date: deliveryDateStr, // ⭐ CAMPO OBLIGATORIO (YYYY-MM-DD)
       delivery_time: deliveryTimeStr, // ⭐ CAMPO OBLIGATORIO (HH:MM:SS)
       location_id: this.selectedLocationId, // ⭐ CAMPO OBLIGATORIO (1=HERMES, 9=GLACIAR)
@@ -549,34 +594,183 @@ export class RequisitionConfirmationComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Aquí se enviaría la requisición autorizada al servidor
-        console.log('Requisición autorizada');
-        
+        // Mostrar loading mientras se procesa
         Swal.fire({
-          icon: 'success',
-          title: '¡Autorizada!',
-          text: 'La requisición ha sido autorizada exitosamente.',
-          confirmButtonText: 'Continuar'
-        }).then(() => {
-          this.router.navigate(['/requisitions']);
+          title: 'Autorizando requisición...',
+          text: 'Por favor espera...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Llamar al endpoint de autorización
+        this.requisitionService.authorizeRequisition(this.requisitionId).subscribe({
+          next: (response) => {
+            console.log('✅ Respuesta de autorización:', response);
+            
+            if (response.success) {
+              const data = response.data;
+              
+              Swal.fire({
+                icon: 'success',
+                title: '¡Requisición Autorizada!',
+                html: `
+                  <div class="text-start">
+                    <p><strong>ID:</strong> ${data.id}</p>
+                    <p><strong>Estado:</strong> <span class="badge bg-success">${data.status}</span></p>
+                    <p><strong>Autorizado por:</strong> ${data.authorized_by.full_name}</p>
+                    <p><strong>Fecha de autorización:</strong> ${new Date(data.authorization_date).toLocaleString('es-MX')}</p>
+                    ${data.electronic_signature ? `<p><strong>Firma digital:</strong> <code class="text-primary">${data.signature_hash}</code></p>` : ''}
+                    <hr>
+                    <div class="alert alert-info mb-0 mt-3">
+                      <h5 class="mb-2"><i class="bi bi-key-fill me-2"></i>PIN de Recolección</h5>
+                      <p class="mb-2">El usuario necesitará este PIN para recoger su requisición:</p>
+                      <div class="text-center">
+                        <h1 class="display-3 fw-bold text-primary mb-0" style="letter-spacing: 0.5rem;">${data.pin || '****'}</h1>
+                      </div>
+                      <small class="text-muted d-block mt-2">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Por favor, comparte este PIN con la persona que recogerá la requisición.
+                      </small>
+                    </div>
+                  </div>
+                `,
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: '#28a745',
+                width: '600px'
+              }).then(() => {
+                // Redirigir a la lista de requisiciones
+                this.router.navigate(['/requisicion/lista']);
+              });
+            }
+          },
+          error: (error) => {
+            console.error('❌ Error al autorizar requisición:', error);
+            
+            let errorMessage = 'No se pudo autorizar la requisición';
+            let errorTitle = 'Error de Autorización';
+            
+            // Manejar errores específicos del backend
+            if (error.error?.message) {
+              errorMessage = error.error.message;
+            }
+            
+            if (error.error?.error?.code === 'INVALID_STATUS') {
+              errorTitle = 'Estado Inválido';
+              errorMessage = `La requisición debe estar en estado "Solicitado" para ser autorizada. Estado actual: ${error.error.error.current_status}`;
+            }
+            
+            Swal.fire({
+              icon: 'error',
+              title: errorTitle,
+              text: errorMessage,
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#dc3545'
+            });
+          }
         });
       }
     });
   }
 
-  cancelEdit(): void {
+  cancelEditing(): void {
     Swal.fire({
       title: '¿Cancelar edición?',
       text: 'Se perderán todos los cambios no guardados.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Sí, cancelar',
+      confirmButtonText: 'Sí, salir',
       cancelButtonText: 'Continuar editando',
       confirmButtonColor: '#dc3545',
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.router.navigate(['/requisitions']);
+        this.router.navigate(['/requisicion/lista']);
+      }
+    });
+  }
+
+  cancelRequisition(): void {
+    Swal.fire({
+      title: '¿Cancelar requisición?',
+      text: 'Opcionalmente puedes agregar un motivo de cancelación:',
+      input: 'textarea',
+      inputPlaceholder: 'Motivo de cancelación (opcional)',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cancelar requisición',
+      cancelButtonText: 'No cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      inputValidator: undefined // No es obligatorio
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const reason = result.value?.trim() || undefined;
+        
+        // Mostrar loading mientras se procesa
+        Swal.fire({
+          title: 'Cancelando requisición...',
+          text: 'Por favor espera...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Llamar al endpoint de cancelación
+        this.requisitionService.cancelRequisition(this.requisitionId, reason).subscribe({
+          next: (response) => {
+            console.log('✅ Respuesta de cancelación:', response);
+            
+            if (response.success) {
+              const data = response.data;
+              
+              Swal.fire({
+                icon: 'success',
+                title: 'Requisición Cancelada',
+                html: `
+                  <div class="text-start">
+                    <p><strong>ID:</strong> ${data.id}</p>
+                    <p><strong>Estado anterior:</strong> <span class="badge bg-secondary">${data.previous_status}</span></p>
+                    <p><strong>Estado actual:</strong> <span class="badge bg-danger">${data.current_status}</span></p>
+                    <p><strong>Fecha de cancelación:</strong> ${new Date(data.cancelled_at).toLocaleString('es-MX')}</p>
+                    ${data.cancellation_reason ? `<p><strong>Motivo:</strong> ${data.cancellation_reason}</p>` : ''}
+                  </div>
+                `,
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: '#6c757d'
+              }).then(() => {
+                // Redirigir a la lista de requisiciones
+                this.router.navigate(['/requisicion/lista']);
+              });
+            }
+          },
+          error: (error) => {
+            console.error('❌ Error al cancelar requisición:', error);
+            
+            let errorMessage = 'No se pudo cancelar la requisición';
+            let errorTitle = 'Error de Cancelación';
+            
+            // Manejar errores específicos del backend
+            if (error.error?.message) {
+              errorMessage = error.error.message;
+            }
+            
+            if (error.error?.error?.code === 'INVALID_STATUS') {
+              errorTitle = 'Estado Inválido';
+              errorMessage = `No se puede cancelar una requisición en estado "${error.error.error.current_status}". Solo se pueden cancelar requisiciones en estados: Solicitado, Autorizado, En Proceso, Listo Recoger o Espera Devolución.`;
+            }
+            
+            Swal.fire({
+              icon: 'error',
+              title: errorTitle,
+              text: errorMessage,
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
       }
     });
   }

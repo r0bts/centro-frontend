@@ -9,7 +9,7 @@
     <!-- Main Content -->
     <div class="container-fluid p-4">
       <!-- Loading State -->
-      <div *ngIf="isLoading" class="text-center py-5">
+      <div *ngIf="isLoading()" class="text-center py-5">
         <div class="spinner-border text-primary" role="status">
           <span class="visually-hidden">Cargando...</span>
         </div>
@@ -17,7 +17,7 @@
       </div>
 
       <!-- Main Content -->
-      <div *ngIf="!isLoading && requisition" class="row">
+      <div *ngIf="!isLoading() && requisition()" class="row">
         <div class="col-12">
           <!-- Header con información de la requisición -->
           <div class="card mb-4 border-0 shadow-sm">
@@ -25,20 +25,20 @@
               <div class="row align-items-center">
                 <div class="col-lg-8">
                   <h4 class="mb-1">
-                    Surtido de Requisición: {{ requisition.id }}
+                    Surtido de Requisición: {{ requisition()!.id }}
                   </h4>
                   <p class="mb-0 opacity-75">
-                    Creada por: {{ requisition.creator }} | 
-                    Entrega: {{ formatDate(requisition.deliveryDate) }}
-                    <span *ngIf="requisition.businessUnit">
-                      | <i class="bi bi-building me-1"></i>{{ requisition.businessUnit }}
+                    Creada por: {{ requisition()!.creator }} | 
+                    Entrega: {{ formatDate(requisition()!.deliveryDate) }}
+                    <span *ngIf="requisition()!.businessUnit">
+                      | <i class="bi bi-building me-1"></i>{{ requisition()!.businessUnit }}
                     </span>
                   </p>
                 </div>
                 <div class="col-lg-4 text-lg-end mt-2 mt-lg-0">
                   <div class="d-flex flex-column align-items-lg-end">
                     <span class="badge bg-light text-dark fs-6 mb-2">
-                      {{ requisition.suppliedProducts }}/{{ requisition.totalProducts }} productos
+                      {{ requisition()!.suppliedProducts }}/{{ requisition()!.totalProducts }} productos
                     </span>
                     <div class="progress w-100" style="max-width: 200px; height: 10px;">
                       <div class="progress-bar bg-success" 
@@ -57,7 +57,7 @@
                   <div class="d-flex align-items-center">
                     <div>
                       <small class="text-muted d-block">Autorizado por</small>
-                      <strong class="text-dark">{{ requisition.authorizedBy || 'Sin asignar' }}</strong>
+                      <strong class="text-dark">{{ requisition()!.authorizedBy || 'Sin asignar' }}</strong>
                     </div>
                   </div>
                 </div>
@@ -65,7 +65,7 @@
                   <div class="d-flex align-items-center">
                     <div>
                       <small class="text-muted d-block">Fecha de autorización</small>
-                      <strong class="text-dark">{{ requisition.authorizationDate ? formatDate(requisition.authorizationDate) : 'Pendiente' }}</strong>
+                      <strong class="text-dark">{{ requisition()!.authorizationDate ? formatDate(requisition()!.authorizationDate!) : 'Pendiente' }}</strong>
                     </div>
                   </div>
                 </div>
@@ -73,9 +73,9 @@
                   <div class="d-flex align-items-center">
                     <div>
                       <small class="text-muted d-block">Firma electrónica</small>
-                      <div *ngIf="requisition.electronicSignature; else noSignature">
+                      <div *ngIf="requisition()!.electronicSignature; else noSignature">
                         <div class="text-dark">
-                          <small class="d-block font-monospace">{{ requisition.signatureHash || 'A3F7-8B2C-D9E1-5A6F' }}</small>
+                          <small class="d-block font-monospace">{{ requisition()!.signatureHash || 'A3F7-8B2C-D9E1-5A6F' }}</small>
                         </div>
                       </div>
                       <ng-template #noSignature>
@@ -100,9 +100,10 @@
                     <div class="col-md-4 col-12">
                       <select 
                         class="form-select"
-                        [(ngModel)]="selectedCategory">
+                        [ngModel]="selectedCategory()"
+                        (ngModelChange)="selectedCategory.set($event)">
                         <option value="all">Todas las categorías</option>
-                        <option *ngFor="let category of categories" [value]="category">
+                        <option *ngFor="let category of categories()" [value]="category">
                           {{ category }}
                         </option>
                       </select>
@@ -112,7 +113,8 @@
                         type="text" 
                         class="form-control"
                         placeholder="Buscar producto, código, ubicación..."
-                        [(ngModel)]="searchTerm">
+                        [ngModel]="searchTerm()"
+                        (ngModelChange)="searchTerm.set($event)">
                     </div>
                     <div class="col-md-2 col-12">
                     </div>
@@ -163,8 +165,8 @@
           </div>-->
 
           <!-- Lista de productos por categoría -->
-          <div *ngIf="selectedCategory === 'all'">
-            <div *ngFor="let category of categories" class="card mb-4 border-0 shadow-sm">
+          <div *ngIf="selectedCategory() === 'all'">
+            <div *ngFor="let category of categories()" class="card mb-4 border-0 shadow-sm">
               <div *ngIf="hasProductsInCategory(category)">
                 <!-- Header de categoría -->
                 <div class="card-header bg-secondary text-white">
@@ -190,7 +192,7 @@
                         <th class="text-center">Solicitado</th>
                         <th class="text-center">Stock</th>
                         <th class="text-center">Surtir</th>
-                        <th *ngIf="showReturnColumn" class="text-center">Devolución</th>
+                        <th *ngIf="showReturnColumn()" class="text-center">Devolución</th>
                         <th class="text-center">Acciones</th>
                       </tr>
                     </thead>
@@ -259,7 +261,7 @@
                         </td>
 
                         <!-- Devolución -->
-                        <td *ngIf="showReturnColumn" class="text-center align-middle">
+                        <td *ngIf="showReturnColumn()" class="text-center align-middle">
                           <div class="input-group input-group-sm mx-auto" style="width: 80px;">
                             <input 
                               type="text" 
@@ -297,12 +299,12 @@
             </div>
             
             <!-- Mensaje cuando no hay resultados de búsqueda -->
-            <div *ngIf="searchTerm.trim() && !hasAnyProductsInSearch()" class="card border-0 shadow-sm">
+            <div *ngIf="searchTerm().trim() && !hasAnyProductsInSearch()" class="card border-0 shadow-sm">
               <div class="card-body text-center py-5">
                 <i class="bi bi-search display-1 text-muted opacity-25"></i>
                 <h5 class="text-muted mt-3">No se encontraron productos</h5>
-                <p class="text-muted">No hay productos que coincidan con "{{ searchTerm }}"</p>
-                <button class="btn btn-outline-secondary btn-sm" (click)="searchTerm = ''">
+                <p class="text-muted">No hay productos que coincidan con "{{ searchTerm() }}"</p>
+                <button class="btn btn-outline-secondary btn-sm" (click)="searchTerm.set('')">
                   <i class="bi bi-x me-1"></i>
                   Limpiar búsqueda
                 </button>
@@ -311,7 +313,7 @@
           </div>
 
           <!-- Vista filtrada -->
-          <div *ngIf="selectedCategory !== 'all'" class="card border-0 shadow-sm">
+          <div *ngIf="selectedCategory() !== 'all'" class="card border-0 shadow-sm">
             <div class="card-header bg-secondary text-white">
               <h5 class="mb-0">
                 <i class="bi bi-filter me-2"></i>
@@ -476,14 +478,7 @@
                   </button>
                   
                   <button 
-                    type="button" 
-                    class="btn btn-warning text-dark"
-                    (click)="toggleReturnColumn()">
-                    {{ showReturnColumn ? 'Ocultar' : 'Mostrar' }} devoluciones
-                  </button>
-                  
-                  <button 
-                    *ngIf="showReturnColumn"
+                    *ngIf="showReturnColumn()"
                     type="button" 
                     class="btn btn-outline-warning"
                     [disabled]="!hasProductsToReturn()"
@@ -500,7 +495,7 @@
       </div>
 
       <!-- Error State -->
-      <div *ngIf="!isLoading && !requisition" class="text-center py-5">
+      <div *ngIf="!isLoading() && !requisition()" class="text-center py-5">
         <div class="card border-0 shadow-sm mx-auto" style="max-width: 400px;">
           <div class="card-body">
             <h4 class="text-muted mt-3">Requisición no encontrada</h4>
@@ -537,20 +532,21 @@
               type="password" 
               class="form-control form-control-lg text-center" 
               id="nipInput"
-              [(ngModel)]="enteredNip"
+              [ngModel]="enteredNip()"
+              (ngModelChange)="enteredNip.set($event)"
               maxlength="4"
               placeholder="****"
               style="letter-spacing: 0.5rem; font-size: 1.5rem;">
           </div>
           
-          <div *ngIf="nipError" class="alert alert-danger d-flex align-items-center" role="alert">
-            <div>{{ nipError }}</div>
+          <div *ngIf="nipError()" class="alert alert-danger d-flex align-items-center" role="alert">
+            <div>{{ nipError() }}</div>
           </div>
           
           <div class="text-center">
             <small class="text-muted">
-              <span *ngIf="generatedNip">Use el NIP generado para recolección: <span class="fw-bold text-primary">{{ generatedNip }}</span></span>
-              <span *ngIf="!generatedNip">Para pruebas use: <span class="fw-bold">1234</span></span>
+              <span *ngIf="generatedNip()">Use el NIP generado para recolección: <span class="fw-bold text-primary">{{ generatedNip() }}</span></span>
+              <span *ngIf="!generatedNip()">Para pruebas use: <span class="fw-bold">1234</span></span>
             </small>
           </div>
         </div>
@@ -562,7 +558,7 @@
             type="button" 
             class="btn btn-success" 
             (click)="validateNipAndProceed()"
-            [disabled]="!enteredNip || enteredNip.length < 4">
+            [disabled]="!enteredNip() || enteredNip().length < 4">
             Completar Surtido
           </button>
         </div>

@@ -313,14 +313,14 @@
               <!-- Botones para modo edición - Panel derecho -->
               <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList && viewMode === 'edit'">
                 <div class="d-flex gap-2">
-                  <button class="btn btn-outline-danger" (click)="cancelEdit()">
-                    Cancelar
-                  </button>
                   <button class="btn btn-outline-success" (click)="saveAsTemplate()">
                     Guardar como frecuente
                   </button>
                   <button class="btn btn-outline-warning" (click)="cerrarDevolucion()">
                     Cerrar Devolución
+                  </button>
+                  <button class="btn btn-danger" (click)="cancelRequisition()">
+                    Cancelar Requisición
                   </button>
                 </div>
                 <button class="btn btn-success" (click)="confirmEdit()">

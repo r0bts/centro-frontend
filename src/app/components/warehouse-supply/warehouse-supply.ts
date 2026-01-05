@@ -1,54 +1,22 @@
-import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import Swal from 'sweetalert2';
+import { environment } from '../../../environments/environment';
 
-// Interfaces para el manejo de datos de requisición individual
-interface WarehouseProduct {
-  id: string;
-  name: string;
-  code: string;
-  category: string;
-  requestedQuantity: number;
-  suppliedQuantity: number;
-  returnQuantity?: number;
-  availableStock: number;
-  unit: string;
-  location: string;
-  barcode: string;
-  area: string;
-  isSupplied: boolean;
-  notes?: string;
-}
-
-interface RequisitionWarehouse {
-  id: string;
-  creator: string;
-  deliveryDate: Date;
-  status: string;
-  businessUnit?: string;
-  authorizedBy?: string;
-  authorizationDate?: Date;
-  electronicSignature?: boolean;
-  signatureHash?: string;
-  signatureDate?: Date;
-  products: WarehouseProduct[];
-  totalProducts: number;
-  suppliedProducts: number;
-  pendingProducts: number;
-}
-
-export interface SupplySession {
-  startTime: Date;
-  scannedItems: number;
-  suppliedItems: number;
-  employee: string;
-  totalProducts: number;
-  completedProducts: number;
-  progress: number;
-}
+// Importar modelos y helpers
+import {
+  WarehouseProduct,
+  RequisitionWarehouse,
+  SupplySession,
+  ProductsByCategory,
+  WarehouseSupplyResponse
+} from '../../models/warehouse-supply.model';
+import { WarehouseSupplyHelper } from '../../helpers/warehouse-supply.helper';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-warehouse-supply',
@@ -62,58 +30,104 @@ export class WarehouseSupplyComponent implements OnInit {
 
   activeSection: string = 'almacen-surtido';
   
-  // Datos de la requisición
-  requisition: RequisitionWarehouse | null = null;
-  requisitionId: string = '';
+  // Signals para estado reactivo
+  requisition = signal<RequisitionWarehouse | null>(null);
+  requisitionId = signal<string>('');
+  productsByCategory = signal<ProductsByCategory>({});
+  categories = signal<string[]>([]);
+  supplySession = signal<SupplySession>({
+    startTime: new Date(),
+    scannedItems: 0,
+    suppliedItems: 0,
+    employee: 'Usuario Almacén',
+    totalProducts: 0,
+    completedProducts: 0,
+    progress: 0
+  });
   
-  // Productos agrupados por categoría
-  productsByCategory: { [key: string]: WarehouseProduct[] } = {};
-  categories: string[] = [];
+  // Señales de control
+  currentScannedCode = signal<string>('');
+  searchTerm = signal<string>('');
+  selectedCategory = signal<string>('all');
+  scannedProduct = signal<WarehouseProduct | null>(null);
+  scanSuccess = signal<boolean>(false);
+  scanError = signal<boolean>(false);
+  showOnlyPending = signal<boolean>(false);
+  showScanner = signal<boolean>(false);
+  scannerEnabled = signal<boolean>(false);
+  isLoading = signal<boolean>(false);
+  enteredNip = signal<string>('');
+  nipError = signal<string>('');
+  generatedNip = signal<string>('');
   
-  // Control de surtido
-  supplySession: SupplySession;
-  currentScannedCode: string = '';
-  searchTerm: string = '';
-  selectedCategory: string = 'all';
+  // Computed signals
+  hasRequisition = computed(() => this.requisition() !== null);
   
-  // Estado de escaneo
-  scannedProduct: WarehouseProduct | null = null;
-  scanSuccess: boolean = false;
-  scanError: boolean = false;
+  supplyProgressPercentage = computed(() => {
+    const req = this.requisition();
+    if (!req) return 0;
+    return WarehouseSupplyHelper.calculateSupplyProgress(req);
+  });
   
-  // Filtros y vistas
-  showOnlyPending: boolean = false;
-  showScanner: boolean = false;
-  scannerEnabled: boolean = false;
-  showReturnColumn: boolean = false; // Nueva variable para mostrar/ocultar columna de devolución
+  canComplete = computed(() => {
+    const req = this.requisition();
+    if (!req) return false;
+    return WarehouseSupplyHelper.canCompleteSupply(req);
+  });
   
-  // Estado de carga
-  isLoading: boolean = false;
+  hasProductsForReturn = computed(() => {
+    const req = this.requisition();
+    if (!req) return false;
+    return WarehouseSupplyHelper.hasProductsToReturn(req.products);
+  });
   
-  // Variables para el modal de NIP
-  enteredNip: string = '';
-  nipError: string = '';
-  generatedNip: string = ''; // NIP generado para recolección
-  private readonly validNip: string = '1234'; // NIP para pruebas
+  showReturnColumn = computed(() => {
+    const req = this.requisition();
+    if (!req) return false;
+    return req.awaiting_return;
+  });
   
-  constructor(private router: Router, private route: ActivatedRoute) {
-    this.supplySession = {
-      startTime: new Date(),
-      scannedItems: 0,
-      suppliedItems: 0,
-      employee: 'Usuario Almacén', // En producción vendría del servicio de autenticación
-      totalProducts: 0,
-      completedProducts: 0,
-      progress: 0
-    };
-  }
+  filteredProducts = computed(() => {
+    const req = this.requisition();
+    if (!req) return [];
+    
+    let products = req.products;
+    
+    // Filtrar por categoría
+    const category = this.selectedCategory();
+    if (category !== 'all') {
+      products = WarehouseSupplyHelper.filterProductsByCategory(products, category);
+    }
+    
+    // Filtrar por pendientes
+    if (this.showOnlyPending()) {
+      products = WarehouseSupplyHelper.filterPendingProducts(products);
+    }
+    
+    // Filtrar por búsqueda
+    const search = this.searchTerm();
+    if (search.trim()) {
+      products = WarehouseSupplyHelper.filterProductsBySearch(products, search);
+    }
+    
+    return products;
+  });
+  
+  private readonly validNip: string = '1234';
+  
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
     // Obtener ID de requisición desde parámetros de query
     this.route.queryParams.subscribe(params => {
       if (params['id']) {
-        this.requisitionId = params['id'];
-        this.loadRequisitionData(this.requisitionId);
+        this.requisitionId.set(params['id']);
+        this.loadRequisitionData(this.requisitionId());
       } else {
         this.router.navigate(['/requisicion/lista']);
       }
@@ -121,195 +135,145 @@ export class WarehouseSupplyComponent implements OnInit {
   }
 
   loadRequisitionData(requisitionId: string): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
     
-    // Cargar datos directamente sin setTimeout
-    this.requisition = this.getSimulatedWarehouseData(requisitionId);
-    if (this.requisition) {
-      this.groupProductsByCategory();
+    const token = this.authService.getAccessToken();
+    if (!token) {
+      console.error('❌ No hay token de autenticación');
+      this.router.navigate(['/login']);
+      return;
     }
-    this.isLoading = false;
-  }
 
-  getSimulatedWarehouseData(requisitionId: string): RequisitionWarehouse {
-    const products: WarehouseProduct[] = [
-      // Mantenimiento - 2 productos
-      {
-        id: '101',
-        name: 'Aceite Lubricante Multiusos',
-        requestedQuantity: 2,
-        availableStock: 5,
-        suppliedQuantity: 0, // YA SURTIDO para pruebas
-        unit: 'Litros',
-        location: 'M-01-A',
-        barcode: '7501234560101',
-        code: '101',
-        category: 'Mantenimiento',
-        isSupplied: false, // MARCADO COMO SURTIDO
-        area: 'Mantenimiento'
-      },
-      {
-        id: '102',
-        name: 'Foco LED E27 Luz Blanca',
-        requestedQuantity: 3,
-        availableStock: 25,
-        suppliedQuantity: 0, // YA SURTIDO para pruebas
-        unit: 'Piezas',
-        location: 'M-02-B',
-        barcode: '7501234560102',
-        code: '102',
-        category: 'Mantenimiento',
-        isSupplied: false, // MARCADO COMO SURTIDO
-        area: 'Mantenimiento'
-      },
-      // Cafetería - 2 productos
-      {
-        id: '201',
-        name: 'Galletas de Avena (Paquete)',
-        requestedQuantity: 4,
-        availableStock: 20,
-        suppliedQuantity: 0, // YA SURTIDO para pruebas
-        unit: 'Paquetes',
-        location: 'C-01-A',
-        barcode: '7501234560201',
-        code: '201',
-        category: 'Cafetería',
-        isSupplied: false, // MARCADO COMO SURTIDO
-        area: 'Cafetería'
-      },
-      {
-        id: '202',
-        name: 'Café Soluble Clásico 200g',
-        requestedQuantity: 2,
-        availableStock: 15,
-        suppliedQuantity: 0, // YA SURTIDO para pruebas
-        unit: 'Frascos',
-        location: 'C-02-B',
-        barcode: '7501234560202',
-        code: '202',
-        category: 'Cafetería',
-        isSupplied: false, // MARCADO COMO SURTIDO
-        area: 'Cafetería'
-      },
-      // Limpieza - 2 productos (pendientes)
-      {
-        id: '301',
-        name: 'Cloro Desinfectante 4L',
-        requestedQuantity: 6,
-        availableStock: 8,
-        suppliedQuantity: 0,
-        unit: 'Litros',
-        location: 'L-01-A',
-        barcode: '7501234560301',
-        code: '301',
-        category: 'Limpieza',
-        isSupplied: false,
-        area: 'Limpieza'
-      },
-      {
-        id: '302',
-        name: 'Jabón Líquido para Manos 1L',
-        requestedQuantity: 10,
-        availableStock: 15,
-        suppliedQuantity: 0,
-        unit: 'Litros',
-        location: 'L-02-B',
-        barcode: '7501234560302',
-        code: '302',
-        category: 'Limpieza',
-        isSupplied: false,
-        area: 'Limpieza'
-      },
-      // Papelería - 1 producto (pendiente)
-      {
-        id: '401',
-        name: 'Carpetas de Anillos Tamaño Carta',
-        requestedQuantity: 15,
-        availableStock: 20,
-        suppliedQuantity: 0,
-        unit: 'Piezas',
-        location: 'P-01-A',
-        barcode: '7501234560401',
-        code: '401',
-        category: 'Papelería',
-        isSupplied: false,
-        area: 'Administración'
-      },
-    ];
-
-    return {
-      id: requisitionId,
-      creator: 'Ana López Martínez',
-      deliveryDate: new Date('2025-10-28T14:00:00'),
-      status: 'Autorizada',
-      authorizedBy: 'Dr. Carlos Mendoza',
-      authorizationDate: new Date('2025-10-27T10:30:00'),
-      electronicSignature: true,
-      signatureHash: 'A3F7-8B2C-D9E1-5A6F-C4B8-7D3E-9F1A-2C5B',
-      signatureDate: new Date('2025-10-27T10:32:15'),
-      businessUnit: 'Unidad Centro', // Unidad de negocio simulada
-      products: products,
-      totalProducts: products.length,
-      suppliedProducts: 0, // 4 productos ya surtidos para pruebas
-      pendingProducts: products.length - 4
-    };
-  }
-
-  groupProductsByCategory(): void {
-    if (!this.requisition) return;
-    
-    this.productsByCategory = {};
-    this.categories = [];
-    
-    this.requisition.products.forEach(product => {
-      if (!this.productsByCategory[product.category]) {
-        this.productsByCategory[product.category] = [];
-        this.categories.push(product.category);
-      }
-      this.productsByCategory[product.category].push(product);
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
     });
+
+    const apiUrl = `${environment.apiUrl}/requisitions/${requisitionId}/supply`;
     
-    // Ordenar categorías alfabéticamente
-    this.categories.sort();
+    this.http.get<WarehouseSupplyResponse>(apiUrl, { headers }).subscribe({
+      next: (response) => {
+        if (response.success && response.data?.requisition) {
+          console.log('✅ Requisición cargada:', response.data.requisition);
+          
+          // Mapear datos de la API usando el helper
+          const mappedRequisition = WarehouseSupplyHelper.mapRequisitionFromAPI(
+            response.data.requisition
+          );
+          
+          this.requisition.set(mappedRequisition);
+          
+          // Agrupar productos por categoría
+          const grouped = WarehouseSupplyHelper.groupProductsByCategory(mappedRequisition.products);
+          this.productsByCategory.set(grouped);
+          
+          // Extraer categorías únicas
+          const cats = WarehouseSupplyHelper.extractCategories(grouped);
+          this.categories.set(cats);
+          
+          // Inicializar sesión de surtido
+          const session = WarehouseSupplyHelper.initializeSupplySession(
+            mappedRequisition,
+            'Usuario Almacén' // En producción vendría del servicio de autenticación
+          );
+          this.supplySession.set(session);
+        } else {
+          console.error('❌ Respuesta inválida del servidor');
+          this.requisition.set(null);
+        }
+        this.isLoading.set(false);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar requisición:', error);
+        this.isLoading.set(false);
+        this.requisition.set(null);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar datos',
+          text: 'No se pudo cargar la información de la requisición',
+          confirmButtonText: 'Volver'
+        }).then(() => {
+          this.goBackToList();
+        });
+      }
+    });
+  }
+
+  // Funciones de utilidad para templates
+  getProductsByCategory(category: string): WarehouseProduct[] {
+    const grouped = this.productsByCategory();
+    let products = grouped[category] || [];
+    
+    // Aplicar filtro de búsqueda si hay un término
+    const search = this.searchTerm();
+    if (search.trim()) {
+      products = WarehouseSupplyHelper.filterProductsBySearch(products, search);
+    }
+    
+    return products;
+  }
+
+  hasProductsInCategory(category: string): boolean {
+    return this.getProductsByCategory(category).length > 0;
+  }
+
+  hasAnyProductsInSearch(): boolean {
+    const cats = this.categories();
+    return cats.some(category => this.hasProductsInCategory(category));
+  }
+
+  getFilteredProducts(): WarehouseProduct[] {
+    return this.filteredProducts();
+  }
+
+  getSupplyProgressPercentage(): number {
+    return this.supplyProgressPercentage();
+  }
+
+  canCompleteSupply(): boolean {
+    return this.canComplete();
+  }
+
+  hasProductsToReturn(): boolean {
+    return this.hasProductsForReturn();
   }
 
   // Funciones de escaneo
   toggleScanner(): void {
-    this.showScanner = !this.showScanner;
-    if (this.showScanner) {
-      this.scannerEnabled = true;
+    this.showScanner.update(show => !show);
+    if (this.showScanner()) {
+      this.scannerEnabled.set(true);
       setTimeout(() => {
         this.barcodeInput?.nativeElement.focus();
       }, 100);
     } else {
-      this.scannerEnabled = false;
-      this.currentScannedCode = '';
+      this.scannerEnabled.set(false);
+      this.currentScannedCode.set('');
     }
   }
 
   onBarcodeScanned(): void {
-    if (!this.currentScannedCode.trim()) return;
+    const code = this.currentScannedCode();
+    if (!code.trim()) return;
     
-    const product = this.findProductByCode(this.currentScannedCode);
+    const req = this.requisition();
+    if (!req) return;
+    
+    const product = WarehouseSupplyHelper.findProductByBarcode(req.products, code);
     if (product) {
       this.selectProductForSupply(product);
     } else {
       Swal.fire({
         icon: 'warning',
         title: 'Producto no encontrado',
-        text: `No se encontró producto con código: ${this.currentScannedCode}`,
+        text: `No se encontró producto con código: ${code}`,
         confirmButtonText: 'Entendido'
       });
     }
     
-    this.currentScannedCode = '';
+    this.currentScannedCode.set('');
     this.barcodeInput?.nativeElement.focus();
-  }
-
-  findProductByCode(code: string): WarehouseProduct | null {
-    if (!this.requisition) return null;
-    
-    return this.requisition.products.find(p => p.code === code || p.barcode === code) || null;
   }
 
   selectProductForSupply(product: WarehouseProduct): void {
@@ -340,20 +304,20 @@ export class WarehouseSupplyComponent implements OnInit {
         cancelButtonColor: '#6c757d'
       }).then((result) => {
         if (result.isConfirmed) {
-          product.suppliedQuantity = product.availableStock;
-          product.isSupplied = product.suppliedQuantity >= product.requestedQuantity;
-          this.calculateProgress();
-          this.updateRequisitionStatus();
+          this.updateProductInRequisition(product.id, (p) => 
+            WarehouseSupplyHelper.updateSuppliedQuantity(p, p.availableStock)
+          );
+          this.updateProgress();
         }
       });
       return;
     } else {
-      product.suppliedQuantity = product.requestedQuantity;
-      product.isSupplied = true;
+      this.updateProductInRequisition(product.id, (p) => 
+        WarehouseSupplyHelper.updateSuppliedQuantity(p, p.requestedQuantity)
+      );
     }
     
-    this.calculateProgress();
-    this.updateRequisitionStatus();
+    this.updateProgress();
   }
 
   // Funciones de control manual
@@ -373,7 +337,10 @@ export class WarehouseSupplyComponent implements OnInit {
         text: `No se puede surtir más de ${product.requestedQuantity} ${product.unit} (cantidad solicitada)`,
         confirmButtonText: 'Entendido'
       });
-      product.suppliedQuantity = product.requestedQuantity;
+      
+      this.updateProductInRequisition(product.id, (p) => 
+        WarehouseSupplyHelper.updateSuppliedQuantity(p, p.requestedQuantity)
+      );
       event.target.value = product.requestedQuantity.toString();
       return;
     }
@@ -382,25 +349,21 @@ export class WarehouseSupplyComponent implements OnInit {
       Swal.fire({
         icon: 'warning',
         title: 'Stock insuficiente',
-        text: `Solo hay ${product.availableStock} ${product.unit} disponibles en stock`,
+        text: `No hay suficiente stock. Disponible: ${product.availableStock} ${product.unit}`,
         confirmButtonText: 'Entendido'
       });
-      product.suppliedQuantity = product.availableStock;
+      
+      this.updateProductInRequisition(product.id, (p) => 
+        WarehouseSupplyHelper.updateSuppliedQuantity(p, p.availableStock)
+      );
       event.target.value = product.availableStock.toString();
       return;
     }
     
-    if (quantity < 0) {
-      product.suppliedQuantity = 0;
-      event.target.value = '0';
-      return;
-    }
-    
-    product.suppliedQuantity = quantity;
-    product.isSupplied = quantity > 0;
-    
-    this.calculateProgress();
-    this.updateRequisitionStatus();
+    this.updateProductInRequisition(product.id, (p) => 
+      WarehouseSupplyHelper.updateSuppliedQuantity(p, quantity)
+    );
+    this.updateProgress();
   }
 
   updateReturnQuantity(product: WarehouseProduct, event: any): void {
@@ -412,139 +375,91 @@ export class WarehouseSupplyComponent implements OnInit {
     
     const quantity = parseInt(numericValue) || 0;
     
-    if (quantity < 0) {
-      product.returnQuantity = 0;
-      return;
-    }
-    
-    product.returnQuantity = quantity;
-  }
-
-  markAsComplete(product: WarehouseProduct): void {
-    if (product.availableStock >= product.requestedQuantity) {
-      product.suppliedQuantity = product.requestedQuantity;
-    } else {
-      product.suppliedQuantity = product.availableStock;
-    }
-    
-    product.isSupplied = true;
-    this.calculateProgress();
-    this.updateRequisitionStatus();
-  }
-
-  // Funciones nuevas requeridas por el HTML
-  getSupplyProgressPercentage(): number {
-    if (!this.requisition || this.requisition.products.length === 0) return 0;
-    const suppliedProducts = this.requisition.products.filter(p => p.isSupplied).length;
-    return Math.round((suppliedProducts / this.requisition.products.length) * 100);
+    this.updateProductInRequisition(product.id, (p) => 
+      WarehouseSupplyHelper.updateReturnQuantity(p, quantity)
+    );
   }
 
   toggleProductSupply(productId: string): void {
-    if (!this.requisition) return;
-    
-    const product = this.requisition.products.find(p => p.id === productId);
-    if (product) {
-      product.isSupplied = !product.isSupplied;
-      if (product.isSupplied) {
-        product.suppliedQuantity = product.requestedQuantity;
-      } else {
-        product.suppliedQuantity = 0;
-      }
-      this.calculateProgress();
-      this.updateRequisitionStatus();
-    }
+    this.updateProductInRequisition(productId, (p) => 
+      WarehouseSupplyHelper.toggleProductSupply(p)
+    );
+    this.updateProgress();
   }
 
-  updateRequisitionStatus(): void {
-    if (!this.requisition) return;
-    
-    this.requisition.suppliedProducts = this.requisition.products.filter(p => p.isSupplied).length;
-    this.requisition.pendingProducts = this.requisition.products.length - this.requisition.suppliedProducts;
-  }
-
-  initializeSupplySession(): void {
-    if (!this.requisition) return;
-    
-    this.supplySession = {
-      startTime: new Date(),
-      totalProducts: this.requisition.products.length,
-      completedProducts: this.requisition.products.filter(p => p.isSupplied).length,
-      progress: 0,
-      scannedItems: 0,
-      suppliedItems: this.requisition.products.filter(p => p.isSupplied).length,
-      employee: 'Usuario Almacén'
-    };
-    
-    this.calculateProgress();
-  }
-
-  calculateProgress(): void {
-    if (!this.requisition || this.supplySession.totalProducts === 0) return;
-    
-    const completedProducts = this.requisition.products.filter(p => p.isSupplied).length;
-    this.supplySession.completedProducts = completedProducts;
-    this.supplySession.progress = Math.round((completedProducts / this.supplySession.totalProducts) * 100);
-  }
-
-  onScanSuccess(result: string): void {
-    if (!this.requisition) return;
-    
-    const product = this.requisition.products.find(p => p.barcode === result);
-    
-    if (product) {
-      this.scannedProduct = product;
-      this.scanSuccess = true;
+  // Helper para actualizar productos de forma inmutable
+  private updateProductInRequisition(
+    productId: string,
+    updateFn: (product: WarehouseProduct) => WarehouseProduct
+  ): void {
+    this.requisition.update(req => {
+      if (!req) return req;
       
-      setTimeout(() => {
-        this.scanSuccess = false;
-      }, 3000);
-    } else {
-      this.scanError = true;
-      setTimeout(() => {
-        this.scanError = false;
-      }, 3000);
-    }
-  }
-
-  confirmScan(): void {
-    if (this.scannedProduct) {
-      this.toggleProductSupply(this.scannedProduct.id);
-      this.scannedProduct = null;
-      this.scanSuccess = false;
-    }
-  }
-
-  cancelScan(): void {
-    this.scannedProduct = null;
-    this.scanSuccess = false;
-    this.scanError = false;
-  }
-
-  saveProgress(): void {
-    if (!this.requisition) return;
-    
-    // Simular guardado
-    console.log('Progreso guardado:', {
-      requisitionId: this.requisition.id,
-      suppliedProducts: this.requisition.suppliedProducts,
-      progress: this.getSupplyProgressPercentage()
+      const updatedProducts = req.products.map(p => 
+        p.id === productId ? updateFn(p) : p
+      );
+      
+      const updatedReq = { ...req, products: updatedProducts };
+      return WarehouseSupplyHelper.updateRequisitionStats(updatedReq);
     });
     
-    // Mostrar mensaje de confirmación
+    // Actualizar agrupación por categoría
+    const req = this.requisition();
+    if (req) {
+      const grouped = WarehouseSupplyHelper.groupProductsByCategory(req.products);
+      this.productsByCategory.set(grouped);
+    }
+  }
+
+  // Actualizar progreso de la sesión
+  private updateProgress(): void {
+    const req = this.requisition();
+    if (!req) return;
+    
+    this.supplySession.update(session => 
+      WarehouseSupplyHelper.updateSupplySessionProgress(session, req.products)
+    );
+  }
+
+
+
+  markReadyForCollection(): void {
+    const req = this.requisition();
+    if (!req) return;
+    
+    // Generar un NIP de 4 dígitos aleatorio
+    const nip = WarehouseSupplyHelper.generateCollectionNip();
+    this.generatedNip.set(nip);
+    
+    // Mostrar el NIP generado al usuario
     Swal.fire({
+      title: '¡Requisición lista para recolección!',
+      html: `
+        <div class="text-center">
+          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+          <p class="mt-3 mb-2">La requisición <strong>${req.id}</strong> está lista.</p>
+          <div class="alert alert-info mt-3">
+            <h5 class="mb-2">NIP de recolección generado:</h5>
+            <div class="display-4 fw-bold text-primary">${nip}</div>
+            <small class="text-muted">Proporcione este NIP al solicitante para la recolección</small>
+          </div>
+          <p class="text-muted mt-3">El solicitante podrá usar este NIP para recoger los productos.</p>
+        </div>
+      `,
       icon: 'success',
-      title: '¡Progreso guardado!',
-      text: 'El progreso ha sido guardado exitosamente',
-      confirmButtonText: 'Continuar',
-      timer: 2000,
-      timerProgressBar: true
+      confirmButtonText: 'Entendido',
+      confirmButtonColor: '#28a745',
+      width: '500px'
+    }).then(() => {
+      console.log('NIP generado para recolección:', nip);
     });
   }
 
   completeSupply(): void {
-    if (!this.requisition) return;
+    const req = this.requisition();
+    if (!req) return;
     
-    const allSupplied = this.requisition.products.every(p => p.isSupplied);
+    const allSupplied = req.products.every(p => p.isSupplied);
     
     if (!allSupplied) {
       Swal.fire({
@@ -569,8 +484,8 @@ export class WarehouseSupplyComponent implements OnInit {
 
   private openNipModalForCompletion(): void {
     // Limpiar estado anterior
-    this.enteredNip = '';
-    this.nipError = '';
+    this.enteredNip.set('');
+    this.nipError.set('');
     
     // Abrir modal usando Bootstrap
     const modalElement = document.getElementById('nipModal');
@@ -581,98 +496,21 @@ export class WarehouseSupplyComponent implements OnInit {
     }
   }
 
-  private finalizeSupply(): void {
-    if (!this.requisition) return;
-    
-    // Simular completar suministro
-    console.log('Suministro completado:', {
-      requisitionId: this.requisition.id,
-      completedAt: new Date(),
-      suppliedProducts: this.requisition.suppliedProducts,
-      totalProducts: this.requisition.totalProducts
-    });
-    
-    Swal.fire({
-      icon: 'success',
-      title: '¡Suministro completado!',
-      text: 'El suministro ha sido completado exitosamente',
-      confirmButtonText: 'Continuar'
-    }).then(() => {
-      this.goBack();
-    });
-  }
-
-  canCompleteSupply(): boolean {
-    if (!this.requisition) return false;
-    // Solo permitir cuando TODOS los productos que tienen stock disponible estén surtidos
-    const productsWithStock = this.requisition.products.filter(p => p.availableStock > 0);
-    if (productsWithStock.length === 0) return false;
-    return productsWithStock.every(p => p.isSupplied);
-  }
-
-  hasProductsToReturn(): boolean {
-    if (!this.requisition) return false;
-    return this.requisition.products.some(p => p.returnQuantity && p.returnQuantity > 0);
-  }
-
-  toggleReturnColumn(): void {
-    this.showReturnColumn = !this.showReturnColumn;
-    
-    // Si se oculta la columna, limpiar todas las cantidades de devolución
-    if (!this.showReturnColumn && this.requisition) {
-      this.requisition.products.forEach(product => {
-        product.returnQuantity = 0;
-      });
-    }
-  }
-
-  markReadyForCollection(): void {
-    if (!this.requisition) return;
-    
-    // Generar un NIP de 4 dígitos aleatorio
-    this.generatedNip = Math.floor(1000 + Math.random() * 9000).toString();
-    
-    // Mostrar el NIP generado al usuario
-    Swal.fire({
-      title: '¡Requisición lista para recolección!',
-      html: `
-        <div class="text-center">
-          <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-          <p class="mt-3 mb-2">La requisición <strong>${this.requisition.id}</strong> está lista.</p>
-          <div class="alert alert-info mt-3">
-            <h5 class="mb-2">NIP de recolección generado:</h5>
-            <div class="display-4 fw-bold text-primary">${this.generatedNip}</div>
-            <small class="text-muted">Proporcione este NIP al solicitante para la recolección</small>
-          </div>
-          <p class="text-muted mt-3">El solicitante podrá usar este NIP para recoger los productos.</p>
-        </div>
-      `,
-      icon: 'success',
-      confirmButtonText: 'Entendido',
-      confirmButtonColor: '#28a745',
-      width: '500px'
-    }).then(() => {
-      console.log('NIP generado para recolección:', this.generatedNip);
-      
-      // Aquí puedes agregar lógica para guardar el NIP en el backend
-      // Por ejemplo: this.saveCollectionNip(this.requisition.id, this.generatedNip);
-    });
-  }
-
   validateNipAndProceed(): void {
-    if (!this.enteredNip || this.enteredNip.length < 4) {
-      this.nipError = 'Debe ingresar un NIP de 4 dígitos';
+    const nip = this.enteredNip();
+    if (!nip || nip.length < 4) {
+      this.nipError.set('Debe ingresar un NIP de 4 dígitos');
       return;
     }
 
     // Validar contra el NIP generado para recolección
-    const currentValidNip = this.generatedNip || this.validNip;
+    const currentValidNip = this.generatedNip() || this.validNip;
     
-    if (this.enteredNip !== currentValidNip) {
-      this.nipError = 'NIP incorrecto. Intente nuevamente.';
-      this.enteredNip = '';
+    if (nip !== currentValidNip) {
+      this.nipError.set('NIP incorrecto. Intente nuevamente.');
+      this.enteredNip.set('');
       setTimeout(() => {
-        this.nipError = '';
+        this.nipError.set('');
       }, 3000);
       return;
     }
@@ -689,10 +527,33 @@ export class WarehouseSupplyComponent implements OnInit {
     this.finalizeSupply();
   }
 
-  returnProductsToWarehouse(): void {
-    if (!this.requisition) return;
+  private finalizeSupply(): void {
+    const req = this.requisition();
+    if (!req) return;
     
-    const productsToReturn = this.requisition.products.filter(p => p.returnQuantity && p.returnQuantity > 0);
+    // Simular completar suministro
+    console.log('Suministro completado:', {
+      requisitionId: req.id,
+      completedAt: new Date(),
+      suppliedProducts: req.suppliedProducts,
+      totalProducts: req.totalProducts
+    });
+    
+    Swal.fire({
+      icon: 'success',
+      title: '¡Suministro completado!',
+      text: 'El suministro ha sido completado exitosamente',
+      confirmButtonText: 'Continuar'
+    }).then(() => {
+      this.goBackToList();
+    });
+  }
+
+  returnProductsToWarehouse(): void {
+    const req = this.requisition();
+    if (!req) return;
+    
+    const productsToReturn = WarehouseSupplyHelper.getProductsToReturn(req.products);
     
     if (productsToReturn.length === 0) {
       Swal.fire({
@@ -720,21 +581,25 @@ export class WarehouseSupplyComponent implements OnInit {
       showCancelButton: true,
       confirmButtonText: 'Sí, devolver productos',
       cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#F4D35E', // Warning color from global styles
-      cancelButtonColor: '#5B5B5B',  // Neutral-700 from global styles
+      confirmButtonColor: '#F4D35E',
+      cancelButtonColor: '#5B5B5B',
       width: '600px'
     }).then((result) => {
       if (result.isConfirmed) {
         // Simular devolución de productos
         console.log('Productos devueltos al almacén:', {
-          requisitionId: this.requisition?.id,
+          requisitionId: req.id,
           returnedProducts: productsToReturn,
           timestamp: new Date()
         });
         
         // Limpiar cantidades de devolución después del proceso
-        productsToReturn.forEach(product => {
-          product.returnQuantity = 0;
+        this.requisition.update(r => {
+          if (!r) return r;
+          return {
+            ...r,
+            products: WarehouseSupplyHelper.clearReturnQuantities(r.products)
+          };
         });
         
         Swal.fire({
@@ -747,123 +612,32 @@ export class WarehouseSupplyComponent implements OnInit {
     });
   }
 
-  goBack(): void {
-    this.router.navigate(['/requisicion/lista']);
-  }
-
-  // Funciones de filtrado
-  getFilteredProducts(): WarehouseProduct[] {
-    if (!this.requisition) return [];
-    
-    let products = this.requisition.products;
-    
-    // Filtrar por categoría
-    if (this.selectedCategory !== 'all') {
-      products = products.filter(p => p.category === this.selectedCategory);
-    }
-    
-    // Filtrar por pendientes
-    if (this.showOnlyPending) {
-      products = products.filter(p => !p.isSupplied);
-    }
-    
-    // Filtrar por búsqueda
-    if (this.searchTerm.trim()) {
-      const term = this.searchTerm.toLowerCase();
-      products = products.filter(p => 
-        p.name.toLowerCase().includes(term) ||
-        p.code.toLowerCase().includes(term) ||
-        p.barcode.toLowerCase().includes(term) ||
-        p.location.toLowerCase().includes(term) ||
-        p.area?.toLowerCase().includes(term)
-      );
-    }
-    
-    return products;
-  }
-
-  getProductsByCategory(category: string): WarehouseProduct[] {
-    let products = this.productsByCategory[category] || [];
-    
-    // Aplicar filtro de búsqueda si hay un término
-    if (this.searchTerm.trim()) {
-      const term = this.searchTerm.toLowerCase();
-      products = products.filter(p => 
-        p.name.toLowerCase().includes(term) ||
-        p.code.toLowerCase().includes(term) ||
-        p.barcode.toLowerCase().includes(term) ||
-        p.location.toLowerCase().includes(term) ||
-        p.area?.toLowerCase().includes(term)
-      );
-    }
-    
-    return products;
-  }
-
-  // Función para verificar si una categoría tiene productos después del filtrado
-  hasProductsInCategory(category: string): boolean {
-    return this.getProductsByCategory(category).length > 0;
-  }
-
-  // Función para verificar si hay alguna categoría con productos después de la búsqueda
-  hasAnyProductsInSearch(): boolean {
-    return this.categories.some(category => this.hasProductsInCategory(category));
-  }
-
-  // Funciones de utilidad
+  // Funciones de utilidad para CSS/clases
   getStockStatusClass(product: WarehouseProduct): string {
-    if (product.availableStock >= product.requestedQuantity) {
-      return 'text-success';
-    } else if (product.availableStock > 0) {
-      return 'text-warning';
-    } else {
-      return 'text-danger';
-    }
+    return WarehouseSupplyHelper.getStockStatusClass(product);
   }
 
   getStatusBadgeClass(product: WarehouseProduct): string {
-    if (product.isSupplied) {
-      return 'bg-success';
-    } else if (product.suppliedQuantity > 0) {
-      return 'bg-warning';
-    } else if (product.availableStock === 0) {
-      return 'bg-danger';
-    } else {
-      return 'bg-secondary';
-    }
+    return WarehouseSupplyHelper.getStatusBadgeClass(product);
   }
 
   getStatusText(product: WarehouseProduct): string {
-    if (product.isSupplied) {
-      return 'Completo';
-    } else if (product.suppliedQuantity > 0) {
-      return 'Parcial';
-    } else if (product.availableStock === 0) {
-      return 'Sin Stock';
-    } else {
-      return 'Pendiente';
-    }
+    const status = WarehouseSupplyHelper.getProductStockStatus(product);
+    return status.statusText;
   }
 
-  // Funciones de navegación y finalización
+  // Funciones de formato
+  formatDate(dateString: string): string {
+    return WarehouseSupplyHelper.formatDate(dateString);
+  }
+
+  formatTime(dateString: string): string {
+    return WarehouseSupplyHelper.formatTime(dateString);
+  }
+
+  // Navegación
   goBackToList(): void {
     this.router.navigate(['/requisicion/lista']);
-  }
-
-  formatDate(date: Date): string {
-    return date.toLocaleDateString('es-ES', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-
-  formatTime(date: Date): string {
-    return date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   }
 
   onSectionChange(section: string): void {

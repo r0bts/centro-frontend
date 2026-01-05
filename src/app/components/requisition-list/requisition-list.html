@@ -40,7 +40,8 @@
                        id="startDate" 
                        class="form-control form-control-sm" 
                        style="width: 140px;"
-                       [(ngModel)]="filterStartDate"
+                       [ngModel]="filterStartDate()"
+                       (ngModelChange)="filterStartDate.set($event)"
                        (change)="applyDateFilter()">
               </div>
               
@@ -50,7 +51,8 @@
                        id="endDate" 
                        class="form-control form-control-sm" 
                        style="width: 140px;"
-                       [(ngModel)]="filterEndDate"
+                       [ngModel]="filterEndDate()"
+                       (ngModelChange)="filterEndDate.set($event)"
                        (change)="applyDateFilter()">
               </div>
               
@@ -69,7 +71,8 @@
                 <label for="searchInput" class="form-label mb-0">Buscar:</label>
                 <input type="text" id="searchInput" class="form-control form-control-sm" style="width: 200px;" 
                        placeholder="" 
-                       [(ngModel)]="searchTerm"
+                       [ngModel]="searchTerm()"
+                       (ngModelChange)="searchTerm.set($event)"
                        (keyup)="performSearch()">
               </div>
             </div>
@@ -77,13 +80,19 @@
 
           <!-- Tabla de requisiciones agrupadas por fecha -->
           <div class="requisitions-sections">
-            <div *ngFor="let dateGroup of filteredDateGroups" class="date-section mb-4">
+            <!-- Mensaje cuando no hay requisiciones -->
+            <div *ngIf="!isLoading() && filteredDateGroups().length === 0" class="alert alert-info text-center">
+              <i class="bi bi-info-circle me-2"></i>
+              No se encontraron requisiciones
+            </div>
+
+            <div *ngFor="let dateGroup of filteredDateGroups(); trackBy: trackByDateGroup" class="date-section mb-4">
               <!-- Encabezado de la sección de fecha -->
               <div class="date-header bg-light p-3 rounded-top border">
                 <h5 class="mb-0 text-primary">
                   <i class="bi bi-calendar3"></i>
                   {{ dateGroup }}
-                  <span class="badge bg-secondary ms-2">{{ filteredGroupedRequisitions[dateGroup].length }} requisiciones</span>
+                  <span class="badge bg-secondary ms-2">{{ filteredGroupedRequisitions()[dateGroup].length }} requisiciones</span>
                 </h5>
               </div>
               
@@ -102,7 +111,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let requisition of filteredGroupedRequisitions[dateGroup]">
+                    <tr *ngFor="let requisition of filteredGroupedRequisitions()[dateGroup]">
                       <!-- ID -->
                       <td class="align-middle border">
                         <strong>{{ requisition.id }}</strong>
@@ -164,7 +173,7 @@
                           <button 
                             type="button" 
                             class="btn btn-outline-primary btn-sm"
-                            [disabled]="!canSupply(requisition)"
+
                             (click)="supplyRequisition(requisition)"
                             title="Editar">
                             <i class="bi bi-pencil"></i>

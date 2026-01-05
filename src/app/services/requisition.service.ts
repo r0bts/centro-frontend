@@ -105,7 +105,8 @@ export interface RequisitionItemPayload {
  * Payload para crear una requisición
  */
 export interface CreateRequisitionPayload {
-  requester_id: number;
+  requester_id: number; // ID del usuario logueado (quien crea)
+  pickup_user_id?: number; // ID del empleado que recogerá la requisición
   delivery_date: string; // REQUERIDO - Formato YYYY-MM-DD
   delivery_time: string; // REQUERIDO - Formato HH:MM:SS
   location_id: number; // REQUERIDO - ID del almacén (1=HERMES, 9=GLACIAR)
@@ -217,7 +218,9 @@ export class RequisitionService {
    * Endpoint: GET /api/requisitions/{id}
    */
   getRequisitionById(id: string): Observable<any> {
-    return this.http.get(`${this.API_URL}/requisitions/${id}`).pipe(
+    const url = `${this.API_URL}/requisitions/${id}`;
+    console.log('🌐 GET Request a:', url);
+    return this.http.get(url).pipe(
       tap(response => console.log('✅ Requisición obtenida:', response)),
       catchError(this.handleError)
     );

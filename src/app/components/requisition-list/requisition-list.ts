@@ -1,22 +1,14 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
+import { Observable, Subscription, of } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
+import { RequisitionService } from '../../services/requisition.service';
+import { RequisitionGroupingHelper } from '../../helpers/requisition-grouping.helper';
+import { RequisitionItem } from '../../models/requisition.model';
 import Swal from 'sweetalert2';
-
-// Definir interfaces para los datos
-export interface RequisitionItem {
-  id: string;
-  creator: string;
-  authorizer: string | null;
-  status: 'Pendiente' | 'Autorizada' | 'En Proceso' | 'Surtida' | 'Entregada' | 'Cancelada';
-  creationDate: Date;
-  deliveryDate: Date;
-  areas: string[];
-  totalProducts: number;
-  businessUnit?: string;
-}
 
 @Component({
   selector: 'app-requisition-list',
@@ -25,229 +17,115 @@ export interface RequisitionItem {
   templateUrl: './requisition-list.html',
   styleUrls: ['./requisition-list.scss']
 })
-export class RequisitionListComponent implements OnInit {
+export class RequisitionListComponent implements OnInit, OnDestroy {
   activeSection: string = 'requisicion-lista';
   
-  // Datos agrupados por fecha
-  groupedRequisitions: { [key: string]: RequisitionItem[] } = {};
-  filteredGroupedRequisitions: { [key: string]: RequisitionItem[] } = {};
-  dateGroups: string[] = [];
-  filteredDateGroups: string[] = [];
-  searchTerm: string = '';
+  // Exponer Object para el template
+  Object = Object;
+  
+  // Datos agrupados por fecha - usando signals
+  dateGroups = signal<string[]>([]);
+  groupedRequisitions = signal<{ [key: string]: RequisitionItem[] }>({});
+  filteredDateGroups = signal<string[]>([]);
+  filteredGroupedRequisitions = signal<{ [key: string]: RequisitionItem[] }>({});
+  searchTerm = signal('');
   
   // Filtros de fecha
-  filterStartDate: string = '';
-  filterEndDate: string = '';
-  originalGroupedRequisitions: { [key: string]: RequisitionItem[] } = {};
-  originalDateGroups: string[] = [];
+  filterStartDate = signal('');
+  filterEndDate = signal('');
   
-  // Datos de ejemplo para las requisiciones (fechas actualizadas desde 3 de noviembre de 2025)
-  requisitions: RequisitionItem[] = [
-    {
-      id: 'REQ-001',
-      creator: 'Juan Pérez López',
-      authorizer: 'María González García',
-      status: 'Autorizada',
-      creationDate: new Date('2025-11-01T09:30:00'),
-      deliveryDate: new Date('2025-11-03T10:00:00'), // Hoy
-      areas: ['Cocina', 'Restaurante'],
-      totalProducts: 15,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-002',
-      creator: 'Carlos Rodríguez Martín',
-      authorizer: null,
-      status: 'Pendiente',
-      creationDate: new Date('2025-11-02T14:20:00'),
-      deliveryDate: new Date('2025-11-03T08:00:00'), // Hoy
-      areas: ['Almacén', 'Mantenimiento'],
-      totalProducts: 8,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-003',
-      creator: 'Ana Fernández Ruiz',
-      authorizer: 'Luis Martínez Sánchez',
-      status: 'En Proceso',
-      creationDate: new Date('2025-10-31T11:45:00'),
-      deliveryDate: new Date('2025-11-03T15:30:00'), // Hoy
-      areas: ['Limpieza'],
-      totalProducts: 22,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-004',
-      creator: 'Carmen Jiménez Torres',
-      authorizer: 'Patricia López Hernández',
-      status: 'Surtida',
-      creationDate: new Date('2025-11-01T16:10:00'),
-      deliveryDate: new Date('2025-11-04T12:00:00'), // Mañana
-      areas: ['Cocina', 'Bar', 'Restaurante'],
-      totalProducts: 35,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-005',
-      creator: 'Roberto Silva Mendoza',
-      authorizer: 'María González García',
-      status: 'Entregada',
-      creationDate: new Date('2025-10-30T08:15:00'),
-      deliveryDate: new Date('2025-11-05T09:00:00'), // En 2 días
-      areas: ['Oficina Administrativa'],
-      totalProducts: 12,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-006',
-      creator: 'Luis Martínez Sánchez',
-      authorizer: null,
-      status: 'Cancelada',
-      creationDate: new Date('2025-11-01T13:25:00'),
-      deliveryDate: new Date('2025-11-06T10:30:00'), // En 3 días
-      areas: ['Mantenimiento', 'Seguridad'],
-      totalProducts: 6,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-007',
-      creator: 'Sofía Ramírez Castro',
-      authorizer: 'Carlos Herrera Vega',
-      status: 'Autorizada',
-      creationDate: new Date('2025-11-02T10:15:00'),
-      deliveryDate: new Date('2025-11-07T14:00:00'), // En 4 días
-      areas: ['Farmacia', 'Consultorios'],
-      totalProducts: 28,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-008',
-      creator: 'Diego Morales Soto',
-      authorizer: null,
-      status: 'Pendiente',
-      creationDate: new Date('2025-11-03T16:45:00'),
-      deliveryDate: new Date('2025-11-05T08:30:00'), // En 2 días
-      areas: ['Laboratorio'],
-      totalProducts: 45,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-009',
-      creator: 'Elena Vargas Mendez',
-      authorizer: 'Patricia López Hernández',
-      status: 'En Proceso',
-      creationDate: new Date('2025-11-01T09:20:00'),
-      deliveryDate: new Date('2025-11-03T11:00:00'), // Hoy
-      areas: ['Quirófano', 'Recuperación'],
-      totalProducts: 67,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-010',
-      creator: 'Alejandro Torres Gil',
-      authorizer: 'María González García',
-      status: 'Surtida',
-      creationDate: new Date('2025-10-29T14:30:00'),
-      deliveryDate: new Date('2025-11-04T10:15:00'), // Mañana
-      areas: ['Emergencias'],
-      totalProducts: 33,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-011',
-      creator: 'Natalia Cruz Flores',
-      authorizer: 'Luis Martínez Sánchez',
-      status: 'Entregada',
-      creationDate: new Date('2025-10-28T11:00:00'),
-      deliveryDate: new Date('2025-11-06T16:30:00'), // En 3 días
-      areas: ['Pediatría', 'Neonatología'],
-      totalProducts: 41,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-012',
-      creator: 'Fernando Aguilar Ramos',
-      authorizer: null,
-      status: 'Pendiente',
-      creationDate: new Date('2025-11-02T08:45:00'),
-      deliveryDate: new Date('2025-11-08T12:00:00'), // En 5 días
-      areas: ['Radiología'],
-      totalProducts: 19,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-013',
-      creator: 'Gabriela Ortiz Luna',
-      authorizer: 'Carlos Herrera Vega',
-      status: 'Autorizada',
-      creationDate: new Date('2025-11-01T13:15:00'),
-      deliveryDate: new Date('2025-11-06T09:45:00'), // En 3 días
-      areas: ['Cardiología', 'UCI'],
-      totalProducts: 52,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-014',
-      creator: 'Ricardo Peña Jiménez',
-      authorizer: 'Patricia López Hernández',
-      status: 'En Proceso',
-      creationDate: new Date('2025-10-31T15:30:00'),
-      deliveryDate: new Date('2025-11-03T14:20:00'), // Hoy
-      areas: ['Ginecología'],
-      totalProducts: 24,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-015',
-      creator: 'Valeria Campos Reyes',
-      authorizer: null,
-      status: 'Cancelada',
-      creationDate: new Date('2025-11-01T12:40:00'),
-      deliveryDate: new Date('2025-11-05T16:00:00'), // En 2 días
-      areas: ['Dermatología'],
-      totalProducts: 14,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-016',
-      creator: 'Andrés Ruiz Moreno',
-      authorizer: 'María González García',
-      status: 'Surtida',
-      creationDate: new Date('2025-10-30T10:25:00'),
-      deliveryDate: new Date('2025-11-04T08:45:00'), // Mañana
-      areas: ['Neurología', 'Neurocirugía'],
-      totalProducts: 38,
-      businessUnit: 'Corporativo'
-    },
-    {
-      id: 'REQ-017',
-      creator: 'Claudia Espinoza Valle',
-      authorizer: 'Luis Martínez Sánchez',
-      status: 'Entregada',
-      creationDate: new Date('2025-10-29T16:15:00'),
-      deliveryDate: new Date('2025-11-07T12:30:00'), // En 4 días
-      areas: ['Oftalmología'],
-      totalProducts: 27,
-      businessUnit: 'Unidad Centro'
-    },
-    {
-      id: 'REQ-018',
-      creator: 'Miguel Santos Herrera',
-      authorizer: null,
-      status: 'Pendiente',
-      creationDate: new Date('2025-11-03T09:10:00'),
-      deliveryDate: new Date('2025-11-09T15:45:00'), // En 6 días
-      areas: ['Traumatología'],
-      totalProducts: 46,
-      businessUnit: 'Corporativo'
-    }
-  ];
+  // Datos cargados desde API
+  requisitions = signal<RequisitionItem[]>([]);
+  
+  // Control de carga
+  isLoading = signal(true);
+  
+  // Computed signals
+  hasRequisitions = computed(() => this.filteredDateGroups().length > 0);
+  totalCount = computed(() => 
+    Object.values(this.filteredGroupedRequisitions())
+      .reduce((sum, reqs) => sum + reqs.length, 0)
+  );
+  
+  // Subscription para limpiar
+  private navigationSubscription?: Subscription;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private requisitionService: RequisitionService
+  ) {}
 
   ngOnInit(): void {
     console.log('RequisitionListComponent initialized');
-    this.groupRequisitionsByDate();
+    this.loadRequisitions();
+    
+    // Recargar datos cuando se navega de vuelta a este componente
+    this.navigationSubscription = this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      if (event.url.includes('/requisicion/lista')) {
+        console.log('🔄 Recargando datos del listado...');
+        this.loadRequisitions();
+      }
+    });
+  }
+  
+  ngOnDestroy(): void {
+    // Limpiar suscripción
+    if (this.navigationSubscription) {
+      this.navigationSubscription.unsubscribe();
+    }
+  }
+  
+  // TrackBy para ayudar a Angular a rastrear cambios
+  trackByDateGroup(index: number, dateGroup: string): string {
+    return dateGroup;
+  }
+  
+  loadRequisitions(): void {
+    console.log('🔄 Cargando requisiciones desde API...');
+    this.isLoading.set(true);
+
+    this.requisitionService.getRequisitions().subscribe({
+      next: (response) => {
+        // Detectar estructura del response automáticamente
+        let apiItems: any[] = [];
+        
+        if (Array.isArray(response.data)) {
+          apiItems = response.data;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          apiItems = response.data.items;
+        } else if (response.data.requisitions && Array.isArray(response.data.requisitions)) {
+          apiItems = response.data.requisitions;
+        } else {
+          console.error('❌ No se pudo encontrar el array de requisiciones');
+        }
+        
+        // Usar Helper para transformar y agrupar
+        const mappedRequisitions = RequisitionGroupingHelper.mapFromAPI(apiItems);
+        this.requisitions.set(mappedRequisitions);
+        
+        const { grouped, dateKeys } = RequisitionGroupingHelper.groupByDeliveryDate(mappedRequisitions);
+        
+        // Actualizar signals
+        this.groupedRequisitions.set(grouped);
+        this.dateGroups.set(dateKeys);
+        this.filteredGroupedRequisitions.set({ ...grouped });
+        this.filteredDateGroups.set([...dateKeys]);
+        
+        this.isLoading.set(false);
+        console.log('✅ Cargadas:', mappedRequisitions.length, 'requisiciones en', dateKeys.length, 'grupos de fechas');
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar requisiciones:', error);
+        this.isLoading.set(false);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron cargar las requisiciones'
+        });
+      }
+    });
   }
 
   onSectionChange(section: string): void {
@@ -255,127 +133,27 @@ export class RequisitionListComponent implements OnInit {
   }
 
   formatDate(date: Date): string {
-    const months = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
-    
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    
-    return `${day}-${month}-${year}`;
+    return RequisitionGroupingHelper.formatDate(date);
   }
 
   formatTime(date: Date): string {
-    return date.toLocaleTimeString('es-ES', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return RequisitionGroupingHelper.formatTime(date);
   }
 
   formatDateWithTime(date: Date): string {
-    return `${this.formatDate(date)} ${this.formatTime(date)}`;
-  }
-
-  formatDateSection(date: Date): string {
-    const months = [
-      'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-      'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-    ];
-    
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    
-    return `${day}-${month}-${year}`;
-  }
-
-  groupRequisitionsByDate(): void {
-    this.groupedRequisitions = {};
-    this.dateGroups = [];
-    
-    // Obtener la fecha de hoy para comparaciones
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Obtener el nombre del día de la semana en español
-    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const todayName = dayNames[today.getDay()];
-    
-    // Separar requisiciones en grupos
-    const pastAndTodayRequisitions: RequisitionItem[] = [];
-    const futureGrouped: { [key: string]: RequisitionItem[] } = {};
-    
-    this.requisitions.forEach(requisition => {
-      const deliveryDate = new Date(requisition.deliveryDate);
-      deliveryDate.setHours(0, 0, 0, 0);
-      
-      console.log(`Requisición ${requisition.id} - deliveryDate: ${requisition.deliveryDate} - es pasada/hoy: ${deliveryDate <= today}`);
-      
-      if (deliveryDate <= today) {
-        // Si es hoy o anterior, agregar al grupo especial
-        pastAndTodayRequisitions.push(requisition);
-      } else {
-        // Si es futura, agrupar por fecha individual
-        const dateKey = this.formatDateSection(requisition.deliveryDate);
-        if (!futureGrouped[dateKey]) {
-          futureGrouped[dateKey] = [];
-        }
-        futureGrouped[dateKey].push(requisition);
-      }
-    });
-    
-    // Crear el grupo especial para hoy y anteriores
-    if (pastAndTodayRequisitions.length > 0) {
-      const todayAndPastKey = `Hoy - ${todayName} y anteriores`;
-      this.groupedRequisitions[todayAndPastKey] = pastAndTodayRequisitions;
-      this.dateGroups.push(todayAndPastKey);
-    }
-    
-    // Agregar grupos futuros ordenados
-    const futureDates = Object.keys(futureGrouped).map(dateStr => {
-      // Convertir fecha string de vuelta a Date para poder ordenar correctamente
-      const parts = dateStr.split('-');
-      const day = parseInt(parts[0]);
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-      const monthIndex = monthNames.indexOf(parts[1]);
-      const year = parseInt(parts[2]);
-      
-      const dateObj = new Date(year, monthIndex, day);
-      
-      return {
-        dateStr,
-        date: dateObj
-      };
-    }).sort((a, b) => a.date.getTime() - b.date.getTime()); // Ordenar fechas futuras ascendente
-    
-    // Agregar grupos futuros
-    futureDates.forEach(dateItem => {
-      this.groupedRequisitions[dateItem.dateStr] = futureGrouped[dateItem.dateStr];
-      this.dateGroups.push(dateItem.dateStr);
-    });
-    
-    console.log('Fechas agrupadas:', this.dateGroups);
-    console.log('Grupos de requisiciones:', this.groupedRequisitions);
-    
-    // Guardar los datos originales para filtrado
-    this.originalGroupedRequisitions = { ...this.groupedRequisitions };
-    this.originalDateGroups = [...this.dateGroups];
-    
-    // Inicializar datos filtrados
-    this.filteredGroupedRequisitions = { ...this.groupedRequisitions };
-    this.filteredDateGroups = [...this.dateGroups];
+    return RequisitionGroupingHelper.formatDateWithTime(date);
   }
 
   getStatusClass(status: string): string {
-    // Usando solo clases de Bootstrap que corresponden a los colores globales
+    // Mapeo de estados del API a clases Bootstrap
     const statusClasses: { [key: string]: string } = {
-      'Pendiente': 'badge bg-warning text-dark',      // usa --bs-warning
-      'Autorizada': 'badge bg-success text-white',    // usa --bs-success  
-      'En Proceso': 'badge bg-primary text-white',    // usa --bs-primary
-      'Completada': 'badge bg-secondary text-white',  // Bootstrap estándar
-      'Cancelada': 'badge bg-danger text-white'       // usa --bs-danger
+      'Solicitado': 'badge bg-warning text-dark',           // usa --bs-warning
+      'Autorizada': 'badge bg-success text-white',          // usa --bs-success  
+      'En Proceso': 'badge bg-primary text-white',          // usa --bs-primary
+      'Listo para Recoger': 'badge bg-info text-white',     // usa --bs-info
+      'Entregado': 'badge bg-secondary text-white',         // Bootstrap estándar
+      'Espera Devolución': 'badge bg-cyan text-white',      // devolución pendiente
+      'Cancelado': 'badge bg-danger text-white'             // usa --bs-danger
     };
     return statusClasses[status] || 'badge bg-secondary text-white';
   }
@@ -409,10 +187,14 @@ export class RequisitionListComponent implements OnInit {
       if (result.isConfirmed) {
         console.log('Eliminar requisición:', requisition);
         // Aquí implementarías la lógica de eliminación
-        this.requisitions = this.requisitions.filter(r => r.id !== requisition.id);
+        this.requisitions.update(reqs => reqs.filter(r => r.id !== requisition.id));
         
-        // Reagrupar después de eliminar
-        this.groupRequisitionsByDate();
+        // Reagrupar después de eliminar usando Helper
+        const { grouped, dateKeys } = RequisitionGroupingHelper.groupByDeliveryDate(this.requisitions());
+        this.groupedRequisitions.set(grouped);
+        this.dateGroups.set(dateKeys);
+        this.filteredGroupedRequisitions.set({ ...grouped });
+        this.filteredDateGroups.set([...dateKeys]);
         
         Swal.fire({
           icon: 'success',
@@ -441,7 +223,7 @@ export class RequisitionListComponent implements OnInit {
   }
 
   canDelete(requisition: RequisitionItem): boolean {
-    return requisition.status === 'Pendiente' || requisition.status === 'Cancelada';
+    return requisition.status === 'Solicitado' || requisition.status === 'Cancelado';
   }
 
   canSupply(requisition: RequisitionItem): boolean {
@@ -454,11 +236,14 @@ export class RequisitionListComponent implements OnInit {
 
   warehouseSupply(requisition: RequisitionItem): void {
     console.log('Gestionar en almacén:', requisition);
+    
+    // Extraer el número del ID (REQ-0006 -> 6)
+    const numericId = requisition.id.replace(/^REQ-0*/, '');
+    
     // Navegar a la vista de almacén/surtido
     this.router.navigate(['/almacen/surtir'], {
       queryParams: {
-        id: requisition.id,
-        mode: 'supply'
+        id: numericId
       }
     });
   }
@@ -472,7 +257,12 @@ export class RequisitionListComponent implements OnInit {
 
   // Función para verificar si hay requisiciones para consolidar
   hasAuthorizedRequisitions(): boolean {
-    return this.requisitions.some((req: RequisitionItem) => req.status === 'Autorizada' || req.status === 'En Proceso');
+    const filtered = this.filteredGroupedRequisitions();
+    return filtered && Object.keys(filtered).some(dateGroup =>
+      filtered[dateGroup].some((req: RequisitionItem) => 
+        req.status === 'Autorizada' || req.status === 'En Proceso'
+      )
+    );
   }
 
   // Métodos para exportar e imprimir
@@ -480,8 +270,9 @@ export class RequisitionListComponent implements OnInit {
     // Crear CSV con los datos filtrados agrupados por fecha
     let csvContent = 'Fecha de Entrega,Hora de Entrega,ID,Creador,Unidad de Negocio,Autorizador,Estatus,Fecha de Creación,Hora de Creación\n';
     
-    this.filteredDateGroups.forEach(dateGroup => {
-      this.filteredGroupedRequisitions[dateGroup].forEach(req => {
+    const filteredGroups = this.filteredGroupedRequisitions();
+    this.filteredDateGroups().forEach(dateGroup => {
+      filteredGroups[dateGroup].forEach(req => {
         const row = [
           this.formatDate(req.deliveryDate),
           this.formatTime(req.deliveryDate),
@@ -534,9 +325,10 @@ export class RequisitionListComponent implements OnInit {
           <h1>Lista de Requisiciones por Fecha</h1>
     `;
     
-    this.filteredDateGroups.forEach(dateGroup => {
+    const filteredGroups = this.filteredGroupedRequisitions();
+    this.filteredDateGroups().forEach(dateGroup => {
       printContent += `
-        <h2>${dateGroup} (${this.filteredGroupedRequisitions[dateGroup].length} requisiciones)</h2>
+        <h2>${dateGroup} (${filteredGroups[dateGroup].length} requisiciones)</h2>
         <table>
           <thead>
             <tr>
@@ -552,7 +344,7 @@ export class RequisitionListComponent implements OnInit {
           <tbody>
       `;
       
-      this.filteredGroupedRequisitions[dateGroup].forEach(req => {
+      filteredGroups[dateGroup].forEach(req => {
         printContent += `
           <tr>
             <td><strong>${req.id}</strong></td>
@@ -579,111 +371,42 @@ export class RequisitionListComponent implements OnInit {
     }
   }
 
-  // Método para buscar
+  // Método para buscar - delegar al API
   performSearch(): void {
-    if (!this.searchTerm || this.searchTerm.trim() === '') {
-      // Si no hay búsqueda, mostrar todo
-      this.filteredGroupedRequisitions = { ...this.groupedRequisitions };
-      this.filteredDateGroups = [...this.dateGroups];
-      return;
-    }
-    
-    const searchTermLower = this.searchTerm.toLowerCase();
-    this.filteredGroupedRequisitions = {};
-    this.filteredDateGroups = [];
-    
-    // Filtrar en cada grupo de fecha
-    this.dateGroups.forEach(dateGroup => {
-      const filteredRequisitions = this.groupedRequisitions[dateGroup].filter(requisition => {
-        // Formatear la fecha de entrega para búsqueda
-        const deliveryDateFormatted = this.formatDate(requisition.deliveryDate).toLowerCase();
-        
-        return (
-          requisition.id.toLowerCase().includes(searchTermLower) ||
-          requisition.creator.toLowerCase().includes(searchTermLower) ||
-          (requisition.businessUnit && requisition.businessUnit.toLowerCase().includes(searchTermLower)) ||
-          (requisition.authorizer && requisition.authorizer.toLowerCase().includes(searchTermLower)) ||
-          requisition.status.toLowerCase().includes(searchTermLower) ||
-          deliveryDateFormatted.includes(searchTermLower) ||
-          // Buscar también en partes de la fecha (día, mes, año por separado)
-          requisition.deliveryDate.getDate().toString().includes(this.searchTerm) ||
-          requisition.deliveryDate.getFullYear().toString().includes(this.searchTerm)
-        );
-      });
-      
-      // También verificar si el término de búsqueda coincide con el nombre del grupo de fecha
-      const groupMatches = dateGroup.toLowerCase().includes(searchTermLower);
-      
-      // Solo incluir grupos de fecha que tengan requisiciones que coincidan O que el grupo mismo coincida
-      if (filteredRequisitions.length > 0 || groupMatches) {
-        // Si el grupo coincide pero no hay requisiciones filtradas, mostrar todas las del grupo
-        this.filteredGroupedRequisitions[dateGroup] = filteredRequisitions.length > 0 ? filteredRequisitions : this.groupedRequisitions[dateGroup];
-        this.filteredDateGroups.push(dateGroup);
-      }
-    });
+    // Recargar datos con el término de búsqueda actual
+    this.loadRequisitions();
   }
 
-  // Métodos para filtrado por fecha
+  // Métodos para filtrado por fecha (del lado del cliente)
   applyDateFilter(): void {
-    // Empezar con los datos originales
-    let dataToFilter = { ...this.originalGroupedRequisitions };
-    let groupsToFilter = [...this.originalDateGroups];
-    
-    // Aplicar filtro de fecha si está configurado
-    if (this.filterStartDate || this.filterEndDate) {
-      const startDate = this.filterStartDate ? new Date(this.filterStartDate) : null;
-      const endDate = this.filterEndDate ? new Date(this.filterEndDate) : null;
-      
-      // Normalizar fechas para comparación (solo fecha, sin hora)
-      if (startDate) startDate.setHours(0, 0, 0, 0);
-      if (endDate) endDate.setHours(23, 59, 59, 999);
-      
-      const filteredByDate: { [key: string]: RequisitionItem[] } = {};
-      
-      groupsToFilter.forEach(dateGroup => {
-        const filteredRequisitions = dataToFilter[dateGroup].filter(requisition => {
-          const deliveryDate = new Date(requisition.deliveryDate);
-          deliveryDate.setHours(0, 0, 0, 0);
-          
-          let matchesDateRange = true;
-          
-          if (startDate && deliveryDate < startDate) {
-            matchesDateRange = false;
-          }
-          
-          if (endDate && deliveryDate > endDate) {
-            matchesDateRange = false;
-          }
-          
-          return matchesDateRange;
-        });
-        
-        if (filteredRequisitions.length > 0) {
-          filteredByDate[dateGroup] = filteredRequisitions;
-        }
-      });
-      
-      dataToFilter = filteredByDate;
-      groupsToFilter = Object.keys(filteredByDate);
+    if (!this.filterStartDate() && !this.filterEndDate()) {
+      // Si no hay filtros de fecha, usar datos completos
+      this.filteredGroupedRequisitions.set({ ...this.groupedRequisitions() });
+      this.filteredDateGroups.set([...this.dateGroups()]);
+      return;
     }
+
+    const startDate = this.filterStartDate() ? new Date(this.filterStartDate()) : undefined;
+    const endDate = this.filterEndDate() ? new Date(this.filterEndDate()) : undefined;
     
-    // Actualizar los datos que usará la búsqueda
-    this.groupedRequisitions = dataToFilter;
-    this.dateGroups = groupsToFilter;
+    // Usar Helper para filtrar
+    const { grouped, dateKeys } = RequisitionGroupingHelper.filterByDateRange(
+      this.groupedRequisitions(),
+      this.dateGroups(),
+      startDate,
+      endDate
+    );
     
-    // Aplicar búsqueda de texto si existe
-    this.performSearch();
+    this.filteredGroupedRequisitions.set(grouped);
+    this.filteredDateGroups.set(dateKeys);
   }
 
   clearDateFilter(): void {
-    this.filterStartDate = '';
-    this.filterEndDate = '';
+    this.filterStartDate.set('');
+    this.filterEndDate.set('');
     
-    // Restaurar datos originales
-    this.groupedRequisitions = { ...this.originalGroupedRequisitions };
-    this.dateGroups = [...this.originalDateGroups];
-    
-    // Aplicar búsqueda de texto si existe
-    this.performSearch();
+    // Restaurar datos completos sin filtro de fecha
+    this.filteredGroupedRequisitions.set({ ...this.groupedRequisitions() });
+    this.filteredDateGroups.set([...this.dateGroups()]);
   }
 }

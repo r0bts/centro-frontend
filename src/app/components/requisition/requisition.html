@@ -35,9 +35,12 @@
                       <select 
                         class="form-select" 
                         [(ngModel)]="businessUnit"
-                        (change)="onLocationChange()">
-                        <option value="">Seleccionar locación</option>
-                        <option *ngFor="let location of locations" [value]="location.name">{{ location.name }}</option>
+                        (change)="onLocationChange()"
+                        [disabled]="isLoadingFormData || locations.length === 0">
+                        <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar locación' }}</option>
+                        <option *ngFor="let location of locations; trackBy: trackByLocationId" [value]="location.name">
+                          {{ location.name }}
+                        </option>
                       </select>
                     </div>
                     
@@ -60,14 +63,14 @@
                       <select 
                         class="form-select" 
                         [(ngModel)]="selectedEvent"
-                        (change)="onEventChange()">
-                        <option value="">Seleccionar evento</option>
+                        (change)="onEventChange()"
+                        [disabled]="isLoadingFormData || projects.length === 0">
+                        <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar evento' }}</option>
                         <option 
-                          *ngFor="let project of projects" 
+                          *ngFor="let project of projects; trackBy: trackByProjectId" 
                           [value]="project.id"
                           [disabled]="isEventDatePassed(project.date)">
-                          {{ project.name }} ({{ formatDate(project.date) }})
-                        </option>
+                          {{ project.name }} ({{ formatDate(project.date) }})  </option>
                       </select>
                       <small class="text-muted">*Entrega el mismo día del evento</small>
                     </div>
@@ -134,7 +137,7 @@
                 <button 
                   type="button"
                   class="dropdown-item d-flex justify-content-between"
-                  *ngFor="let area of filteredAreas"
+                  *ngFor="let area of filteredAreas; trackBy: trackByString"
                   (mousedown)="selectArea(area)">
                   <span>{{ area }}</span>
                   <span *ngIf="hasProductsInArea(area)" class="text-success">✓</span>
@@ -176,7 +179,7 @@
                 <button 
                   type="button"
                   class="dropdown-item"
-                  *ngFor="let product of filteredProducts"
+                  *ngFor="let product of filteredProducts; trackBy: trackByString"
                   (mousedown)="selectProduct(product)">
                   {{ product }}
                 </button>
@@ -321,7 +324,7 @@
               <small>Selecciona un área, agrega productos y presiona "Aceptar"</small>
             </div>
             
-            <div *ngFor="let summary of requisitionSummary" class="mb-4">
+            <div *ngFor="let summary of requisitionSummary; trackBy: trackByAreaName" class="mb-4">
               <div class="d-flex justify-content-between align-items-start mb-3">
                 <div class="flex-grow-1">
                   <h5 class="text-primary fw-bold mb-1">{{ summary.area }}</h5>
@@ -343,7 +346,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let product of summary.products">
+                    <tr *ngFor="let product of summary.products; trackBy: trackByProductName">
                       <td class="fs-6 py-2">{{ product.name }}</td>
                       <td class="fs-6 py-2">{{ product.quantity }}</td>
                       <td class="fs-6 py-2">{{ product.unit }}</td>
@@ -386,7 +389,7 @@
             <small>Sin áreas</small>
           </div>
           
-          <div *ngFor="let summary of requisitionSummary" class="mb-2">
+          <div *ngFor="let summary of requisitionSummary; trackBy: trackByAreaName" class="mb-2">
             <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
               <div class="flex-grow-1">
                 <small class="text-primary fw-bold">{{ summary.area }}</small>
@@ -402,8 +405,8 @@
 </div>
 
 <!-- Modal de confirmación para cambio de área -->
-<div class="modal" [style.display]="showAreaChangeModal ? 'block' : 'none'" 
-     style="z-index: 9999; background-color: rgba(0, 0, 0, 0.3);" 
+<div class="modal" *ngIf="showAreaChangeModal" 
+     style="display: block; z-index: 9999; background-color: rgba(0, 0, 0, 0.3);" 
      (click)="closeAreaChangeModal()">
   <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
     <div class="modal-content shadow-lg border-0">
@@ -436,7 +439,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let product of products">
+                  <tr *ngFor="let product of products; trackBy: trackByProductId">
                     <td>{{ product.name }}</td>
                     <td>{{ product.quantity }}</td>
                     <td>{{ product.unit }}</td>

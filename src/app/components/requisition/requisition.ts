@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
 import { RequisitionService, RequisitionProduct, Project as BackendProject, RequisitionArea, Location } from '../../services/requisition.service';
 import Swal from 'sweetalert2';
@@ -38,9 +40,10 @@ export interface RequisitionSummary {
   standalone: true,
   imports: [CommonModule, FormsModule, ContentMenu],
   templateUrl: './requisition.html',
-  styleUrls: ['./requisition.scss']
+  styleUrls: ['./requisition.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RequisitionComponent implements OnInit {
+export class RequisitionComponent implements OnInit, OnDestroy {
   activeSection: string = 'requisicion';
   
   // Propiedad para devolución
@@ -62,7 +65,8 @@ export class RequisitionComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private requisitionService: RequisitionService
+    private requisitionService: RequisitionService,
+    private cdr: ChangeDetectorRef
   ) {
     // Verificar si vienen datos del estado de navegación (desde confirmation)
     const navigation = this.router.getCurrentNavigation();
@@ -100,6 +104,11 @@ export class RequisitionComponent implements OnInit {
   productNames: string[] = []; // Nombres para búsqueda
   selectedProductData: RequisitionProduct | null = null; // Producto seleccionado completo
   
+  // ⚡ Optimizaciones de rendimiento
+  private productMap: Map<string, RequisitionProduct> = new Map(); // Map indexado para búsqueda O(1)
+  private productSearchSubject = new Subject<string>();
+  private areaSearchSubject = new Subject<string>();
+  
   projects: Project[] = []; // Proyectos/eventos del backend (141)
   
   backendAreas: RequisitionArea[] = []; // Áreas del backend (78)
@@ -122,6 +131,62 @@ export class RequisitionComponent implements OnInit {
     
     // ✅ Cargar datos del backend
     this.loadFormData();
+    
+    // ⚡ Configurar debounce para búsquedas
+    this.setupSearchDebounce();
+  }
+  
+  /**
+   * ⚡ Configurar debounce para optimizar búsquedas
+   */
+  private setupSearchDebounce(): void {
+    // Debounce para búsqueda de productos (300ms)
+    this.productSearchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(searchTerm => {
+      this.performProductSearch(searchTerm);
+      this.cdr.markForCheck();
+    });
+    
+    // Debounce para búsqueda de áreas (300ms)
+    this.areaSearchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(searchTerm => {
+      this.performAreaSearch(searchTerm);
+      this.cdr.markForCheck();
+    });
+  }
+  
+  /**
+   * ⚡ Ejecuta la búsqueda de productos (llamada después del debounce)
+   */
+  private performProductSearch(searchTerm: string): void {
+    const availableProductsForArea = this.getAvailableProductsForCurrentArea();
+    
+    if (searchTerm.trim() === '') {
+      this.filteredProducts = availableProductsForArea;
+    } else {
+      const lowerSearch = searchTerm.toLowerCase();
+      this.filteredProducts = availableProductsForArea.filter(product => 
+        product.toLowerCase().includes(lowerSearch)
+      );
+    }
+  }
+  
+  /**
+   * ⚡ Ejecuta la búsqueda de áreas (llamada después del debounce)
+   */
+  private performAreaSearch(searchTerm: string): void {
+    if (searchTerm.trim() === '') {
+      this.filteredAreas = this.areas;
+    } else {
+      const lowerSearch = searchTerm.toLowerCase();
+      this.filteredAreas = this.areas.filter(area => 
+        area.toLowerCase().includes(lowerSearch)
+      );
+    }
   }
 
   /**
@@ -146,29 +211,37 @@ export class RequisitionComponent implements OnInit {
     this.requisitionService.getFormData().subscribe({
       next: (response) => {
         if (response.success) {
-          // ✅ Cargar productos del catálogo (651)
-          this.backendProducts = response.data.products;
-          this.productNames = this.backendProducts.map(p => p.name);
+          // ⚡ PRIORIDAD 1: Cargar locaciones PRIMERO (solo 2, instantáneo)
+          this.locations = response.data.locations;
+          this.cdr.markForCheck(); // Actualizar UI inmediatamente con locaciones
           
-          // ✅ Cargar proyectos/eventos (141)
+          // ⚡ PRIORIDAD 2: Cargar proyectos/eventos (141) - necesarios para fechas
           this.projects = response.data.projects.map(project => ({
             ...project,
             date: new Date(project.date) // Convertir string a Date
           }));
+          this.cdr.markForCheck();
           
-          // ✅ Cargar áreas (78)
+          // ⚡ PRIORIDAD 3: Cargar áreas (78)
           this.backendAreas = response.data.areas;
           this.areas = this.backendAreas.map(a => a.name);
-          
-          // ✅ Cargar locaciones (2: GLACIAR, HERMES)
-          this.locations = response.data.locations;
-          
-          // Inicializar filtros
           this.filteredAreas = this.areas;
+          this.cdr.markForCheck();
+          
+          // ⚡ PRIORIDAD 4: Cargar productos (651) - procesamiento más pesado
+          this.backendProducts = response.data.products;
+          this.productNames = this.backendProducts.map(p => p.name);
           this.filteredProducts = this.productNames;
+          
+          // ⚡ Crear Map indexado para búsqueda O(1) - proceso intensivo
+          this.productMap.clear();
+          this.backendProducts.forEach(product => {
+            this.productMap.set(product.name, product);
+          });
           
           Swal.close();
           this.isLoadingFormData = false;
+          this.cdr.markForCheck(); // ⚡ Marcar para detección de cambios final
           
           console.log('✅ Datos del formulario cargados:', {
             productos: this.backendProducts.length,
@@ -265,13 +338,8 @@ export class RequisitionComponent implements OnInit {
 
   onAreaSearch(): void {
     this.showAreaDropdown = true;
-    if (this.areaSearchTerm.trim() === '') {
-      this.filteredAreas = this.areas;
-    } else {
-      this.filteredAreas = this.areas.filter(area => 
-        area.toLowerCase().includes(this.areaSearchTerm.toLowerCase())
-      );
-    }
+    // ⚡ Usar Subject para debounce (optimiza búsqueda)
+    this.areaSearchSubject.next(this.areaSearchTerm);
   }
 
   selectArea(area: string): void {
@@ -291,6 +359,7 @@ export class RequisitionComponent implements OnInit {
     this.showAreaDropdown = false;
     this.preventBlurProcessing = true; // Evitar que onAreaBlur procese
     this.onAreaChange();
+    this.cdr.markForCheck(); // ⚡ Marcar para detección de cambios
   }
 
   onAreaFocus(): void {
@@ -332,23 +401,16 @@ export class RequisitionComponent implements OnInit {
 
   onProductSearch(): void {
     this.showProductDropdown = true;
-    const availableProductsForArea = this.getAvailableProductsForCurrentArea();
-    
-    if (this.productSearchTerm.trim() === '') {
-      this.filteredProducts = availableProductsForArea;
-    } else {
-      this.filteredProducts = availableProductsForArea.filter(product => 
-        product.toLowerCase().includes(this.productSearchTerm.toLowerCase())
-      );
-    }
+    // ⚡ Usar Subject para debounce (optimiza búsqueda)
+    this.productSearchSubject.next(this.productSearchTerm);
   }
 
   selectProduct(product: string): void {
     this.productSearchTerm = product;
     this.showProductDropdown = false;
     
-    // ✅ Buscar el producto completo del backend para obtener su unidad
-    this.selectedProductData = this.backendProducts.find(p => p.name === product) || null;
+    // ⚡ Buscar usando Map indexado (O(1) en lugar de O(n))
+    this.selectedProductData = this.productMap.get(product) || null;
     
     if (this.selectedProductData) {
       console.log('Producto seleccionado:', {
@@ -602,28 +664,24 @@ export class RequisitionComponent implements OnInit {
       return this.productNames; // ✅ Usar productNames del backend
     }
 
-    // Obtener productos que ya están en el área actual (en la lista temporal y en el resumen)
-    const currentAreaProducts: string[] = [];
+    // ⚡ Usar Set para búsqueda O(1) en lugar de includes() O(n)
+    const currentAreaProductsSet = new Set<string>();
     
     // Agregar productos de la lista temporal actual
     this.products.forEach(product => {
-      if (!currentAreaProducts.includes(product.name)) {
-        currentAreaProducts.push(product.name);
-      }
+      currentAreaProductsSet.add(product.name);
     });
     
     // Agregar productos del resumen si existe una requisición para esta área
     const existingRequisition = this.requisitionSummary.find(req => req.area === this.selectedArea);
     if (existingRequisition) {
       existingRequisition.products.forEach(product => {
-        if (!currentAreaProducts.includes(product.name)) {
-          currentAreaProducts.push(product.name);
-        }
+        currentAreaProductsSet.add(product.name);
       });
     }
     
-    // Filtrar productos disponibles excluyendo los que ya están en el área actual
-    return this.productNames.filter(productName => !currentAreaProducts.includes(productName));
+    // ⚡ Filtrar productos disponibles usando Set.has() - mucho más rápido que includes()
+    return this.productNames.filter(productName => !currentAreaProductsSet.has(productName));
   }
 
   removeProduct(productId: string): void {
@@ -678,10 +736,6 @@ export class RequisitionComponent implements OnInit {
   isValidQuantity(): boolean {
     const quantity = parseInt(this.currentQuantity);
     return this.currentQuantity.trim() !== '' && !isNaN(quantity) && quantity > 0;
-  }
-
-  trackByProductId(index: number, product: Product): string {
-    return product.id;
   }
 
   onSectionChange(section: string): void {
@@ -903,5 +957,36 @@ export class RequisitionComponent implements OnInit {
   // Método obsoleto - reemplazado por addToRequisitionAndChange
   confirmAreaChange(): void {
     this.addToRequisitionAndChange();
+  }
+  
+  // ⚡ TrackBy functions para optimizar *ngFor (evita re-renders innecesarios)
+  trackByProductId(index: number, product: Product): string {
+    return product.id;
+  }
+  
+  trackByAreaName(index: number, summary: RequisitionSummary): string {
+    return summary.area;
+  }
+  
+  trackByProductName(index: number, product: Product): string {
+    return product.name;
+  }
+  
+  trackByString(index: number, item: string): string {
+    return item;
+  }
+  
+  trackByLocationId(index: number, location: Location): string {
+    return location.id || location.name; // Usar name como fallback
+  }
+  
+  trackByProjectId(index: number, project: Project): string {
+    return project.id;
+  }
+  
+  ngOnDestroy(): void {
+    // ⚡ Cleanup de subscriptions
+    this.productSearchSubject.complete();
+    this.areaSearchSubject.complete();
   }
 }
