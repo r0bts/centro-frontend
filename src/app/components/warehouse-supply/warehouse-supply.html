@@ -256,7 +256,7 @@
                               inputmode="numeric"
                               placeholder="0"
                               (input)="updateSuppliedQuantity(product, $event)"
-                              [disabled]="product.availableStock === 0">
+                              [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)">
                           </div>
                         </td>
 
@@ -282,7 +282,7 @@
                             class="btn btn-sm"
                             [class.btn-success]="!product.isSupplied"
                             [class.btn-outline-secondary]="product.isSupplied"
-                            [disabled]="product.availableStock === 0"
+                            [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)"
                             (click)="toggleProductSupply(product.id)"
                             [title]="product.isSupplied ? 'Revertir surtido' : 'Marcar como surtido'">
                             <i *ngIf="!product.isSupplied" class="bi bi-check-lg"></i>
@@ -403,7 +403,7 @@
                             inputmode="numeric"
                             placeholder="0"
                             (input)="updateSuppliedQuantity(product, $event)"
-                            [disabled]="product.availableStock === 0">
+                            [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)">
                         </div>
                       </td>
 
@@ -429,7 +429,7 @@
                           class="btn btn-sm"
                           [class.btn-success]="!product.isSupplied"
                           [class.btn-outline-secondary]="product.isSupplied"
-                          [disabled]="product.availableStock === 0"
+                          [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)"
                           (click)="toggleProductSupply(product.id)"
                           [title]="product.isSupplied ? 'Revertir surtido' : 'Marcar como surtido'">
                           <i *ngIf="!product.isSupplied" class="bi bi-x"></i>
@@ -462,31 +462,52 @@
                 </button>
 
                <div class="d-flex flex-column flex-sm-row gap-2">
+                  <!-- Botón: Listo para Recolección (estado: autorizado) -->
                   <button 
+                    *ngIf="canMarkReady()"
                     type="button" 
                     class="btn btn-primary"
                     [disabled]="!canCompleteSupply()"
                     (click)="markReadyForCollection()">
-                    Listo para recolección
+                    Listo para Recolección
                   </button>
+                  
+                  <!-- Botón: Completar Surtido (estado: listo_recoger) -->
                   <button 
+                    *ngIf="canDeliver()"
                     type="button" 
                     class="btn btn-success"
-                    [disabled]="!canCompleteSupply()"
                     (click)="completeSupply()">
-                    Completar surtido
+                    Completar Surtido
                   </button>
                   
+                  <!-- Botón: Procesar Devoluciones (estado: entregado/espera_devolucion + awaiting_return) -->
                   <button 
-                    *ngIf="showReturnColumn()"
+                    *ngIf="canProcessReturn()"
                     type="button" 
-                    class="btn btn-outline-warning"
+                    class="btn btn-warning"
                     [disabled]="!hasProductsToReturn()"
                     (click)="returnProductsToWarehouse()">
-                    Procesar devoluciones
+                    Procesar Devoluciones
                   </button>
                   
+                  <!-- Mensaje: Requisición completada (entregado sin devoluciones pendientes) -->
+                  <div *ngIf="requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return" 
+                       class="alert alert-success mb-0 d-flex align-items-center">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    <span>Requisición completada - No hay acciones pendientes</span>
+                  </div>
                   
+                  <!-- Badge de estado actual -->
+                  <div class="d-flex align-items-center ms-2">
+                    <span class="badge" 
+                          [class.bg-secondary]="requisition()?.statusRaw === 'autorizado'"
+                          [class.bg-primary]="requisition()?.statusRaw === 'listo_recoger'"
+                          [class.bg-success]="requisition()?.statusRaw === 'entregado'"
+                          [class.bg-warning]="requisition()?.statusRaw === 'espera_devolucion'">
+                      {{ requisition()?.status }}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -545,8 +566,8 @@
           
           <div class="text-center">
             <small class="text-muted">
-              <span *ngIf="generatedNip()">Use el NIP generado para recolección: <span class="fw-bold text-primary">{{ generatedNip() }}</span></span>
-              <span *ngIf="!generatedNip()">Para pruebas use: <span class="fw-bold">1234</span></span>
+              <span *ngIf="requisition()?.pin">El PIN de esta requisición es: <span class="fw-bold text-primary">{{ requisition()?.pin }}</span></span>
+              <span *ngIf="!requisition()?.pin">Ingrese el PIN de 4 dígitos</span>
             </small>
           </div>
         </div>

@@ -258,4 +258,60 @@ export class RequisitionService {
       catchError(this.handleError)
     );
   }
+
+  /**
+   * Marcar requisición como lista para recoger
+   * Endpoint: POST /api/requisitions/{id}/mark-ready
+   */
+  markReady(id: string, items: Array<{item_id: number, delivered_quantity: number}>): Observable<any> {
+    return this.http.post(`${this.API_URL}/requisitions/${id}/mark-ready`, { items }).pipe(
+      tap(response => console.log('✅ Requisición marcada como lista:', response)),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Entregar requisición con PIN
+   * Endpoint: POST /api/requisitions/{id}/deliver
+   */
+  deliver(id: string, pin: string, items?: Array<{item_id: number, delivered_quantity: number}>): Observable<any> {
+    const body: any = { pin };
+    if (items && items.length > 0) {
+      body.items = items;
+    }
+    return this.http.post(`${this.API_URL}/requisitions/${id}/deliver`, body).pipe(
+      tap(response => console.log('✅ Requisición entregada:', response)),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Procesar devolución de productos
+   * Endpoint: POST /api/requisitions/{id}/process-return
+   */
+  processReturn(id: string, items: Array<{item_id: number, returned_quantity: number}>, notes?: string): Observable<any> {
+    const body: any = { items };
+    if (notes) {
+      body.notes = notes;
+    }
+    return this.http.post(`${this.API_URL}/requisitions/${id}/process-return`, body).pipe(
+      tap(response => console.log('✅ Devolución procesada:', response)),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * Marcar en espera de devolución
+   * Endpoint: POST /api/requisitions/{id}/await-return
+   */
+  awaitReturn(id: string, notes?: string): Observable<any> {
+    const body: any = {};
+    if (notes) {
+      body.notes = notes;
+    }
+    return this.http.post(`${this.API_URL}/requisitions/${id}/await-return`, body).pipe(
+      tap(response => console.log('✅ Marcada en espera de devolución:', response)),
+      catchError(this.handleError)
+    );
+  }
 }

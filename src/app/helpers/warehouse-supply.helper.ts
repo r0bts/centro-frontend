@@ -46,6 +46,7 @@ export class WarehouseSupplyHelper {
       creator: apiRequisition.creator || '',
       deliveryDate: apiRequisition.deliveryDate,
       status: apiRequisition.status,
+      statusRaw: this.getStatusRaw(apiRequisition.status),
       businessUnit: apiRequisition.businessUnit || undefined,
       authorizedBy: apiRequisition.authorizedBy || undefined,
       authorizationDate: apiRequisition.authorizationDate || undefined,
@@ -58,6 +59,25 @@ export class WarehouseSupplyHelper {
       awaiting_return: apiRequisition.awaiting_return,
       products: apiRequisition.products.map(p => this.mapProductFromAPI(p))
     };
+  }
+
+  /**
+   * Obtener estado raw desde el estado traducido
+   */
+  static getStatusRaw(status: string): string {
+    const statusMap: {[key: string]: string} = {
+      'Solicitado': 'solicitado',
+      'Solicitada': 'solicitado',
+      'Autorizado': 'autorizado',
+      'Autorizada': 'autorizado',
+      'Listo para Recoger': 'listo_recoger',
+      'Entregado': 'entregado',
+      'Entregada': 'entregado',
+      'Espera Devolución': 'espera_devolucion',
+      'Cancelado': 'cancelado',
+      'Cancelada': 'cancelado'
+    };
+    return statusMap[status] || status.toLowerCase().replace(/ /g, '_');
   }
 
   /**

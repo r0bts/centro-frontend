@@ -88,6 +88,9 @@ export interface RequisitionWarehouse {
   /** Estado de la requisición (traducido al español) */
   status: string;
   
+  /** Estado raw de la requisición (en_proceso, listo_recoger, etc) */
+  statusRaw: string;
+  
   /** Nombre de la ubicación/almacén (HERMES o GLACIAR) */
   businessUnit?: string;
   
@@ -105,6 +108,9 @@ export interface RequisitionWarehouse {
   
   /** Fecha de la firma digital */
   signatureDate?: string;
+  
+  /** PIN de 4 dígitos para validar entrega */
+  pin?: string;
   
   /** Total de productos en la requisición */
   totalProducts: number;
