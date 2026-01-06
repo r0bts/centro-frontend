@@ -83,6 +83,16 @@ export class RoleService {
   }
 
   /**
+   * Obtener estructura de permisos (módulos, submódulos, permisos)
+   * Endpoint: GET /api/modules/structure
+   * 
+   * @returns Observable con la estructura completa de permisos
+   */
+  getPermissionsStructure(): Observable<any> {
+    return this.http.get<any>(`${this.API_URL}/modules/structure`);
+  }
+
+  /**
    * Crear un nuevo rol
    * 
    * @param roleData - Datos del rol a crear (nombre, permisos, productos)

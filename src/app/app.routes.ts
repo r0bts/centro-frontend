@@ -79,6 +79,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'configuracion/categorias',
+    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'configuracion/netsuite',
     loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
     canActivate: [authGuard]

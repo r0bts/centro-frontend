@@ -11,6 +11,8 @@ import { NetsuiteSyncComponent } from './netsuite-sync/netsuite-sync';
 import { UserProfileComponent } from './user-profile/user-profile';
 import { UserService } from '../../services/user.service';
 import { ProductService } from '../../services/product.service';
+import { CategoriesListComponent } from './categorias/categories-list/categories-list';
+import { CategoryService, Category } from '../../services/category.service';
 import Swal from 'sweetalert2';
 
 interface ConfigSection {
@@ -38,18 +40,21 @@ interface SystemConfig {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
 export class ConfiguracionComponent implements OnInit {
   @ViewChild(ProductsListComponent) productsListComponent!: ProductsListComponent;
   @ViewChild(UsersListComponent) usersListComponent!: UsersListComponent;
+  @ViewChild(CategoriesListComponent) categoriesListComponent!: CategoriesListComponent;
   
   activeSection = 'general';
   
   users: User[] = [];
   products: Product[] = [];
+  categories: Category[] = [];
+  categoriesLoaded = false; // Flag para saber si ya se cargaron
   
   // Propiedades calculadas para evitar múltiples evaluaciones en el template
   activeProductsCount = 0;
@@ -93,6 +98,13 @@ export class ConfiguracionComponent implements OnInit {
       active: false
     },
     {
+      id: 'categories',
+      title: 'Categorías',
+      icon: 'bi-tags',
+      description: 'Gestión de categorías de productos',
+      active: false
+    },
+    {
       id: 'netsuite',
       title: 'Sincronización NetSuite',
       icon: 'bi-cloud-arrow-up',
@@ -132,6 +144,7 @@ export class ConfiguracionComponent implements OnInit {
     private route: ActivatedRoute,
     private userService: UserService,
     private productService: ProductService,
+    private categoryService: CategoryService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -148,6 +161,8 @@ export class ConfiguracionComponent implements OnInit {
       this.setActiveSection('users');
     } else if (urlPath.includes('/configuracion/productos')) {
       this.setActiveSection('products');
+    } else if (urlPath.includes('/configuracion/categorias')) {
+      this.setActiveSection('categories');
     } else if (urlPath.includes('/configuracion/netsuite')) {
       this.setActiveSection('netsuite');
     } else if (urlPath.includes('/configuracion/general')) {
@@ -248,6 +263,59 @@ export class ConfiguracionComponent implements OnInit {
     });
   }
 
+  loadCategories(): void {
+    console.log('🔄 PADRE - loadCategories llamado');
+    
+    Swal.fire({
+      title: 'Cargando categorías',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+    
+    this.categoryService.getCategories(1, 1000).subscribe({
+      next: (response) => {
+        console.log('📥 PADRE - Respuesta recibida:', response.data.categories.length, 'categorías');
+        
+        if (response.success) {
+          // Actualizar el array de categorías (esto dispara la re-renderización)
+          this.categories = [...response.data.categories]; // Crear nuevo array para forzar detección
+          console.log('✅ PADRE - Array actualizado. Nuevo length:', this.categories.length);
+        }
+        
+        // Esperar a que Angular actualice el DOM
+        setTimeout(() => {
+          console.log('⏰ PADRE - Timeout 100ms - Llamando detectChanges...');
+          this.cdr.detectChanges();
+          
+          // Solo refrescar DataTable si YA estaba cargado (es una actualización)
+          if (this.categoriesLoaded && this.categoriesListComponent) {
+            setTimeout(() => {
+              console.log('⏰ PADRE - Es ACTUALIZACIÓN - Llamando refreshDataTables...');
+              this.categoriesListComponent.refreshDataTables();
+              Swal.close();
+            }, 300);
+          } else {
+            console.log('✅ PADRE - Es PRIMERA CARGA - ngAfterViewInit manejará el DataTable');
+            this.categoriesLoaded = true; // Marcar como cargado
+            Swal.close();
+          }
+        }, 100);
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar categorías:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar categorías',
+          text: error.message,
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
+  }
+
   setActiveSection(sectionId: string): void {
     console.log('🔄 Cambiando a sección:', sectionId);
     
@@ -272,6 +340,9 @@ export class ConfiguracionComponent implements OnInit {
     } else if (sectionId === 'products' && this.products.length === 0) {
       console.log('🔄 Cargando productos por primera vez...');
       this.loadProducts();
+    } else if (sectionId === 'categories' && this.categories.length === 0) {
+      console.log('🔄 Cargando categorías por primera vez...');
+      this.loadCategories();
     }
     // roles se cargan dentro de RolesPermisosComponent (y se resetean con ngOnDestroy)
   }

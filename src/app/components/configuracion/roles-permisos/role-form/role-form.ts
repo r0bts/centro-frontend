@@ -42,6 +42,7 @@ interface Submodule {
   icon?: string;
   route?: string;
   is_active: boolean;
+  allowed_permissions?: number[]; // Array de IDs de permisos permitidos para este submódulo
 }
 
 interface DbPermission {
@@ -94,7 +95,23 @@ export class RoleFormComponent implements OnInit, OnChanges {
   // Categorías de productos
   productCategories: string[] = ['Mantenimiento', 'Cafetería', 'Limpieza', 'Papelería', 'Obras de arte'];
 
-  // Estructura real de la base de datos
+  // ========================================
+  // 🔥 DATOS DINÁMICOS DESDE EL BACKEND
+  // ========================================
+  // Estos datos se cargan desde GET /api/modules/structure
+  modules: Module[] = [];
+  submodules: Submodule[] = [];
+  dbPermissions: DbPermission[] = [];
+  private submodulePermissionsConfig: { [key: number]: number[] } = {};
+
+  /* ========================================
+   * 📝 CÓDIGO COMENTADO - DATOS HARDCODED
+   * ========================================
+   * Este código fue reemplazado por carga dinámica desde el backend
+   * Endpoint: GET /api/modules/structure
+   * ========================================
+   
+  // Estructura real de la base de datos (HARDCODED - OBSOLETO)
   modules: Module[] = [
     { id: 1, name: 'dashboard', display_name: 'Dashboard', icon: 'bi-speedometer2', route: '/dashboard', is_active: true },
     { id: 2, name: 'reportes', display_name: 'Reportes', icon: 'bi-graph-up', route: '/reportes', is_active: true },
@@ -147,7 +164,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
     { id: 19, name: 'sync_subcategorias', display_name: 'Subcategorías', description: 'Permite sincronizar subcategorías desde NetSuite' },
   ];
 
-  // Configuración de permisos permitidos por submódulo
+  // Configuración de permisos permitidos por submódulo (HARDCODED - OBSOLETO)
   private submodulePermissionsConfig: { [key: number]: number[] } = {
     1: [2], // Dashboard Overview - solo permite "Ver"
     2: [2], // Reportes: Historial - solo permite "Ver"
@@ -163,6 +180,8 @@ export class RoleFormComponent implements OnInit, OnChanges {
     // NetSuite Sync - Un solo submódulo con múltiples permisos específicos
     16: [2, 14, 15, 16, 17, 18, 19], // Sincronización NetSuite - Ver + Sincronizar (Usuarios, Productos, Centros, Departamentos, Categorías, Subcategorías)
   };
+  
+  ======================================== */
 
   constructor(
     private productService: ProductService,
@@ -171,6 +190,9 @@ export class RoleFormComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // 🔥 Cargar estructura de permisos desde el backend PRIMERO
+    this.loadPermissionsStructure();
+    
     // 🔥 NO cargar productos automáticamente
     // Solo cargar cuando el usuario vaya a la pestaña de productos
     
@@ -203,6 +225,54 @@ export class RoleFormComponent implements OnInit, OnChanges {
     
     console.log('🔥 Pestaña de productos activada - cargando productos...');
     this.loadProducts();
+  }
+
+  /**
+   * 🔥 Cargar estructura de permisos desde el backend
+   * Endpoint: GET /api/modules/structure
+   * Carga: modules, submodules, permissions y la configuración de permisos permitidos
+   */
+  private loadPermissionsStructure(): void {
+    console.log('📡 Cargando estructura de permisos desde el backend...');
+    
+    this.roleService.getPermissionsStructure().subscribe({
+      next: (response) => {
+        if (response.success && response.data) {
+          console.log('✅ Estructura de permisos cargada:', response.data);
+          
+          // Cargar módulos
+          this.modules = response.data.modules || [];
+          
+          // Cargar permisos
+          this.dbPermissions = response.data.permissions || [];
+          
+          // Cargar submódulos Y construir la configuración de permisos
+          this.submodules = response.data.submodules || [];
+          this.submodulePermissionsConfig = {};
+          
+          // Construir el objeto submodulePermissionsConfig desde allowed_permissions
+          this.submodules.forEach((submodule: any) => {
+            if (submodule.allowed_permissions && Array.isArray(submodule.allowed_permissions)) {
+              this.submodulePermissionsConfig[submodule.id] = submodule.allowed_permissions;
+            }
+          });
+          
+          console.log('📋 Módulos cargados:', this.modules.length);
+          console.log('📋 Submódulos cargados:', this.submodules.length);
+          console.log('📋 Permisos cargados:', this.dbPermissions.length);
+          console.log('🔐 Configuración de permisos:', this.submodulePermissionsConfig);
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar estructura de permisos:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo cargar la estructura de permisos. Por favor, recarga la página.',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   /**

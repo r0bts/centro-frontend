@@ -50,6 +50,7 @@ interface Submodule {
   icon?: string;
   route?: string;
   is_active: boolean;
+  allowed_permissions?: number[]; // Array de IDs de permisos permitidos para este submódulo
 }
 
 interface DbPermission {
@@ -145,6 +146,22 @@ export class UserFormComponent implements OnInit, OnChanges {
   private _cachedCategories: string[] | null = null;
   private _lastSelectedCategory: string | null = null;
 
+  // ========================================
+  // 🔥 DATOS DINÁMICOS DESDE EL BACKEND
+  // ========================================
+  // Estos datos se cargan desde GET /api/modules/structure
+  modules: Module[] = [];
+  submodules: Submodule[] = [];
+  dbPermissions: DbPermission[] = [];
+  private submodulePermissionsConfig: { [key: number]: number[] } = {};
+
+  /* ========================================
+   * 📝 CÓDIGO COMENTADO - DATOS HARDCODED
+   * ========================================
+   * Este código fue reemplazado por carga dinámica desde el backend
+   * Endpoint: GET /api/modules/structure
+   * ========================================
+   
   // Estructura de módulos y submódulos (igual que en role-form)
   // Estructura real de la base de datos (IGUAL QUE ROLE-FORM)
   modules: Module[] = [
@@ -215,6 +232,8 @@ export class UserFormComponent implements OnInit, OnChanges {
     // NetSuite Sync - Un solo submódulo con múltiples permisos específicos
     16: [2, 14, 15, 16, 17, 18, 19], // Sincronización NetSuite - Ver + Sincronizar (Usuarios, Productos, Centros, Departamentos, Categorías, Subcategorías)
   };
+  
+  ======================================== */
 
   constructor(
     private productService: ProductService,
@@ -222,6 +241,9 @@ export class UserFormComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    // 🔥 Cargar estructura de permisos desde el backend PRIMERO
+    this.loadPermissionsStructure();
+    
     // 🔥 NO cargar productos automáticamente
     // Solo cargar cuando el usuario vaya a la pestaña de productos
     this.loadUserData();
@@ -244,6 +266,53 @@ export class UserFormComponent implements OnInit, OnChanges {
     
     console.log('🔥 Pestaña de productos activada - cargando productos...');
     this.loadProducts();
+  }
+
+  /**
+   * 🔥 Cargar estructura de permisos desde el backend
+   * Endpoint: GET /api/modules/structure
+   * Usa RoleService porque es el mismo endpoint
+   */
+  private loadPermissionsStructure(): void {
+    console.log('📡 [USER-FORM] Cargando estructura de permisos desde el backend...');
+    
+    // Importar RoleService dinámicamente para evitar dependencia circular
+    import('../../../../services/role.service').then(({ RoleService }) => {
+      // Crear instancia temporal del servicio
+      const roleService = new RoleService(this.productService['http']);
+      
+      roleService.getPermissionsStructure().subscribe({
+        next: (response) => {
+          if (response.success && response.data) {
+            console.log('✅ [USER-FORM] Estructura de permisos cargada:', response.data);
+            
+            // Cargar módulos
+            this.modules = response.data.modules || [];
+            
+            // Cargar permisos
+            this.dbPermissions = response.data.permissions || [];
+            
+            // Cargar submódulos Y construir la configuración de permisos
+            this.submodules = response.data.submodules || [];
+            this.submodulePermissionsConfig = {};
+            
+            // Construir el objeto submodulePermissionsConfig desde allowed_permissions
+            this.submodules.forEach((submodule: any) => {
+              if (submodule.allowed_permissions && Array.isArray(submodule.allowed_permissions)) {
+                this.submodulePermissionsConfig[submodule.id] = submodule.allowed_permissions;
+              }
+            });
+            
+            console.log('📋 [USER-FORM] Módulos:', this.modules.length);
+            console.log('📋 [USER-FORM] Submódulos:', this.submodules.length);
+            console.log('📋 [USER-FORM] Permisos:', this.dbPermissions.length);
+          }
+        },
+        error: (error) => {
+          console.error('❌ [USER-FORM] Error al cargar estructura de permisos:', error);
+        }
+      });
+    });
   }
 
   private loadUserData(): void {

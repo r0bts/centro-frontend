@@ -1,0 +1,64 @@
+<div class="card">
+  <div class="card-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        <i class="bi bi-tags me-2"></i>Categorías
+      </h5>
+      <div class="text-muted small">
+        <i class="bi bi-info-circle me-1"></i>
+        Categorías sincronizadas desde NetSuite
+      </div>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <div class="table-responsive">
+      <table #categoriesTable class="table table-striped table-hover" style="width:100%">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Script ID</th>
+            <th>Record ID</th>
+            <th>Cuenta Inventario</th>
+            <th>Cuenta Gasto</th>
+            <th width="120" class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let category of categories">
+            <td>{{ category.id }}</td>
+            <td>
+              <strong>{{ category.name }}</strong>
+              <span *ngIf="category.is_inactive" class="badge bg-danger ms-2">Inactiva</span>
+              <span *ngIf="!category.is_inactive" class="badge bg-success ms-2">Activa</span>
+            </td>
+            <td>{{ category.script_id }}</td>
+            <td>{{ category.record_id }}</td>
+            <td>
+              <span *ngIf="isAccountObject(category.account_inventario)">
+                {{ getAccountDisplay(category.account_inventario) }}
+              </span>
+              <span *ngIf="!category.account_inventario || category.account_inventario === 'Sin asignación'" class="text-muted">Sin asignación</span>
+            </td>
+            <td>
+              <span *ngIf="isAccountObject(category.account_gasto)">
+                {{ getAccountDisplay(category.account_gasto) }}
+              </span>
+              <span *ngIf="!category.account_gasto || category.account_gasto === 'Sin asignación'" class="text-muted">Sin asignación</span>
+            </td>
+            <td class="text-center">
+              <button *ngIf="canUpdate" 
+                (click)="openEditModal(category)"
+                class="btn btn-sm" 
+                title="Editar"
+                style="border: 1px solid #dee2e6;">
+                <i class="bi bi-pencil"></i>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
