@@ -26,37 +26,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let category of categories">
-            <td>{{ category.id }}</td>
-            <td>
-              <strong>{{ category.name }}</strong>
-              <span *ngIf="category.is_inactive" class="badge bg-danger ms-2">Inactiva</span>
-              <span *ngIf="!category.is_inactive" class="badge bg-success ms-2">Activa</span>
-            </td>
-            <td>{{ category.script_id }}</td>
-            <td>{{ category.record_id }}</td>
-            <td>
-              <span *ngIf="isAccountObject(category.account_inventario)">
-                {{ getAccountDisplay(category.account_inventario) }}
-              </span>
-              <span *ngIf="!category.account_inventario || category.account_inventario === 'Sin asignación'" class="text-muted">Sin asignación</span>
-            </td>
-            <td>
-              <span *ngIf="isAccountObject(category.account_gasto)">
-                {{ getAccountDisplay(category.account_gasto) }}
-              </span>
-              <span *ngIf="!category.account_gasto || category.account_gasto === 'Sin asignación'" class="text-muted">Sin asignación</span>
-            </td>
-            <td class="text-center">
-              <button *ngIf="canUpdate" 
-                (click)="openEditModal(category)"
-                class="btn btn-sm" 
-                title="Editar"
-                style="border: 1px solid #dee2e6;">
-                <i class="bi bi-pencil"></i>
-              </button>
-            </td>
-          </tr>
+          <!-- DataTables genera el contenido automáticamente -->
         </tbody>
       </table>
     </div>

@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, Input, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Category, CategoryService, Account } from '../../../../services/category.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -16,9 +16,9 @@ declare var $: any;
 })
 export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('categoriesTable', { static: false }) categoriesTable!: ElementRef;
-  @Input() categories: Category[] = [];
   @Output() categoryUpdated = new EventEmitter<void>();
   
+  categories: Category[] = []; // Ya NO es @Input
   private categoriesDataTable: any;
   private accountsInventario: Account[] = [];
   private accountsGasto: Account[] = [];
@@ -34,18 +34,51 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
 
   ngOnInit() {
     this.checkPermissions();
+    this.loadCategories(); // Cargar aquí
   }
 
   ngAfterViewInit() {
-    setTimeout(() => {
-      this.initCategoriesDataTable();
-    }, 100);
+    // Vacío - ya no se usa
   }
 
   ngOnDestroy() {
     if (this.categoriesDataTable) {
       this.categoriesDataTable.destroy();
     }
+  }
+
+  /**
+   * Cargar categorías desde el backend
+   */
+  private loadCategories() {
+    console.log('🔄 HIJO - Cargando categorías...');
+    
+    this.categoryService.getCategories(1, 1000).subscribe({
+      next: (response) => {
+        if (response.success) {
+          this.categories = response.data.categories;
+          console.log('✅ HIJO - Categorías cargadas:', this.categories.length);
+          
+          // Si DataTable no existe, crear; si existe, actualizar
+          if (!this.categoriesDataTable) {
+            setTimeout(() => this.initCategoriesDataTable(), 100);
+          } else {
+            this.refreshDataTables();
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al cargar categorías:', error);
+      }
+    });
+  }
+
+  /**
+   * Método público para recargar datos (llamado desde el padre)
+   */
+  public reloadData() {
+    console.log('🔄 reloadData() llamado');
+    this.loadCategories();
   }
 
   /**
@@ -79,6 +112,66 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     }
 
     this.categoriesDataTable = $(this.categoriesTable.nativeElement).DataTable({
+      data: this.categories,
+      columns: [
+        { 
+          title: 'ID',
+          data: 'id'
+        },
+        { 
+          title: 'Nombre',
+          data: 'name',
+          render: (data: any, type: any, row: Category) => {
+            const badge = row.is_inactive 
+              ? '<span class="badge bg-danger ms-2">Inactiva</span>'
+              : '<span class="badge bg-success ms-2">Activa</span>';
+            return `<strong>${data}</strong>${badge}`;
+          }
+        },
+        { 
+          title: 'Script ID',
+          data: 'script_id'
+        },
+        { 
+          title: 'Record ID',
+          data: 'record_id'
+        },
+        { 
+          title: 'Cuenta Inventario',
+          data: 'account_inventario',
+          render: (data: any, type: any, row: Category) => {
+            if (typeof data === 'object' && data !== null && data.account_number) {
+              return `${data.account_number} - ${data.full_name}`;
+            }
+            return '<span class="text-muted">Sin asignación</span>';
+          }
+        },
+        { 
+          title: 'Cuenta Gasto',
+          data: 'account_gasto',
+          render: (data: any, type: any, row: Category) => {
+            if (typeof data === 'object' && data !== null && data.account_number) {
+              return `${data.account_number} - ${data.full_name}`;
+            }
+            return '<span class="text-muted">Sin asignación</span>';
+          }
+        },
+        {
+          title: 'Acciones',
+          data: null,
+          orderable: false,
+          className: 'text-center',
+          width: '120px',
+          render: (data: any, type: any, row: Category) => {
+            if (this.canUpdate) {
+              return `<button class="btn btn-sm edit-btn" data-id="${row.id}" title="Editar" style="border: 1px solid #dee2e6;">
+                        <i class="bi bi-pencil"></i>
+                      </button>`;
+            }
+            return '';
+          }
+        }
+      ],
       language: {
         "decimal": "",
         "emptyTable": "No hay datos disponibles en la tabla",
@@ -108,24 +201,40 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
       ]
     });
     
+    // Event listener para botones de editar creados dinámicamente
+    $(this.categoriesTable.nativeElement).on('click', '.edit-btn', (event: any) => {
+      const categoryId = parseInt($(event.currentTarget).data('id'));
+      const category = this.categories.find(c => c.id === categoryId);
+      if (category) {
+        this.openEditModal(category);
+      }
+    });
+    
     console.log('✅ DataTable inicializado correctamente');
   }
 
   /**
-   * Refrescar DataTable
+   * Refrescar DataTable con nuevos datos
    */
   refreshDataTables() {
     console.log('🔄 refreshDataTables - categories.length:', this.categories.length);
     
     if (this.categoriesDataTable) {
-      console.log('🗑️ Destruyendo DataTable existente...');
-      this.categoriesDataTable.destroy();
+      console.log('🔄 Actualizando datos del DataTable...');
+      // Limpiar datos actuales, agregar nuevos datos y redibujar
+      this.categoriesDataTable.clear().rows.add(this.categories).draw();
+      console.log('✅ DataTable actualizado con nuevos datos');
+    } else {
+      console.warn('⚠️ No hay DataTable para refrescar');
     }
-    
-    setTimeout(() => {
-      console.log('⏰ Timeout - Llamando initCategoriesDataTable...');
-      this.initCategoriesDataTable();
-    }, 100);
+  }
+
+  /**
+   * Método público para actualizar datos desde el padre (opcional)
+   */
+  public updateData() {
+    console.log('🔄 updateData() llamado - recargando...');
+    this.loadCategories();
   }
 
   /**
@@ -149,6 +258,10 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
    * Abrir modal de edición de categoría
    */
   async openEditModal(category: Category) {
+    console.log('📝 openEditModal - Categoría:', category.id, category.name);
+    console.log('📊 Cuenta Inventario actual:', category.account_inventario);
+    console.log('📊 Cuenta Gasto actual:', category.account_gasto);
+    
     // Cargar cuentas si aún no se han cargado
     if (this.accountsInventario.length === 0 || this.accountsGasto.length === 0) {
       await this.loadAccounts();
@@ -361,6 +474,9 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     this.categoryService.updateCategory(categoryId, data).subscribe({
       next: (response) => {
         console.log('✅ Categoría actualizada - Response:', response);
+        console.log('📦 Data recibida:', response.data);
+        console.log('🔍 Cuenta inventario actualizada:', response.data?.account_inventario);
+        console.log('🔍 Cuenta gasto actualizada:', response.data?.account_gasto);
         
         Swal.fire({
           icon: 'success',
@@ -370,8 +486,11 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
           showConfirmButton: false
         });
         
-        console.log('📤 Emitiendo evento categoryUpdated...');
-        // Emitir evento para que el padre recargue los datos
+        console.log('� Recargando datos...');
+        // Recargar datos internamente
+        this.loadCategories();
+        
+        // Emitir evento (por si el padre necesita hacer algo)
         this.categoryUpdated.emit();
       },
       error: (error) => {

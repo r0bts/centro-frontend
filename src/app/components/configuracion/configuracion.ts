@@ -53,8 +53,6 @@ export class ConfiguracionComponent implements OnInit {
   
   users: User[] = [];
   products: Product[] = [];
-  categories: Category[] = [];
-  categoriesLoaded = false; // Flag para saber si ya se cargaron
   
   // Propiedades calculadas para evitar múltiples evaluaciones en el template
   activeProductsCount = 0;
@@ -263,59 +261,6 @@ export class ConfiguracionComponent implements OnInit {
     });
   }
 
-  loadCategories(): void {
-    console.log('🔄 PADRE - loadCategories llamado');
-    
-    Swal.fire({
-      title: 'Cargando categorías',
-      text: 'Por favor espera...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-    
-    this.categoryService.getCategories(1, 1000).subscribe({
-      next: (response) => {
-        console.log('📥 PADRE - Respuesta recibida:', response.data.categories.length, 'categorías');
-        
-        if (response.success) {
-          // Actualizar el array de categorías (esto dispara la re-renderización)
-          this.categories = [...response.data.categories]; // Crear nuevo array para forzar detección
-          console.log('✅ PADRE - Array actualizado. Nuevo length:', this.categories.length);
-        }
-        
-        // Esperar a que Angular actualice el DOM
-        setTimeout(() => {
-          console.log('⏰ PADRE - Timeout 100ms - Llamando detectChanges...');
-          this.cdr.detectChanges();
-          
-          // Solo refrescar DataTable si YA estaba cargado (es una actualización)
-          if (this.categoriesLoaded && this.categoriesListComponent) {
-            setTimeout(() => {
-              console.log('⏰ PADRE - Es ACTUALIZACIÓN - Llamando refreshDataTables...');
-              this.categoriesListComponent.refreshDataTables();
-              Swal.close();
-            }, 300);
-          } else {
-            console.log('✅ PADRE - Es PRIMERA CARGA - ngAfterViewInit manejará el DataTable');
-            this.categoriesLoaded = true; // Marcar como cargado
-            Swal.close();
-          }
-        }, 100);
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar categorías:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cargar categorías',
-          text: error.message,
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
-  }
-
   setActiveSection(sectionId: string): void {
     console.log('🔄 Cambiando a sección:', sectionId);
     
@@ -340,10 +285,8 @@ export class ConfiguracionComponent implements OnInit {
     } else if (sectionId === 'products' && this.products.length === 0) {
       console.log('🔄 Cargando productos por primera vez...');
       this.loadProducts();
-    } else if (sectionId === 'categories' && this.categories.length === 0) {
-      console.log('🔄 Cargando categorías por primera vez...');
-      this.loadCategories();
     }
+    // categories: el componente hijo carga sus propios datos
     // roles se cargan dentro de RolesPermisosComponent (y se resetean con ngOnDestroy)
   }
 

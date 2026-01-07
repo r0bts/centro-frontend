@@ -167,10 +167,7 @@
 
                     <!-- Categories Management -->
                     <div *ngIf="activeSection === 'categories'" class="config-panel">
-                        <app-categories-list 
-                            [categories]="categories"
-                            (categoryUpdated)="loadCategories()">
-                        </app-categories-list>
+                        <app-categories-list></app-categories-list>
                     </div>
 
                     <!-- NetSuite Sync Configuration -->
