@@ -3,7 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
-import { RolesPermisosComponent } from './roles-permisos/roles-permisos';
+import { RolesListComponent } from './roles-permisos/roles-list/roles-list';
+import { RoleFormComponent } from './roles-permisos/role-form/role-form';
 import { UsersListComponent, User } from './usuarios/users-list/users-list';
 import { UserFormComponent } from './usuarios/user-form/user-form';
 import { ProductsListComponent } from './products-list/products-list';
@@ -11,6 +12,7 @@ import { NetsuiteSyncComponent } from './netsuite-sync/netsuite-sync';
 import { UserProfileComponent } from './user-profile/user-profile';
 import { UserService } from '../../services/user.service';
 import { ProductService, Product } from '../../services/product.service';
+import { RoleService } from '../../services/role.service';
 import { CategoriesListComponent } from './categorias/categories-list/categories-list';
 import { CategoryService, Category } from '../../services/category.service';
 import Swal from 'sweetalert2';
@@ -40,7 +42,7 @@ interface SystemConfig {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesPermisosComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
@@ -54,7 +56,12 @@ export class ConfiguracionComponent implements OnInit {
   // Control para mostrar el formulario de usuario
   showUserForm = false;
   isUserEditMode = false;
-  selectedUserId: string | null = null; // Detalles completos del usuario (permisos y productos)
+  selectedUserId: string | null = null;
+  
+  // Control para mostrar el formulario de rol
+  showRoleForm = false;
+  isRoleEditMode = false;
+  selectedRoleId: string | null = null;
   
   configSections: ConfigSection[] = [
     {
@@ -133,6 +140,7 @@ export class ConfiguracionComponent implements OnInit {
     private userService: UserService,
     private productService: ProductService,
     private categoryService: CategoryService,
+    private roleService: RoleService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -161,6 +169,7 @@ export class ConfiguracionComponent implements OnInit {
 
   setActiveSection(sectionId: string): void {
     console.log('🔄 Cambiando a sección:', sectionId);
+    console.log('🔍 Estado actual de showRoleForm:', this.showRoleForm);
     
     // 🔥 Resetear vista de usuario si está activa
     if (this.showUserForm && sectionId !== 'users') {
@@ -170,14 +179,21 @@ export class ConfiguracionComponent implements OnInit {
       this.selectedUserId = null;
     }
     
+    // 🔥 Resetear vista de rol si está activa
+    if (this.showRoleForm && sectionId !== 'roles') {
+      console.log('🧹 Reseteando vista de rol al cambiar de sección');
+      this.showRoleForm = false;
+      this.isRoleEditMode = false;
+      this.selectedRoleId = null;
+    }
+    
     this.configSections.forEach(section => {
       section.active = section.id === sectionId;
     });
     this.activeSection = sectionId;
     
     // 🔥 No cargar datos - los componentes hijos cargan sus propios datos
-    // categories, products y users: los componentes hijos cargan sus propios datos
-    // roles se cargan dentro de RolesPermisosComponent (y se resetean con ngOnDestroy)
+    // categories, products, users y roles: los componentes hijos cargan sus propios datos
   }
 
   saveConfiguration(): void {
@@ -439,6 +455,74 @@ export class ConfiguracionComponent implements OnInit {
           icon: 'error',
           title: 'Error al actualizar',
           text: error.message || 'No se pudo actualizar el usuario. Por favor intenta de nuevo.',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
+  }
+
+  // Métodos de gestión de roles
+  onCreateRole(): void {
+    console.log('🆕 onCreateRole llamado - mostrando formulario de creación');
+    this.selectedRoleId = null;
+    this.isRoleEditMode = false;
+    this.showRoleForm = true;
+  }
+
+  onEditRole(roleId: string): void {
+    console.log('✏️ onEditRole llamado con roleId:', roleId);
+    this.selectedRoleId = roleId;
+    this.isRoleEditMode = true;
+    this.showRoleForm = true;
+  }
+
+  onCancelRoleForm(): void {
+    console.log('❌ onCancelRoleForm llamado - ocultando formulario');
+    this.showRoleForm = false;
+    this.isRoleEditMode = false;
+    this.selectedRoleId = null;
+  }
+
+  onSaveRole(roleData: any): void {
+    console.log('💾 Guardar rol:', roleData);
+    
+    Swal.fire({
+      title: this.isRoleEditMode ? 'Actualizando rol' : 'Creando rol',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    const saveObservable = this.isRoleEditMode && this.selectedRoleId
+      ? this.roleService.updateRole(this.selectedRoleId, roleData)
+      : this.roleService.createRole(roleData);
+
+    saveObservable.subscribe({
+      next: (response) => {
+        console.log('✅ Rol guardado exitosamente:', response);
+        
+        this.showRoleForm = false;
+        this.isRoleEditMode = false;
+        this.selectedRoleId = null;
+        
+        Swal.fire({
+          icon: 'success',
+          title: this.isRoleEditMode ? 'Rol actualizado' : 'Rol creado',
+          text: response.message || 'El rol ha sido guardado exitosamente',
+          confirmButtonText: 'Continuar',
+          timer: 2000,
+          timerProgressBar: true
+        });
+      },
+      error: (error) => {
+        console.error('❌ Error al guardar rol:', error);
+        
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al guardar',
+          text: error.message || 'No se pudo guardar el rol. Por favor intenta de nuevo.',
           confirmButtonText: 'Entendido'
         });
       }

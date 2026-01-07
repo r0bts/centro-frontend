@@ -18,8 +18,6 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
   currentView: 'list' | 'form' = 'list';
   isEditMode = false;
   selectedRoleId: string | null = null;
-  roles: Role[] = [];
-  isLoading = false;
 
   constructor(
     private roleService: RoleService,
@@ -28,7 +26,6 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('RolesPermisosComponent initialized');
-    this.loadRoles();
   }
   
   ngOnDestroy(): void {
@@ -46,93 +43,16 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
     this.selectedRoleId = null;
   }
 
-  /**
-   * Cargar roles desde la API
-   */
-  loadRoles(): void {
-    this.isLoading = true;
-    this.roleService.getRoles().subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.roles = response.data.roles;
-          console.log(`✅ ${response.data.total} roles cargados:`, this.roles);
-          
-          // Forzar detección de cambios
-          this.cdr.detectChanges();
-          
-          // Refrescar DataTables si ya existe
-          if (this.rolesListComponent) {
-            setTimeout(() => {
-              this.rolesListComponent.refreshDataTables();
-            }, 100);
-          }
-        }
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar roles:', error);
-        this.isLoading = false;
-        
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cargar roles',
-          text: error.message || 'No se pudieron cargar los roles del sistema',
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
-  }
-
   onCreateRole(): void {
     this.currentView = 'form';
     this.isEditMode = false;
     this.selectedRoleId = null;
   }
 
-  onEditRole(role: Role): void {
+  onEditRole(roleId: string): void {
     this.currentView = 'form';
     this.isEditMode = true;
-    this.selectedRoleId = role.id;
-  }
-
-  onDeleteRole(roleId: string): void {
-    this.roleService.deleteRole(roleId).subscribe({
-      next: (response) => {
-        if (response.success) {
-          // Recargar lista de roles
-          this.loadRoles();
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error al eliminar rol:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al eliminar',
-          text: error.message || 'No se pudo eliminar el rol',
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
-  }
-
-  onToggleRoleStatus(roleId: string): void {
-    this.roleService.toggleRoleStatus(roleId).subscribe({
-      next: (response) => {
-        if (response.success) {
-          // Recargar lista de roles
-          this.loadRoles();
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error al cambiar estado:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cambiar estado',
-          text: error.message || 'No se pudo cambiar el estado del rol',
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
+    this.selectedRoleId = roleId;
   }
 
   onCancelForm(): void {
@@ -160,8 +80,7 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
             this.currentView = 'list';
             this.isEditMode = false;
             this.selectedRoleId = null;
-            // Recargar lista de roles
-            this.loadRoles();
+            // roles-list se recargará automáticamente cuando se muestre
           });
         }
       },

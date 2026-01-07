@@ -62,8 +62,8 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
     
-    // 🔥 Cargar TODOS los productos (límite 2000 para asegurar que se carguen todos)
-    this.productService.getAllProducts(2000, 1)
+    // 🔥 Cargar TODOS los productos (límite 5000 para asegurar que se carguen todos)
+    this.productService.getAllProducts(5000, 1)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
       next: (products) => {

@@ -88,7 +88,39 @@
 
                     <!-- Roles y Permisos Configuration -->
                     <div *ngIf="activeSection === 'roles'" class="config-panel">
-                        <app-roles-permisos></app-roles-permisos>
+                        <!-- Lista de Roles -->
+                        <div [hidden]="showRoleForm">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">
+                                        <i class="bi bi-shield-lock me-2"></i>Gestión de Roles y Permisos
+                                    </h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-4">
+                                        <div class="col-12">
+                                            <p class="text-muted">Administra los roles del sistema y sus permisos asociados.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Listado de Roles con DataTable -->
+                                    <app-roles-list
+                                        (createRole)="onCreateRole()"
+                                        (editRole)="onEditRole($event)">
+                                    </app-roles-list>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formulario de rol -->
+                        <div *ngIf="showRoleForm && selectedRoleId">
+                            <app-role-form
+                                [roleId]="selectedRoleId"
+                                [isEditMode]="isRoleEditMode"
+                                (cancel)="onCancelRoleForm()"
+                                (save)="onSaveRole($event)">
+                            </app-role-form>
+                        </div>
                     </div>
 
                     <!-- Products Management -->
