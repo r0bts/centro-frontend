@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Output, EventEmitter, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductService, Product } from '../../../services/product.service';
 import { Subject } from 'rxjs';
@@ -16,10 +16,8 @@ declare var $: any; // Para jQuery/DataTables
 })
 export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('productsTable', { static: false }) productsTable!: ElementRef;
-  @Output() viewProduct = new EventEmitter<Product>();
-  @Output() syncProducts = new EventEmitter<void>();
 
-  products: Product[] = []; // Ya NO es @Input
+  products: Product[] = [];
   private productsDataTable: any;
   private destroy$ = new Subject<void>();
   private isDestroyed = false;
@@ -218,28 +216,44 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onSyncProducts(): void {
-    // Emitir evento para que componente externo sincronice con NetSuite
-    this.syncProducts.emit();
+    // TODO: Llamar al servicio de sincronización cuando exista
+    Swal.fire({
+      icon: 'info',
+      title: 'Sincronización',
+      text: 'La sincronización de productos se implementará próximamente',
+      confirmButtonText: 'Entendido'
+    });
     
-    // Después de sincronizar, recargar automáticamente
-    setTimeout(() => {
-      this.loadProducts();
-    }, 1000);
+    // Cuando el backend esté listo:
+    // this.productService.syncProducts().subscribe({
+    //   next: () => {
+    //     this.loadProducts();
+    //     Swal.fire('Sincronización completa', 'Productos actualizados', 'success');
+    //   },
+    //   error: (error) => {
+    //     Swal.fire('Error', 'No se pudo sincronizar', 'error');
+    //   }
+    // });
   }
 
   onViewProduct(product: Product): void {
-    this.viewProduct.emit(product);
-  }
-
-  formatDate(date: Date | undefined): string {
-    if (!date) return 'Nunca';
-    const d = new Date(date);
-    return d.toLocaleDateString('es-ES', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    Swal.fire({
+      title: 'Detalles del Producto',
+      html: `
+        <div class="text-start">
+          <p><strong>Código:</strong> ${product.code}</p>
+          <p><strong>Nombre:</strong> ${product.name}</p>
+          <p><strong>Descripción:</strong> ${product.description || 'N/A'}</p>
+          <p><strong>Categoría:</strong> ${product.category_name || 'N/A'}</p>
+          <p><strong>Subcategoría:</strong> ${product.subcategory_name || 'N/A'}</p>
+          <p><strong>Unidad:</strong> ${product.unit}</p>
+          <p><strong>Estado:</strong> ${product.isActive ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</p>
+          <p><strong>Fecha de creación:</strong> ${new Date(product.createdAt).toLocaleDateString('es-ES')}</p>
+        </div>
+      `,
+      confirmButtonText: 'Cerrar',
+      width: '600px'
     });
   }
+
 }
