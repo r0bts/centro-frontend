@@ -6,11 +6,11 @@ import { ContentMenu } from '../content-menu/content-menu';
 import { RolesPermisosComponent } from './roles-permisos/roles-permisos';
 import { UsersListComponent, User } from './usuarios/users-list/users-list';
 import { UserFormComponent } from './usuarios/user-form/user-form';
-import { ProductsListComponent, Product } from './products-list/products-list';
+import { ProductsListComponent } from './products-list/products-list';
 import { NetsuiteSyncComponent } from './netsuite-sync/netsuite-sync';
 import { UserProfileComponent } from './user-profile/user-profile';
 import { UserService } from '../../services/user.service';
-import { ProductService } from '../../services/product.service';
+import { ProductService, Product } from '../../services/product.service';
 import { CategoriesListComponent } from './categorias/categories-list/categories-list';
 import { CategoryService, Category } from '../../services/category.service';
 import Swal from 'sweetalert2';
@@ -52,11 +52,8 @@ export class ConfiguracionComponent implements OnInit {
   activeSection = 'general';
   
   users: User[] = [];
-  products: Product[] = [];
   
   // Propiedades calculadas para evitar múltiples evaluaciones en el template
-  activeProductsCount = 0;
-  inactiveProductsCount = 0;
   activeUsersCount = 0;
   inactiveUsersCount = 0;
   
@@ -214,52 +211,7 @@ export class ConfiguracionComponent implements OnInit {
     });
   }
 
-  loadProducts(): void {
-    // 🔥 Mostrar modal de carga con Swal
-    Swal.fire({
-      title: 'Cargando productos',
-      text: 'Por favor espera...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-    
-    this.productService.getAllProducts().subscribe({
-      next: (products) => {
-        // Asignar productos
-        this.products = products;
-        
-        // Calcular contadores
-        this.activeProductsCount = products.filter(p => p.isActive).length;
-        this.inactiveProductsCount = products.filter(p => !p.isActive).length;
-        
-        console.log('✅ Productos cargados:', products.length);
-        
-        // Forzar detección de cambios
-        this.cdr.detectChanges();
-        
-        // Refrescar DataTables si ya existe
-        if (this.productsListComponent) {
-          setTimeout(() => {
-            this.productsListComponent.refreshDataTables();
-            Swal.close(); // 🔥 Cerrar modal DESPUÉS de que DataTable termine
-          }, 200);
-        } else {
-          Swal.close(); // 🔥 Cerrar modal si no hay componente
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar productos:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cargar productos',
-          text: error.message,
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
-  }
+
 
   setActiveSection(sectionId: string): void {
     console.log('🔄 Cambiando a sección:', sectionId);
@@ -282,11 +234,8 @@ export class ConfiguracionComponent implements OnInit {
     if (sectionId === 'users' && this.users.length === 0) {
       console.log('🔄 Cargando usuarios por primera vez...');
       this.loadUsers();
-    } else if (sectionId === 'products' && this.products.length === 0) {
-      console.log('🔄 Cargando productos por primera vez...');
-      this.loadProducts();
     }
-    // categories: el componente hijo carga sus propios datos
+    // categories y products: los componentes hijos cargan sus propios datos
     // roles se cargan dentro de RolesPermisosComponent (y se resetean con ngOnDestroy)
   }
 
@@ -682,8 +631,7 @@ export class ConfiguracionComponent implements OnInit {
           </div>
         `;
         
-        // Recargar productos después de sincronizar
-        this.loadProducts();
+        // El componente products-list se recarga automáticamente después del sync
         
         Swal.fire({
           icon: 'success',
@@ -736,19 +684,5 @@ export class ConfiguracionComponent implements OnInit {
     });
   }
 
-  onDeleteProduct(productId: string): void {
-    console.log('🗑️ Producto eliminado:', productId);
-    // Eliminar el producto de la lista local
-    this.products = this.products.filter(p => p.id !== productId);
-    
-    // Aquí se haría la llamada al backend
-    // this.productService.deleteProduct(productId).subscribe({
-    //   next: () => {
-    //     this.loadProducts();
-    //   },
-    //   error: (error) => {
-    //     console.error('Error al eliminar producto:', error);
-    //   }
-    // });
-  }
+
 }

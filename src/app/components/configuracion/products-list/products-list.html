@@ -22,37 +22,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let product of products">
-              <td>
-                <div class="d-flex align-items-center">
-                  <div>
-                    <strong>{{ product.code }}</strong> - {{ product.name }}
-                    <br>
-                    <small class="text-muted">{{ product.description }}</small>
-                    <br>
-                    <small><span class="badge bg-info">{{ product.unit }}</span></small>
-                  </div>
-                </div>
-              </td>
-              <td>
-                <span class="badge bg-primary">{{ product.category_name }}</span>
-                <br>
-                <small class="text-muted">{{ product.subcategory_name }}</small>
-              </td>
-              <td class="text-center">
-                <span class="badge" [ngClass]="product.isActive ? 'bg-success' : 'bg-secondary'">
-                  {{ product.isActive ? 'Activo' : 'Inactivo' }}
-                </span>
-              </td>
-              <td class="text-center">
-                <button 
-                  class="btn btn-sm btn-light view-btn" 
-                  (click)="onViewProduct(product)"
-                  title="Ver detalles">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </td>
-            </tr>
+            <!-- DataTable manejará el contenido -->
           </tbody>
         </table>
       </div>
