@@ -51,17 +51,10 @@ export class ConfiguracionComponent implements OnInit {
   
   activeSection = 'general';
   
-  users: User[] = [];
-  
-  // Propiedades calculadas para evitar múltiples evaluaciones en el template
-  activeUsersCount = 0;
-  inactiveUsersCount = 0;
-  
-  // Control para mostrar el formulario de usuario (solo edición/visualización)
+  // Control para mostrar el formulario de usuario
   showUserForm = false;
   isUserEditMode = false;
-  selectedUserForEdit: User | null = null;
-  selectedUserDetails: any = null; // Detalles completos del usuario (permisos y productos)
+  selectedUserId: string | null = null; // Detalles completos del usuario (permisos y productos)
   
   configSections: ConfigSection[] = [
     {
@@ -165,53 +158,6 @@ export class ConfiguracionComponent implements OnInit {
     }
   }
 
-  loadUsers(): void {
-    // 🔥 Mostrar modal de carga con Swal
-    Swal.fire({
-      title: 'Cargando usuarios',
-      text: 'Por favor espera...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-    
-    this.userService.getAllUsers().subscribe({
-      next: (users) => {
-        // Asignar usuarios
-        this.users = users;
-        
-        // Calcular contadores
-        this.activeUsersCount = users.filter(u => u.isActive).length;
-        this.inactiveUsersCount = users.filter(u => !u.isActive).length;
-        
-        
-        // Forzar detección de cambios
-        this.cdr.detectChanges();
-        
-        // Refrescar DataTables si ya existe
-        if (this.usersListComponent) {
-          setTimeout(() => {
-            this.usersListComponent.refreshDataTables();
-            Swal.close(); // 🔥 Cerrar modal DESPUÉS de que DataTable termine
-          }, 200);
-        } else {
-          Swal.close(); // 🔥 Cerrar modal si no hay componente
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar usuarios:', error);
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cargar usuarios',
-          text: error.message,
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
-  }
-
-
 
   setActiveSection(sectionId: string): void {
     console.log('🔄 Cambiando a sección:', sectionId);
@@ -221,8 +167,7 @@ export class ConfiguracionComponent implements OnInit {
       console.log('🧹 Reseteando vista de usuario al cambiar de sección');
       this.showUserForm = false;
       this.isUserEditMode = false;
-      this.selectedUserForEdit = null;
-      this.selectedUserDetails = null;
+      this.selectedUserId = null;
     }
     
     this.configSections.forEach(section => {
@@ -230,12 +175,8 @@ export class ConfiguracionComponent implements OnInit {
     });
     this.activeSection = sectionId;
     
-    // 🔥 Cargar datos SOLO cuando se entra a cada sección
-    if (sectionId === 'users' && this.users.length === 0) {
-      console.log('🔄 Cargando usuarios por primera vez...');
-      this.loadUsers();
-    }
-    // categories y products: los componentes hijos cargan sus propios datos
+    // 🔥 No cargar datos - los componentes hijos cargan sus propios datos
+    // categories, products y users: los componentes hijos cargan sus propios datos
     // roles se cargan dentro de RolesPermisosComponent (y se resetean con ngOnDestroy)
   }
 
@@ -418,7 +359,7 @@ export class ConfiguracionComponent implements OnInit {
 
     // Simular sincronización
     setTimeout(() => {
-      this.loadUsers();
+      // El componente users-list se recargará automáticamente
       Swal.fire({
         icon: 'success',
         title: 'Sincronización completa',
@@ -430,89 +371,28 @@ export class ConfiguracionComponent implements OnInit {
     }, 2000);
   }
 
-  onViewUser(user: User): void {
-    
-    // Cargar datos completos del usuario
-    Swal.fire({
-      title: 'Cargando datos del usuario',
-      text: 'Por favor espera...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    this.userService.getUserById(user.id).subscribe({
-      next: (userDetails) => {
-        Swal.close();
-        this.showUserForm = true;
-        this.isUserEditMode = false; // Modo solo lectura
-        this.selectedUserForEdit = user;
-        this.selectedUserDetails = userDetails; // Guardar detalles completos
-        console.log('📋 Detalles completos del usuario cargados:', userDetails);
-      },
-      error: (error) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cargar usuario',
-          text: error.message || 'No se pudieron cargar los datos del usuario',
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
+  onViewUser(userId: string): void {
+    this.selectedUserId = userId;
+    this.isUserEditMode = false;
+    this.showUserForm = true;
   }
 
-  onEditUser(user: User): void {
-    console.log('✏️ Editar usuario:', user);
-    console.log('🔍 Estado ANTES - showUserForm:', this.showUserForm, 'isUserEditMode:', this.isUserEditMode);
-    
-    // Cargar datos completos del usuario
-    Swal.fire({
-      title: 'Cargando datos del usuario',
-      text: 'Por favor espera...',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-
-    this.userService.getUserById(user.id).subscribe({
-      next: (userDetails) => {
-        Swal.close();
-        this.showUserForm = true;
-        this.isUserEditMode = true;
-        this.selectedUserForEdit = user;
-        this.selectedUserDetails = userDetails; // Guardar detalles completos
-        console.log('✏️ Detalles completos del usuario cargados para edición:', userDetails);
-        console.log('🔍 Estado DESPUÉS - showUserForm:', this.showUserForm, 'isUserEditMode:', this.isUserEditMode);
-        
-        // Forzar detección de cambios
-        this.cdr.detectChanges();
-        console.log('✅ detectChanges ejecutado');
-      },
-      error: (error) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error al cargar usuario',
-          text: error.message || 'No se pudieron cargar los datos del usuario',
-          confirmButtonText: 'Entendido'
-        });
-      }
-    });
+  onEditUser(userId: string): void {
+    this.selectedUserId = userId;
+    this.isUserEditMode = true;
+    this.showUserForm = true;
   }
 
   onCancelUserForm(): void {
-    console.log('❌ Cancelar formulario de usuario');
     this.showUserForm = false;
     this.isUserEditMode = false;
-    this.selectedUserForEdit = null;
-    this.selectedUserDetails = null; // Limpiar detalles
+    this.selectedUserId = null;
   }
 
   onSaveUser(userData: any): void {
     console.log('💾 Actualizar usuario:', userData);
     
-    if (!this.selectedUserForEdit) {
+    if (!this.selectedUserId) {
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -533,17 +413,15 @@ export class ConfiguracionComponent implements OnInit {
     });
 
     // Llamar al backend para actualizar usuario
-    this.userService.updateUser(this.selectedUserForEdit.id, userData).subscribe({
+    this.userService.updateUser(this.selectedUserId, userData).subscribe({
       next: (response) => {
         console.log('✅ Usuario actualizado exitosamente:', response);
         
         this.showUserForm = false;
         this.isUserEditMode = false;
-        this.selectedUserForEdit = null;
-        this.selectedUserDetails = null;
+        this.selectedUserId = null;
         
-        // Recargar lista de usuarios
-        this.loadUsers();
+        // El componente users-list se recargará automáticamente si es necesario
         
         Swal.fire({
           icon: 'success',
@@ -567,40 +445,7 @@ export class ConfiguracionComponent implements OnInit {
     });
   }
 
-  onDeleteUser(userId: string): void {
-    console.log('🗑️ Usuario eliminado:', userId);
-    // Eliminar el usuario de la lista local
-    this.users = this.users.filter(u => u.id !== userId);
-    
-    // Aquí se haría la llamada al backend
-    // this.userService.deleteUser(userId).subscribe({
-    //   next: () => {
-    //     this.loadUsers();
-    //   },
-    //   error: (error) => {
-    //     console.error('Error al eliminar usuario:', error);
-    //   }
-    // });
-  }
 
-  onToggleUserStatus(userId: string): void {
-    console.log('🔄 Cambiar estado del usuario:', userId);
-    // Actualizar el estado localmente
-    const user = this.users.find(u => u.id === userId);
-    if (user) {
-      user.isActive = !user.isActive;
-    }
-    
-    // Aquí se haría la llamada al backend
-    // this.userService.toggleUserStatus(userId).subscribe({
-    //   next: () => {
-    //     this.loadUsers();
-    //   },
-    //   error: (error) => {
-    //     console.error('Error al cambiar estado:', error);
-    //   }
-    // });
-  }
 
   // Métodos de gestión de productos
   onSyncProducts(): void {
@@ -652,37 +497,5 @@ export class ConfiguracionComponent implements OnInit {
       }
     });
   }
-
-  onViewProduct(product: Product): void {
-    console.log('👁️ Ver detalles del producto:', product);
-    
-    Swal.fire({
-      title: 'Detalles del Producto',
-      html: `
-        <div class="text-start">
-          <p><strong>Código:</strong> ${product.code}</p>
-          <p><strong>Nombre:</strong> ${product.name}</p>
-          <p><strong>Descripción:</strong> ${product.description}</p>
-          <p><strong>Categoría:</strong> ${product.category_name}</p>
-          <p><strong>Unidad:</strong> ${product.unit}</p>
-          <p><strong>Estado:</strong> ${product.isActive ? '<span class="badge bg-success">Activo</span>' : '<span class="badge bg-secondary">Inactivo</span>'}</p>
-          <p><strong>Fecha de creación:</strong> ${new Date(product.createdAt).toLocaleDateString('es-ES')}</p>
-        </div>
-      `,
-      confirmButtonText: 'Cerrar',
-      width: '600px'
-    });
-  }
-
-  onEditProduct(product: Product): void {
-    console.log('✏️ Editar producto:', product);
-    Swal.fire({
-      icon: 'info',
-      title: 'Editar Producto',
-      text: `Funcionalidad de editar producto "${product.name}" en desarrollo`,
-      confirmButtonText: 'Entendido'
-    });
-  }
-
 
 }

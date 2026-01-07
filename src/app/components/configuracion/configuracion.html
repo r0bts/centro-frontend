@@ -51,7 +51,7 @@
                     <!-- Users Management -->
                     <div *ngIf="activeSection === 'users'" class="config-panel">
                         <!-- Mostrar formulario de usuario o lista -->
-                        <div [class.d-none]="showUserForm">
+                        <div *ngIf="!showUserForm">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
@@ -63,54 +63,23 @@
                                         <div class="col-12">
                                             <p class="text-muted">Administra todos los usuarios del sistema, sus roles y permisos.</p>
                                         </div>
-                                        <div class="col-md-4 mb-3">
-                                            <div class="card bg-light border-0">
-                                                <div class="card-body text-center">
-                                                    <i class="bi bi-people-fill text-primary" style="font-size: 2rem;"></i>
-                                                    <h4 class="mt-2">{{ users.length }}</h4>
-                                                    <p class="text-muted mb-0">Usuarios Totales</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <div class="card bg-light border-0">
-                                                <div class="card-body text-center">
-                                                    <i class="bi bi-shield-check text-success" style="font-size: 2rem;"></i>
-                                                    <h4 class="mt-2">{{ activeUsersCount }}</h4>
-                                                    <p class="text-muted mb-0">Usuarios Activos</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 mb-3">
-                                            <div class="card bg-light border-0">
-                                                <div class="card-body text-center">
-                                                    <i class="bi bi-shield-x text-warning" style="font-size: 2rem;"></i>
-                                                    <h4 class="mt-2">{{ inactiveUsersCount }}</h4>
-                                                    <p class="text-muted mb-0">Usuarios Inactivos</p>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <!-- Listado de Usuarios con DataTable -->
                                     <app-users-list 
-                                        [users]="users"
                                         (syncUsers)="onSyncUsers()"
                                         (viewUser)="onViewUser($event)"
-                                        (editUser)="onEditUser($event)"
-                                        (deleteUser)="onDeleteUser($event)"
-                                        (toggleUserStatus)="onToggleUserStatus($event)">
+                                        (editUser)="onEditUser($event)">
                                     </app-users-list>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Formulario de usuario -->
-                        <div [class.d-none]="!showUserForm">
+                        <div *ngIf="showUserForm && selectedUserId">
                             <app-user-form
+                                [userId]="selectedUserId"
                                 [isEditMode]="isUserEditMode"
-                                [selectedUser]="selectedUserForEdit"
-                                [userDetails]="selectedUserDetails"
                                 (cancel)="onCancelUserForm()"
                                 (save)="onSaveUser($event)">
                             </app-user-form>
@@ -138,10 +107,7 @@
                                 </div>
 
                                 <!-- Listado de Productos con DataTable -->
-                                <app-products-list 
-                                    (syncProducts)="onSyncProducts()"
-                                    (viewProduct)="onViewProduct($event)">
-                                </app-products-list>
+                                <app-products-list></app-products-list>
                             </div>
                         </div>
                     </div>

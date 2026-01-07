@@ -2,6 +2,7 @@ import { Component, OnInit, OnChanges, Input, Output, EventEmitter, ChangeDetect
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductService, Product } from '../../../../services/product.service';
+import { UserService } from '../../../../services/user.service';
 import Swal from 'sweetalert2';
 
 interface User {
@@ -80,9 +81,8 @@ interface ProductAssignment {
   styleUrls: ['./user-form.scss']
 })
 export class UserFormComponent implements OnInit, OnChanges {
+  @Input() userId: string | null = null;
   @Input() isEditMode = false;
-  @Input() selectedUser: User | null = null;
-  @Input() userDetails: any = null; // Detalles completos del usuario (user, permissions, products)
   @Output() cancel = new EventEmitter<void>();
   @Output() save = new EventEmitter<any>();
 
@@ -154,6 +154,7 @@ export class UserFormComponent implements OnInit, OnChanges {
   submodules: Submodule[] = [];
   dbPermissions: DbPermission[] = [];
   private submodulePermissionsConfig: { [key: number]: number[] } = {};
+  private permissionsStructureLoaded = false;
 
   /* ========================================
    * 📝 CÓDIGO COMENTADO - DATOS HARDCODED
@@ -237,6 +238,7 @@ export class UserFormComponent implements OnInit, OnChanges {
 
   constructor(
     private productService: ProductService,
+    private userService: UserService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -246,11 +248,18 @@ export class UserFormComponent implements OnInit, OnChanges {
     
     // 🔥 NO cargar productos automáticamente
     // Solo cargar cuando el usuario vaya a la pestaña de productos
-    this.loadUserData();
+    
+    // 🔥 NO cargar datos de usuario aquí
+    // Los datos se cargan en ngOnChanges cuando userId está disponible
   }
 
   ngOnChanges(): void {
-    this.loadUserData();
+    if (this.userId) {
+      this.loadUserData();
+    } else {
+      // Limpiar formulario para nuevo usuario
+      this.clearForm();
+    }
   }
 
   /**
@@ -306,6 +315,17 @@ export class UserFormComponent implements OnInit, OnChanges {
             console.log('📋 [USER-FORM] Módulos:', this.modules.length);
             console.log('📋 [USER-FORM] Submódulos:', this.submodules.length);
             console.log('📋 [USER-FORM] Permisos:', this.dbPermissions.length);
+            
+            // 🔥 Marcar estructura como cargada
+            this.permissionsStructureLoaded = true;
+            
+            // 🔥 IMPORTANTE: La estructura SIEMPRE debe mostrarse
+            // No importa si el usuario tiene permisos o no, la estructura se muestra completa
+            console.log('✅ [USER-FORM] Estructura de permisos lista para mostrar');
+            console.log('📊 [USER-FORM] Estado actual - userPermissions:', this.userPermissions.length, 'rolePermissions:', this.rolePermissions.length);
+            
+            // 🔥 Forzar detección de cambios para renderizar la estructura
+            this.cdr.detectChanges();
           }
         },
         error: (error) => {
@@ -316,62 +336,105 @@ export class UserFormComponent implements OnInit, OnChanges {
   }
 
   private loadUserData(): void {
-    if (this.userDetails) {
-      console.log('📥 Cargando datos completos del usuario:', this.userDetails);
-      
-      // Cargar datos del usuario desde userDetails
-      const user = this.userDetails.user;
-      
-      this.userForm = {
-        username: user.username,
-        nombre: `${user.firstName} ${user.lastName}`,
-        departamento: user.department || '',
-        status: user.isActive,
-        id_netsuite: user.employeeNumber,
-        rol_id: user.role.id
-      };
-      
-      // Cargar permisos del usuario
-      this.userPermissions = this.userDetails.permissions || [];
-      
-      // 🔥 Cargar productos asignados (asegurar que product_id sea string)
-      if (this.userDetails.products && Array.isArray(this.userDetails.products)) {
-        this.productAssignments = this.userDetails.products.map((p: any) => ({
-          product_id: String(p.product_id),
-          limit_per_requisition: p.limit_per_requisition || 0,
-          is_assigned: p.is_assigned !== undefined ? p.is_assigned : true
-        }));
-      }
-      
-      console.log('✅ Datos cargados:', {
-        form: this.userForm,
-        permissions: this.userPermissions.length,
-        products: this.productAssignments.length
-      });
-    } else if (this.selectedUser && this.isEditMode) {
-      // Fallback: Cargar datos básicos del usuario (sin detalles completos)
-      this.userForm = {
-        username: this.selectedUser.username,
-        nombre: `${this.selectedUser.firstName} ${this.selectedUser.lastName}`,
-        departamento: '',
-        status: this.selectedUser.isActive,
-        id_netsuite: this.selectedUser.employeeNumber,
-        rol_id: ''
-      };
-    } else {
-      // Limpiar formulario para nuevo usuario
-      this.userForm = {
-        username: '',
-        nombre: '',
-        departamento: '',
-        status: true,
-        id_netsuite: '',
-        rol_id: ''
-      };
-      this.rolePermissions = [];
-      this.userPermissions = [];
-      this.productAssignments = [];
+    if (!this.userId) {
+      console.log('⚠️ No userId provided, clearing form');
+      this.clearForm();
+      return;
     }
+
+    console.log('📡 Cargando datos del usuario:', this.userId);
+    
+    // Mostrar loading
+    Swal.fire({
+      title: 'Cargando datos del usuario',
+      text: 'Por favor espera...',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    this.userService.getUserById(this.userId).subscribe({
+      next: (userDetails) => {
+        Swal.close();
+        console.log('📥 Datos completos del usuario:', userDetails);
+        
+        // Cargar datos del usuario desde userDetails
+        const user = userDetails.user;
+        
+        this.userForm = {
+          username: user.username || '',
+          nombre: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          departamento: user.department || '',
+          status: user.isActive !== undefined ? user.isActive : true,
+          id_netsuite: user.employeeNumber || '',
+          rol_id: user.role?.id || '' // Esto será vacío porque el backend devuelve null
+        };
+        
+        // 🔥 Cargar permisos del usuario DIRECTAMENTE desde la respuesta
+        // El backend ya devuelve los permisos del usuario en userDetails.permissions
+        this.userPermissions = userDetails.permissions || [];
+        
+        console.log('🔑 Permisos cargados desde backend:', this.userPermissions.length);
+        
+        // 🔥 Si no hay permisos desde el backend pero hay rol_id, cargar permisos del rol (fallback)
+        if (this.userPermissions.length === 0 && this.userForm.rol_id) {
+          console.log('⚠️ No hay permisos desde backend, usando permisos del rol como fallback');
+          this.rolePermissions = [];
+        } else {
+          // Los permisos del rol son los mismos que los del usuario si no hay rol_id
+          this.rolePermissions = JSON.parse(JSON.stringify(this.userPermissions));
+        }
+        
+        // 🔥 Cargar productos asignados (asegurar que product_id sea string)
+        if (userDetails.products && Array.isArray(userDetails.products)) {
+          this.productAssignments = userDetails.products.map((p: any) => ({
+            product_id: String(p.product_id),
+            limit_per_requisition: p.limit_per_requisition || 0,
+            is_assigned: p.is_assigned !== undefined ? p.is_assigned : true
+          }));
+        }
+        
+        console.log('✅ Datos cargados:', {
+          form: this.userForm,
+          rol_id: this.userForm.rol_id,
+          permissionsStructureLoaded: this.permissionsStructureLoaded,
+          userPermissions: this.userPermissions.length,
+          rolePermissions: this.rolePermissions.length,
+          products: this.productAssignments.length
+        });
+        
+        // 🔥 Los permisos ya están cargados desde el backend
+        // No necesitamos loadRolePermissions porque el backend ya nos dio los permisos
+        console.log('✅ Permisos del usuario ya cargados desde el backend');
+        
+        // 🔥 Forzar detección de cambios para actualizar vista inmediatamente
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar usuario',
+          text: error.message || 'No se pudieron cargar los datos del usuario',
+          confirmButtonText: 'Entendido'
+        });
+        console.error('❌ Error al cargar usuario:', error);
+      }
+    });
+  }
+
+  private clearForm(): void {
+    this.userForm = {
+      username: '',
+      nombre: '',
+      departamento: '',
+      status: true,
+      id_netsuite: '',
+      rol_id: ''
+    };
+    this.rolePermissions = [];
+    this.userPermissions = [];
+    this.productAssignments = [];
   }
 
   /**
@@ -413,8 +476,17 @@ export class UserFormComponent implements OnInit, OnChanges {
   }
 
   onRoleChange(): void {
-    // Cargar permisos del rol seleccionado
-    this.loadRolePermissions(this.userForm.rol_id);
+    console.log('🔄 Cambio de rol detectado:', this.userForm.rol_id);
+    // 🔥 Cuando el endpoint de permisos por rol esté disponible:
+    // Cargar permisos del rol seleccionado desde el backend
+    // Por ahora, cargar permisos simulados si hay rol_id
+    if (this.userForm.rol_id) {
+      this.loadRolePermissions(this.userForm.rol_id);
+    } else {
+      // Si no hay rol, limpiar permisos del rol pero mantener estructura
+      this.rolePermissions = [];
+      console.log('⚠️ No hay rol seleccionado, permisos del rol limpiados');
+    }
   }
 
   private loadRolePermissions(roleId: string): void {
@@ -423,6 +495,9 @@ export class UserFormComponent implements OnInit, OnChanges {
       this.userPermissions = [];
       return;
     }
+
+    console.log('🔑 [USER-FORM] Cargando permisos para rol:', roleId);
+    console.log('📊 [USER-FORM] Estructura disponible - Módulos:', this.modules.length, 'Submódulos:', this.submodules.length);
 
     // Aquí harías una llamada al backend para obtener los permisos del rol
     // Por ahora, simulamos permisos según el rol
@@ -482,6 +557,11 @@ export class UserFormComponent implements OnInit, OnChanges {
     this.rolePermissions = rolePermissionsMap[roleId] || [];
     // Copiar los permisos del rol a los permisos del usuario (personalizables)
     this.userPermissions = JSON.parse(JSON.stringify(this.rolePermissions));
+    
+    console.log('✅ [USER-FORM] Permisos cargados - Rol:', this.rolePermissions.length, 'Usuario:', this.userPermissions.length);
+    
+    // 🔥 Forzar detección de cambios para renderizar permisos
+    this.cdr.detectChanges();
   }
 
   getSubmodulesByModule(moduleId: number): Submodule[] {
