@@ -720,7 +720,14 @@ export class WarehouseSupplyComponent implements OnInit {
 
     Swal.fire({
       title: '¿Confirmar devolución al almacén?',
-      html: returnListHtml,
+      html: `
+        ${returnListHtml}
+        <div class="alert alert-warning mt-3 mb-0">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <strong>IMPORTANTE:</strong> Esta devolución se puede procesar UNA SOLA VEZ. 
+          Después de confirmar, la requisición se cerrará con estado "Entregado".
+        </div>
+      `,
       input: 'textarea',
       inputPlaceholder: 'Notas sobre la devolución (opcional)',
       icon: 'question',
@@ -729,7 +736,7 @@ export class WarehouseSupplyComponent implements OnInit {
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#F4D35E',
       cancelButtonColor: '#5B5B5B',
-      width: '600px'
+      width: '650px'
     }).then((result) => {
       if (result.isConfirmed) {
         const notes = result.value?.trim() || undefined;
@@ -758,15 +765,13 @@ export class WarehouseSupplyComponent implements OnInit {
             if (response.success) {
               const data = response.data;
               
-              let itemsHtml = '<div class="mt-3"><h6>Devoluciones procesadas:</h6><ul class="list-unstyled text-start">';
+              let itemsHtml = '<div class="mt-3"><h6>Productos devueltos:</h6><ul class="list-unstyled text-start">';
               if (data.items_returned) {
                 data.items_returned.forEach((item: any) => {
                   itemsHtml += `<li class="mb-2">
                     <small>
                       <strong>Item ${item.item_id}:</strong> 
-                      Devuelto ahora: ${item.returned_now}, 
-                      Total devuelto: ${item.total_returned}/${item.delivered}
-                      ${item.pending_return > 0 ? `<br>⚠️ Pendiente: ${item.pending_return}` : '<br>✅ Completo'}
+                      Devuelto: ${item.returned_quantity} de ${item.delivered} entregados
                     </small>
                   </li>`;
                 });
@@ -775,32 +780,24 @@ export class WarehouseSupplyComponent implements OnInit {
               
               Swal.fire({
                 icon: 'success',
-                title: data.all_returned ? '¡Devolución Completada!' : 'Devolución Parcial Procesada',
+                title: '¡Devolución Procesada Exitosamente!',
                 html: `
-                  <div class=\"text-start\">
+                  <div class="text-start">
                     <p><strong>ID:</strong> ${data.id}</p>
-                    <p><strong>Estado:</strong> <span class=\"badge bg-${data.all_returned ? 'success' : 'warning'}\">${data.status}</span></p>
+                    <p><strong>Estado:</strong> <span class="badge bg-success">${data.status}</span></p>
                     <p><strong>Procesado el:</strong> ${new Date(data.processed_at).toLocaleString('es-MX')}</p>
                     ${data.return_notes ? `<p><strong>Notas:</strong> ${data.return_notes}</p>` : ''}
                     ${itemsHtml}
-                    ${!data.all_returned ? '<div class=\"alert alert-warning mt-3 mb-0\"><small><i class=\"bi bi-exclamation-triangle me-1\"></i>Aún hay productos pendientes de devolución</small></div>' : ''}
+                    <div class="alert alert-info mt-3 mb-0">
+                      <i class="bi bi-check-circle-fill me-2"></i>
+                      La requisición ha sido cerrada. No se permiten devoluciones adicionales.
+                    </div>
                   </div>
                 `,
                 confirmButtonText: 'Continuar',
                 confirmButtonColor: '#28a745'
               }).then(() => {
-                // Limpiar cantidades de devolución después del proceso exitoso
-                this.requisition.update(r => {
-                  if (!r) return r;
-                  return {
-                    ...r,
-                    products: WarehouseSupplyHelper.clearReturnQuantities(r.products)
-                  };
-                });
-                
-                if (data.all_returned) {
-                  this.goBackToList();
-                }
+                this.goBackToList();
               });
             }
           },
@@ -810,6 +807,11 @@ export class WarehouseSupplyComponent implements OnInit {
             let errorMessage = 'No se pudo procesar la devolución';
             if (error.error?.message) {
               errorMessage = error.error.message;
+            }
+            
+            // Mensaje específico si ya fue procesada
+            if (error.error?.error?.code === 'INVALID_STATUS' && error.error?.error?.current_status === 'Entregado') {
+              errorMessage = 'Esta requisición ya procesó su devolución y está cerrada. No se permiten devoluciones adicionales.';
             }
             
             Swal.fire({

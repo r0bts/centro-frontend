@@ -27,6 +27,10 @@ export interface UserInfo {
   first_name: string;
   last_name: string;
   number_employee: string;
+  location_id: number;
+  location_name: string | null;
+  department_id: number;
+  department_name: string | null;
 }
 
 export interface RoleInfo {

@@ -172,13 +172,23 @@ export class RequisitionService {
 
   /**
    * Obtiene los datos necesarios para el formulario de requisiciones
-   * Endpoint: GET /api/requisitions/form-data
+   * Endpoint: GET /api/requisitions/form-data?location_id={location_id}
    * 
-   * Retorna: 651 productos, 560 usuarios, 78 áreas, 141 proyectos, etc.
+   * @param locationId - ID de ubicación para filtrar usuarios y locations
+   *                     0 = Todos (default), 1 = HERMES, 9 = GLACIAR
+   * 
+   * Comportamiento de filtrado:
+   * - location_id = 0: Todos los usuarios (483) y ambas ubicaciones
+   * - location_id = 1: Solo usuarios de HERMES (147) y ubicación HERMES
+   * - location_id = 9: Solo usuarios de GLACIAR y ubicación GLACIAR
    */
-  getFormData(): Observable<RequisitionFormDataResponse> {
-    return this.http.get<RequisitionFormDataResponse>(`${this.API_URL}/requisitions/form-data`).pipe(
+  getFormData(locationId: number = 0): Observable<RequisitionFormDataResponse> {
+    // Siempre enviar location_id como parámetro
+    const params = { location_id: locationId.toString() };
+    
+    return this.http.get<RequisitionFormDataResponse>(`${this.API_URL}/requisitions/form-data`, { params }).pipe(
       tap(response => console.log('✅ Form data cargado:', {
+        locationId,
         products: response.data.products.length,
         users: response.data.users.length,
         departments: response.data.departments.length,
@@ -273,13 +283,10 @@ export class RequisitionService {
   /**
    * Entregar requisición con PIN
    * Endpoint: POST /api/requisitions/{id}/deliver
+   * IMPORTANTE: Solo envía PIN. Las cantidades ya fueron registradas en mark-ready
    */
-  deliver(id: string, pin: string, items?: Array<{item_id: number, delivered_quantity: number}>): Observable<any> {
-    const body: any = { pin };
-    if (items && items.length > 0) {
-      body.items = items;
-    }
-    return this.http.post(`${this.API_URL}/requisitions/${id}/deliver`, body).pipe(
+  deliver(id: string, pin: string): Observable<any> {
+    return this.http.post(`${this.API_URL}/requisitions/${id}/deliver`, { pin }).pipe(
       tap(response => console.log('✅ Requisición entregada:', response)),
       catchError(this.handleError)
     );
