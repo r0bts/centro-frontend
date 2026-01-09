@@ -44,6 +44,9 @@ export class MenuService {
    */
   private buildModuleItem(module: PermissionModule): MenuItem | null {
     const submoduleItems: MenuItem[] = [];
+    
+    // Rutas internas que no deben aparecer en el menú
+    const excludedRoutes = ['/requisicion/confirmacion'];
 
     // Obtener submódulos y ordenarlos por sort_order
     const submodules = Object.values(module.submodules)
@@ -51,7 +54,8 @@ export class MenuService {
 
     for (const submodule of submodules) {
       // Verificar si el usuario tiene al menos 1 permiso granted en este submódulo
-      if (this.hasAnyGrantedPermission(submodule)) {
+      // Y que la ruta no esté en la lista de exclusión
+      if (this.hasAnyGrantedPermission(submodule) && !excludedRoutes.includes(submodule.route)) {
         const submoduleItem: MenuItem = {
           id: submodule.name,
           label: submodule.display_name,
