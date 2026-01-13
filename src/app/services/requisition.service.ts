@@ -81,6 +81,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { StorageService } from './storage.service';
 
 // Interfaces para el response del backend
 
@@ -280,7 +281,10 @@ export interface ProcessReturnResponse {
 export class RequisitionService {
   private readonly API_URL = environment.apiUrl;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private storageService: StorageService
+  ) { }
 
   /**
    * Manejo de errores HTTP
@@ -308,18 +312,27 @@ export class RequisitionService {
    * Obtiene los datos necesarios para el formulario de requisiciones
    * Endpoint: GET /api/requisitions/form-data?location_id={location_id}
    * 
-   * @param locationId - ID de ubicación para filtrar usuarios y locations
-   *                     0 = Todos (default), 1 = HERMES, 9 = GLACIAR
+   * Obtiene el location_id del usuario guardado en localStorage.
    * 
    * Comportamiento de filtrado:
    * - location_id = 0: Todos los usuarios (483) y ambas ubicaciones
    * - location_id = 1: Solo usuarios de HERMES (147) y ubicación HERMES
    * - location_id = 9: Solo usuarios de GLACIAR y ubicación GLACIAR
    */
-  getFormData(locationId: number = 0): Observable<RequisitionFormDataResponse> {
-    // Siempre enviar location_id como parámetro
-    const params = { location_id: locationId.toString() };
+  getFormData(): Observable<RequisitionFormDataResponse> {
+    // Obtener location_id del usuario guardado en localStorage
+    const userJson = this.storageService.getItem('centro_user');
+    let locationId = 0;
     
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        locationId = user.location_id || 0;
+      } catch {
+        locationId = 0;
+      }
+    }    
+    const params = { location_id: locationId.toString() };
     return this.http.get<RequisitionFormDataResponse>(`${this.API_URL}/requisitions/form-data`, { params }).pipe(
       tap(response => console.log('✅ Form data cargado:', {
         locationId,
