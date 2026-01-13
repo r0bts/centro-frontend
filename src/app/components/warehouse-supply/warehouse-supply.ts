@@ -1,3 +1,90 @@
+/**
+ * ==================================================================================
+ * COMPONENTE: Warehouse Supply (Surtido de Requisiciones)
+ * ==================================================================================
+ * 
+ * DESCRIPCIÓN GENERAL:
+ * Este componente gestiona el flujo completo de surtido de requisiciones en almacén
+ * con sincronización automática a NetSuite.
+ * 
+ * FLUJO PRINCIPAL DE TRABAJO:
+ * ===========================
+ * 
+ * 1. CARGAR REQUISICIÓN (loadRequisitionData)
+ *    GET /api/requisitions/{id}/supply
+ *    ↓ Carga datos del backend, mapea estados y agrupa por categoría
+ * 
+ * 2. SURTIR PRODUCTOS (markReadyForCollection)
+ *    POST /api/requisitions/{id}/mark-ready
+ *    ↓ Registra delivered_quantity en BD, genera PIN
+ *    ℹ️  NetSuite: Pendiente de sincronizar
+ * 
+ * 3. ENTREGAR CON PIN (finalizeSupply → deliver)
+ *    POST /api/requisitions/{id}/deliver
+ *    ↓ Valida PIN
+ *    ℹ️  NetSuite: Sincroniza si NO hay devolución pendiente
+ *    ℹ️  NetSuite: Se diferida si hay devolución pendiente
+ * 
+ * 4. OPCIÓN A - SIN DEVOLUCIÓN:
+ *    Requisición CERRADA
+ *    ✅ Inventario NetSuite actualizado con: -(delivered - 0)
+ * 
+ * 4. OPCIÓN B - CON DEVOLUCIÓN PENDIENTE:
+ *    Requisición en espera de devolución
+ *    ℹ️  Inventario NetSuite aún no sincronizado
+ * 
+ * 5. PROCESAR DEVOLUCIÓN (returnProductsToWarehouse)
+ *    POST /api/requisitions/{id}/process-return
+ *    ↓ Registra returned_quantity, cierra requisición
+ *    ✅ Inventario NetSuite actualizado con: -(delivered - returned)
+ *    ⚠️  ESTA ACCIÓN SOLO SE PUEDE HACER UNA SOLA VEZ
+ * 
+ * ==================================================================================
+ * SINCRONIZACIÓN CON NETSUITE
+ * ==================================================================================
+ * 
+ * La sincronización ocurre automáticamente en dos momentos:
+ * 
+ * ESCENARIO 1 - Entrega sin devolución:
+ *   deliver() → NetSuite sincroniza inmediatamente
+ *   Ajuste: -(delivered_quantity - 0)
+ *   Estado final: Entregado (CERRADA)
+ * 
+ * ESCENARIO 2 - Entrega con devolución pendiente:
+ *   deliver() → NetSuite NO sincroniza aún
+ *   Estado final: Espera Devolución (ABIERTA)
+ *   ↓
+ *   processReturn() → NetSuite sincroniza
+ *   Ajuste: -(delivered_quantity - returned_quantity)
+ *   Estado final: Entregado (CERRADA)
+ * 
+ * ==================================================================================
+ * ESTADOS Y TRANSICIONES
+ * ==================================================================================
+ * 
+ * autorizado
+ *     ↓ [markReady] Registra cantidades
+ * listo_recoger
+ *     ↓ [deliver con PIN] Valida entrega
+ *     ├─→ entregado (SIN devolución) ✅ NetSuite sincronizado
+ *     └─→ espera_devolucion (CON devolución pendiente) ⏳ NetSuite diferido
+ *             ↓ [processReturn] Registra devolución
+ *             → entregado (CERRADA) ✅ NetSuite sincronizado
+ * 
+ * ==================================================================================
+ * INFORMACIÓN IMPORTANTE
+ * ==================================================================================
+ * 
+ * ✅ Validación de estado en cada paso
+ * ✅ PIN de 4 dígitos para validar entrega
+ * ✅ Cantidades registradas en mark-ready (NO en deliver)
+ * ✅ NetSuite sincronización automática y no bloqueante
+ * ⚠️  Devolución: Una sola vez, luego requisición se cierra
+ * ⚠️  Si NetSuite falla, la operación local se completa igualmente
+ * 
+ * ==================================================================================
+ */
+
 import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -468,7 +555,7 @@ export class WarehouseSupplyComponent implements OnInit {
     
     Swal.fire({
       title: '¿Marcar como lista para recolección?',
-      text: 'Esta acción notificará que los productos están listos para ser recogidos.',
+      text: 'Se registrarán las cantidades surtidas y se generará un PIN para validar la entrega.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, marcar como lista',
@@ -483,12 +570,12 @@ export class WarehouseSupplyComponent implements OnInit {
           delivered_quantity: product.suppliedQuantity || 0
         }));
         
-        console.log('📦 Items a enviar:', items);
+        console.log('📦 Items a enviar (delivered_quantity registrado en BD):', items);
         
         // Mostrar loading
         Swal.fire({
           title: 'Procesando...',
-          text: 'Marcando requisición como lista',
+          text: 'Registrando cantidades y generando PIN...',
           allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
@@ -510,7 +597,7 @@ export class WarehouseSupplyComponent implements OnInit {
                   <div class="text-start">
                     <p><strong>ID:</strong> ${data.id}</p>
                     <p><strong>Estado:</strong> <span class="badge bg-success">${data.current_status}</span></p>
-                    <p><strong>Fecha:</strong> ${new Date(data.ready_at).toLocaleString('es-MX')}</p>
+                    <p><strong>Fecha de Preparación:</strong> ${new Date(data.ready_at).toLocaleString('es-MX')}</p>
                     <hr>
                     <div class="alert alert-info mb-0 mt-3">
                       <h5 class="mb-2"><i class="bi bi-key-fill me-2"></i>PIN de Recolección</h5>
@@ -521,6 +608,14 @@ export class WarehouseSupplyComponent implements OnInit {
                       <small class="text-muted d-block mt-2">
                         <i class="bi bi-info-circle me-1"></i>
                         ${data.pickup_person ? `Recogerá: ${data.pickup_person.full_name}` : 'Comparte este PIN con quien recogerá'}
+                      </small>
+                    </div>
+                    <div class="alert alert-light mt-3 mb-0 text-muted">
+                      <small>
+                        <i class="bi bi-database me-1"></i>
+                        ✅ Datos guardados en base de datos<br>
+                        <i class="bi bi-cloud me-1"></i>
+                        ⏳ NetSuite se sincronizará al confirmar la entrega
                       </small>
                     </div>
                   </div>
@@ -614,6 +709,68 @@ export class WarehouseSupplyComponent implements OnInit {
     this.finalizeSupply();
   }
 
+  /**
+   * ENTREGA FINAL CON VALIDACIÓN PIN Y SINCRONIZACIÓN NETSUITE
+   * ===========================================================
+   * Paso 5.1: Si NO hay devolución pendiente
+   * POST /api/requisitions/{id}/deliver
+   * 
+   * DESCRIPCIÓN:
+   * Valida el PIN y completa la entrega al usuario final.
+   * Las cantidades ya fueron registradas en markReady().
+   * 
+   * IMPORTANTE - SINCRONIZACIÓN CON NETSUITE:
+   * ✅ SI awaiting_return = false (entrega normal):
+   *    - Se ejecuta sincronización automática con NetSuite
+   *    - Se crean Inventory Adjustments con: -(delivered_quantity - 0)
+   *    - Inventario de NetSuite se reduce por lo entregado
+   *    - Response incluye campo netsuite_sync con resultado:
+   *      {
+   *        "success": true,
+   *        "adjustments_created": 2,
+   *        "items_synced": 5,
+   *        "error": null
+   *      }
+   * 
+   * ❌ SI awaiting_return = true (en espera de devolución):
+   *    - NO se sincroniza con NetSuite
+   *    - Inventario no se ajusta todavía
+   *    - Sincronización ocurre cuando se procese la devolución (process-return)
+   *    - Response NO incluye campo netsuite_sync
+   * 
+   * VALIDACIÓN:
+   * - El PIN debe ser exacto (case-sensitive)
+   * - La requisición debe estar en "listo_recoger"
+   * 
+   * RESPUESTA EXITOSA (sin devolución):
+   * {
+   *   "success": true,
+   *   "data": {
+   *     "id": "REQ-0004",
+   *     "status": "Entregado",
+   *     "delivered_at": "2026-01-05T15:30:22-06:00",
+   *     "awaiting_return": false,
+   *     "netsuite_sync": {
+   *       "success": true,
+   *       "adjustments_created": 2,
+   *       "items_synced": 5,
+   *       "error": null
+   *     }
+   *   }
+   * }
+   * 
+   * RESPUESTA EXITOSA (con devolución pendiente):
+   * {
+   *   "success": true,
+   *   "data": {
+   *     "id": "REQ-0004",
+   *     "status": "Espera Devolución",
+   *     "delivered_at": "2026-01-05T15:30:22-06:00",
+   *     "awaiting_return": true
+   *     // ⚠️ NO incluye netsuite_sync
+   *   }
+   * }
+   */
   private finalizeSupply(): void {
     const req = this.requisition();
     if (!req) return;
@@ -623,7 +780,7 @@ export class WarehouseSupplyComponent implements OnInit {
     // Mostrar loading
     Swal.fire({
       title: 'Completando suministro...',
-      text: 'Por favor espera...',
+      text: 'Validando PIN y sincronizando con NetSuite...',
       allowOutsideClick: false,
       didOpen: () => {
         Swal.showLoading();
@@ -634,6 +791,7 @@ export class WarehouseSupplyComponent implements OnInit {
     this.requisitionService.deliver(req.id, nip).subscribe({
       next: (response) => {
         console.log('✅ Respuesta deliver:', response);
+        console.log('🔄 Estado de sincronización NetSuite:', response.data?.netsuite_sync || 'No aplica (devolución pendiente)');
         
         if (response.success) {
           const data = response.data;
@@ -647,6 +805,33 @@ export class WarehouseSupplyComponent implements OnInit {
             itemsHtml += '</ul></div>';
           }
           
+          let netsuiteStatusHtml = '';
+          if (data.netsuite_sync) {
+            if (data.netsuite_sync.success) {
+              netsuiteStatusHtml = `
+                <div class="alert alert-success mt-3 mb-0">
+                  <i class="bi bi-check-circle-fill me-2"></i>
+                  <strong>NetSuite Sincronizado:</strong> ${data.netsuite_sync.adjustments_created} ajustes creados, ${data.netsuite_sync.items_synced} items sincronizados
+                </div>
+              `;
+            } else {
+              netsuiteStatusHtml = `
+                <div class="alert alert-warning mt-3 mb-0">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                  <strong>Advertencia NetSuite:</strong> ${data.netsuite_sync.error || 'Error desconocido'}
+                  <br><small>La requisición se completó localmente. Verificar sincronización manualmente.</small>
+                </div>
+              `;
+            }
+          } else if (data.awaiting_return) {
+            netsuiteStatusHtml = `
+              <div class="alert alert-info mt-3 mb-0">
+                <i class="bi bi-hourglass-split me-2"></i>
+                <strong>Devolución Pendiente:</strong> NetSuite se sincronizará cuando se procese la devolución
+              </div>
+            `;
+          }
+          
           Swal.fire({
             icon: 'success',
             title: '¡Suministro Completado!',
@@ -657,6 +842,7 @@ export class WarehouseSupplyComponent implements OnInit {
                 <p><strong>Entregado el:</strong> ${new Date(data.delivered_at).toLocaleString('es-MX')}</p>
                 ${data.pickup_person ? `<p><strong>Recogido por:</strong> ${data.pickup_person.full_name}</p>` : ''}
                 ${itemsHtml}
+                ${netsuiteStatusHtml}
                 ${data.awaiting_return ? '<div class=\"alert alert-warning mt-3 mb-0\"><small><i class=\"bi bi-arrow-return-left me-1\"></i>Se espera devolución de productos</small></div>' : ''}
               </div>
             `,
@@ -693,6 +879,66 @@ export class WarehouseSupplyComponent implements OnInit {
     });
   }
 
+  /**
+   * PROCESAR DEVOLUCIÓN CON SINCRONIZACIÓN NETSUITE
+   * ===============================================
+   * Paso 5.2: Si hay devolución pendiente
+   * POST /api/requisitions/{id}/process-return
+   * 
+   * DESCRIPCIÓN:
+   * Registra los productos devueltos y sincroniza con NetSuite.
+   * 
+   * IMPORTANTE - CARACTERÍSTICAS CRÍTICAS:
+   * ⚠️  ESTA OPERACIÓN SOLO SE PUEDE REALIZAR UNA SOLA VEZ
+   * 
+   * FLUJO DE SINCRONIZACIÓN CON NETSUITE:
+   * ✅ Se ejecuta sincronización automática con NetSuite
+   * 
+   * CÁLCULO DE AJUSTE:
+   * Formula: adjustQtyBy = -(delivered_quantity - returned_quantity)
+   * 
+   * Ejemplo 1 - Devolución Total (10 entregados, 10 devueltos):
+   *   -(10 - 10) = 0 → No se crea ajuste (filtrado automáticamente)
+   *   Inventario NetSuite: Sin cambios
+   * 
+   * Ejemplo 2 - Devolución Parcial (10 entregados, 4 devueltos):
+   *   -(10 - 4) = -6 → Se reduce inventario en 6 unidades
+   *   Inventario NetSuite: Reduce 6 unidades (neto consumido)
+   * 
+   * Ejemplo 3 - Sin Devolución (10 entregados, 0 devueltos):
+   *   -(10 - 0) = -10 → Se reduce inventario en 10 unidades
+   *   Inventario NetSuite: Reduce 10 unidades (consumo total)
+   * 
+   * VALIDACIONES:
+   * - La requisición debe estar en "espera_devolucion"
+   * - Cada item: returned_quantity ≤ delivered_quantity
+   * - NO se pueden procesar devoluciones si ya está "entregado" (ya fue procesada)
+   * 
+   * RESPUESTA EXITOSA:
+   * {
+   *   "success": true,
+   *   "message": "Devolución procesada exitosamente - Requisición cerrada",
+   *   "data": {
+   *     "id": "REQ-0004",
+   *     "previous_status": "Espera Devolución",
+   *     "current_status": "Entregado",  // ← CERRADA después de esto
+   *     "processed_at": "2026-01-05T16:45:12-06:00",
+   *     "items_returned": [...],
+   *     "return_notes": "...",
+   *     "netsuite_sync": {
+   *       "success": true,
+   *       "adjustments_created": 2,
+   *       "items_synced": 5,
+   *       "error": null
+   *     }
+   *   }
+   * }
+   * 
+   * DESPUÉS DE PROCESAR:
+   * - Estado cambia a "Entregado" (CERRADA)
+   * - NO se permiten más devoluciones (próximo intento → Error 400)
+   * - awaiting_return se establece en false
+   */
   returnProductsToWarehouse(): void {
     const req = this.requisition();
     if (!req) return;
@@ -724,8 +970,13 @@ export class WarehouseSupplyComponent implements OnInit {
         ${returnListHtml}
         <div class="alert alert-warning mt-3 mb-0">
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          <strong>IMPORTANTE:</strong> Esta devolución se puede procesar UNA SOLA VEZ. 
-          Después de confirmar, la requisición se cerrará con estado "Entregado".
+          <strong>⚠️ IMPORTANTE - ACCIÓN IRREVERSIBLE:</strong>
+          <ul class="mb-0 mt-2">
+            <li>Esta devolución se puede procesar <strong>UNA SOLA VEZ</strong></li>
+            <li>Después de confirmar, la requisición se cerrará</li>
+            <li>NetSuite se sincronizará automáticamente</li>
+            <li>NO se permiten devoluciones adicionales</li>
+          </ul>
         </div>
       `,
       input: 'textarea',
@@ -750,7 +1001,7 @@ export class WarehouseSupplyComponent implements OnInit {
         // Mostrar loading
         Swal.fire({
           title: 'Procesando devolución...',
-          text: 'Por favor espera...',
+          text: 'Registrando productos y sincronizando con NetSuite...',
           allowOutsideClick: false,
           didOpen: () => {
             Swal.showLoading();
@@ -761,6 +1012,7 @@ export class WarehouseSupplyComponent implements OnInit {
         this.requisitionService.processReturn(req.id, items, notes).subscribe({
           next: (response) => {
             console.log('✅ Respuesta process-return:', response);
+            console.log('🔄 Sincronización NetSuite:', response.data?.netsuite_sync);
             
             if (response.success) {
               const data = response.data;
@@ -768,15 +1020,39 @@ export class WarehouseSupplyComponent implements OnInit {
               let itemsHtml = '<div class="mt-3"><h6>Productos devueltos:</h6><ul class="list-unstyled text-start">';
               if (data.items_returned) {
                 data.items_returned.forEach((item: any) => {
+                  const cantidadConsumida = item.delivered - item.returned_quantity;
                   itemsHtml += `<li class="mb-2">
                     <small>
                       <strong>Item ${item.item_id}:</strong> 
                       Devuelto: ${item.returned_quantity} de ${item.delivered} entregados
+                      ${cantidadConsumida > 0 ? ` | <span class="text-danger">Consumido: ${cantidadConsumida}</span>` : ''}
                     </small>
                   </li>`;
                 });
               }
               itemsHtml += '</ul></div>';
+              
+              let netsuiteHtml = '';
+              if (data.netsuite_sync) {
+                if (data.netsuite_sync.success) {
+                  netsuiteHtml = `
+                    <div class="alert alert-success mt-3">
+                      <i class="bi bi-check-circle-fill me-2"></i>
+                      <strong>NetSuite Sincronizado Exitosamente</strong>
+                      <br><small>${data.netsuite_sync.adjustments_created} ajustes creados, ${data.netsuite_sync.items_synced} items procesados</small>
+                    </div>
+                  `;
+                } else {
+                  netsuiteHtml = `
+                    <div class="alert alert-warning mt-3">
+                      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                      <strong>Advertencia de Sincronización</strong>
+                      <br><small>${data.netsuite_sync.error || 'Error en NetSuite'}</small>
+                      <br><small class="text-muted">⚠️ La devolución se registró localmente. Verificar sincronización manualmente.</small>
+                    </div>
+                  `;
+                }
+              }
               
               Swal.fire({
                 icon: 'success',
@@ -784,13 +1060,15 @@ export class WarehouseSupplyComponent implements OnInit {
                 html: `
                   <div class="text-start">
                     <p><strong>ID:</strong> ${data.id}</p>
-                    <p><strong>Estado:</strong> <span class="badge bg-success">${data.status}</span></p>
+                    <p><strong>Estado Anterior:</strong> ${data.previous_status}</p>
+                    <p><strong>Estado Actual:</strong> <span class="badge bg-success">${data.current_status}</span></p>
                     <p><strong>Procesado el:</strong> ${new Date(data.processed_at).toLocaleString('es-MX')}</p>
                     ${data.return_notes ? `<p><strong>Notas:</strong> ${data.return_notes}</p>` : ''}
                     ${itemsHtml}
+                    ${netsuiteHtml}
                     <div class="alert alert-info mt-3 mb-0">
                       <i class="bi bi-check-circle-fill me-2"></i>
-                      La requisición ha sido cerrada. No se permiten devoluciones adicionales.
+                      ✅ La requisición ha sido cerrada. No se permiten devoluciones adicionales.
                     </div>
                   </div>
                 `,
