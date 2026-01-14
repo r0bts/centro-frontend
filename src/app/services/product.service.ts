@@ -80,11 +80,11 @@ export class ProductService {
       params.search = search;
     }
     
-    // IMPORTANTE: Backend usa is_inactive, entonces invertimos el valor
-    // active=true en frontend → active='false' en backend (is_inactive=0)
-    // active=false en frontend → active='true' en backend (is_inactive=1)
+    // El parámetro active se envía como booleano:
+    // active=true → productos activos (is_inactive=0)
+    // active=false → productos inactivos (is_inactive=1)
     if (active !== undefined) {
-      params.active = (!active).toString();
+      params.active = active;
     }
 
     return this.http.get<ProductsResponse>(`${this.API_URL}/products`, { params }).pipe(
@@ -123,11 +123,11 @@ export class ProductService {
       params.search = search;
     }
     
-    // IMPORTANTE: Backend usa is_inactive, entonces invertimos el valor
-    // active=true en frontend → active='false' en backend (is_inactive=0)
-    // active=false en frontend → active='true' en backend (is_inactive=1)
+    // El parámetro active se envía como booleano:
+    // active=true → productos activos (is_inactive=0)
+    // active=false → productos inactivos (is_inactive=1)
     if (active !== undefined) {
-      params.active = (!active).toString();
+      params.active = active;
     }
 
     return this.http.get<ProductsResponse>(`${this.API_URL}/products`, { params }).pipe(
