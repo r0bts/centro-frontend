@@ -343,12 +343,8 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Endpoint: GET /api/users/form-data
    */
   private loadFormData(): void {
-    console.log('📡 [USER-FORM] Cargando datos del formulario...');
-    
     this.userService.getUserFormData().subscribe({
       next: (data) => {
-        console.log('✅ [USER-FORM] Datos del formulario cargados:', data);
-        
         // Cargar roles CON sus permisos
         if (data.roles?.items) {
           this.availableRoles = data.roles.items.map((role: any) => ({
@@ -357,19 +353,15 @@ export class UserFormComponent implements OnInit, OnChanges {
             display_name: role.display_name,
             description: role.description,
             is_active: true,
-            permissions: role.permissions || [] // 🔥 Mantener permisos del rol
+            permissions: role.permissions || []
           }));
-          console.log('📋 [USER-FORM] Roles cargados:', this.availableRoles.length);
-          console.log('🔍 [USER-FORM] Ejemplo de rol con permisos:', this.availableRoles[0]);
         }
         
         // Cargar departamentos
         if (data.departments?.items) {
           this.availableDepartments = data.departments.items.map((dept: any) => dept.name);
-          console.log('📋 [USER-FORM] Departamentos cargados:', this.availableDepartments.length);
         }
         
-        // 🔥 Forzar detección de cambios
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -525,15 +517,11 @@ export class UserFormComponent implements OnInit, OnChanges {
   }
 
   onRoleChange(): void {
-    console.log('🔄 Cambio de rol detectado:', this.userForm.rol_id);
-    
     if (this.userForm.rol_id) {
       this.loadRolePermissions(this.userForm.rol_id);
     } else {
-      // Si no hay rol, limpiar permisos del rol pero mantener estructura
       this.rolePermissions = [];
       this.userPermissions = [];
-      console.log('⚠️ No hay rol seleccionado, permisos limpiados');
     }
   }
 
@@ -544,37 +532,20 @@ export class UserFormComponent implements OnInit, OnChanges {
       return;
     }
 
-    console.log('🔑 [USER-FORM] Cargando permisos para rol:', roleId);
-    console.log('📦 [USER-FORM] Roles disponibles:', this.availableRoles);
-    
-    // Buscar el rol en availableRoles (que viene de /api/users/form-data)
     const selectedRole = this.availableRoles.find(r => String(r.id) === String(roleId));
-    
-    console.log('🔍 [USER-FORM] Rol encontrado:', selectedRole);
     
     if (selectedRole && (selectedRole as any).permissions) {
       const permissions = (selectedRole as any).permissions;
-      console.log('✅ [USER-FORM] Permisos del rol:', permissions);
       
-      // El endpoint devuelve permisos sin is_granted, agregarlo
       this.rolePermissions = permissions.map((perm: any) => ({
         submodule_id: perm.submodule_id,
         permission_id: perm.permission_id,
         is_granted: true
       }));
       
-      // Copiar permisos del rol a permisos del usuario
       this.userPermissions = [...this.rolePermissions];
-      
-      console.log('✅ [USER-FORM] Permisos del rol cargados:', this.rolePermissions.length);
-      console.log('📋 [USER-FORM] Permisos asignados al usuario:', this.userPermissions.length);
-      
-      // Forzar detección de cambios
       this.cdr.detectChanges();
     } else {
-      console.warn('⚠️ [USER-FORM] Rol sin permisos o no encontrado');
-      console.warn('🔍 [USER-FORM] roleId buscado:', roleId, 'tipo:', typeof roleId);
-      console.warn('🔍 [USER-FORM] IDs de roles disponibles:', this.availableRoles.map(r => ({ id: r.id, tipo: typeof r.id })));
       this.rolePermissions = [];
       this.userPermissions = [];
     }
