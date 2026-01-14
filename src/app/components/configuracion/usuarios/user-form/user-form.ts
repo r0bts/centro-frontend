@@ -246,6 +246,9 @@ export class UserFormComponent implements OnInit, OnChanges {
     // 🔥 Cargar estructura de permisos desde el backend PRIMERO
     this.loadPermissionsStructure();
     
+    // 🔥 Cargar datos del formulario (roles, departamentos, locations)
+    this.loadFormData();
+    
     // 🔥 NO cargar productos automáticamente
     // Solo cargar cuando el usuario vaya a la pestaña de productos
     
@@ -332,6 +335,52 @@ export class UserFormComponent implements OnInit, OnChanges {
           console.error('❌ [USER-FORM] Error al cargar estructura de permisos:', error);
         }
       });
+    });
+  }
+
+  /**
+   * 🔥 Cargar datos del formulario de usuarios (roles, departamentos, locations)
+   * Endpoint: GET /api/users/form-data
+   */
+  private loadFormData(): void {
+    console.log('📡 [USER-FORM] Cargando datos del formulario...');
+    
+    this.userService.getUserFormData().subscribe({
+      next: (data) => {
+        console.log('✅ [USER-FORM] Datos del formulario cargados:', data);
+        
+        // Cargar roles CON sus permisos
+        if (data.roles?.items) {
+          this.availableRoles = data.roles.items.map((role: any) => ({
+            id: role.id,
+            name: role.name,
+            display_name: role.display_name,
+            description: role.description,
+            is_active: true,
+            permissions: role.permissions || [] // 🔥 Mantener permisos del rol
+          }));
+          console.log('📋 [USER-FORM] Roles cargados:', this.availableRoles.length);
+          console.log('🔍 [USER-FORM] Ejemplo de rol con permisos:', this.availableRoles[0]);
+        }
+        
+        // Cargar departamentos
+        if (data.departments?.items) {
+          this.availableDepartments = data.departments.items.map((dept: any) => dept.name);
+          console.log('📋 [USER-FORM] Departamentos cargados:', this.availableDepartments.length);
+        }
+        
+        // 🔥 Forzar detección de cambios
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('❌ [USER-FORM] Error al cargar datos del formulario:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron cargar los datos del formulario. Por favor, recarga la página.',
+          confirmButtonText: 'Entendido'
+        });
+      }
     });
   }
 
@@ -477,15 +526,14 @@ export class UserFormComponent implements OnInit, OnChanges {
 
   onRoleChange(): void {
     console.log('🔄 Cambio de rol detectado:', this.userForm.rol_id);
-    // 🔥 Cuando el endpoint de permisos por rol esté disponible:
-    // Cargar permisos del rol seleccionado desde el backend
-    // Por ahora, cargar permisos simulados si hay rol_id
+    
     if (this.userForm.rol_id) {
       this.loadRolePermissions(this.userForm.rol_id);
     } else {
       // Si no hay rol, limpiar permisos del rol pero mantener estructura
       this.rolePermissions = [];
-      console.log('⚠️ No hay rol seleccionado, permisos del rol limpiados');
+      this.userPermissions = [];
+      console.log('⚠️ No hay rol seleccionado, permisos limpiados');
     }
   }
 
@@ -497,71 +545,39 @@ export class UserFormComponent implements OnInit, OnChanges {
     }
 
     console.log('🔑 [USER-FORM] Cargando permisos para rol:', roleId);
-    console.log('📊 [USER-FORM] Estructura disponible - Módulos:', this.modules.length, 'Submódulos:', this.submodules.length);
-
-    // Aquí harías una llamada al backend para obtener los permisos del rol
-    // Por ahora, simulamos permisos según el rol
-    const rolePermissionsMap: { [key: string]: RolePermission[] } = {
-      '1': [ // Administrador - todos los permisos
-        { submodule_id: 1, permission_id: 2, is_granted: true },
-        { submodule_id: 5, permission_id: 1, is_granted: true },
-        { submodule_id: 5, permission_id: 5, is_granted: true },
-        { submodule_id: 6, permission_id: 3, is_granted: true },
-        { submodule_id: 6, permission_id: 4, is_granted: true },
-        { submodule_id: 6, permission_id: 6, is_granted: true },
-        { submodule_id: 7, permission_id: 7, is_granted: true },
-        { submodule_id: 7, permission_id: 9, is_granted: true },
-        { submodule_id: 7, permission_id: 10, is_granted: true },
-        { submodule_id: 7, permission_id: 11, is_granted: true },
-        { submodule_id: 8, permission_id: 2, is_granted: true },
-        { submodule_id: 9, permission_id: 1, is_granted: true },
-        { submodule_id: 9, permission_id: 2, is_granted: true },
-        { submodule_id: 9, permission_id: 3, is_granted: true },
-        { submodule_id: 9, permission_id: 4, is_granted: true },
-        { submodule_id: 10, permission_id: 1, is_granted: true },
-        { submodule_id: 10, permission_id: 2, is_granted: true },
-        { submodule_id: 10, permission_id: 3, is_granted: true },
-        { submodule_id: 10, permission_id: 4, is_granted: true },
-        { submodule_id: 12, permission_id: 2, is_granted: true },
-        { submodule_id: 13, permission_id: 2, is_granted: true },
-        { submodule_id: 14, permission_id: 2, is_granted: true },
-        { submodule_id: 14, permission_id: 3, is_granted: true },
-        { submodule_id: 14, permission_id: 4, is_granted: true },
-        { submodule_id: 14, permission_id: 12, is_granted: true }
-      ],
-      '2': [ // Gerente - permisos de gestión
-        { submodule_id: 1, permission_id: 2, is_granted: true },
-        { submodule_id: 5, permission_id: 1, is_granted: true },
-        { submodule_id: 6, permission_id: 3, is_granted: true },
-        { submodule_id: 7, permission_id: 7, is_granted: true },
-        { submodule_id: 8, permission_id: 2, is_granted: true },
-        { submodule_id: 12, permission_id: 2, is_granted: true }
-      ],
-      '3': [ // Supervisor - permisos intermedios
-        { submodule_id: 1, permission_id: 2, is_granted: true },
-        { submodule_id: 5, permission_id: 1, is_granted: true },
-        { submodule_id: 6, permission_id: 3, is_granted: true },
-        { submodule_id: 12, permission_id: 2, is_granted: true }
-      ],
-      '4': [ // Operador - permisos básicos
-        { submodule_id: 1, permission_id: 2, is_granted: true },
-        { submodule_id: 5, permission_id: 1, is_granted: true },
-        { submodule_id: 6, permission_id: 3, is_granted: true }
-      ],
-      '5': [ // Usuario - solo lectura
-        { submodule_id: 1, permission_id: 2, is_granted: true },
-        { submodule_id: 8, permission_id: 2, is_granted: true }
-      ]
-    };
-
-    this.rolePermissions = rolePermissionsMap[roleId] || [];
-    // Copiar los permisos del rol a los permisos del usuario (personalizables)
-    this.userPermissions = JSON.parse(JSON.stringify(this.rolePermissions));
+    console.log('📦 [USER-FORM] Roles disponibles:', this.availableRoles);
     
-    console.log('✅ [USER-FORM] Permisos cargados - Rol:', this.rolePermissions.length, 'Usuario:', this.userPermissions.length);
+    // Buscar el rol en availableRoles (que viene de /api/users/form-data)
+    const selectedRole = this.availableRoles.find(r => String(r.id) === String(roleId));
     
-    // 🔥 Forzar detección de cambios para renderizar permisos
-    this.cdr.detectChanges();
+    console.log('🔍 [USER-FORM] Rol encontrado:', selectedRole);
+    
+    if (selectedRole && (selectedRole as any).permissions) {
+      const permissions = (selectedRole as any).permissions;
+      console.log('✅ [USER-FORM] Permisos del rol:', permissions);
+      
+      // El endpoint devuelve permisos sin is_granted, agregarlo
+      this.rolePermissions = permissions.map((perm: any) => ({
+        submodule_id: perm.submodule_id,
+        permission_id: perm.permission_id,
+        is_granted: true
+      }));
+      
+      // Copiar permisos del rol a permisos del usuario
+      this.userPermissions = [...this.rolePermissions];
+      
+      console.log('✅ [USER-FORM] Permisos del rol cargados:', this.rolePermissions.length);
+      console.log('📋 [USER-FORM] Permisos asignados al usuario:', this.userPermissions.length);
+      
+      // Forzar detección de cambios
+      this.cdr.detectChanges();
+    } else {
+      console.warn('⚠️ [USER-FORM] Rol sin permisos o no encontrado');
+      console.warn('🔍 [USER-FORM] roleId buscado:', roleId, 'tipo:', typeof roleId);
+      console.warn('🔍 [USER-FORM] IDs de roles disponibles:', this.availableRoles.map(r => ({ id: r.id, tipo: typeof r.id })));
+      this.rolePermissions = [];
+      this.userPermissions = [];
+    }
   }
 
   getSubmodulesByModule(moduleId: number): Submodule[] {

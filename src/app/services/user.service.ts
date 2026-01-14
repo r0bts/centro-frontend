@@ -335,6 +335,24 @@ export class UserService {
   }
 
   /**
+   * Obtener datos del formulario de usuarios (roles, departamentos, locations)
+   * Endpoint: GET /api/users/form-data
+   * 
+   * @returns Observable con roles activos, departamentos activos y locations activos
+   */
+  getUserFormData(): Observable<any> {
+    return this.http.get<any>(`${this.API_URL}/users/form-data`).pipe(
+      map(response => {
+        if (response.success && response.data) {
+          return response.data;
+        }
+        throw new Error('No se pudieron cargar los datos del formulario');
+      }),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Manejar errores de HTTP
    */
   private handleError = (error: HttpErrorResponse) => {
