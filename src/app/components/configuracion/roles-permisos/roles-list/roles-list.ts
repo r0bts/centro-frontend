@@ -70,7 +70,7 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
   /**
    * 🔥 Cargar roles desde el backend
    */
-  private loadRoles(): void {
+  loadRoles(): void {
     console.log('📡 HIJO - Cargando roles desde API...');
     console.log('🔍 Estado destroy$:', { hasSubscribers: this.destroy$.observers.length });
     

@@ -50,6 +50,7 @@ export class ConfiguracionComponent implements OnInit {
   @ViewChild(ProductsListComponent) productsListComponent!: ProductsListComponent;
   @ViewChild(UsersListComponent) usersListComponent!: UsersListComponent;
   @ViewChild(CategoriesListComponent) categoriesListComponent!: CategoriesListComponent;
+  @ViewChild(RolesListComponent) rolesListComponent!: RolesListComponent;
   
   activeSection = 'general';
   
@@ -485,6 +486,9 @@ export class ConfiguracionComponent implements OnInit {
 
   onSaveRole(roleData: any): void {
     console.log('💾 Guardar rol:', roleData);
+    console.log('📤 JSON que se enviará:', JSON.stringify(roleData, null, 2));
+    console.log('📊 Permisos:', roleData.permissions?.length || 0, 'permisos');
+    console.log('📦 Productos:', roleData.products?.length || 0, 'productos');
     
     Swal.fire({
       title: this.isRoleEditMode ? 'Actualizando rol' : 'Creando rol',
@@ -507,6 +511,12 @@ export class ConfiguracionComponent implements OnInit {
         this.isRoleEditMode = false;
         this.selectedRoleId = null;
         
+        // Recargar la lista de roles
+        if (this.rolesListComponent) {
+          console.log('🔄 Recargando lista de roles...');
+          this.rolesListComponent.loadRoles();
+        }
+        
         Swal.fire({
           icon: 'success',
           title: this.isRoleEditMode ? 'Rol actualizado' : 'Rol creado',
@@ -517,12 +527,22 @@ export class ConfiguracionComponent implements OnInit {
         });
       },
       error: (error) => {
-        console.error('❌ Error al guardar rol:', error);
+        console.error('❌ Error al guardar rol - Status:', error.status);
+        console.error('❌ Error completo:', error);
+        console.error('❌ Mensaje del servidor:', error.error?.message);
+        console.error('❌ Body de error:', JSON.stringify(error.error, null, 2));
+        
+        let errorMessage = 'No se pudo guardar el rol. Por favor intenta de nuevo.';
+        if (error.error?.message) {
+          errorMessage = error.error.message;
+        } else if (error.error?.error?.message) {
+          errorMessage = error.error.error.message;
+        }
         
         Swal.fire({
           icon: 'error',
           title: 'Error al guardar',
-          text: error.message || 'No se pudo guardar el rol. Por favor intenta de nuevo.',
+          text: errorMessage,
           confirmButtonText: 'Entendido'
         });
       }
