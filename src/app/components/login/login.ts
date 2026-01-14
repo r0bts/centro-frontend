@@ -41,8 +41,10 @@ export class Login {
         next: (response) => {
           console.log('Login exitoso:', response);
           this.isLoading = false;
-          // Redirigir al dashboard
-          this.router.navigate(['/dashboard']);
+          
+          // 🔥 Redirigir a la primera ruta disponible según permisos del usuario
+          const firstRoute = this.getFirstAvailableRoute(response.data);
+          this.router.navigate([firstRoute]);
         },
         error: (error) => {
           console.error('Error en login:', error);
@@ -82,5 +84,37 @@ export class Login {
 
   togglePasswordVisibility(): void {
     this.showPassword = !this.showPassword;
+  }
+
+  /**
+   * Obtiene la primera ruta disponible según los permisos del usuario
+   * Busca en el orden: modules -> submodules -> route
+   */
+  private getFirstAvailableRoute(loginData: any): string {
+    // Si tiene permisos, buscar la primera ruta disponible
+    if (loginData.permissions && loginData.permissions.length > 0) {
+      for (const module of loginData.permissions) {
+        if (module.submodules) {
+          // Obtener submódulos y ordenarlos por sort_order
+          const submodules = Object.values(module.submodules) as any[];
+          submodules.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+          
+          for (const submodule of submodules) {
+            if (submodule.route && submodule.permissions) {
+              // Si el submódulo tiene al menos un permiso, devolver su ruta
+              const hasPermission = Object.values(submodule.permissions).some((perm: any) => perm.granted);
+              if (hasPermission) {
+                console.log('🎯 Redirigiendo a primera ruta disponible:', submodule.route);
+                return submodule.route;
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback: si no hay permisos específicos, redirigir a dashboard
+    console.log('⚠️ Sin permisos específicos, redirigiendo a dashboard');
+    return '/dashboard';
   }
 }
