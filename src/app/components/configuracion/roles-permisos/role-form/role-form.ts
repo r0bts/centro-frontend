@@ -504,9 +504,20 @@ export class RoleFormComponent implements OnInit, OnChanges {
       return;
     }
 
+    const grantedPermissions = this.selectedPermissions.filter(sp => sp.is_granted);
+    if (grantedPermissions.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Permisos requeridos',
+        text: 'Asigna al menos un permiso antes de guardar el rol.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
     const roleData = {
       ...this.roleForm,
-      permissions: this.selectedPermissions.filter(sp => sp.is_granted),
+      permissions: grantedPermissions,
       products: this.productAssignments.filter(pa => pa.is_assigned)
     };
 
