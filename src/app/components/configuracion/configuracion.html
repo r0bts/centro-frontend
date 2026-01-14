@@ -76,7 +76,7 @@
                         </div>
 
                         <!-- Formulario de usuario -->
-                        <div *ngIf="showUserForm && selectedUserId">
+                        <div *ngIf="showUserForm">
                             <app-user-form
                                 [userId]="selectedUserId"
                                 [isEditMode]="isUserEditMode"
@@ -113,7 +113,7 @@
                         </div>
 
                         <!-- Formulario de rol -->
-                        <div *ngIf="showRoleForm && selectedRoleId">
+                        <div *ngIf="showRoleForm">
                             <app-role-form
                                 [roleId]="selectedRoleId"
                                 [isEditMode]="isRoleEditMode"
