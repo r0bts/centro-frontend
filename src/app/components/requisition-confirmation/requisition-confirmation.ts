@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewChecked, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -51,10 +51,12 @@ export interface Employee {
   templateUrl: './requisition-confirmation.html',
   styleUrls: ['./requisition-confirmation.scss']
 })
-export class RequisitionConfirmationComponent implements OnInit {
+export class RequisitionConfirmationComponent implements OnInit, AfterViewChecked {
   private requisitionService = inject(RequisitionService);
   private authService = inject(AuthService);
   private cdr = inject(ChangeDetectorRef);
+  
+  private viewCheckedCount = 0;
   
   activeSection: string = 'requisicion';
   
@@ -92,6 +94,9 @@ export class RequisitionConfirmationComponent implements OnInit {
   selectedDepartmentId?: number;
   selectedLocationId?: number;
   selectedProjectId?: number;
+  
+  // Status de la requisición para controlar botones
+  requisitionStatus: string = '';
 
   constructor(private router: Router, private route: ActivatedRoute) {
     // Obtener datos del estado de navegación (para flujo normal y desde listado)
@@ -109,15 +114,15 @@ export class RequisitionConfirmationComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Cargar empleados desde el backend
-    this.loadEmployees();
-    
     // Verificar si vienen parámetros de query (desde la lista)
     this.route.queryParams.subscribe(params => {
       if (params['id'] && params['mode']) {
         this.requisitionId = params['id'];
         this.viewMode = params['mode'];
         this.isFromList = true; // Marca que viene desde la lista
+        
+        // Cuando viene del listado, NO cargar empleados desde getFormData()
+        // Los datos ya vienen en getRequisitionById()
         this.loadRequisitionData(this.requisitionId);
       } else {
         // Si no hay datos ni parámetros, redirigir de vuelta
@@ -126,6 +131,9 @@ export class RequisitionConfirmationComponent implements OnInit {
           return;
         }
         this.isFromList = false; // Viene del flujo normal
+        
+        // Solo cargar empleados cuando viene del formulario (flujo normal)
+        this.loadEmployees();
         this.consolidateProducts();
       }
     });
@@ -153,8 +161,6 @@ export class RequisitionConfirmationComponent implements OnInit {
         
         this.isLoadingEmployees = false;
         Swal.close();
-        
-        console.log(`✅ ${this.employees.length} empleados cargados desde el backend`);
       },
       error: (error) => {
         console.error('Error al cargar empleados:', error);
@@ -171,8 +177,6 @@ export class RequisitionConfirmationComponent implements OnInit {
   }
 
   loadRequisitionData(requisitionId: string): void {
-    console.log('🔍 Cargando requisición con ID:', requisitionId);
-    
     // Mostrar loading
     Swal.fire({
       title: 'Cargando requisición...',
@@ -186,13 +190,8 @@ export class RequisitionConfirmationComponent implements OnInit {
     // Cargar datos desde el API
     this.requisitionService.getRequisitionById(requisitionId).subscribe({
       next: (response: any) => {
-        console.log('✅ Requisición cargada desde API:', response);
-        console.log('📋 Estructura completa de response:', JSON.stringify(response, null, 2));
-        
         if (response.success && response.data) {
           const data = response.data;
-          console.log('📋 Data extraído:', data);
-          console.log('📋 Items:', data.items);
           
           // Mapear datos principales
           this.deliveryDate = data.deliveryDateTime ? new Date(data.deliveryDateTime) : null;
@@ -201,6 +200,7 @@ export class RequisitionConfirmationComponent implements OnInit {
           this.selectedLocationId = data.locationId;
           this.selectedDepartmentId = data.departmentId;
           this.selectedProjectId = data.projectId;
+          this.requisitionStatus = data.status || '';
           
           // Mapear empleado responsable (persona que recoge)
           if (data.pickupPersonId && data.pickupPerson) {
@@ -239,23 +239,15 @@ export class RequisitionConfirmationComponent implements OnInit {
           // Convertir map a array
           this.requisitionData = Array.from(areaMap.values());
           
-          console.log('📦 Datos mapeados:', {
-            requisitionData: this.requisitionData,
-            deliveryDate: this.deliveryDate,
-            selectedEmployee: this.selectedEmployee,
-            businessUnit: this.businessUnit,
-            locationId: this.selectedLocationId
-          });
-          
-          console.log('🔍 requisitionData en detalle:', JSON.stringify(this.requisitionData, null, 2));
-          console.log('🔍 Número de áreas:', this.requisitionData.length);
-          console.log('🔍 Primera área:', this.requisitionData[0]);
-          
-          // Consolidar productos
           this.consolidateProducts();
           
           // Forzar detección de cambios
-          this.cdr.detectChanges();
+          this.cdr.markForCheck();
+          
+          // Usar setTimeout para asegurar que Angular actualice en el próximo ciclo
+          setTimeout(() => {
+            this.cdr.detectChanges();
+          }, 0);
           
           Swal.close();
         }
@@ -315,6 +307,10 @@ export class RequisitionConfirmationComponent implements OnInit {
     this.activeSection = section;
   }
 
+  ngAfterViewChecked(): void {
+    // Nada que loguear
+  }
+
   formatDate(date: Date): string {
     return date.toLocaleDateString('es-ES', {
       weekday: 'long',
@@ -336,11 +332,13 @@ export class RequisitionConfirmationComponent implements OnInit {
   }
 
   getTotalProductsCount(): number {
-    return this.consolidatedProducts.length;
+    const total = this.consolidatedProducts.length;
+    return total;
   }
 
   getTotalAreasCount(): number {
-    return this.requisitionData.length;
+    const total = this.requisitionData.length;
+    return total;
   }
 
   goBack(): void {

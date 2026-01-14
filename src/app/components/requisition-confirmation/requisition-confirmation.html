@@ -311,19 +311,39 @@
               </div>
 
               <!-- Botones para modo edición - Panel derecho -->
+              <!-- Mostrar botones según el estado de la requisición -->
               <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList && viewMode === 'edit'">
                 <div class="d-flex gap-2">
-                  <button class="btn btn-outline-success" (click)="saveAsTemplate()">
+                  <!-- Botón Guardar como frecuente - Solo si está Entregado -->
+                  <button 
+                    class="btn btn-outline-success" 
+                    (click)="saveAsTemplate()"
+                    *ngIf="requisitionStatus === 'Entregado'">
                     Guardar como frecuente
                   </button>
-                  <button class="btn btn-outline-warning" (click)="cerrarDevolucion()">
+                  
+                  <!-- Botón Cerrar Devolución - Solo si está en Espera Devolución -->
+                  <button 
+                    class="btn btn-outline-warning" 
+                    (click)="cerrarDevolucion()"
+                    *ngIf="requisitionStatus === 'Espera Devolución'">
                     Cerrar Devolución
                   </button>
-                  <button class="btn btn-danger" (click)="cancelRequisition()">
+                  
+                  <!-- Botón Cancelar - Solo si está Solicitado -->
+                  <button 
+                    class="btn btn-danger" 
+                    (click)="cancelRequisition()"
+                    *ngIf="requisitionStatus === 'Solicitado'">
                     Cancelar Requisición
                   </button>
                 </div>
-                <button class="btn btn-success" (click)="confirmEdit()">
+                
+                <!-- Botón Autorizar - Solo si está Solicitado -->
+                <button 
+                  class="btn btn-success" 
+                  (click)="confirmEdit()"
+                  *ngIf="requisitionStatus === 'Solicitado'">
                   Autorizar
                 </button>
               </div>
