@@ -21,6 +21,7 @@ interface UserForm {
   username: string;
   nombre: string;
   departamento: string;
+  location_id: string;
   status: boolean;
   id_netsuite: string;
   rol_id: string;
@@ -93,6 +94,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     username: '',
     nombre: '',
     departamento: '',
+    location_id: '',
     status: true,
     id_netsuite: '',
     rol_id: ''
@@ -108,18 +110,10 @@ export class UserFormComponent implements OnInit, OnChanges {
   ];
 
   // Departamentos disponibles
-  availableDepartments: string[] = [
-    'Administración',
-    'Almacén',
-    'Compras',
-    'Recursos Humanos',
-    'Sistemas',
-    'Finanzas',
-    'Operaciones',
-    'Logística',
-    'Calidad',
-    'Producción'
-  ];
+  availableDepartments: { id: string; name: string; }[] = [];
+
+  // Locations disponibles
+  availableLocations: { id: string; name: string; }[] = [];
 
   // Permisos del rol seleccionado (solo lectura)
   rolePermissions: RolePermission[] = [];
@@ -273,10 +267,13 @@ export class UserFormComponent implements OnInit, OnChanges {
     // Si ya cargamos los productos, no volver a cargar
     if (this.availableProducts.length > 0) {
       console.log('✅ Productos ya cargados, usando cache');
+      this.isLoadingProducts = false; // 🔥 Asegurar que el spinner se apague
+      this.cdr.detectChanges();
       return;
     }
     
     console.log('🔥 Pestaña de productos activada - cargando productos...');
+    // 🔥 Siempre cargar productos con categorías desde getAllProducts
     this.loadProducts();
   }
 
@@ -345,21 +342,61 @@ export class UserFormComponent implements OnInit, OnChanges {
   private loadFormData(): void {
     this.userService.getUserFormData().subscribe({
       next: (data) => {
-        // Cargar roles CON sus permisos
+        // Cargar roles CON sus permisos y productos
         if (data.roles?.items) {
-          this.availableRoles = data.roles.items.map((role: any) => ({
-            id: role.id,
-            name: role.name,
-            display_name: role.display_name,
-            description: role.description,
-            is_active: true,
-            permissions: role.permissions || []
-          }));
+          console.log('📋 [LOAD-FORM-DATA] Roles recibidos del backend:', data.roles.items.length);
+          
+          this.availableRoles = data.roles.items.map((role: any) => {
+            console.log('📌 [LOAD-FORM-DATA] Mapeando rol:', {
+              id: role.id,
+              display_name: role.display_name,
+              permissions_count: role.permissions?.length || 0,
+              products_count: role.products?.length || 0,
+              has_permissions: !!role.permissions,
+              has_products: !!role.products,
+              products_keys: Object.keys(role).filter(k => k.includes('product'))
+            });
+            
+            return {
+              id: role.id,
+              name: role.name,
+              display_name: role.display_name,
+              description: role.description,
+              is_active: true,
+              permissions: role.permissions || [],
+              products: role.products || [] // 🔥 Agregar productos del rol
+            };
+          });
+          
+          console.log('✅ [LOAD-FORM-DATA] Roles cargados:', this.availableRoles.map(r => ({ id: r.id, display_name: r.display_name, products: (r as any).products?.length || 0 })));
+        
+        // 🔥 Cargar productos de cada rol desde GET /api/roles/{id}
+        this.availableRoles.forEach((role) => {
+          this.loadRoleProductsFromApi(role.id);
+        });
         }
         
         // Cargar departamentos
         if (data.departments?.items) {
-          this.availableDepartments = data.departments.items.map((dept: any) => dept.name);
+          this.availableDepartments = data.departments.items.map((dept: any) => ({
+            id: dept.id,
+            name: dept.name
+          }));
+        }
+        
+        // Cargar locations
+        if (data.locations?.items) {
+          this.availableLocations = data.locations.items.map((loc: any) => ({
+            id: loc.id,
+            name: loc.name
+          }));
+        }
+        
+        // 🔥 Cargar productos disponibles desde form-data
+        if (data.products?.items) {
+          // Solo usar form-data como reference, cargar completos con categoría desde getAllProducts
+          console.log('📦 [USER-FORM] Productos disponibles en form-data:', data.products.items.length);
+          // NO cargar aquí, dejar que se carguen en loadProducts() cuando se active la pestaña
         }
         
         this.cdr.detectChanges();
@@ -406,10 +443,11 @@ export class UserFormComponent implements OnInit, OnChanges {
         this.userForm = {
           username: user.username || '',
           nombre: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-          departamento: user.department || '',
+          departamento: String(user.departmentId || ''),
+          location_id: String(user.locationId || ''),
           status: user.isActive !== undefined ? user.isActive : true,
           id_netsuite: user.employeeNumber || '',
-          rol_id: user.role?.id || '' // Esto será vacío porque el backend devuelve null
+          rol_id: user.role?.id || ''
         };
         
         // 🔥 Cargar permisos del usuario DIRECTAMENTE desde la respuesta
@@ -434,6 +472,7 @@ export class UserFormComponent implements OnInit, OnChanges {
             limit_per_requisition: p.limit_per_requisition || 0,
             is_assigned: p.is_assigned !== undefined ? p.is_assigned : true
           }));
+          console.log('✅ [LOAD-USER-DATA] Productos del usuario asignados desde backend:', this.productAssignments.length);
         }
         
         console.log('✅ Datos cargados:', {
@@ -448,6 +487,8 @@ export class UserFormComponent implements OnInit, OnChanges {
         // 🔥 Los permisos ya están cargados desde el backend
         // No necesitamos loadRolePermissions porque el backend ya nos dio los permisos
         console.log('✅ Permisos del usuario ya cargados desde el backend');
+        
+        // 🔥 Los productos ya vinieron en userDetails.products, no necesitamos cargarlos desde el rol
         
         // 🔥 Forzar detección de cambios para actualizar vista inmediatamente
         this.cdr.detectChanges();
@@ -469,6 +510,7 @@ export class UserFormComponent implements OnInit, OnChanges {
       username: '',
       nombre: '',
       departamento: '',
+      location_id: '',
       status: true,
       id_netsuite: '',
       rol_id: ''
@@ -517,11 +559,17 @@ export class UserFormComponent implements OnInit, OnChanges {
   }
 
   onRoleChange(): void {
+    console.log('🔄 [ON-ROLE-CHANGE] Cambio de rol detectado:', this.userForm.rol_id);
+    
     if (this.userForm.rol_id) {
+      console.log('📂 [ON-ROLE-CHANGE] Cargando permisos y productos para rol:', this.userForm.rol_id);
       this.loadRolePermissions(this.userForm.rol_id);
+      this.loadRoleProducts(this.userForm.rol_id); // 🔥 Cargar productos del rol
     } else {
+      console.log('❌ [ON-ROLE-CHANGE] Sin rol_id, limpiando datos');
       this.rolePermissions = [];
       this.userPermissions = [];
+      this.productAssignments = []; // 🔥 Limpiar productos si no hay rol
     }
   }
 
@@ -548,6 +596,129 @@ export class UserFormComponent implements OnInit, OnChanges {
     } else {
       this.rolePermissions = [];
       this.userPermissions = [];
+    }
+  }
+
+  /**
+   * 🔥 Cargar productos del rol directamente desde availableRoles (sincrónico)
+   * Se usa cuando los datos ya están cargados en memoria
+   */
+  private loadRoleProductsDirectly(roleId: string): void {
+    console.log('📥 [LOAD-ROLE-PRODUCTS-DIRECTLY] Cargando productos del rol:', roleId);
+    
+    if (!roleId) {
+      console.log('❌ [LOAD-ROLE-PRODUCTS-DIRECTLY] Sin roleId');
+      return;
+    }
+
+    const selectedRole = this.availableRoles.find(r => String(r.id) === String(roleId));
+    
+    if (selectedRole && (selectedRole as any).products && Array.isArray((selectedRole as any).products)) {
+      const roleProducts = (selectedRole as any).products;
+      
+      console.log('✅ [LOAD-ROLE-PRODUCTS-DIRECTLY] Productos encontrados para rol', roleId, ':', roleProducts.length);
+      
+      // Auto-asignar productos del rol
+      this.productAssignments = roleProducts.map((prod: any) => ({
+        product_id: String(prod.product_id || prod.id),
+        limit_per_requisition: prod.limit_per_requisition || 0,
+        is_assigned: true
+      }));
+      
+      console.log('✅ [LOAD-ROLE-PRODUCTS-DIRECTLY] Productos asignados:', this.productAssignments.length);
+      this.cdr.detectChanges();
+    } else {
+      console.log('⚠️ [LOAD-ROLE-PRODUCTS-DIRECTLY] El rol no tiene productos cargados aún');
+      this.productAssignments = [];
+    }
+  }
+
+  /**
+   * 🔥 Cargar productos del rol desde el endpoint GET /api/roles/{roleId}
+   * Este endpoint devuelve los productos asociados al rol
+   */
+  private loadRoleProductsFromApi(roleId: string): void {
+    console.log('📥 [LOAD-ROLE-PRODUCTS-API] Obteniendo productos para rol desde API:', roleId);
+    
+    // Importar RoleService dinámicamente
+    import('../../../../services/role.service').then(({ RoleService }) => {
+      const roleService = new RoleService(this.productService['http']);
+      
+      roleService.getRoleById(roleId).subscribe({
+        next: (response) => {
+          if (response.success && response.data && response.data.products) {
+            console.log('✅ [LOAD-ROLE-PRODUCTS-API] Productos obtenidos para rol', roleId, ':', response.data.products.length);
+            
+            // Actualizar el rol con sus productos
+            const roleIndex = this.availableRoles.findIndex(r => r.id === roleId);
+            if (roleIndex !== -1) {
+              (this.availableRoles[roleIndex] as any).products = response.data.products;
+              console.log('📌 [LOAD-ROLE-PRODUCTS-API] Rol actualizado con productos:', {
+                roleId,
+                productCount: response.data.products.length,
+                products: response.data.products
+              });
+            }
+          }
+        },
+        error: (error) => {
+          console.error('❌ [LOAD-ROLE-PRODUCTS-API] Error al cargar productos del rol:', roleId, error);
+        }
+      });
+    });
+  }
+
+  /**
+   * 🔥 Cargar productos del rol seleccionado
+   * Si el rol tiene productos asignados, auto-seleccionarlos en el formulario
+   */
+  private loadRoleProducts(roleId: string): void {
+    console.log('🔍 [LOAD-ROLE-PRODUCTS] Buscando productos para rol:', roleId);
+    
+    if (!roleId) {
+      console.log('❌ [LOAD-ROLE-PRODUCTS] Sin roleId, limpiando productAssignments');
+      this.productAssignments = [];
+      return;
+    }
+
+    console.log('🔎 [LOAD-ROLE-PRODUCTS] Roles disponibles:', this.availableRoles.map(r => ({ id: r.id, display_name: r.display_name })));
+    
+    const selectedRole = this.availableRoles.find(r => String(r.id) === String(roleId));
+    
+    console.log('🎯 [LOAD-ROLE-PRODUCTS] Rol encontrado:', {
+      found: !!selectedRole,
+      id: selectedRole?.id,
+      display_name: selectedRole?.display_name,
+      has_products_prop: !!(selectedRole as any)?.products,
+      products_type: typeof (selectedRole as any)?.products,
+      is_array: Array.isArray((selectedRole as any)?.products),
+      products_length: ((selectedRole as any)?.products as any[])?.length || 0,
+      products_sample: ((selectedRole as any)?.products as any[])?.[0]
+    });
+    
+    if (selectedRole && (selectedRole as any).products && Array.isArray((selectedRole as any).products)) {
+      const roleProducts = (selectedRole as any).products;
+      
+      console.log('✅ [LOAD-ROLE-PRODUCTS] Productos encontrados para rol:', roleProducts.length);
+      console.log('📊 [LOAD-ROLE-PRODUCTS] Primeros 3 productos:', roleProducts.slice(0, 3));
+      
+      // Auto-asignar productos del rol
+      this.productAssignments = roleProducts.map((prod: any) => {
+        const assignment = {
+          product_id: String(prod.product_id || prod.id),
+          limit_per_requisition: prod.limit_per_requisition || 0,
+          is_assigned: true
+        };
+        console.log('  📌 Asignando producto:', { original: prod.product_id || prod.id, assignment });
+        return assignment;
+      });
+      
+      console.log('✅ [LOAD-ROLE-PRODUCTS] Productos del rol asignados:', this.productAssignments.length);
+      console.log('📋 [LOAD-ROLE-PRODUCTS] ProductAssignments:', this.productAssignments);
+      this.cdr.detectChanges();
+    } else {
+      console.log('⚠️ [LOAD-ROLE-PRODUCTS] El rol no tiene productos asignados (products es undefined o no es array)');
+      this.productAssignments = [];
     }
   }
 
