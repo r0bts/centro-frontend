@@ -237,31 +237,25 @@ export class RoleFormComponent implements OnInit, OnChanges {
     
     this.roleService.getPermissionsStructure().subscribe({
       next: (response) => {
-        if (response.success && response.data) {
-          console.log('✅ Estructura de permisos cargada:', response.data);
-          
-          // Cargar módulos
-          this.modules = response.data.modules || [];
-          
-          // Cargar permisos
-          this.dbPermissions = response.data.permissions || [];
-          
-          // Cargar submódulos Y construir la configuración de permisos
-          this.submodules = response.data.submodules || [];
-          this.submodulePermissionsConfig = {};
-          
-          // Construir el objeto submodulePermissionsConfig desde allowed_permissions
-          this.submodules.forEach((submodule: any) => {
-            if (submodule.allowed_permissions && Array.isArray(submodule.allowed_permissions)) {
-              this.submodulePermissionsConfig[submodule.id] = submodule.allowed_permissions;
-            }
-          });
-          
-          console.log('📋 Módulos cargados:', this.modules.length);
-          console.log('📋 Submódulos cargados:', this.submodules.length);
-          console.log('📋 Permisos cargados:', this.dbPermissions.length);
-          console.log('🔐 Configuración de permisos:', this.submodulePermissionsConfig);
-        }
+        // Aceptar tanto respuestas con { success, data } como respuestas directas { modules, submodules, permissions }
+        const payload = response?.data ? response.data : response;
+
+        this.modules = payload?.modules || [];
+        this.dbPermissions = payload?.permissions || [];
+        this.submodules = payload?.submodules || [];
+        this.submodulePermissionsConfig = {};
+
+        this.submodules.forEach((submodule: any) => {
+          if (submodule.allowed_permissions && Array.isArray(submodule.allowed_permissions)) {
+            this.submodulePermissionsConfig[submodule.id] = submodule.allowed_permissions;
+          }
+        });
+
+        console.log('📋 Módulos cargados:', this.modules.length);
+        console.log('📋 Submódulos cargados:', this.submodules.length);
+        console.log('📋 Permisos cargados:', this.dbPermissions.length);
+        console.log('🔐 Configuración de permisos:', this.submodulePermissionsConfig);
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('❌ Error al cargar estructura de permisos:', error);
