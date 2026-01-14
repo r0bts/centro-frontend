@@ -52,4 +52,16 @@
   .btn {
     font-weight: 500;
   }
+
+  // Sección de productos con scroll similar a permisos
+  .products-section {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 4px; // evita que el scroll tape contenido
+
+    @media (max-width: 768px) {
+      max-height: none; // en móvil permitir altura completa
+      overflow-y: visible;
+    }
+  }
 }

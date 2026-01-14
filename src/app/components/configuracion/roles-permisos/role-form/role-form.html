@@ -157,17 +157,17 @@
                id="products" 
                role="tabpanel" 
                aria-labelledby="products-tab">
-            
-            <!-- 🔥 Spinner de carga de productos -->
-            <div *ngIf="isLoadingProducts" class="text-center py-5">
-              <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">Cargando productos...</span>
+            <div class="products-section">
+              <!-- 🔥 Spinner de carga de productos -->
+              <div *ngIf="isLoadingProducts" class="text-center py-5">
+                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                  <span class="visually-hidden">Cargando productos...</span>
+                </div>
+                <p class="mt-3 text-muted">Cargando productos disponibles...</p>
               </div>
-              <p class="mt-3 text-muted">Cargando productos disponibles...</p>
-            </div>
 
-            <!-- 🔥 Contenido de productos (solo se muestra cuando termina de cargar) -->
-            <div *ngIf="!isLoadingProducts">
+              <!-- 🔥 Contenido de productos (solo se muestra cuando termina de cargar) -->
+              <div *ngIf="!isLoadingProducts">
               <!-- Asignación de Productos con Límites -->
               <h5 class="mb-3">Asignación de Productos para el Rol</h5>
               <div class="alert alert-info mb-4">
@@ -332,7 +332,8 @@
                 </div>
               </div>
             </div>
-            <!-- 🔥 Fin del contenido de productos -->
+              <!-- 🔥 Fin del contenido de productos -->
+              </div>
             </div>
           </div>
           <!-- Fin Pestaña de Productos -->
