@@ -34,6 +34,7 @@ export interface UpdateUserRequest {
   status?: boolean;
   rol_id?: string;
   departamento?: string;
+  location_id?: string;
   permissions?: UserPermission[];
   products?: {
     product_id: string;
@@ -71,8 +72,11 @@ export interface UserDetails {
     firstName: string;
     lastName: string;
     employeeNumber: string;
-    department: string;
-    role: UserRole;
+    departmentId: number;
+    departmentName: string;
+    locationId: number;
+    locationName: string;
+    role: UserRole | null;
     isActive: boolean;
     createdAt: string;
     lastLogin: string;

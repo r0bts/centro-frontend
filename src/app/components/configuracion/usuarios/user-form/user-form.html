@@ -46,7 +46,20 @@
                     name="departamento"
                     required>
               <option value="">Seleccionar...</option>
-              <option *ngFor="let dept of availableDepartments" [value]="dept">{{ dept }}</option>
+              <option *ngFor="let dept of availableDepartments" [value]="dept.id">{{ dept.name }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label for="location_id" class="form-label">Ubicación *</label>
+            <select class="form-select" 
+                    id="location_id"
+                    [(ngModel)]="userForm.location_id" 
+                    name="location_id"
+                    required>
+              <option value="">Seleccionar...</option>
+              <option *ngFor="let location of availableLocations" [value]="location.id">
+                {{ location.name }}
+              </option>
             </select>
           </div>
           <div class="col-md-3">
@@ -72,6 +85,9 @@
               </option>
             </select>
           </div>
+        </div>
+        
+        <div class="row mb-4">
           <div class="col-md-3">
             <label class="form-label d-block">Estado</label>
             <div class="form-check form-switch mt-2">

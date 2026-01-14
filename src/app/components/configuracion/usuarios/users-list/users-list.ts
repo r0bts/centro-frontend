@@ -72,7 +72,7 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private loadUsers(): void {
+  loadUsers(): void {
     Swal.fire({
       title: 'Cargando usuarios',
       allowOutsideClick: false,

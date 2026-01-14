@@ -438,7 +438,11 @@ export class ConfiguracionComponent implements OnInit {
         this.isUserEditMode = false;
         this.selectedUserId = null;
         
-        // El componente users-list se recargará automáticamente si es necesario
+        // 🔥 Recargar listado de usuarios
+        if (this.usersListComponent) {
+          console.log('🔄 Recargando lista de usuarios...');
+          this.usersListComponent.loadUsers();
+        }
         
         Swal.fire({
           icon: 'success',
