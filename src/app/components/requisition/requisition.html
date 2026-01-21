@@ -126,20 +126,23 @@
                 (input)="onAreaSearch()"
                 (focus)="onAreaFocus()"
                 (blur)="onAreaBlur()"
+                (keydown)="onAreaKeydown($event)"
                 [disabled]="!businessUnit || !currentDeliveryDate"
                 placeholder="Buscar área..."
                 autocomplete="off">
               
               <!-- Dropdown de áreas -->
               <div 
-                class="dropdown-menu show w-100" 
+                class="dropdown-menu show w-100 area-dropdown" 
                 *ngIf="showAreaDropdown && filteredAreas.length > 0"
                 style="position: absolute; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
                 <button 
                   type="button"
                   class="dropdown-item d-flex justify-content-between"
-                  *ngFor="let area of filteredAreas; trackBy: trackByString"
-                  (mousedown)="selectArea(area)">
+                  *ngFor="let area of filteredAreas; let i = index; trackBy: trackByString"
+                  [class.active]="i === selectedAreaIndex"
+                  (mousedown)="selectArea(area)"
+                  (mouseenter)="selectedAreaIndex = i">
                   <span>{{ area }}</span>
                   <span *ngIf="hasProductsInArea(area)" class="text-success">✓</span>
                 </button>
@@ -168,6 +171,7 @@
                 (input)="onProductSearch()"
                 (focus)="onProductFocus()"
                 (blur)="onProductBlur()"
+                (keydown)="onProductKeydown($event)"
                 [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea"
                 placeholder="Buscar producto..."
                 autocomplete="off"
@@ -175,14 +179,16 @@
               
               <!-- Dropdown de productos -->
               <div 
-                class="dropdown-menu show w-100" 
+                class="dropdown-menu show w-100 product-dropdown" 
                 *ngIf="showProductDropdown && filteredProducts.length > 0 && !(!currentDeliveryDate || !selectedArea)"
                 style="position: absolute; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
                 <button 
                   type="button"
                   class="dropdown-item"
-                  *ngFor="let product of filteredProducts; trackBy: trackByString"
-                  (mousedown)="selectProduct(product)">
+                  *ngFor="let product of filteredProducts; let i = index; trackBy: trackByString"
+                  [class.active]="i === selectedProductIndex"
+                  (mousedown)="selectProduct(product)"
+                  (mouseenter)="selectedProductIndex = i">
                   {{ product }}
                 </button>
               </div>

@@ -88,6 +88,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   areaSearchTerm: string = '';
   showAreaDropdown: boolean = false;
   filteredAreas: string[] = [];
+  selectedAreaIndex: number = -1; // 🔥 Índice para navegación por teclado
   
   // Propiedades para modal de cambio de área
   showAreaChangeModal: boolean = false;
@@ -100,6 +101,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   productSearchTerm: string = '';
   showProductDropdown: boolean = false;
   filteredProducts: string[] = [];
+  selectedProductIndex: number = -1; // 🔥 Índice para navegación por teclado
   currentQuantity: string = '';
   isResumeCollapsed: boolean = false;
 
@@ -367,6 +369,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   onAreaSearch(): void {
     this.showAreaDropdown = true;
+    this.selectedAreaIndex = -1; // Reset índice al escribir
     // ⚡ Usar Subject para debounce (optimiza búsqueda)
     this.areaSearchSubject.next(this.areaSearchTerm);
   }
@@ -393,7 +396,102 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   onAreaFocus(): void {
     this.showAreaDropdown = true;
+    this.selectedAreaIndex = -1; // Reset índice al abrir
     this.filteredAreas = this.areas;
+  }
+
+  /**
+   * 🔥 Maneja la navegación por teclado en el input de área
+   */
+  onAreaKeydown(event: KeyboardEvent): void {
+    if (!this.showAreaDropdown || this.filteredAreas.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedAreaIndex = Math.min(this.selectedAreaIndex + 1, this.filteredAreas.length - 1);
+        this.scrollToSelectedArea();
+        break;
+      
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedAreaIndex = Math.max(this.selectedAreaIndex - 1, -1);
+        this.scrollToSelectedArea();
+        break;
+      
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedAreaIndex >= 0 && this.selectedAreaIndex < this.filteredAreas.length) {
+          this.selectArea(this.filteredAreas[this.selectedAreaIndex]);
+        }
+        break;
+      
+      case 'Escape':
+        event.preventDefault();
+        this.showAreaDropdown = false;
+        this.selectedAreaIndex = -1;
+        break;
+    }
+  }
+
+  /**
+   * Scroll automático al elemento seleccionado en el dropdown de áreas
+   */
+  private scrollToSelectedArea(): void {
+    setTimeout(() => {
+      const dropdown = document.querySelector('.area-dropdown');
+      const selectedItem = dropdown?.querySelector('.dropdown-item.active');
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 0);
+  }
+
+  /**
+   * 🔥 Maneja la navegación por teclado en el input de producto
+   */
+  onProductKeydown(event: KeyboardEvent): void {
+    if (!this.showProductDropdown || this.filteredProducts.length === 0) return;
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.selectedProductIndex = Math.min(this.selectedProductIndex + 1, this.filteredProducts.length - 1);
+        this.scrollToSelectedProduct();
+        break;
+      
+      case 'ArrowUp':
+        event.preventDefault();
+        this.selectedProductIndex = Math.max(this.selectedProductIndex - 1, -1);
+        this.scrollToSelectedProduct();
+        break;
+      
+      case 'Enter':
+        event.preventDefault();
+        if (this.selectedProductIndex >= 0 && this.selectedProductIndex < this.filteredProducts.length) {
+          this.selectProduct(this.filteredProducts[this.selectedProductIndex]);
+        }
+        break;
+      
+      case 'Escape':
+        event.preventDefault();
+        this.showProductDropdown = false;
+        this.selectedProductIndex = -1;
+        break;
+    }
+  }
+
+  /**
+   * Scroll automático al elemento seleccionado en el dropdown de productos
+   */
+  private scrollToSelectedProduct(): void {
+    setTimeout(() => {
+      const dropdown = document.querySelector('.product-dropdown');
+      const selectedItem = dropdown?.querySelector('.dropdown-item.active');
+      if (selectedItem) {
+        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }, 0);
   }
 
   onAreaBlur(): void {
@@ -404,6 +502,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
         return;
       }
       
+      this.selectedAreaIndex = -1; // Reset índice al cerrar
       this.showAreaDropdown = false;
       const exactMatch = this.areas.find(area => 
         area.toLowerCase() === this.areaSearchTerm.toLowerCase()
@@ -430,6 +529,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   onProductSearch(): void {
     this.showProductDropdown = true;
+    this.selectedProductIndex = -1; // Reset índice al escribir
     // ⚡ Usar Subject para debounce (optimiza búsqueda)
     this.productSearchSubject.next(this.productSearchTerm);
   }
@@ -453,11 +553,13 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   onProductFocus(): void {
     this.showProductDropdown = true;
+    this.selectedProductIndex = -1; // Reset índice al abrir
     this.filteredProducts = this.getAvailableProductsForCurrentArea();
   }
 
   onProductBlur(): void {
     setTimeout(() => {
+      this.selectedProductIndex = -1; // Reset índice al cerrar
       this.showProductDropdown = false;
       const availableProductsForArea = this.getAvailableProductsForCurrentArea();
       const exactMatch = availableProductsForArea.find(product => 
