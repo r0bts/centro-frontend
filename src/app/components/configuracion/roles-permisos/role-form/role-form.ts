@@ -254,7 +254,10 @@ export class RoleFormComponent implements OnInit, OnChanges {
         console.log('📋 Módulos cargados:', this.modules.length);
         console.log('📋 Submódulos cargados:', this.submodules.length);
         console.log('📋 Permisos cargados:', this.dbPermissions.length);
-        console.log('🔐 Configuración de permisos:', this.submodulePermissionsConfig);
+        console.log('� IDs de permisos:', this.dbPermissions.map(p => p.id).sort((a,b) => a-b));
+        console.log('📋 Permisos para frequent_list (id:14):', this.getAvailablePermissions(14).map(p => `${p.id}: ${p.display_name}`));
+        console.log('📋 Permisos para categorias (id:17):', this.getAvailablePermissions(17).map(p => `${p.id}: ${p.display_name}`));
+        console.log('�🔐 Configuración de permisos:', this.submodulePermissionsConfig);
         this.cdr.detectChanges();
       },
       error: (error) => {

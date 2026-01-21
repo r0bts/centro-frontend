@@ -266,13 +266,11 @@ export class UserFormComponent implements OnInit, OnChanges {
   onProductsTabActivated(): void {
     // Si ya cargamos los productos, no volver a cargar
     if (this.availableProducts.length > 0) {
-      console.log('✅ Productos ya cargados, usando cache');
       this.isLoadingProducts = false; // 🔥 Asegurar que el spinner se apague
       this.cdr.detectChanges();
       return;
     }
     
-    console.log('🔥 Pestaña de productos activada - cargando productos...');
     // 🔥 Siempre cargar productos con categorías desde getAllProducts
     this.loadProducts();
   }
@@ -283,7 +281,6 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Usa RoleService porque es el mismo endpoint
    */
   private loadPermissionsStructure(): void {
-    console.log('📡 [USER-FORM] Cargando estructura de permisos desde el backend...');
     
     // Importar RoleService dinámicamente para evitar dependencia circular
     import('../../../../services/role.service').then(({ RoleService }) => {
@@ -293,7 +290,6 @@ export class UserFormComponent implements OnInit, OnChanges {
       roleService.getPermissionsStructure().subscribe({
         next: (response) => {
           if (response.success && response.data) {
-            console.log('✅ [USER-FORM] Estructura de permisos cargada:', response.data);
             
             // Cargar módulos
             this.modules = response.data.modules || [];
@@ -312,17 +308,8 @@ export class UserFormComponent implements OnInit, OnChanges {
               }
             });
             
-            console.log('📋 [USER-FORM] Módulos:', this.modules.length);
-            console.log('📋 [USER-FORM] Submódulos:', this.submodules.length);
-            console.log('📋 [USER-FORM] Permisos:', this.dbPermissions.length);
-            
             // 🔥 Marcar estructura como cargada
             this.permissionsStructureLoaded = true;
-            
-            // 🔥 IMPORTANTE: La estructura SIEMPRE debe mostrarse
-            // No importa si el usuario tiene permisos o no, la estructura se muestra completa
-            console.log('✅ [USER-FORM] Estructura de permisos lista para mostrar');
-            console.log('📊 [USER-FORM] Estado actual - userPermissions:', this.userPermissions.length, 'rolePermissions:', this.rolePermissions.length);
             
             // 🔥 Forzar detección de cambios para renderizar la estructura
             this.cdr.detectChanges();
@@ -344,18 +331,8 @@ export class UserFormComponent implements OnInit, OnChanges {
       next: (data) => {
         // Cargar roles CON sus permisos y productos
         if (data.roles?.items) {
-          console.log('📋 [LOAD-FORM-DATA] Roles recibidos del backend:', data.roles.items.length);
           
           this.availableRoles = data.roles.items.map((role: any) => {
-            console.log('📌 [LOAD-FORM-DATA] Mapeando rol:', {
-              id: role.id,
-              display_name: role.display_name,
-              permissions_count: role.permissions?.length || 0,
-              products_count: role.products?.length || 0,
-              has_permissions: !!role.permissions,
-              has_products: !!role.products,
-              products_keys: Object.keys(role).filter(k => k.includes('product'))
-            });
             
             return {
               id: role.id,
@@ -367,9 +344,7 @@ export class UserFormComponent implements OnInit, OnChanges {
               products: role.products || [] // 🔥 Agregar productos del rol
             };
           });
-          
-          console.log('✅ [LOAD-FORM-DATA] Roles cargados:', this.availableRoles.map(r => ({ id: r.id, display_name: r.display_name, products: (r as any).products?.length || 0 })));
-        
+
         // 🔥 Cargar productos de cada rol desde GET /api/roles/{id}
         this.availableRoles.forEach((role) => {
           this.loadRoleProductsFromApi(role.id);
@@ -420,7 +395,6 @@ export class UserFormComponent implements OnInit, OnChanges {
       return;
     }
 
-    console.log('📡 Cargando datos del usuario:', this.userId);
     
     // Mostrar loading
     Swal.fire({
@@ -454,11 +428,9 @@ export class UserFormComponent implements OnInit, OnChanges {
         // El backend ya devuelve los permisos del usuario en userDetails.permissions
         this.userPermissions = userDetails.permissions || [];
         
-        console.log('🔑 Permisos cargados desde backend:', this.userPermissions.length);
         
         // 🔥 Si no hay permisos desde el backend pero hay rol_id, cargar permisos del rol (fallback)
         if (this.userPermissions.length === 0 && this.userForm.rol_id) {
-          console.log('⚠️ No hay permisos desde backend, usando permisos del rol como fallback');
           this.rolePermissions = [];
         } else {
           // Los permisos del rol son los mismos que los del usuario si no hay rol_id
@@ -472,23 +444,7 @@ export class UserFormComponent implements OnInit, OnChanges {
             limit_per_requisition: p.limit_per_requisition || 0,
             is_assigned: p.is_assigned !== undefined ? p.is_assigned : true
           }));
-          console.log('✅ [LOAD-USER-DATA] Productos del usuario asignados desde backend:', this.productAssignments.length);
         }
-        
-        console.log('✅ Datos cargados:', {
-          form: this.userForm,
-          rol_id: this.userForm.rol_id,
-          permissionsStructureLoaded: this.permissionsStructureLoaded,
-          userPermissions: this.userPermissions.length,
-          rolePermissions: this.rolePermissions.length,
-          products: this.productAssignments.length
-        });
-        
-        // 🔥 Los permisos ya están cargados desde el backend
-        // No necesitamos loadRolePermissions porque el backend ya nos dio los permisos
-        console.log('✅ Permisos del usuario ya cargados desde el backend');
-        
-        // 🔥 Los productos ya vinieron en userDetails.products, no necesitamos cargarlos desde el rol
         
         // 🔥 Forzar detección de cambios para actualizar vista inmediatamente
         this.cdr.detectChanges();
@@ -525,7 +481,6 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Este método se ejecuta SOLO cuando el usuario hace click en la pestaña de productos
    */
   private loadProducts(): void {
-    console.log('📦 Cargando TODOS los productos disponibles...');
     this.isLoadingProducts = true; // 🔥 Mostrar spinner
     
     this.productService.getAllProducts().subscribe({
@@ -537,14 +492,12 @@ export class UserFormComponent implements OnInit, OnChanges {
         this._cachedCategories = null;
         this._lastSelectedCategory = null;
         
-        console.log(`✅ ${this.availableProducts.length} productos cargados desde la API`);
         
         // 🔥 Ocultar spinner y forzar re-render
         this.isLoadingProducts = false;
         this.cdr.detectChanges();
       },
       error: (error) => {
-        console.error('❌ Error al cargar productos:', error);
         this.isLoadingProducts = false; // 🔥 Ocultar spinner incluso en error
         this.cdr.detectChanges();
         
@@ -559,14 +512,10 @@ export class UserFormComponent implements OnInit, OnChanges {
   }
 
   onRoleChange(): void {
-    console.log('🔄 [ON-ROLE-CHANGE] Cambio de rol detectado:', this.userForm.rol_id);
-    
     if (this.userForm.rol_id) {
-      console.log('📂 [ON-ROLE-CHANGE] Cargando permisos y productos para rol:', this.userForm.rol_id);
       this.loadRolePermissions(this.userForm.rol_id);
       this.loadRoleProducts(this.userForm.rol_id); // 🔥 Cargar productos del rol
     } else {
-      console.log('❌ [ON-ROLE-CHANGE] Sin rol_id, limpiando datos');
       this.rolePermissions = [];
       this.userPermissions = [];
       this.productAssignments = []; // 🔥 Limpiar productos si no hay rol
@@ -604,7 +553,6 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Se usa cuando los datos ya están cargados en memoria
    */
   private loadRoleProductsDirectly(roleId: string): void {
-    console.log('📥 [LOAD-ROLE-PRODUCTS-DIRECTLY] Cargando productos del rol:', roleId);
     
     if (!roleId) {
       console.log('❌ [LOAD-ROLE-PRODUCTS-DIRECTLY] Sin roleId');
@@ -616,7 +564,6 @@ export class UserFormComponent implements OnInit, OnChanges {
     if (selectedRole && (selectedRole as any).products && Array.isArray((selectedRole as any).products)) {
       const roleProducts = (selectedRole as any).products;
       
-      console.log('✅ [LOAD-ROLE-PRODUCTS-DIRECTLY] Productos encontrados para rol', roleId, ':', roleProducts.length);
       
       // Auto-asignar productos del rol
       this.productAssignments = roleProducts.map((prod: any) => ({
@@ -625,10 +572,8 @@ export class UserFormComponent implements OnInit, OnChanges {
         is_assigned: true
       }));
       
-      console.log('✅ [LOAD-ROLE-PRODUCTS-DIRECTLY] Productos asignados:', this.productAssignments.length);
       this.cdr.detectChanges();
     } else {
-      console.log('⚠️ [LOAD-ROLE-PRODUCTS-DIRECTLY] El rol no tiene productos cargados aún');
       this.productAssignments = [];
     }
   }
@@ -638,7 +583,6 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Este endpoint devuelve los productos asociados al rol
    */
   private loadRoleProductsFromApi(roleId: string): void {
-    console.log('📥 [LOAD-ROLE-PRODUCTS-API] Obteniendo productos para rol desde API:', roleId);
     
     // Importar RoleService dinámicamente
     import('../../../../services/role.service').then(({ RoleService }) => {
@@ -673,10 +617,8 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Si el rol tiene productos asignados, auto-seleccionarlos en el formulario
    */
   private loadRoleProducts(roleId: string): void {
-    console.log('🔍 [LOAD-ROLE-PRODUCTS] Buscando productos para rol:', roleId);
     
     if (!roleId) {
-      console.log('❌ [LOAD-ROLE-PRODUCTS] Sin roleId, limpiando productAssignments');
       this.productAssignments = [];
       return;
     }
