@@ -36,7 +36,7 @@
                         class="form-select" 
                         [(ngModel)]="businessUnit"
                         (change)="onLocationChange()"
-                        [disabled]="isLoadingFormData || locations.length === 0">
+                        [disabled]="isLoadingFormData || locations.length === 0 || isLocationLocked">
                         <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar locación' }}</option>
                         <option *ngFor="let location of locations; trackBy: trackByLocationId" [value]="location.name">
                           {{ location.name }}
@@ -64,7 +64,7 @@
                         class="form-select" 
                         [(ngModel)]="selectedEvent"
                         (change)="onEventChange()"
-                        [disabled]="isLoadingFormData || projects.length === 0">
+                        [disabled]="isLoadingFormData || projects.length === 0 || !businessUnit">
                         <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar evento' }}</option>
                         <option 
                           *ngFor="let project of projects; trackBy: trackByProjectId" 
@@ -82,7 +82,8 @@
                         class="form-control"
                         [(ngModel)]="customDeliveryDate"
                         (change)="onCustomDateChange()"
-                        [min]="getMinDate()">
+                        [min]="getMinDate()"
+                        [disabled]="!businessUnit">
                       <small class="text-muted">*Entrega en la fecha exacta</small>
                     </div>
                     
@@ -93,7 +94,7 @@
                         class="form-control"
                         [(ngModel)]="deliveryTime"
                         (change)="onTimeChange()"
-                        [disabled]="!selectedEvent && !customDeliveryDate">
+                        [disabled]="!businessUnit || (!selectedEvent && !customDeliveryDate)">
                       <small class="text-muted">*Para ambas opciones</small>
                     </div>
                     
@@ -125,7 +126,7 @@
                 (input)="onAreaSearch()"
                 (focus)="onAreaFocus()"
                 (blur)="onAreaBlur()"
-                [disabled]="isAreaDisabled()"
+                [disabled]="!businessUnit || !currentDeliveryDate"
                 placeholder="Buscar área..."
                 autocomplete="off">
               
@@ -167,6 +168,7 @@
                 (input)="onProductSearch()"
                 (focus)="onProductFocus()"
                 (blur)="onProductBlur()"
+                [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea"
                 placeholder="Buscar producto..."
                 autocomplete="off"
               >
@@ -203,7 +205,7 @@
                 [(ngModel)]="currentQuantity"
                 (input)="validateNumberInput($event)"
                 placeholder="Ingrese cantidad"
-                [disabled]="!currentDeliveryDate || !selectedArea">
+                [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea">
             </div>
             <div class="col-md-3">
               <label class="form-label ">Presentación</label>
@@ -217,7 +219,7 @@
             </div>
             <div class="col-md-2 d-flex align-items-end">
               <button class="btn btn-primary w-100" (click)="onAddProduct()" 
-                      [disabled]="!currentDeliveryDate || !selectedArea || !productSearchTerm.trim() || !isValidQuantity()">
+                      [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea || !productSearchTerm.trim() || !isValidQuantity()">
                 Agregar
               </button>
             </div>

@@ -46,6 +46,10 @@ export interface RequisitionSummary {
 export class RequisitionComponent implements OnInit, OnDestroy {
   activeSection: string = 'requisicion';
   
+  // 🔥 Control de flujo de validación secuencial
+  locationIdFromStorage: string = '0';
+  isLocationLocked: boolean = false;
+  
   // Propiedad para devolución
   isDevolucion: boolean = false;
   
@@ -53,9 +57,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   businessUnit: string = '';
   
   // IDs seleccionados para enviar al backend
-  selectedLocationId?: number;
-  selectedProjectId?: number;
-  selectedDepartmentId?: number;
+  selectedLocationId?: string;
+  selectedProjectId?: string;
+  selectedDepartmentId?: string;
   
   // Propiedades para fechas (OBLIGATORIO)
   selectedEvent: string = '';
@@ -126,6 +130,19 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   requisitionSummary: RequisitionSummary[] = [];
 
   ngOnInit(): void {
+    // 🔥 PASO 1: Verificar location_id del localStorage
+    const storedLocationId = localStorage.getItem('location_id');
+    
+    if (storedLocationId) {
+      this.locationIdFromStorage = storedLocationId;
+      
+      // Si tiene location_id y NO es '0', bloquear el select
+      if (this.locationIdFromStorage !== '0') {
+        this.isLocationLocked = true;
+        console.log('🔒 Locación bloqueada desde localStorage:', this.locationIdFromStorage);
+      }
+    }
+    
     // Cargar productos del área inicial si ya existen
     this.loadProductsForArea();
     
@@ -241,6 +258,18 @@ export class RequisitionComponent implements OnInit, OnDestroy {
           
           Swal.close();
           this.isLoadingFormData = false;
+          
+          // 🔥 Auto-seleccionar locación si está bloqueada
+          if (this.isLocationLocked && this.locationIdFromStorage) {
+            const location = this.locations.find(loc => loc.id === this.locationIdFromStorage);
+            if (location) {
+              this.businessUnit = location.name;
+              this.selectedLocationId = location.id;
+              console.log('✅ Locación auto-seleccionada:', location.name);
+              this.onLocationChange();
+            }
+          }
+          
           this.cdr.markForCheck(); // ⚡ Marcar para detección de cambios final
           
           console.log('✅ Datos del formulario cargados:', {
@@ -751,7 +780,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     if (this.businessUnit) {
       const selectedLocation = this.locations.find(loc => loc.name === this.businessUnit);
       if (selectedLocation) {
-        this.selectedLocationId = parseInt(selectedLocation.id);
+        this.selectedLocationId = selectedLocation.id;
         console.log(`✅ Locación seleccionada: ${this.businessUnit} (ID: ${this.selectedLocationId})`);
       }
     } else {
@@ -764,7 +793,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
       const selectedEventObj = this.projects.find(project => project.id === this.selectedEvent);
       if (selectedEventObj) {
         // Guardar el ID del proyecto para enviar al backend
-        this.selectedProjectId = parseInt(this.selectedEvent);
+        this.selectedProjectId = this.selectedEvent;
         
         // Establecer fecha el mismo día del evento con la hora seleccionada
         const deliveryDate = new Date(selectedEventObj.date);
