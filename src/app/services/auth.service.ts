@@ -203,6 +203,15 @@ export class AuthService {
     this.storage.setItem(this.MODULES_KEY, JSON.stringify(authData.modules));
     this.storage.setItem(this.ROLES_KEY, JSON.stringify(authData.roles));
     
+    // 🔥 Guardar location_id del usuario para requisiciones
+    if (authData.user && authData.user.location_id !== undefined) {
+      const locationIdString = String(authData.user.location_id);
+      this.storage.setItem('location_id', locationIdString);
+      
+    } else {
+      console.warn('⚠️ No se pudo guardar location_id (usuario o location_id undefined)');
+    }
+    
     this.currentUserSubject.next(authData.user);
     this.isAuthenticatedSubject.next(true);
     this.permissionsSubject.next(authData.permissions);
@@ -228,6 +237,7 @@ export class AuthService {
     this.storage.removeItem(this.PERMISSIONS_KEY);
     this.storage.removeItem(this.MODULES_KEY);
     this.storage.removeItem(this.ROLES_KEY);
+    this.storage.removeItem('location_id'); // 🔥 Limpiar location_id
     
     this.currentUserSubject.next(null);
     this.isAuthenticatedSubject.next(false);

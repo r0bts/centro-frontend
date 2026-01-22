@@ -229,6 +229,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     
     this.requisitionService.getFormData().subscribe({
       next: (response) => {
+        // ✅ CERRAR SWAL INMEDIATAMENTE
+        Swal.close();
+        
         if (response.success) {
           // ⚡ PRIORIDAD 1: Cargar locaciones PRIMERO (solo 2, instantáneo)
           this.locations = response.data.locations;
@@ -258,8 +261,13 @@ export class RequisitionComponent implements OnInit, OnDestroy {
             this.productMap.set(product.name, product);
           });
           
-          Swal.close();
+          console.log('📊 Datos cargados - Productos:', this.backendProducts.length, 'Locations:', this.locations.length);
+          
+          // ✅ Actualizar el estado
           this.isLoadingFormData = false;
+          console.log('✅ isLoadingFormData = false');
+          console.log('📍 locations:', this.locations.length);
+          console.log('🔐 isLocationLocked:', this.isLocationLocked);
           
           // 🔥 Auto-seleccionar locación si está bloqueada
           if (this.isLocationLocked && this.locationIdFromStorage) {
@@ -272,7 +280,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
             }
           }
           
-          this.cdr.markForCheck(); // ⚡ Marcar para detección de cambios final
+          // Forzar detección de cambios
+          this.cdr.detectChanges();
+          console.log('🔄 detectChanges() ejecutado');
           
           console.log('✅ Datos del formulario cargados:', {
             productos: this.backendProducts.length,
