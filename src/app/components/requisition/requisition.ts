@@ -7,6 +7,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
 import { RequisitionService, RequisitionProduct, Project as BackendProject, RequisitionArea, Location } from '../../services/requisition.service';
 import Swal from 'sweetalert2';
+import { HasPermissionDirective } from '../../directives/has-permission.directive';
 
 export interface Event {
   id: string;
@@ -38,7 +39,7 @@ export interface RequisitionSummary {
 @Component({
   selector: 'app-requisition',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu],
+  imports: [CommonModule, FormsModule, ContentMenu, HasPermissionDirective],
   templateUrl: './requisition.html',
   styleUrls: ['./requisition.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush

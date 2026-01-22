@@ -17,276 +17,279 @@
             </div>
             
             <div class="card-body d-flex flex-column">
-          <!-- 1. Configuración de fecha de entrega (OBLIGATORIO) -->
-          <div class="row mb-4">
-            <div class="col-12">
-              <div class="card ">
-                <div class="card-body p-3">
-                  <div class="row align-items-center g-3">
-                    <div class="col-12 col-md-6">
-                      <h6 class="fw-bold text-warning-emphasis mb-3">
-                        <i class="bi bi-calendar-event me-2"></i>Fecha de entrega (Obligatorio)
-                      </h6>
-                    </div>
+              <!-- 1. Configuración de fecha de entrega (OBLIGATORIO) -->
+              <div class="row mb-4">
+                <div class="col-12">
+                  <div class="card ">
+                    <div class="card-body p-3">
+                      <div class="row align-items-center g-3">
+                        <div class="col-12 col-md-6">
+                          <h6 class="fw-bold text-warning-emphasis mb-3">
+                            <i class="bi bi-calendar-event me-2"></i>Fecha de entrega (Obligatorio)
+                          </h6>
+                        </div>
 
-                    <!-- Select de Locación (GLACIAR, HERMES) -->
-                    <div class="col-12 col-md-3">
-                      <label class="form-label mb-1 fw-bold">Locación:</label>
-                      <select 
-                        class="form-select" 
-                        [(ngModel)]="businessUnit"
-                        (change)="onLocationChange()"
-                        [disabled]="isLoadingFormData || locations.length === 0 || isLocationLocked">
-                        <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar locación' }}</option>
-                        <option *ngFor="let location of locations; trackBy: trackByLocationId" [value]="location.name">
-                          {{ location.name }}
-                        </option>
-                      </select>
-                    </div>
-                    
-                    <!-- Checkbox de Devolución -->
-                    <div class="col-12 col-md-3">
-                      <div class="form-check">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="devolucionCheck"
-                          [(ngModel)]="isDevolucion">
-                        <label class="form-check-label fw-bold text-danger" for="devolucionCheck">
-                          Devolución
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div class="col-12 col-md-3">
-                      <label class="form-label mb-1 fw-bold">Evento especial:</label>
-                      <select 
-                        class="form-select" 
-                        [(ngModel)]="selectedEvent"
-                        (change)="onEventChange()"
-                        [disabled]="isLoadingFormData || projects.length === 0 || !businessUnit">
-                        <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar evento' }}</option>
-                        <option 
-                          *ngFor="let project of projects; trackBy: trackByProjectId" 
-                          [value]="project.id"
-                          [disabled]="isEventDatePassed(project.date)">
-                          {{ project.name }} ({{ formatDate(project.date) }})  </option>
-                      </select>
-                      <small class="text-muted">*Entrega el mismo día del evento</small>
-                    </div>
-                    
-                    <div class="col-12 col-md-3">
-                      <label class="form-label mb-1 fw-bold">Fecha personalizada:</label>
-                      <input 
-                        type="date" 
-                        class="form-control"
-                        [(ngModel)]="customDeliveryDate"
-                        (change)="onCustomDateChange()"
-                        [min]="getMinDate()"
-                        [disabled]="!businessUnit">
-                      <small class="text-muted">*Entrega en la fecha exacta</small>
-                    </div>
-                    
-                    <div class="col-12 col-md-2">
-                      <label class="form-label mb-1 fw-bold">Hora de entrega:</label>
-                      <input 
-                        type="time" 
-                        class="form-control"
-                        [(ngModel)]="deliveryTime"
-                        (change)="onTimeChange()"
-                        [disabled]="!businessUnit || (!selectedEvent && !customDeliveryDate)">
-                      <small class="text-muted">*Para ambas opciones</small>
-                    </div>
-                    
-                    <div class="col-12 col-md-3 d-flex flex-column" *ngIf="currentDeliveryDate">
-                      <label class="form-label mb-1 fw-bold">Programado:</label>
-                      <div class="border rounded p-2 bg-light">
-                        <div class="text-center">
-                          <div><span class="fw-bold text-dark me-3">{{ formatDate(currentDeliveryDate) }}</span><span class="fw-bold text-primary">{{ formatTime(currentDeliveryDate) }}</span></div>
+                        <!-- Select de Locación (GLACIAR, HERMES) -->
+                        <div class="col-12 col-md-3">
+                          <label class="form-label mb-1 fw-bold">Locación:</label>
+                          <select 
+                            class="form-select" 
+                            [(ngModel)]="businessUnit"
+                            (change)="onLocationChange()"
+                            [disabled]="isLoadingFormData || locations.length === 0 || isLocationLocked">
+                            <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar locación' }}</option>
+                            <option *ngFor="let location of locations; trackBy: trackByLocationId" [value]="location.name">
+                              {{ location.name }}
+                            </option>
+                          </select>
+                        </div>
+                        
+                        <!-- Checkbox de Devolución -->
+                        <div class="col-12 col-md-3">
+                          <div class="form-check">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              id="devolucionCheck"
+                              [(ngModel)]="isDevolucion">
+                            <label class="form-check-label fw-bold text-danger" for="devolucionCheck">
+                              Devolución
+                            </label>
+                          </div>
+                        </div>
+                        
+                        <!-- Select de Evento especial (solo visible con permiso 'events') -->
+                        <div class="col-12 col-md-3" *hasPermission="{submodule: 'requisition', permission: 'events'}">
+                          <label class="form-label mb-1 fw-bold">Evento especial:</label>
+                          <select 
+                            class="form-select" 
+                            [(ngModel)]="selectedEvent"
+                            (change)="onEventChange()"
+                            [disabled]="isLoadingFormData || projects.length === 0 || !businessUnit">
+                            <option value="">{{ isLoadingFormData ? 'Cargando...' : 'Seleccionar evento' }}</option>
+                            <option 
+                              *ngFor="let project of projects; trackBy: trackByProjectId" 
+                              [value]="project.id"
+                              [disabled]="isEventDatePassed(project.date)">
+                              {{ project.name }} ({{ formatDate(project.date) }})  </option>
+                          </select>
+                          <small class="text-muted">*Entrega el mismo día del evento</small>
+                        </div>
+                        
+                        <div class="col-12 col-md-3">
+                          <label class="form-label mb-1 fw-bold">Fecha personalizada:</label>
+                          <input 
+                            type="date" 
+                            class="form-control"
+                            [(ngModel)]="customDeliveryDate"
+                            (change)="onCustomDateChange()"
+                            [min]="getMinDate()"
+                            [disabled]="!businessUnit">
+                          <small class="text-muted">*Entrega en la fecha exacta</small>
+                        </div>
+                        
+                        <div class="col-12 col-md-2">
+                          <label class="form-label mb-1 fw-bold">Hora de entrega:</label>
+                          <input 
+                            type="time" 
+                            class="form-control"
+                            [(ngModel)]="deliveryTime"
+                            (change)="onTimeChange()"
+                            [disabled]="!businessUnit || (!selectedEvent && !customDeliveryDate)">
+                          <small class="text-muted">*Para ambas opciones</small>
+                        </div>
+                        
+                        <div class="col-12 col-md-3 d-flex flex-column" *ngIf="currentDeliveryDate">
+                          <label class="form-label mb-1 fw-bold">Programado:</label>
+                          <div class="border rounded p-2 bg-light">
+                            <div class="text-center">
+                              <div><span class="fw-bold text-dark me-3">{{ formatDate(currentDeliveryDate) }}</span><span class="fw-bold text-primary">{{ formatTime(currentDeliveryDate) }}</span></div>
+                            </div>
+                          </div>
+                          <small class="text-muted">&nbsp;</small>
                         </div>
                       </div>
-                      <small class="text-muted">&nbsp;</small>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <!-- 2. Selección de área (SEGUNDO) -->
-          <div class="row align-items-center mb-4">
-            <div class="col-12 col-lg-auto">
-              <label class="form-label fw-bold mb-2">Área:</label>
-            </div>
-            <div class="col-12 col-lg-5 position-relative">
-              <input 
-                type="text" 
-                class="form-control" 
-                [(ngModel)]="areaSearchTerm"
-                (input)="onAreaSearch()"
-                (focus)="onAreaFocus()"
-                (blur)="onAreaBlur()"
-                (keydown)="onAreaKeydown($event)"
-                [disabled]="!businessUnit || !currentDeliveryDate"
-                placeholder="Buscar área..."
-                autocomplete="off">
-              
-              <!-- Dropdown de áreas -->
-              <div 
-                class="dropdown-menu show w-100 area-dropdown" 
-                *ngIf="showAreaDropdown && filteredAreas.length > 0"
-                style="position: absolute; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
-                <button 
-                  type="button"
-                  class="dropdown-item d-flex justify-content-between"
-                  *ngFor="let area of filteredAreas; let i = index; trackBy: trackByString"
-                  [class.active]="i === selectedAreaIndex"
-                  (mousedown)="selectArea(area)"
-                  (mouseenter)="selectedAreaIndex = i">
-                  <span>{{ area }}</span>
-                  <span *ngIf="hasProductsInArea(area)" class="text-success">✓</span>
-                </button>
-              </div>
-              
-              <!-- Mensaje cuando no hay resultados -->
-              <div 
-                class="dropdown-menu show w-100" 
-                *ngIf="showAreaDropdown && filteredAreas.length === 0 && areaSearchTerm.length > 0"
-                style="position: absolute; top: 100%; z-index: 1000;">
-                <div class="dropdown-item-text text-muted">
-                  No se encontraron áreas
+              <!-- 2. Selección de área (SEGUNDO) -->
+              <div class="row align-items-center mb-4">
+                <div class="col-12 col-lg-auto">
+                  <label class="form-label fw-bold mb-2">Área:</label>
+                </div>
+                <div class="col-12 col-lg-5 position-relative">
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    [(ngModel)]="areaSearchTerm"
+                    (input)="onAreaSearch()"
+                    (focus)="onAreaFocus()"
+                    (blur)="onAreaBlur()"
+                    (keydown)="onAreaKeydown($event)"
+                    [disabled]="!businessUnit || !currentDeliveryDate"
+                    placeholder="Buscar área..."
+                    autocomplete="off">
+                  
+                  <!-- Dropdown de áreas -->
+                  <div 
+                    class="dropdown-menu show w-100 area-dropdown" 
+                    *ngIf="showAreaDropdown && filteredAreas.length > 0"
+                    style="position: absolute; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
+                    <button 
+                      type="button"
+                      class="dropdown-item d-flex justify-content-between"
+                      *ngFor="let area of filteredAreas; let i = index; trackBy: trackByString"
+                      [class.active]="i === selectedAreaIndex"
+                      (mousedown)="selectArea(area)"
+                      (mouseenter)="selectedAreaIndex = i">
+                      <span>{{ area }}</span>
+                      <span *ngIf="hasProductsInArea(area)" class="text-success">✓</span>
+                    </button>
+                  </div>
+                  
+                  <!-- Mensaje cuando no hay resultados -->
+                  <div 
+                    class="dropdown-menu show w-100" 
+                    *ngIf="showAreaDropdown && filteredAreas.length === 0 && areaSearchTerm.length > 0"
+                    style="position: absolute; top: 100%; z-index: 1000;">
+                    <div class="dropdown-item-text text-muted">
+                      No se encontraron áreas
+                    </div>
+                  </div>
+                </div>
+              </div>qs
+
+              <!-- 3. Búsqueda de productos (TERCERO) -->
+              <div class="row mb-4">
+                <div class="col-md-5 position-relative">
+                  <label class="form-label ">Producto</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    [(ngModel)]="productSearchTerm"
+                    (input)="onProductSearch()"
+                    (focus)="onProductFocus()"
+                    (blur)="onProductBlur()"
+                    (keydown)="onProductKeydown($event)"
+                    [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea"
+                    placeholder="Buscar producto..."
+                    autocomplete="off"
+                  >
+                  
+                  <!-- Dropdown de productos -->
+                  <div 
+                    class="dropdown-menu show w-100 product-dropdown" 
+                    *ngIf="showProductDropdown && filteredProducts.length > 0 && !(!currentDeliveryDate || !selectedArea)"
+                    style="position: absolute; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
+                    <button 
+                      type="button"
+                      class="dropdown-item"
+                      *ngFor="let product of filteredProducts; let i = index; trackBy: trackByString"
+                      [class.active]="i === selectedProductIndex"
+                      (mousedown)="selectProduct(product)"
+                      (mouseenter)="selectedProductIndex = i">
+                      {{ product }}
+                    </button>
+                  </div>
+                  
+                  <!-- Mensaje cuando no hay resultados -->
+                  <div 
+                    class="dropdown-menu show w-100" 
+                    *ngIf="showProductDropdown && filteredProducts.length === 0 && productSearchTerm.length > 0 && !(!currentDeliveryDate || !selectedArea)"
+                    style="position: absolute; top: 100%; z-index: 1000;">
+                    <div class="dropdown-item-text text-muted">
+                      No se encontraron productos
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label ">Cantidad</label>
+                  <input 
+                    type="text" 
+                    class="form-control " 
+                    [(ngModel)]="currentQuantity"
+                    (input)="validateNumberInput($event)"
+                    placeholder="Ingrese cantidad"
+                    [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label ">Presentación</label>
+                  <input 
+                    type="text" 
+                    class="form-control" 
+                    [value]="selectedProductData?.unit || ''"
+                    [placeholder]="selectedProductData ? selectedProductData.unit : 'Selecciona producto'"
+                    readonly
+                    disabled>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                  <button class="btn btn-primary w-100" (click)="onAddProduct()" 
+                          [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea || !productSearchTerm.trim() || !isValidQuantity()">
+                    Agregar
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <!-- 3. Búsqueda de productos (TERCERO) -->
-          <div class="row mb-4">
-            <div class="col-md-5 position-relative">
-              <label class="form-label ">Producto</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                [(ngModel)]="productSearchTerm"
-                (input)="onProductSearch()"
-                (focus)="onProductFocus()"
-                (blur)="onProductBlur()"
-                (keydown)="onProductKeydown($event)"
-                [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea"
-                placeholder="Buscar producto..."
-                autocomplete="off"
-              >
               
-              <!-- Dropdown de productos -->
-              <div 
-                class="dropdown-menu show w-100 product-dropdown" 
-                *ngIf="showProductDropdown && filteredProducts.length > 0 && !(!currentDeliveryDate || !selectedArea)"
-                style="position: absolute; top: 100%; z-index: 1000; max-height: 200px; overflow-y: auto;">
-                <button 
-                  type="button"
-                  class="dropdown-item"
-                  *ngFor="let product of filteredProducts; let i = index; trackBy: trackByString"
-                  [class.active]="i === selectedProductIndex"
-                  (mousedown)="selectProduct(product)"
-                  (mouseenter)="selectedProductIndex = i">
-                  {{ product }}
-                </button>
-              </div>
-              
-              <!-- Mensaje cuando no hay resultados -->
-              <div 
-                class="dropdown-menu show w-100" 
-                *ngIf="showProductDropdown && filteredProducts.length === 0 && productSearchTerm.length > 0 && !(!currentDeliveryDate || !selectedArea)"
-                style="position: absolute; top: 100%; z-index: 1000;">
-                <div class="dropdown-item-text text-muted">
-                  No se encontraron productos
+              <!-- Lista de productos seleccionados -->
+              <div class="overflow-auto flex-grow-1" style="max-height: 250px;">
+                <div class="table-responsive">
+                  <table class="table table-hover mb-0">
+                    <thead class="table-primary">
+                      <tr>
+                        <th class="py-3">Producto</th>
+                        <th class="py-3">Cantidad</th>
+                        <th class="py-3">Presentación</th>
+                        <th class="py-3">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let product of products; trackBy: trackByProductId">
+                        <td class="fs-6 py-3">{{ product.name }}</td>
+                        <td>
+                          <div class="input-group" style="width: 150px;">
+                            <button 
+                              class="btn btn-outline-secondary" 
+                              type="button" 
+                              (click)="decrementQuantity(product.id)"
+                              [disabled]="product.quantity <= 1">
+                              <i class="bi bi-dash"></i>
+                            </button>
+                            <input 
+                              type="text" 
+                              class="form-control text-center" 
+                              [value]="product.quantity"
+                              (input)="updateQuantityFromInput(product.id, $event)"
+                              (blur)="validateTableInput(product.id, $event)">
+                            <button 
+                              class="btn btn-outline-secondary" 
+                              type="button" 
+                              (click)="incrementQuantity(product.id)">
+                              <i class="bi bi-plus"></i>
+                            </button>
+                          </div>
+                        </td>
+                        <td class="fs-6 py-3">{{ product.unit }}</td>
+                        <td>
+                          <button 
+                            class="btn btn-danger"
+                            (click)="removeProduct(product.id)">
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
+              
+              <div class="text-end mt-auto pt-4">
+                <button class="btn btn-primary px-5" (click)="onAccept()">
+                  Aceptar
+                </button>
+              </div>
             </div>
-            <div class="col-md-2">
-              <label class="form-label ">Cantidad</label>
-              <input 
-                type="text" 
-                class="form-control " 
-                [(ngModel)]="currentQuantity"
-                (input)="validateNumberInput($event)"
-                placeholder="Ingrese cantidad"
-                [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label ">Presentación</label>
-              <input 
-                type="text" 
-                class="form-control" 
-                [value]="selectedProductData?.unit || ''"
-                [placeholder]="selectedProductData ? selectedProductData.unit : 'Selecciona producto'"
-                readonly
-                disabled>
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <button class="btn btn-primary w-100" (click)="onAddProduct()" 
-                      [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea || !productSearchTerm.trim() || !isValidQuantity()">
-                Agregar
-              </button>
-            </div>
-          </div>
-          
-          <!-- Lista de productos seleccionados -->
-          <div class="overflow-auto flex-grow-1" style="max-height: 250px;">
-            <div class="table-responsive">
-              <table class="table table-hover mb-0">
-                <thead class="table-primary">
-                  <tr>
-                    <th class="py-3">Producto</th>
-                    <th class="py-3">Cantidad</th>
-                    <th class="py-3">Presentación</th>
-                    <th class="py-3">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let product of products; trackBy: trackByProductId">
-                    <td class="fs-6 py-3">{{ product.name }}</td>
-                    <td>
-                      <div class="input-group" style="width: 150px;">
-                        <button 
-                          class="btn btn-outline-secondary" 
-                          type="button" 
-                          (click)="decrementQuantity(product.id)"
-                          [disabled]="product.quantity <= 1">
-                          <i class="bi bi-dash"></i>
-                        </button>
-                        <input 
-                          type="text" 
-                          class="form-control text-center" 
-                          [value]="product.quantity"
-                          (input)="updateQuantityFromInput(product.id, $event)"
-                          (blur)="validateTableInput(product.id, $event)">
-                        <button 
-                          class="btn btn-outline-secondary" 
-                          type="button" 
-                          (click)="incrementQuantity(product.id)">
-                          <i class="bi bi-plus"></i>
-                        </button>
-                      </div>
-                    </td>
-                    <td class="fs-6 py-3">{{ product.unit }}</td>
-                    <td>
-                      <button 
-                        class="btn btn-danger"
-                        (click)="removeProduct(product.id)">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <div class="text-end mt-auto pt-4">
-            <button class="btn btn-primary px-5" (click)="onAccept()">
-              Aceptar
-            </button>
           </div>
         </div>
       </div>
