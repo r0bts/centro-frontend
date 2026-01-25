@@ -23,7 +23,8 @@
                    [(ngModel)]="userForm.username" 
                    name="username"
                    placeholder="Ej: jperez"
-                   required>
+                   required
+                   disabled>
           </div>
           <div class="col-md-4">
             <label for="nombre" class="form-label">Nombre Completo *</label>
@@ -33,7 +34,8 @@
                    [(ngModel)]="userForm.nombre" 
                    name="nombre"
                    placeholder="Ej: Juan Pérez"
-                   required>
+                   required
+                   disabled>
           </div>
         </div>
 
@@ -44,7 +46,8 @@
                     id="departamento"
                     [(ngModel)]="userForm.departamento" 
                     name="departamento"
-                    required>
+                    required
+                    disabled>
               <option value="">Seleccionar...</option>
               <option *ngFor="let dept of availableDepartments" [value]="dept.id">{{ dept.name }}</option>
             </select>
@@ -55,7 +58,8 @@
                     id="location_id"
                     [(ngModel)]="userForm.location_id" 
                     name="location_id"
-                    required>
+                    required
+                    disabled>
               <option value="">Seleccionar...</option>
               <option *ngFor="let location of availableLocations" [value]="location.id">
                 {{ location.name }}
@@ -69,7 +73,8 @@
                    id="id_netsuite"
                    [(ngModel)]="userForm.id_netsuite" 
                    name="id_netsuite"
-                   placeholder="Ej: EMP001">
+                   placeholder="Ej: EMP001"
+                   disabled>
           </div>
           <div class="col-md-3">
             <label for="rol_id" class="form-label">Rol *</label>
@@ -96,7 +101,8 @@
                      id="status"
                      [(ngModel)]="userForm.status" 
                      name="status"
-                     style="cursor: pointer;">
+                     style="cursor: pointer;"
+                     disabled>
               <label class="form-check-label" for="status" style="cursor: pointer;">
                 {{ userForm.status ? 'Activo' : 'Inactivo' }}
               </label>

@@ -485,7 +485,7 @@ export class UserFormComponent implements OnInit, OnChanges {
     
     this.productService.getAllProducts().subscribe({
       next: (products) => {
-        this.availableProducts = products.filter(p => p.isActive);
+        this.availableProducts = products.filter(p => !p.isActive);
         this.filteredProducts = this.availableProducts;
         
         // 🔥 INVALIDAR EL CACHE
