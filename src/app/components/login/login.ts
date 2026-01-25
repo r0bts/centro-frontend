@@ -44,7 +44,18 @@ export class Login {
           
           // 🔥 Redirigir a la primera ruta disponible según permisos del usuario
           const firstRoute = this.getFirstAvailableRoute(response.data);
-          this.router.navigate([firstRoute]);
+          console.log('🔄 Intentando navegar a:', firstRoute);
+          
+          this.router.navigate([firstRoute]).then((navigated) => {
+            console.log('✅ Navegación completada:', navigated);
+            if (!navigated) {
+              console.error('❌ La navegación falló, redirigiendo a /dashboard');
+              this.router.navigate(['/dashboard']);
+            }
+          }).catch((error) => {
+            console.error('❌ Error en navegación:', error);
+            this.router.navigate(['/dashboard']);
+          });
         },
         error: (error) => {
           console.error('Error en login:', error);

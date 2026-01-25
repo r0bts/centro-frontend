@@ -1,11 +1,71 @@
 <div class="products-list">
-  <!-- Botón para sincronizar productos -->
-  <div class="d-flex justify-content-end mb-3">
-    <button 
-      class="btn btn-primary" 
-      (click)="onSyncProducts()">
-      Sincronizar Productos
-    </button>
+  <!-- Card de Filtros -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <!-- Búsqueda -->
+        <div class="col-md-4">
+          <label class="form-label fw-bold">
+            Buscar Producto
+          </label>
+          <input type="text" 
+                 class="form-control" 
+                 id="searchInput"
+                 placeholder="Código, nombre o descripción...">
+        </div>
+        
+        <!-- Categoría -->
+        <div class="col-md-3">
+          <label class="form-label fw-bold">
+            Categoría
+          </label>
+          <select class="form-select" id="categoryFilter">
+            <option value="">Todas las categorías</option>
+            <!-- Poblado dinámicamente -->
+          </select>
+        </div>
+        
+        <!-- Estado -->
+        <div class="col-md-2">
+          <label class="form-label fw-bold">
+            Estado
+          </label>
+          <select class="form-select" id="statusFilter">
+            <option value="">Todos</option>
+            <option value="active">Activos</option>
+            <option value="inactive">Inactivos</option>
+          </select>
+        </div>
+        
+        <!-- Botones -->
+        <div class="col-md-3">
+          <button class="btn btn-secondary me-2" id="clearFiltersBtn">
+            Limpiar
+          </button>
+          <button class="btn btn-primary" (click)="onSyncProducts()">
+            Sincronizar
+          </button>
+        </div>
+      </div>
+      
+      <!-- Estadísticas -->
+      <div class="row mt-3" *ngIf="lastSyncDate">
+        <div class="col-12">
+          <div class="alert alert-info mb-0 py-2">
+            <small class="d-flex justify-content-between align-items-center">
+              <span>
+                <i class="bi bi-clock-history"></i>
+                <strong>Última sincronización:</strong> {{ formatDate(lastSyncDate) }}
+              </span>
+              <span>
+                <i class="bi bi-box"></i>
+                Mostrando <strong id="filteredCount">{{ filteredCount }}</strong> de <strong>{{ totalProducts }}</strong> productos
+              </span>
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tabla de Productos -->

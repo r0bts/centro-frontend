@@ -23,6 +23,13 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
   private accountsInventario: Account[] = [];
   private accountsGasto: Account[] = [];
   
+  // Estadísticas de filtrado
+  totalCategories = 0;
+  filteredCount = 0;
+  activeCount = 0;
+  withInventarioCount = 0;
+  withGastoCount = 0;
+  
   // Permisos del usuario
   canView = false;
   canUpdate = false;
@@ -59,6 +66,9 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
           this.categories = response.data.categories;
           console.log('✅ HIJO - Categorías cargadas:', this.categories.length);
           
+          // Actualizar estadísticas
+          this.updateStatistics();
+          
           // Si DataTable no existe, crear; si existe, actualizar
           if (!this.categoriesDataTable) {
             setTimeout(() => this.initCategoriesDataTable(), 100);
@@ -71,6 +81,37 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
         console.error('Error al cargar categorías:', error);
       }
     });
+  }
+
+  /**
+   * Actualizar estadísticas de categorías
+   */
+  private updateStatistics() {
+    this.totalCategories = this.categories.length;
+    this.filteredCount = this.totalCategories;
+    this.activeCount = this.categories.filter(c => !c.is_inactive).length;
+    this.withInventarioCount = this.categories.filter(c => 
+      typeof c.account_inventario === 'object' && c.account_inventario !== null
+    ).length;
+    this.withGastoCount = this.categories.filter(c => 
+      typeof c.account_gasto === 'object' && c.account_gasto !== null
+    ).length;
+  }
+
+  /**
+   * Actualizar contador de filtrados
+   */
+  private updateFilteredCount() {
+    if (this.categoriesDataTable) {
+      const info = this.categoriesDataTable.page.info();
+      this.filteredCount = info.recordsDisplay;
+      
+      // Actualizar elemento del DOM
+      const filteredCountElement = document.getElementById('filteredCount');
+      if (filteredCountElement) {
+        filteredCountElement.textContent = this.filteredCount.toString();
+      }
+    }
   }
 
   /**
@@ -210,7 +251,84 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
       }
     });
     
+    // Inicializar filtros después de crear la tabla
+    this.initFilters();
+    
     console.log('✅ DataTable inicializado correctamente');
+  }
+
+  /**
+   * Inicializar filtros personalizados
+   */
+  private initFilters() {
+    const self = this;
+    
+    // Filtro personalizado para DataTables
+    $.fn.dataTable.ext.search.push(
+      (settings: any, data: any, dataIndex: number) => {
+        const category = self.categories[dataIndex];
+        if (!category) return true;
+
+        // Obtener valores de filtros
+        const statusFilter = ($('#statusFilter') as any).val();
+        const accountInventarioFilter = ($('#accountInventarioFilter') as any).val();
+        const accountGastoFilter = ($('#accountGastoFilter') as any).val();
+
+        // Filtro por estado
+        if (statusFilter === 'active' && category.is_inactive) return false;
+        if (statusFilter === 'inactive' && !category.is_inactive) return false;
+
+        // Filtro por cuenta de inventario
+        if (accountInventarioFilter === 'assigned') {
+          const isObject = typeof category.account_inventario === 'object';
+          const notNull = category.account_inventario !== null;
+          if (!(isObject && notNull)) return false;
+        }
+        if (accountInventarioFilter === 'unassigned') {
+          const isObject = typeof category.account_inventario === 'object';
+          const notNull = category.account_inventario !== null;
+          if (isObject && notNull) return false;
+        }
+
+        // Filtro por cuenta de gasto
+        if (accountGastoFilter === 'assigned') {
+          const isObject = typeof category.account_gasto === 'object';
+          const notNull = category.account_gasto !== null;
+          if (!(isObject && notNull)) return false;
+        }
+        if (accountGastoFilter === 'unassigned') {
+          const isObject = typeof category.account_gasto === 'object';
+          const notNull = category.account_gasto !== null;
+          if (isObject && notNull) return false;
+        }
+
+        return true;
+      }
+    );
+
+    // Event listeners para filtros
+    $('#searchInput').on('keyup', function(this: HTMLInputElement) {
+      self.categoriesDataTable.search(this.value).draw();
+      self.updateFilteredCount();
+    });
+
+    $('#statusFilter, #accountInventarioFilter, #accountGastoFilter').on('change', () => {
+      self.categoriesDataTable.draw();
+      self.updateFilteredCount();
+    });
+
+    // Botón limpiar filtros
+    $('#clearFiltersBtn').on('click', () => {
+      $('#searchInput').val('');
+      $('#statusFilter').val('');
+      $('#accountInventarioFilter').val('');
+      $('#accountGastoFilter').val('');
+      self.categoriesDataTable.search('').draw();
+      self.updateFilteredCount();
+    });
+
+    // Actualizar contador inicial
+    self.updateFilteredCount();
   }
 
   /**

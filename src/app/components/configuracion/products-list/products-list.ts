@@ -22,6 +22,12 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private isDestroyed = false;
   private initTimeout: any = null;
+  
+  // 🔥 Filtros y estadísticas
+  lastSyncDate: Date | null = null;
+  totalProducts: number = 0;
+  filteredCount: number = 0;
+  categoriesMap: { [key: string]: {name: string, count: number} } = {};
 
   constructor(private productService: ProductService) {}
 
@@ -74,7 +80,18 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         
         this.products = products;
+        this.totalProducts = products.length;
+        this.filteredCount = products.length;
+        
+        // Extraer fecha de sincronización del primer producto
+        if (products.length > 0 && products[0].lastSync) {
+          this.lastSyncDate = new Date(products[0].lastSync);
+        }
+        
         console.log('✅ HIJO - Productos cargados:', this.products.length);
+        
+        // 🔥 Construir mapa de categorías
+        this.buildCategoriesMap();
         
         Swal.close();
         
@@ -200,6 +217,9 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
           this.onViewProduct(product);
         }
       });
+      
+      // 🔥 Inicializar filtros
+      this.initFilters();
     }
   }
 
@@ -255,6 +275,137 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
       confirmButtonText: 'Cerrar',
       width: '600px'
     });
+  }
+
+  /**
+   * 🔥 Construir mapa de categorías desde los productos
+   */
+  private buildCategoriesMap(): void {
+    const categoriesCount: { [key: string]: {name: string, count: number} } = {};
+    
+    this.products.forEach(product => {
+      const catId = product.category_id?.toString();
+      const catName = product.category_name || 'Sin categoría';
+      
+      if (catId) {
+        if (!categoriesCount[catId]) {
+          categoriesCount[catId] = { name: catName, count: 0 };
+        }
+        categoriesCount[catId].count++;
+      }
+    });
+    
+    this.categoriesMap = categoriesCount;
+    console.log('📊 Categorías encontradas:', Object.keys(categoriesCount).length);
+    
+    // Poblar dropdown de categorías
+    this.populateCategoryDropdown();
+  }
+
+  /**
+   * 🔥 Poblar dropdown de categorías
+   */
+  private populateCategoryDropdown(): void {
+    const categorySelect = $('#categoryFilter');
+    categorySelect.find('option:not(:first)').remove();
+    
+    // Ordenar categorías alfabéticamente
+    const sortedCategories = Object.entries(this.categoriesMap)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    
+    sortedCategories.forEach(([id, data]) => {
+      categorySelect.append(
+        `<option value="${id}">${data.name} (${data.count})</option>`
+      );
+    });
+  }
+
+  /**
+   * 🔥 Inicializar filtros de la tabla
+   */
+  private initFilters(): void {
+    if (this.isDestroyed) return;
+    
+    const self = this;
+    
+    // 🔍 Búsqueda nativa de DataTables
+    $('#searchInput').on('keyup', function(this: HTMLInputElement) {
+      if (self.productsDataTable) {
+        self.productsDataTable.search($(this).val()).draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    // 🔥 Filtro personalizado para categoría y estado
+    $.fn.dataTable.ext.search.push((settings: any, data: any, dataIndex: number) => {
+      if (!self.products || !self.products[dataIndex]) return true;
+      
+      const product = self.products[dataIndex];
+      
+      // Filtro de categoría
+      const selectedCategory = $('#categoryFilter').val() as string;
+      if (selectedCategory && product.category_id?.toString() !== selectedCategory) {
+        return false;
+      }
+      
+      // Filtro de estado
+      const selectedStatus = $('#statusFilter').val() as string;
+      if (selectedStatus === 'active' && product.isActive === false) return false;
+      if (selectedStatus === 'inactive' && product.isActive === true) return false;
+      
+      return true;
+    });
+    
+    // 🔄 Eventos de cambio en los filtros
+    $('#categoryFilter, #statusFilter').on('change', function() {
+      if (self.productsDataTable) {
+        self.productsDataTable.draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    // 🧹 Limpiar filtros
+    $('#clearFiltersBtn').on('click', function() {
+      $('#searchInput').val('');
+      $('#categoryFilter').val('');
+      $('#statusFilter').val('');
+      
+      if (self.productsDataTable) {
+        self.productsDataTable.search('').draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    console.log('✅ Filtros inicializados');
+  }
+
+  /**
+   * 🔥 Actualizar contador de productos filtrados
+   */
+  private updateFilteredCount(): void {
+    if (this.productsDataTable) {
+      const info = this.productsDataTable.page.info();
+      this.filteredCount = info.recordsDisplay;
+      
+      // Actualizar en el DOM directamente
+      $('#filteredCount').text(this.filteredCount);
+    }
+  }
+
+  /**
+   * 🔥 Formatear fecha para mostrar
+   */
+  formatDate(date: Date | null): string {
+    if (!date) return 'N/A';
+    
+    const d = new Date(date);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    const hours = d.getHours().toString().padStart(2, '0');
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
   }
 
 }

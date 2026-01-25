@@ -12,6 +12,89 @@
   </div>
   
   <div class="card-body">
+    <!-- Filtros -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-3">
+          <!-- Búsqueda por texto -->
+          <div class="col-md-3">
+            <label for="searchInput" class="form-label">
+              <i class="bi bi-search"></i> Búsqueda
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="searchInput" 
+              #searchInput
+              placeholder="Buscar por nombre o script ID...">
+          </div>
+
+          <!-- Filtro por estado -->
+          <div class="col-md-3">
+            <label for="statusFilter" class="form-label">
+              <i class="bi bi-toggle-on"></i> Estado
+            </label>
+            <select class="form-select" id="statusFilter" #statusFilter>
+              <option value="">Todas</option>
+              <option value="active">Activas</option>
+              <option value="inactive">Inactivas</option>
+            </select>
+          </div>
+
+          <!-- Filtro por cuenta de inventario -->
+          <div class="col-md-3">
+            <label for="accountInventarioFilter" class="form-label">
+              <i class="bi bi-box-seam"></i> Cuenta Inventario
+            </label>
+            <select class="form-select" id="accountInventarioFilter" #accountInventarioFilter>
+              <option value="">Todas</option>
+              <option value="assigned">Asignadas</option>
+              <option value="unassigned">Sin asignar</option>
+            </select>
+          </div>
+
+          <!-- Filtro por cuenta de gasto -->
+          <div class="col-md-3">
+            <label for="accountGastoFilter" class="form-label">
+              <i class="bi bi-cash-stack"></i> Cuenta Gasto
+            </label>
+            <select class="form-select" id="accountGastoFilter" #accountGastoFilter>
+              <option value="">Todas</option>
+              <option value="assigned">Asignadas</option>
+              <option value="unassigned">Sin asignar</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Botón limpiar filtros y estadísticas -->
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary btn-sm"
+                id="clearFiltersBtn"
+                #clearFiltersBtn>
+                <i class="bi bi-x-circle"></i> Limpiar Filtros
+              </button>
+              
+              <div class="alert alert-info mb-0 py-2 px-3" role="alert">
+                <small>
+                  <i class="bi bi-info-circle"></i>
+                  Mostrando <strong id="filteredCount">{{ filteredCount }}</strong> de <strong>{{ totalCategories }}</strong> categorías
+                  <span class="text-muted ms-2">|
+                    Activas: <strong>{{ activeCount }}</strong> |
+                    Con cuenta inventario: <strong>{{ withInventarioCount }}</strong> |
+                    Con cuenta gasto: <strong>{{ withGastoCount }}</strong>
+                  </span>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="table-responsive">
       <table #categoriesTable class="table table-striped table-hover" style="width:100%">
         <thead>
