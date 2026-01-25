@@ -15,6 +15,7 @@ import { ProductService, Product } from '../../services/product.service';
 import { RoleService } from '../../services/role.service';
 import { CategoriesListComponent } from './categorias/categories-list/categories-list';
 import { CategoryService, Category } from '../../services/category.service';
+import { AuthService } from '../../services/auth.service';
 import Swal from 'sweetalert2';
 
 interface ConfigSection {
@@ -142,7 +143,8 @@ export class ConfiguracionComponent implements OnInit {
     private productService: ProductService,
     private categoryService: CategoryService,
     private roleService: RoleService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -152,18 +154,31 @@ export class ConfiguracionComponent implements OnInit {
     
     // Detectar la sección desde la URL
     const urlPath = this.router.url;
+    let targetSection: string | null = null;
+    
     if (urlPath.includes('/configuracion/roles')) {
-      this.setActiveSection('roles');
+      targetSection = 'roles';
     } else if (urlPath.includes('/configuracion/usuarios')) {
-      this.setActiveSection('users');
+      targetSection = 'users';
     } else if (urlPath.includes('/configuracion/productos')) {
-      this.setActiveSection('products');
+      targetSection = 'products';
     } else if (urlPath.includes('/configuracion/categorias')) {
-      this.setActiveSection('categories');
+      targetSection = 'categories';
     } else if (urlPath.includes('/configuracion/netsuite')) {
-      this.setActiveSection('netsuite');
+      targetSection = 'netsuite';
     } else if (urlPath.includes('/configuracion/general')) {
-      this.setActiveSection('general');
+      targetSection = 'general';
+    }
+    
+    // 🔥 Verificar que el usuario tenga acceso a la sección solicitada
+    if (targetSection && this.hasAccessToSection(targetSection)) {
+      this.setActiveSection(targetSection);
+    } else {
+      // Si no tiene acceso o no hay sección en URL, seleccionar la primera disponible
+      const visibleSections = this.getVisibleSections();
+      if (visibleSections.length > 0) {
+        this.setActiveSection(visibleSections[0].id);
+      }
     }
   }
 
@@ -171,6 +186,17 @@ export class ConfiguracionComponent implements OnInit {
   setActiveSection(sectionId: string): void {
     console.log('🔄 Cambiando a sección:', sectionId);
     console.log('🔍 Estado actual de showRoleForm:', this.showRoleForm);
+    
+    // 🔥 Verificar permisos antes de cambiar de sección
+    if (!this.hasAccessToSection(sectionId)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Acceso denegado',
+        text: 'No tienes permisos para acceder a esta sección',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
     
     // 🔥 Resetear vista de usuario si está activa
     if (this.showUserForm && sectionId !== 'users') {
@@ -208,6 +234,47 @@ export class ConfiguracionComponent implements OnInit {
       timer: 2000,
       timerProgressBar: true
     });
+  }
+
+  /**
+   * 🔥 Obtener solo las secciones visibles según los permisos del usuario
+   */
+  getVisibleSections(): ConfigSection[] {
+    return this.configSections.filter(section => this.hasAccessToSection(section.id));
+  }
+
+  /**
+   * 🔥 Verificar si el usuario tiene acceso a una sección específica
+   */
+  private hasAccessToSection(sectionId: string): boolean {
+    const submodule = this.getSectionSubmodule(sectionId);
+    
+    // Si no hay submódulo mapeado, denegar acceso por seguridad
+    if (!submodule) {
+      console.warn(`⚠️ Sección '${sectionId}' no tiene submódulo mapeado`);
+      return false;
+    }
+    
+    // Verificar permiso de 'view' como mínimo
+    const hasAccess = this.authService.hasPermission(submodule, 'view');
+    
+    return hasAccess;
+  }
+
+  /**
+   * 🔥 Mapear ID de sección a nombre de submódulo del backend
+   */
+  private getSectionSubmodule(sectionId: string): string | null {
+    const mapping: { [key: string]: string } = {
+      'general': 'configuracion_general',
+      'users': 'usuarios',
+      'roles': 'roles_permisos',
+      'products': 'productos',
+      'categories': 'categorias',
+      'netsuite': 'netsuite_sync'
+    };
+    
+    return mapping[sectionId] || null;
   }
 
   resetToDefaults(): void {
