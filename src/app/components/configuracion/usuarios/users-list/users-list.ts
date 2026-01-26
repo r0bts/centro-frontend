@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Output, EventEmitter, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, Output, EventEmitter, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../../../services/user.service';
 import { Subject } from 'rxjs';
@@ -14,6 +14,10 @@ export interface User {
   firstName: string;
   lastName: string;
   employeeNumber: string;
+  locationId?: number;
+  locationName?: string;
+  departmentId?: number;
+  departmentName?: string;
   role: string;
   isActive: boolean;
   createdAt: Date;
@@ -39,7 +43,19 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
   private isDestroyed = false;
   private initTimeout: any = null;
 
-  constructor(private userService: UserService) {}
+  // 🔥 Estadísticas
+  totalUsers: number = 0;
+  filteredCount: number = 0;
+  activeCount: number = 0;
+  inactiveCount: number = 0;
+  rolesMap: { [key: string]: {name: string, count: number} } = {};
+  locationsMap: { [key: string]: {name: string, count: number} } = {};
+  departmentsMap: { [key: string]: {name: string, count: number} } = {};
+
+  constructor(
+    private userService: UserService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadUsers();
@@ -90,6 +106,13 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
         }
         
         this.users = users;
+        
+        // 🔥 Construir mapas y actualizar estadísticas
+        this.buildRolesMap();
+        this.buildLocationsMap();
+        this.buildDepartmentsMap();
+        this.updateStatistics();
+        
         Swal.close();
         
         if (!this.usersDataTable) {
@@ -123,28 +146,47 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
         data: this.users,
         columns: [
           {
+            // Usuario
             data: null,
             render: (data: User) => {
               return `
-                <div class="d-flex align-items-center">
-                  <div>
-                    <strong>${data.username}</strong>
-                    <br>
-                    <small class="text-muted">${data.firstName} ${data.lastName}</small>
-                    <br>
-                    <small class="text-muted">No. Empleado: ${data.employeeNumber}</small>
-                  </div>
+                <div>
+                  <strong>${data.username}</strong>
+                  <br>
+                  <small class="text-muted">${data.firstName} ${data.lastName}</small>
+                  <br>
+                  <small class="text-muted">No. ${data.employeeNumber}</small>
                 </div>
               `;
             }
           },
           {
+            // Ubicación
             data: null,
             render: (data: User) => {
-              return `<span class="badge bg-info">${data.role}</span>`;
+              return data.locationName 
+                ? `<span class="badge bg-primary">${data.locationName}</span>`
+                : '<span class="badge bg-secondary">Sin ubicación</span>';
             }
           },
           {
+            // Departamento
+            data: null,
+            render: (data: User) => {
+              return data.departmentName 
+                ? `<span class="badge bg-info">${data.departmentName}</span>`
+                : '<span class="badge bg-secondary">Sin departamento</span>';
+            }
+          },
+          {
+            // Rol
+            data: null,
+            render: (data: User) => {
+              return `<span class="badge bg-success">${data.role}</span>`;
+            }
+          },
+          {
+            // Estado
             data: null,
             className: 'text-center',
             render: (data: User) => {
@@ -154,6 +196,7 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
             }
           },
           {
+            // Acciones
             data: null,
             className: 'text-center',
             orderable: false,
@@ -200,6 +243,9 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
         pageLength: 10,
         order: [[0, 'asc']]
       });
+      
+      // 🔥 Inicializar filtros
+      this.initFilters();
       
       // Limpiar event listeners anteriores antes de agregar nuevos
       $(this.usersTable.nativeElement).off('click', '.view-btn');
@@ -319,5 +365,236 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
       text: 'El cambio de estado de usuarios se implementará próximamente',
       confirmButtonText: 'Entendido'
     });
+  }
+
+  /**
+   * 🔥 Actualizar estadísticas de usuarios
+   */
+  private updateStatistics(): void {
+    this.totalUsers = this.users.length;
+    this.filteredCount = this.users.length;
+    this.activeCount = this.users.filter(u => u.isActive).length;
+    this.inactiveCount = this.users.filter(u => !u.isActive).length;
+    
+    console.log('📊 Estadísticas actualizadas:', {
+      total: this.totalUsers,
+      activos: this.activeCount,
+      inactivos: this.inactiveCount
+    });
+  }
+
+  /**
+   * 🔥 Actualizar contador de usuarios filtrados
+   */
+  private updateFilteredCount(): void {
+    if (this.usersDataTable) {
+      const info = this.usersDataTable.page.info();
+      this.filteredCount = info.recordsDisplay;
+      
+      // Forzar detección de cambios para evitar ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
+      
+      // Actualizar en el DOM directamente
+      $('#filteredCount').text(this.filteredCount);
+    }
+  }
+
+  /**
+   * 🔥 Construir mapa de roles desde los usuarios
+   */
+  private buildRolesMap(): void {
+    const rolesCount: { [key: string]: {name: string, count: number} } = {};
+    
+    this.users.forEach(user => {
+      const roleName = user.role || 'Sin rol';
+      
+      if (!rolesCount[roleName]) {
+        rolesCount[roleName] = { name: roleName, count: 0 };
+      }
+      rolesCount[roleName].count++;
+    });
+    
+    this.rolesMap = rolesCount;
+    console.log('🛡️ Roles encontrados:', Object.keys(rolesCount).length);
+    
+    // Poblar dropdown de roles
+    this.populateRoleDropdown();
+  }
+
+  /**
+   * 🔥 Poblar dropdown de roles
+   */
+  private populateRoleDropdown(): void {
+    const roleSelect = $('#roleFilter');
+    roleSelect.find('option:not(:first)').remove();
+    
+    // Ordenar roles alfabéticamente
+    const sortedRoles = Object.entries(this.rolesMap)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    
+    sortedRoles.forEach(([name, data]) => {
+      roleSelect.append(
+        `<option value="${name}">${data.name} (${data.count})</option>`
+      );
+    });
+  }
+
+  /**
+   * 🔥 Construir mapa de ubicaciones desde los usuarios
+   */
+  private buildLocationsMap(): void {
+    const locationsCount: { [key: string]: {name: string, count: number} } = {};
+    
+    this.users.forEach(user => {
+      const locId = user.locationId?.toString();
+      const locName = user.locationName || 'Sin ubicación';
+      
+      if (locId) {
+        if (!locationsCount[locId]) {
+          locationsCount[locId] = { name: locName, count: 0 };
+        }
+        locationsCount[locId].count++;
+      }
+    });
+    
+    this.locationsMap = locationsCount;
+    console.log('📍 Ubicaciones encontradas:', Object.keys(locationsCount).length);
+    
+    // Poblar dropdown de ubicaciones
+    this.populateLocationDropdown();
+  }
+
+  /**
+   * 🔥 Poblar dropdown de ubicaciones
+   */
+  private populateLocationDropdown(): void {
+    const locationSelect = $('#locationFilter');
+    locationSelect.find('option:not(:first)').remove();
+    
+    // Ordenar ubicaciones alfabéticamente
+    const sortedLocations = Object.entries(this.locationsMap)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    
+    sortedLocations.forEach(([id, data]) => {
+      locationSelect.append(
+        `<option value="${id}">${data.name} (${data.count})</option>`
+      );
+    });
+  }
+
+  /**
+   * 🔥 Construir mapa de departamentos desde los usuarios
+   */
+  private buildDepartmentsMap(): void {
+    const departmentsCount: { [key: string]: {name: string, count: number} } = {};
+    
+    this.users.forEach(user => {
+      const deptId = user.departmentId?.toString();
+      const deptName = user.departmentName || 'Sin departamento';
+      
+      if (deptId) {
+        if (!departmentsCount[deptId]) {
+          departmentsCount[deptId] = { name: deptName, count: 0 };
+        }
+        departmentsCount[deptId].count++;
+      }
+    });
+    
+    this.departmentsMap = departmentsCount;
+    console.log('🏢 Departamentos encontrados:', Object.keys(departmentsCount).length);
+    
+    // Poblar dropdown de departamentos
+    this.populateDepartmentDropdown();
+  }
+
+  /**
+   * 🔥 Poblar dropdown de departamentos
+   */
+  private populateDepartmentDropdown(): void {
+    const departmentSelect = $('#departmentFilter');
+    departmentSelect.find('option:not(:first)').remove();
+    
+    // Ordenar departamentos alfabéticamente
+    const sortedDepartments = Object.entries(this.departmentsMap)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    
+    sortedDepartments.forEach(([id, data]) => {
+      departmentSelect.append(
+        `<option value="${id}">${data.name} (${data.count})</option>`
+      );
+    });
+  }
+
+  /**
+   * 🔥 Inicializar filtros de la tabla
+   */
+  private initFilters(): void {
+    if (this.isDestroyed) return;
+    
+    const self = this;
+    
+    // 🔍 Búsqueda nativa de DataTables
+    $('#searchInput').on('keyup', function(this: HTMLInputElement) {
+      if (self.usersDataTable) {
+        self.usersDataTable.search($(this).val()).draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    // 🔥 Filtro personalizado para rol, ubicación, departamento y estado
+    $.fn.dataTable.ext.search.push((settings: any, data: any, dataIndex: number) => {
+      if (!self.users || !self.users[dataIndex]) return true;
+      
+      const user = self.users[dataIndex];
+      
+      // Filtro de rol
+      const selectedRole = $('#roleFilter').val() as string;
+      if (selectedRole && user.role !== selectedRole) {
+        return false;
+      }
+      
+      // Filtro de ubicación
+      const selectedLocation = $('#locationFilter').val() as string;
+      if (selectedLocation && user.locationId?.toString() !== selectedLocation) {
+        return false;
+      }
+      
+      // Filtro de departamento
+      const selectedDepartment = $('#departmentFilter').val() as string;
+      if (selectedDepartment && user.departmentId?.toString() !== selectedDepartment) {
+        return false;
+      }
+      
+      // Filtro de estado
+      const selectedStatus = $('#statusFilter').val() as string;
+      if (selectedStatus === 'active' && !user.isActive) return false;
+      if (selectedStatus === 'inactive' && user.isActive) return false;
+      
+      return true;
+    });
+    
+    // 🔄 Eventos de cambio en los filtros
+    $('#roleFilter, #locationFilter, #departmentFilter, #statusFilter').on('change', function() {
+      if (self.usersDataTable) {
+        self.usersDataTable.draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    // 🧹 Limpiar filtros
+    $('#clearFiltersBtn').on('click', function() {
+      $('#searchInput').val('');
+      $('#roleFilter').val('');
+      $('#locationFilter').val('');
+      $('#departmentFilter').val('');
+      $('#statusFilter').val('');
+      
+      if (self.usersDataTable) {
+        self.usersDataTable.search('').draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    console.log('✅ Filtros inicializados');
   }
 }

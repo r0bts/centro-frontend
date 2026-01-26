@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Category, CategoryService, Account } from '../../../../services/category.service';
 import { AuthService } from '../../../../services/auth.service';
@@ -36,7 +36,8 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
 
   constructor(
     private authService: AuthService,
-    private categoryService: CategoryService
+    private categoryService: CategoryService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -105,6 +106,9 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     if (this.categoriesDataTable) {
       const info = this.categoriesDataTable.page.info();
       this.filteredCount = info.recordsDisplay;
+      
+      // Forzar detección de cambios para evitar ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
       
       // Actualizar elemento del DOM
       const filteredCountElement = document.getElementById('filteredCount');

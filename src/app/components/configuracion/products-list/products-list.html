@@ -1,91 +1,131 @@
-<div class="products-list">
-  <!-- Card de Filtros -->
-  <div class="card mb-3">
-    <div class="card-body">
-      <div class="row g-3 align-items-end">
-        <!-- Búsqueda -->
-        <div class="col-md-4">
-          <label class="form-label fw-bold">
-            Buscar Producto
-          </label>
-          <input type="text" 
-                 class="form-control" 
-                 id="searchInput"
-                 placeholder="Código, nombre o descripción...">
-        </div>
-        
-        <!-- Categoría -->
-        <div class="col-md-3">
-          <label class="form-label fw-bold">
-            Categoría
-          </label>
-          <select class="form-select" id="categoryFilter">
-            <option value="">Todas las categorías</option>
-            <!-- Poblado dinámicamente -->
-          </select>
-        </div>
-        
-        <!-- Estado -->
-        <div class="col-md-2">
-          <label class="form-label fw-bold">
-            Estado
-          </label>
-          <select class="form-select" id="statusFilter">
-            <option value="">Todos</option>
-            <option value="active">Activos</option>
-            <option value="inactive">Inactivos</option>
-          </select>
-        </div>
-        
-        <!-- Botones -->
-        <div class="col-md-3">
-          <button class="btn btn-secondary me-2" id="clearFiltersBtn">
-            Limpiar
-          </button>
-          <button class="btn btn-primary" (click)="onSyncProducts()">
-            Sincronizar
-          </button>
-        </div>
+<div class="card">
+  <div class="card-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">
+        Productos
+      </h5>
+      <div class="text-muted small">
+        Productos sincronizados desde NetSuite
       </div>
-      
-      <!-- Estadísticas -->
-      <div class="row mt-3" *ngIf="lastSyncDate">
-        <div class="col-12">
-          <div class="alert alert-info mb-0 py-2">
-            <small class="d-flex justify-content-between align-items-center">
-              <span>
-                <i class="bi bi-clock-history"></i>
-                <strong>Última sincronización:</strong> {{ formatDate(lastSyncDate) }}
-              </span>
-              <span>
-                <i class="bi bi-box"></i>
-                Mostrando <strong id="filteredCount">{{ filteredCount }}</strong> de <strong>{{ totalProducts }}</strong> productos
-              </span>
+    </div>
+  </div>
+  
+  <div class="card-body">
+    <!-- Filtros -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="row g-3">
+          <!-- Búsqueda por texto -->
+          <div class="col-md-4">
+            <label for="searchInput" class="form-label">
+              Búsqueda
+            </label>
+            <input 
+              type="text" 
+              class="form-control" 
+              id="searchInput" 
+              #searchInput
+              placeholder="Código, nombre o descripción...">
+          </div>
+
+          <!-- Filtro por categoría -->
+          <div class="col-md-3">
+            <label for="categoryFilter" class="form-label">
+              Categoría
+            </label>
+            <select class="form-select" id="categoryFilter" #categoryFilter>
+              <option value="">Todas las categorías</option>
+              <!-- Poblado dinámicamente -->
+            </select>
+          </div>
+
+          <!-- Filtro por subcategoría -->
+          <div class="col-md-3">
+            <label for="subcategoryFilter" class="form-label">
+              Subcategoría
+            </label>
+            <select class="form-select" id="subcategoryFilter" #subcategoryFilter>
+              <option value="">Todas las subcategorías</option>
+              <!-- Poblado dinámicamente -->
+            </select>
+          </div>
+
+          <!-- Filtro por estado -->
+          <div class="col-md-2">
+            <label for="statusFilter" class="form-label">
+              Estado
+            </label>
+            <select class="form-select" id="statusFilter" #statusFilter>
+              <option value="">Todos</option>
+              <option value="active">Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+          </div>
+
+          <!-- Botón sincronizar 
+          <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-primary w-100" (click)="onSyncProducts()">
+              Sincronizar
+            </button>
+          </div>
+        </div>
+        -->
+        <!-- Botón limpiar filtros y estadísticas -->
+        <div class="row mt-3">
+          <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary btn-sm"
+                id="clearFiltersBtn"
+                #clearFiltersBtn>
+                Limpiar Filtros
+              </button>
+              
+              <div class="alert alert-info mb-0 py-2 px-3" role="alert">
+                <small>
+                  Mostrando <strong id="filteredCount">{{ filteredCount }}</strong> de <strong>{{ totalProducts }}</strong> productos
+                  <span class="text-muted ms-2">|
+                    Activos: <strong>{{ activeCount }}</strong> |
+                    Con categoría: <strong>{{ withCategoryCount }}</strong> |
+                    Con subcategoría: <strong>{{ withSubcategoryCount }}</strong>
+                  </span>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Última sincronización -->
+        <div class="row mt-2" *ngIf="lastSyncDate">
+          <div class="col-12">
+            <small class="text-muted">
+              <i class="bi bi-clock-history"></i>
+              <strong>Última sincronización:</strong> {{ formatDate(lastSyncDate) }}
             </small>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Tabla de Productos -->
-  <div class="card">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table #productsTable class="table table-striped table-hover" style="width:100%">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>Categoría</th>
-              <th width="100" class="text-center">Estado</th>
-              <th width="120" class="text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- DataTable manejará el contenido -->
-          </tbody>
-        </table>
-      </div>
+    <div class="table-responsive">
+      <table #productsTable class="table table-striped table-hover" style="width:100%">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th>Nombre</th>
+            <th>Categoría</th>
+            <th>Subcategoría</th>
+            <th>Unidad</th>
+            <th width="100" class="text-center">Estado</th>
+            <th width="120" class="text-center">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- DataTables genera el contenido automáticamente -->
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

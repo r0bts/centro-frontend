@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ViewChild, ElementRef, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -29,7 +29,17 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private isDestroyed = false;
 
-  constructor(private roleService: RoleService) {}
+  // 🔥 Estadísticas
+  totalRoles: number = 0;
+  filteredCount: number = 0;
+  activeCount: number = 0;
+  inactiveCount: number = 0;
+  systemCount: number = 0;
+
+  constructor(
+    private roleService: RoleService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     console.log('✅ RolesListComponent initialized');
@@ -101,6 +111,9 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
         if (response.success && response.data) {
           this.roles = response.data.roles;
           console.log('✅ HIJO - Roles cargados:', this.roles.length);
+          
+          // 🔥 Actualizar estadísticas
+          this.updateStatistics();
         }
         
         Swal.close();
@@ -240,6 +253,9 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
         order: [[0, 'asc']]
       });
       
+      // 🔥 Inicializar filtros
+      this.initFilters();
+      
       // 🔥 Event delegation para botones (evitar double-click)
       $(this.rolesTable.nativeElement).off('click', '.edit-btn').on('click', '.edit-btn', (e: any) => {
         console.log('🖱️ Click en botón editar');
@@ -340,5 +356,97 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
       text: 'El cambio de estado de roles será implementado próximamente',
       confirmButtonText: 'Entendido'
     });
+  }
+
+  /**
+   * 🔥 Actualizar estadísticas de roles
+   */
+  private updateStatistics(): void {
+    this.totalRoles = this.roles.length;
+    this.filteredCount = this.roles.length;
+    this.activeCount = this.roles.filter(r => r.isActive).length;
+    this.inactiveCount = this.roles.filter(r => !r.isActive).length;
+    this.systemCount = this.roles.filter(r => r.isSystem).length;
+    
+    console.log('📊 Estadísticas actualizadas:', {
+      total: this.totalRoles,
+      activos: this.activeCount,
+      inactivos: this.inactiveCount,
+      sistema: this.systemCount
+    });
+  }
+
+  /**
+   * 🔥 Actualizar contador de roles filtrados
+   */
+  private updateFilteredCount(): void {
+    if (this.rolesDataTable) {
+      const info = this.rolesDataTable.page.info();
+      this.filteredCount = info.recordsDisplay;
+      
+      // Forzar detección de cambios para evitar ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
+      
+      // Actualizar en el DOM directamente
+      $('#filteredCount').text(this.filteredCount);
+    }
+  }
+
+  /**
+   * 🔥 Inicializar filtros de la tabla
+   */
+  private initFilters(): void {
+    if (this.isDestroyed) return;
+    
+    const self = this;
+    
+    // 🔍 Búsqueda nativa de DataTables
+    $('#searchInput').on('keyup', function(this: HTMLInputElement) {
+      if (self.rolesDataTable) {
+        self.rolesDataTable.search($(this).val()).draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    // 🔥 Filtro personalizado para estado y tipo
+    $.fn.dataTable.ext.search.push((settings: any, data: any, dataIndex: number) => {
+      if (!self.roles || !self.roles[dataIndex]) return true;
+      
+      const role = self.roles[dataIndex];
+      
+      // Filtro de estado
+      const selectedStatus = $('#statusFilter').val() as string;
+      if (selectedStatus === 'active' && !role.isActive) return false;
+      if (selectedStatus === 'inactive' && role.isActive) return false;
+      
+      // Filtro de tipo
+      const selectedType = $('#typeFilter').val() as string;
+      if (selectedType === 'system' && !role.isSystem) return false;
+      if (selectedType === 'custom' && role.isSystem) return false;
+      
+      return true;
+    });
+    
+    // 🔄 Eventos de cambio en los filtros
+    $('#statusFilter, #typeFilter').on('change', function() {
+      if (self.rolesDataTable) {
+        self.rolesDataTable.draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    // 🧹 Limpiar filtros
+    $('#clearFiltersBtn').on('click', function() {
+      $('#searchInput').val('');
+      $('#statusFilter').val('');
+      $('#typeFilter').val('');
+      
+      if (self.rolesDataTable) {
+        self.rolesDataTable.search('').draw();
+        self.updateFilteredCount();
+      }
+    });
+    
+    console.log('✅ Filtros inicializados');
   }
 }

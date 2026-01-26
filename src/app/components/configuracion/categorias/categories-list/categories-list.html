@@ -2,10 +2,9 @@
   <div class="card-header">
     <div class="d-flex justify-content-between align-items-center">
       <h5 class="mb-0">
-        <i class="bi bi-tags me-2"></i>Categorías
+        Categorías
       </h5>
       <div class="text-muted small">
-        <i class="bi bi-info-circle me-1"></i>
         Categorías sincronizadas desde NetSuite
       </div>
     </div>
@@ -19,7 +18,7 @@
           <!-- Búsqueda por texto -->
           <div class="col-md-3">
             <label for="searchInput" class="form-label">
-              <i class="bi bi-search"></i> Búsqueda
+              Búsqueda
             </label>
             <input 
               type="text" 
@@ -32,7 +31,7 @@
           <!-- Filtro por estado -->
           <div class="col-md-3">
             <label for="statusFilter" class="form-label">
-              <i class="bi bi-toggle-on"></i> Estado
+              Estado
             </label>
             <select class="form-select" id="statusFilter" #statusFilter>
               <option value="">Todas</option>
@@ -44,7 +43,7 @@
           <!-- Filtro por cuenta de inventario -->
           <div class="col-md-3">
             <label for="accountInventarioFilter" class="form-label">
-              <i class="bi bi-box-seam"></i> Cuenta Inventario
+              Cuenta Inventario
             </label>
             <select class="form-select" id="accountInventarioFilter" #accountInventarioFilter>
               <option value="">Todas</option>
@@ -56,7 +55,7 @@
           <!-- Filtro por cuenta de gasto -->
           <div class="col-md-3">
             <label for="accountGastoFilter" class="form-label">
-              <i class="bi bi-cash-stack"></i> Cuenta Gasto
+              Cuenta Gasto
             </label>
             <select class="form-select" id="accountGastoFilter" #accountGastoFilter>
               <option value="">Todas</option>
@@ -75,12 +74,11 @@
                 class="btn btn-outline-secondary btn-sm"
                 id="clearFiltersBtn"
                 #clearFiltersBtn>
-                <i class="bi bi-x-circle"></i> Limpiar Filtros
+                Limpiar Filtros
               </button>
               
               <div class="alert alert-info mb-0 py-2 px-3" role="alert">
                 <small>
-                  <i class="bi bi-info-circle"></i>
                   Mostrando <strong id="filteredCount">{{ filteredCount }}</strong> de <strong>{{ totalCategories }}</strong> categorías
                   <span class="text-muted ms-2">|
                     Activas: <strong>{{ activeCount }}</strong> |

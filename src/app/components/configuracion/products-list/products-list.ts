@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, ElementRef, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductService, Product } from '../../../services/product.service';
 import { Subject } from 'rxjs';
@@ -27,9 +27,16 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
   lastSyncDate: Date | null = null;
   totalProducts: number = 0;
   filteredCount: number = 0;
+  activeCount: number = 0;
+  withCategoryCount: number = 0;
+  withSubcategoryCount: number = 0;
   categoriesMap: { [key: string]: {name: string, count: number} } = {};
+  subcategoriesMap: { [key: string]: {name: string, count: number} } = {};
 
-  constructor(private productService: ProductService) {}
+  constructor(
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     console.log('✅ ProductsListComponent initialized');
@@ -93,6 +100,12 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
         // 🔥 Construir mapa de categorías
         this.buildCategoriesMap();
         
+        // 🔥 Construir mapa de subcategorías
+        this.buildSubcategoriesMap();
+        
+        // 🔥 Actualizar estadísticas
+        this.updateStatistics();
+        
         Swal.close();
         
         // Si DataTable no existe, crear; si existe, actualizar
@@ -129,32 +142,51 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
         data: this.products,
         columns: [
           {
+            // Código
+            data: null,
+            render: (data: Product) => {
+              return `<strong>${data.code}</strong>`;
+            }
+          },
+          {
+            // Nombre
             data: null,
             render: (data: Product) => {
               return `
-                <div class="d-flex align-items-center">
-                  <div>
-                    <strong>${data.code}</strong> - ${data.name}
-                    <br>
-                    <small class="text-muted">${data.description || ''}</small>
-                    <br>
-                    <small><span class="badge bg-info">${data.unit}</span></small>
-                  </div>
+                <div>
+                  <strong>${data.name}</strong>
+                  ${data.description ? `<br><small class="text-muted">${data.description}</small>` : ''}
                 </div>
               `;
             }
           },
           {
+            // Categoría
             data: null,
             render: (data: Product) => {
-              return `
-                <span class="badge bg-primary">${data.category_name || 'Sin categoría'}</span>
-                <br>
-                <small class="text-muted">${data.subcategory_name || ''}</small>
-              `;
+              return data.category_name 
+                ? `<span class="badge bg-primary">${data.category_name}</span>`
+                : '<span class="badge bg-secondary">Sin categoría</span>';
             }
           },
           {
+            // Subcategoría
+            data: null,
+            render: (data: Product) => {
+              return data.subcategory_name 
+                ? `<span class="badge bg-info">${data.subcategory_name}</span>`
+                : '<span class="badge bg-light text-muted">Sin subcategoría</span>';
+            }
+          },
+          {
+            // Unidad
+            data: null,
+            render: (data: Product) => {
+              return `<span class="badge bg-secondary">${data.unit}</span>`;
+            }
+          },
+          {
+            // Estado
             data: null,
             className: 'text-center',
             render: (data: Product) => {
@@ -164,13 +196,14 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
             }
           },
           {
+            // Acciones
             data: null,
             className: 'text-center',
             orderable: false,
             render: (data: Product) => {
               return `
                 <button class="btn btn-sm btn-light view-btn" data-id="${data.id}">
-                  <i class="bi bi-eye"></i>
+                  <i class="bi bi-eye"></i> Ver
                 </button>
               `;
             }
@@ -321,6 +354,49 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
+   * 🔥 Construir mapa de subcategorías desde los productos
+   */
+  private buildSubcategoriesMap(): void {
+    const subcategoriesCount: { [key: string]: {name: string, count: number} } = {};
+    
+    this.products.forEach(product => {
+      const subcatId = product.subcategory_id?.toString();
+      const subcatName = product.subcategory_name || 'Sin subcategoría';
+      
+      if (subcatId) {
+        if (!subcategoriesCount[subcatId]) {
+          subcategoriesCount[subcatId] = { name: subcatName, count: 0 };
+        }
+        subcategoriesCount[subcatId].count++;
+      }
+    });
+    
+    this.subcategoriesMap = subcategoriesCount;
+    console.log('📊 Subcategorías encontradas:', Object.keys(subcategoriesCount).length);
+    
+    // Poblar dropdown de subcategorías
+    this.populateSubcategoryDropdown();
+  }
+
+  /**
+   * 🔥 Poblar dropdown de subcategorías
+   */
+  private populateSubcategoryDropdown(): void {
+    const subcategorySelect = $('#subcategoryFilter');
+    subcategorySelect.find('option:not(:first)').remove();
+    
+    // Ordenar subcategorías alfabéticamente
+    const sortedSubcategories = Object.entries(this.subcategoriesMap)
+      .sort((a, b) => a[1].name.localeCompare(b[1].name));
+    
+    sortedSubcategories.forEach(([id, data]) => {
+      subcategorySelect.append(
+        `<option value="${id}">${data.name} (${data.count})</option>`
+      );
+    });
+  }
+
+  /**
    * 🔥 Inicializar filtros de la tabla
    */
   private initFilters(): void {
@@ -336,7 +412,7 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
       }
     });
     
-    // 🔥 Filtro personalizado para categoría y estado
+    // 🔥 Filtro personalizado para categoría, subcategoría y estado
     $.fn.dataTable.ext.search.push((settings: any, data: any, dataIndex: number) => {
       if (!self.products || !self.products[dataIndex]) return true;
       
@@ -345,6 +421,12 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
       // Filtro de categoría
       const selectedCategory = $('#categoryFilter').val() as string;
       if (selectedCategory && product.category_id?.toString() !== selectedCategory) {
+        return false;
+      }
+      
+      // Filtro de subcategoría
+      const selectedSubcategory = $('#subcategoryFilter').val() as string;
+      if (selectedSubcategory && product.subcategory_id?.toString() !== selectedSubcategory) {
         return false;
       }
       
@@ -357,7 +439,7 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     
     // 🔄 Eventos de cambio en los filtros
-    $('#categoryFilter, #statusFilter').on('change', function() {
+    $('#categoryFilter, #subcategoryFilter, #statusFilter').on('change', function() {
       if (self.productsDataTable) {
         self.productsDataTable.draw();
         self.updateFilteredCount();
@@ -368,6 +450,7 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
     $('#clearFiltersBtn').on('click', function() {
       $('#searchInput').val('');
       $('#categoryFilter').val('');
+      $('#subcategoryFilter').val('');
       $('#statusFilter').val('');
       
       if (self.productsDataTable) {
@@ -386,6 +469,9 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.productsDataTable) {
       const info = this.productsDataTable.page.info();
       this.filteredCount = info.recordsDisplay;
+      
+      // Forzar detección de cambios para evitar ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
       
       // Actualizar en el DOM directamente
       $('#filteredCount').text(this.filteredCount);
@@ -406,6 +492,22 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
     const minutes = d.getMinutes().toString().padStart(2, '0');
     
     return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  /**
+   * 🔥 Actualizar estadísticas de productos
+   */
+  private updateStatistics(): void {
+    this.activeCount = this.products.filter(p => p.isActive).length;
+    this.withCategoryCount = this.products.filter(p => p.category_id).length;
+    this.withSubcategoryCount = this.products.filter(p => p.subcategory_id).length;
+    
+    console.log('📊 Estadísticas actualizadas:', {
+      total: this.totalProducts,
+      activos: this.activeCount,
+      conCategoria: this.withCategoryCount,
+      conSubcategoria: this.withSubcategoryCount
+    });
   }
 
 }
