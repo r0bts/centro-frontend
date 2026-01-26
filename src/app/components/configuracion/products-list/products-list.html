@@ -4,9 +4,12 @@
       <h5 class="mb-0">
         Productos
       </h5>
-      <div class="text-muted small">
-        Productos sincronizados desde NetSuite
-      </div>
+         <!--
+
+      <button class="btn btn-primary btn-sm" (click)="onSyncUsers()">
+        Sincronizar desde NetSuite
+      </button>
+     -->
     </div>
   </div>
   
@@ -85,7 +88,7 @@
               
               <div class="alert alert-info mb-0 py-2 px-3" role="alert">
                 <small>
-                  Mostrando <strong id="filteredCount">{{ filteredCount }}</strong> de <strong>{{ totalProducts }}</strong> productos
+                  Mostrando <strong>{{ filteredCount }}</strong> de <strong>{{ totalProducts }}</strong> productos
                   <span class="text-muted ms-2">|
                     Activos: <strong>{{ activeCount }}</strong> |
                     Con categoría: <strong>{{ withCategoryCount }}</strong> |

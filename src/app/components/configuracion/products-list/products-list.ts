@@ -472,9 +472,6 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
       
       // Forzar detección de cambios para evitar ExpressionChangedAfterItHasBeenCheckedError
       this.cdr.detectChanges();
-      
-      // Actualizar en el DOM directamente
-      $('#filteredCount').text(this.filteredCount);
     }
   }
 
@@ -508,6 +505,9 @@ export class ProductsListComponent implements OnInit, AfterViewInit, OnDestroy {
       conCategoria: this.withCategoryCount,
       conSubcategoria: this.withSubcategoryCount
     });
+    
+    // Forzar detección de cambios
+    this.cdr.detectChanges();
   }
 
 }
