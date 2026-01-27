@@ -195,42 +195,34 @@
                       <!-- Acciones -->
                       <td class="align-middle border">
                         <div class="d-flex gap-1 justify-content-center">
-                          <!-- Ver
+                          <!-- Editar Requisición -->
                           <button 
-                            type="button" 
-                            class="btn btn-outline-secondary btn-sm"
-                            (click)="viewRequisition(requisition)"
-                            title="Ver">
-                            <i class="bi bi-eye"></i>
-                          </button>
-                          
-                           Editar -->
-                          <button 
+                            *ngIf="canUpdate()"
                             type="button" 
                             class="btn btn-outline-primary btn-sm"
-
                             (click)="supplyRequisition(requisition)"
-                            title="Editar">
+                            title="Editar Requisición">
                             <i class="bi bi-pencil"></i>
                           </button>
                           
-                          <!-- Almacén/Surtir -->
+                          <!-- Surtir en Almacén -->
                           <button 
+                            *ngIf="canSupply()"
                             type="button" 
                             class="btn btn-outline-success btn-sm"
-                          
                             (click)="warehouseSupply(requisition)"
-                            title="Surtir">
+                            title="Surtir en Almacén">
                             <i class="bi bi-box-seam"></i>
                           </button>
                           
                           <!-- Eliminar -->
                           <button 
+                            *ngIf="canDelete()"
                             type="button" 
                             class="btn btn-outline-danger btn-sm"
-                            [disabled]="!canDelete(requisition)"
+                            [disabled]="!canDeleteReq(requisition)"
                             (click)="deleteRequisition(requisition)"
-                            title="Eliminar">
+                            title="Eliminar Requisición">
                             <i class="bi bi-trash"></i>
                           </button>
                         </div>

@@ -8,6 +8,7 @@ import { ContentMenu } from '../content-menu/content-menu';
 import { RequisitionService } from '../../services/requisition.service';
 import { RequisitionGroupingHelper } from '../../helpers/requisition-grouping.helper';
 import { RequisitionItem } from '../../models/requisition.model';
+import { AuthService } from '../../services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -41,6 +42,11 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   // Verificar si el usuario puede filtrar por ubicación (location_id = 0)
   canFilterLocation = signal(false);
   
+  // Permisos de usuario
+  canUpdate = signal(false);
+  canSupply = signal(false);
+  canDelete = signal(false);
+  
   // Paginación
   currentPage = signal(1);
   itemsPerPage = signal(20);
@@ -67,7 +73,8 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private requisitionService: RequisitionService
+    private requisitionService: RequisitionService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -76,6 +83,11 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     // Verificar si el usuario puede filtrar por ubicación
     const locationId = localStorage.getItem('location_id');
     this.canFilterLocation.set(locationId === '0');
+    
+    // Inicializar permisos
+    this.canUpdate.set(this.authService.hasPermission('requisition_list', 'update'));
+    this.canSupply.set(this.authService.hasPermission('requisition_list', 'supply'));
+    this.canDelete.set(this.authService.hasPermission('requisition_list', 'delete'));
     
     this.loadRequisitions();
     
@@ -258,15 +270,15 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     });
   }
 
-  canDelete(requisition: RequisitionItem): boolean {
+  canDeleteReq(requisition: RequisitionItem): boolean {
     return requisition.status === 'Solicitado' || requisition.status === 'Cancelado';
   }
 
-  canSupply(requisition: RequisitionItem): boolean {
+  canSupplyReq(requisition: RequisitionItem): boolean {
     return requisition.status === 'Autorizada';
   }
 
-  canWarehouseSupply(requisition: RequisitionItem): boolean {
+  canWarehouseSupplyReq(requisition: RequisitionItem): boolean {
     return requisition.status === 'Autorizada' || requisition.status === 'En Proceso';
   }
 
