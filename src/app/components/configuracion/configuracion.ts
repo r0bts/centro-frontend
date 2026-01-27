@@ -482,15 +482,6 @@ export class ConfiguracionComponent implements OnInit {
     // Llamar al backend para actualizar usuario
     this.userService.updateUser(this.selectedUserId, userData).subscribe({
       next: (response) => {
-        this.showUserForm = false;
-        this.isUserEditMode = false;
-        this.selectedUserId = null;
-        
-        // 🔥 Recargar listado de usuarios
-        if (this.usersListComponent) {
-          this.usersListComponent.loadUsers();
-        }
-        
         Swal.fire({
           icon: 'success',
           title: 'Usuario actualizado',
@@ -498,6 +489,18 @@ export class ConfiguracionComponent implements OnInit {
           confirmButtonText: 'Continuar',
           timer: 2000,
           timerProgressBar: true
+        }).then(() => {
+          this.showUserForm = false;
+          this.isUserEditMode = false;
+          this.selectedUserId = null;
+          
+          // Forzar detección de cambios en Angular
+          this.cdr.detectChanges();
+          
+          // 🔥 Recargar listado de usuarios
+          if (this.usersListComponent) {
+            this.usersListComponent.loadUsers();
+          }
         });
       },
       error: (error) => {
