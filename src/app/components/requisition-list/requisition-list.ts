@@ -38,6 +38,9 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   filterStatus = signal('');
   filterLocation = signal('');
   
+  // Verificar si el usuario puede filtrar por ubicación (location_id = 0)
+  canFilterLocation = signal(false);
+  
   // Paginación
   currentPage = signal(1);
   itemsPerPage = signal(20);
@@ -69,6 +72,11 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('RequisitionListComponent initialized');
+    
+    // Verificar si el usuario puede filtrar por ubicación
+    const locationId = localStorage.getItem('location_id');
+    this.canFilterLocation.set(locationId === '0');
+    
     this.loadRequisitions();
     
     // Recargar datos cuando se navega de vuelta a este componente
