@@ -62,13 +62,25 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
   }
 
   onSaveRole(roleData: any): void {
+    console.log('📥 [ROLES-PERMISOS] onSaveRole() recibido con:', {
+      isEditMode: this.isEditMode,
+      roleId: this.selectedRoleId,
+      permisos: roleData.permissions?.length,
+      productos: roleData.products?.length
+    });
+    
     const request = this.isEditMode 
       ? this.roleService.updateRole(this.selectedRoleId!, roleData)
       : this.roleService.createRole(roleData);
 
+    console.log('🌐 [ROLES-PERMISOS] Llamando al servicio...');
+    
     request.subscribe({
       next: (response) => {
+        console.log('📨 [ROLES-PERMISOS] Respuesta recibida:', response);
+        
         if (response.success) {
+          console.log('✅ [ROLES-PERMISOS] Success es true, mostrando Swal...');
           Swal.fire({
             icon: 'success',
             title: this.isEditMode ? 'Rol actualizado' : 'Rol creado',
@@ -77,15 +89,19 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
             timer: 2000,
             timerProgressBar: true
           }).then(() => {
+            console.log('🔄 [ROLES-PERMISOS] Swal cerrado, cambiando a vista list...');
             this.currentView = 'list';
             this.isEditMode = false;
             this.selectedRoleId = null;
+            console.log('✅ [ROLES-PERMISOS] Vista cambiada a:', this.currentView);
             // roles-list se recargará automáticamente cuando se muestre
           });
+        } else {
+          console.warn('⚠️ [ROLES-PERMISOS] Success es FALSE, no se cambia la vista');
         }
       },
       error: (error) => {
-        console.error('❌ Error al guardar rol:', error);
+        console.error('❌ [ROLES-PERMISOS] Error en la petición:', error);
         
         let errorTitle = 'Error al guardar';
         let errorMessage = 'No se pudo guardar el rol';

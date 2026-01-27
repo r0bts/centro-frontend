@@ -184,9 +184,6 @@ export class ConfiguracionComponent implements OnInit {
 
 
   setActiveSection(sectionId: string): void {
-    console.log('🔄 Cambiando a sección:', sectionId);
-    console.log('🔍 Estado actual de showRoleForm:', this.showRoleForm);
-    
     // 🔥 Verificar permisos antes de cambiar de sección
     if (!this.hasAccessToSection(sectionId)) {
       Swal.fire({
@@ -200,7 +197,6 @@ export class ConfiguracionComponent implements OnInit {
     
     // 🔥 Resetear vista de usuario si está activa
     if (this.showUserForm && sectionId !== 'users') {
-      console.log('🧹 Reseteando vista de usuario al cambiar de sección');
       this.showUserForm = false;
       this.isUserEditMode = false;
       this.selectedUserId = null;
@@ -208,7 +204,6 @@ export class ConfiguracionComponent implements OnInit {
     
     // 🔥 Resetear vista de rol si está activa
     if (this.showRoleForm && sectionId !== 'roles') {
-      console.log('🧹 Reseteando vista de rol al cambiar de sección');
       this.showRoleForm = false;
       this.isRoleEditMode = false;
       this.selectedRoleId = null;
@@ -224,7 +219,6 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   saveConfiguration(): void {
-    console.log('💾 Guardando configuración:', this.systemConfig);
     // Aquí implementarías la lógica para guardar en el backend
     Swal.fire({
       icon: 'success',
@@ -302,7 +296,6 @@ export class ConfiguracionComponent implements OnInit {
           themeMode: 'light',
           language: 'es'
         };
-        console.log('🔄 Configuración restaurada a valores por defecto');
         
         Swal.fire({
           icon: 'success',
@@ -323,12 +316,10 @@ export class ConfiguracionComponent implements OnInit {
     link.download = 'configuracion-sistema.json';
     link.click();
     window.URL.revokeObjectURL(url);
-    console.log('📤 Configuración exportada');
   }
 
   // Métodos específicos de configuración general
   testConnection(): void {
-    console.log('🔗 Probando conexión...');
     // Simulación de prueba de conexión
     setTimeout(() => {
       Swal.fire({
@@ -343,7 +334,6 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   createBackup(): void {
-    console.log('💾 Creando respaldo manual...');
     // Simulación de creación de backup
     setTimeout(() => {
       Swal.fire({
@@ -358,7 +348,6 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   testNotifications(): void {
-    console.log('🔔 Enviando notificación de prueba...');
     // Simulación de envío de notificación
     setTimeout(() => {
       Swal.fire({
@@ -373,7 +362,6 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   viewLogs(): void {
-    console.log('📋 Abriendo logs del sistema...');
     // Aquí implementarías la visualización de logs
   }
 
@@ -389,7 +377,6 @@ export class ConfiguracionComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('🧹 Limpiando caché...');
         setTimeout(() => {
           Swal.fire({
             icon: 'success',
@@ -416,7 +403,6 @@ export class ConfiguracionComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('🔄 Reiniciando sistema...');
         Swal.fire({
           icon: 'info',
           title: 'Comando de reinicio enviado',
@@ -431,7 +417,6 @@ export class ConfiguracionComponent implements OnInit {
 
   // Métodos de gestión de usuarios
   onSyncUsers(): void {
-    console.log('🔄 Sincronizando usuarios...');
     Swal.fire({
       title: 'Sincronizando usuarios',
       text: 'Por favor espera...',
@@ -474,8 +459,6 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   onSaveUser(userData: any): void {
-    console.log('💾 Actualizar usuario:', userData);
-    
     if (!this.selectedUserId) {
       Swal.fire({
         icon: 'error',
@@ -499,15 +482,12 @@ export class ConfiguracionComponent implements OnInit {
     // Llamar al backend para actualizar usuario
     this.userService.updateUser(this.selectedUserId, userData).subscribe({
       next: (response) => {
-        console.log('✅ Usuario actualizado exitosamente:', response);
-        
         this.showUserForm = false;
         this.isUserEditMode = false;
         this.selectedUserId = null;
         
         // 🔥 Recargar listado de usuarios
         if (this.usersListComponent) {
-          console.log('🔄 Recargando lista de usuarios...');
           this.usersListComponent.loadUsers();
         }
         
@@ -535,32 +515,24 @@ export class ConfiguracionComponent implements OnInit {
 
   // Métodos de gestión de roles
   onCreateRole(): void {
-    console.log('🆕 onCreateRole llamado - mostrando formulario de creación');
     this.selectedRoleId = null;
     this.isRoleEditMode = false;
     this.showRoleForm = true;
   }
 
   onEditRole(roleId: string): void {
-    console.log('✏️ onEditRole llamado con roleId:', roleId);
     this.selectedRoleId = roleId;
     this.isRoleEditMode = true;
     this.showRoleForm = true;
   }
 
   onCancelRoleForm(): void {
-    console.log('❌ onCancelRoleForm llamado - ocultando formulario');
     this.showRoleForm = false;
     this.isRoleEditMode = false;
     this.selectedRoleId = null;
   }
 
   onSaveRole(roleData: any): void {
-    console.log('💾 Guardar rol:', roleData);
-    console.log('📤 JSON que se enviará:', JSON.stringify(roleData, null, 2));
-    console.log('📊 Permisos:', roleData.permissions?.length || 0, 'permisos');
-    console.log('📦 Productos:', roleData.products?.length || 0, 'productos');
-    
     Swal.fire({
       title: this.isRoleEditMode ? 'Actualizando rol' : 'Creando rol',
       text: 'Por favor espera...',
@@ -576,18 +548,6 @@ export class ConfiguracionComponent implements OnInit {
 
     saveObservable.subscribe({
       next: (response) => {
-        console.log('✅ Rol guardado exitosamente:', response);
-        
-        this.showRoleForm = false;
-        this.isRoleEditMode = false;
-        this.selectedRoleId = null;
-        
-        // Recargar la lista de roles
-        if (this.rolesListComponent) {
-          console.log('🔄 Recargando lista de roles...');
-          this.rolesListComponent.loadRoles();
-        }
-        
         Swal.fire({
           icon: 'success',
           title: this.isRoleEditMode ? 'Rol actualizado' : 'Rol creado',
@@ -595,6 +555,18 @@ export class ConfiguracionComponent implements OnInit {
           confirmButtonText: 'Continuar',
           timer: 2000,
           timerProgressBar: true
+        }).then(() => {
+          this.showRoleForm = false;
+          this.isRoleEditMode = false;
+          this.selectedRoleId = null;
+          
+          // Forzar detección de cambios en Angular
+          this.cdr.detectChanges();
+          
+          // Recargar la lista de roles
+          if (this.rolesListComponent) {
+            this.rolesListComponent.loadRoles();
+          }
         });
       },
       error: (error) => {
@@ -624,8 +596,6 @@ export class ConfiguracionComponent implements OnInit {
 
   // Métodos de gestión de productos
   onSyncProducts(): void {
-    console.log('🔄 Iniciando sincronización de productos desde NetSuite...');
-    
     Swal.fire({
       title: 'Sincronizando productos',
       html: 'Conectando con NetSuite y obteniendo productos...<br><small>Esto puede tomar varios minutos</small>',
@@ -638,8 +608,6 @@ export class ConfiguracionComponent implements OnInit {
 
     this.productService.syncProducts().subscribe({
       next: (response) => {
-        console.log('✅ Sincronización exitosa:', response);
-        
         const stats = response.data;
         const htmlMessage = `
           <div class="text-start">

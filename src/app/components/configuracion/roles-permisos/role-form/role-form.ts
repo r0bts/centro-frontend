@@ -219,11 +219,9 @@ export class RoleFormComponent implements OnInit, OnChanges {
   onProductsTabActivated(): void {
     // Si ya cargamos los productos, no volver a cargar
     if (this.availableProducts.length > 0) {
-      console.log('✅ Productos ya cargados, usando cache');
       return;
     }
     
-    console.log('🔥 Pestaña de productos activada - cargando productos...');
     this.loadProducts();
   }
 
@@ -233,8 +231,6 @@ export class RoleFormComponent implements OnInit, OnChanges {
    * Carga: modules, submodules, permissions y la configuración de permisos permitidos
    */
   private loadPermissionsStructure(): void {
-    console.log('📡 Cargando estructura de permisos desde el backend...');
-    
     this.roleService.getPermissionsStructure().subscribe({
       next: (response) => {
         // Aceptar tanto respuestas con { success, data } como respuestas directas { modules, submodules, permissions }
@@ -251,13 +247,6 @@ export class RoleFormComponent implements OnInit, OnChanges {
           }
         });
 
-        console.log('📋 Módulos cargados:', this.modules.length);
-        console.log('📋 Submódulos cargados:', this.submodules.length);
-        console.log('📋 Permisos cargados:', this.dbPermissions.length);
-        console.log('� IDs de permisos:', this.dbPermissions.map(p => p.id).sort((a,b) => a-b));
-        console.log('📋 Permisos para frequent_list (id:14):', this.getAvailablePermissions(14).map(p => `${p.id}: ${p.display_name}`));
-        console.log('📋 Permisos para categorias (id:17):', this.getAvailablePermissions(17).map(p => `${p.id}: ${p.display_name}`));
-        console.log('�🔐 Configuración de permisos:', this.submodulePermissionsConfig);
         this.cdr.detectChanges();
       },
       error: (error) => {
@@ -280,7 +269,6 @@ export class RoleFormComponent implements OnInit, OnChanges {
     if (!this.roleId) return;
     
     this.isLoading = true;
-    console.log(`🔄 Cargando datos del rol ID: ${this.roleId}...`);
     
     // Llamada real al API
     this.roleService.getRoleById(this.roleId).subscribe({
@@ -304,7 +292,6 @@ export class RoleFormComponent implements OnInit, OnChanges {
               permission_id: perm.permission_id,
               is_granted: perm.is_granted !== undefined ? perm.is_granted : true
             }));
-            console.log(`✅ ${this.selectedPermissions.length} permisos cargados`);
           }
           
           // 3️⃣ Cargar SOLO productos asignados (no todos los productos)
@@ -314,11 +301,7 @@ export class RoleFormComponent implements OnInit, OnChanges {
               limit_per_requisition: prod.limit_per_requisition || 0,
               is_assigned: prod.is_assigned !== undefined ? prod.is_assigned : true
             }));
-            console.log(`✅ ${this.productAssignments.length} productos asignados cargados`);
-            console.log('📋 Productos asignados:', JSON.stringify(this.productAssignments, null, 2));
           }
-          
-          console.log('✅ Datos del rol cargados correctamente');
           
           // 🔥 Forzar la detección de cambios para actualizar la vista inmediatamente
           this.cdr.detectChanges();
@@ -375,14 +358,12 @@ export class RoleFormComponent implements OnInit, OnChanges {
    * Este método se ejecuta SOLO cuando el usuario hace click en la pestaña de productos
    */
   private loadProducts(): void {
-    console.log('📦 Cargando TODOS los productos disponibles...');
-    this.isLoadingProducts = true; // 🔥 Mostrar spinner
+    this.isLoadingProducts = true;
     
-    this.productService.getAllProducts().subscribe({
+    this.productService.getAllProducts(5000, 1, undefined, true).subscribe({
       next: (products) => {
-        this.availableProducts = products.filter(p => p.isActive);
+        this.availableProducts = products;
         this.filteredProducts = this.availableProducts;
-        console.log(`✅ ${this.availableProducts.length} productos cargados desde la API`);
         
         // 🔥 Ocultar spinner y forzar re-render
         this.isLoadingProducts = false;
@@ -570,34 +551,11 @@ export class RoleFormComponent implements OnInit, OnChanges {
   }
 
   isProductAssigned(productId: string): boolean {
-    // Debug: Ver todos los IDs disponibles (solo primeras 3 llamadas para no saturar)
-    if (!this._debugCounter) this._debugCounter = 0;
-    this._debugCounter++;
-    
-    if (this._debugCounter <= 3) {
-      console.log(`🔍 Buscando producto ID: "${productId}" (tipo: ${typeof productId})`);
-      console.log(`📦 ProductAssignments actuales:`, this.productAssignments.map(pa => 
-        `ID:"${pa.product_id}" (tipo:${typeof pa.product_id}, assigned:${pa.is_assigned})`
-      ));
-    }
-    
-    const isAssigned = this.productAssignments.some(pa => {
-      // Convertir ambos a string para comparación segura
-      const paId = String(pa.product_id);
-      const pId = String(productId);
-      const match = paId === pId && pa.is_assigned;
-      
-      if (match && this._debugCounter <= 3) {
-        console.log(`✅ MATCH ENCONTRADO! "${paId}" === "${pId}"`);
-      }
-      
-      return match;
-    });
-    
-    return isAssigned;
+    const pId = String(productId);
+    return this.productAssignments.some(pa => 
+      String(pa.product_id) === pId && pa.is_assigned
+    );
   }
-
-  private _debugCounter = 0;
 
   toggleProductAssignment(productId: string): void {
     const existingIndex = this.productAssignments.findIndex(pa => String(pa.product_id) === String(productId));
