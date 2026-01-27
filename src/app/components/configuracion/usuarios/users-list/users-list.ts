@@ -112,6 +112,7 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
         this.buildLocationsMap();
         this.buildDepartmentsMap();
         this.updateStatistics();
+        this.cdr.detectChanges();
         
         Swal.close();
         
@@ -375,12 +376,6 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.filteredCount = this.users.length;
     this.activeCount = this.users.filter(u => u.isActive).length;
     this.inactiveCount = this.users.filter(u => !u.isActive).length;
-    
-    console.log('📊 Estadísticas actualizadas:', {
-      total: this.totalUsers,
-      activos: this.activeCount,
-      inactivos: this.inactiveCount
-    });
   }
 
   /**
@@ -415,7 +410,6 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     
     this.rolesMap = rolesCount;
-    console.log('🛡️ Roles encontrados:', Object.keys(rolesCount).length);
     
     // Poblar dropdown de roles
     this.populateRoleDropdown();
@@ -458,7 +452,6 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     
     this.locationsMap = locationsCount;
-    console.log('📍 Ubicaciones encontradas:', Object.keys(locationsCount).length);
     
     // Poblar dropdown de ubicaciones
     this.populateLocationDropdown();
@@ -501,7 +494,6 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     
     this.departmentsMap = departmentsCount;
-    console.log('🏢 Departamentos encontrados:', Object.keys(departmentsCount).length);
     
     // Poblar dropdown de departamentos
     this.populateDepartmentDropdown();
@@ -594,7 +586,5 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
         self.updateFilteredCount();
       }
     });
-    
-    console.log('✅ Filtros inicializados');
   }
 }

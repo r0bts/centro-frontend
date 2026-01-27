@@ -42,8 +42,6 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    console.log('✅ RolesListComponent initialized');
-    console.log('🔍 Estado inicial:', { isDestroyed: this.isDestroyed });
     this.loadRoles();
   }
 
@@ -52,13 +50,6 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    console.log('🧹 ngOnDestroy llamado - Componente siendo destruido');
-    console.log('🔍 Estado al destruir:', { 
-      isDestroyed: this.isDestroyed,
-      hasDataTable: !!this.rolesDataTable,
-      rolesCount: this.roles.length
-    });
-    
     this.isDestroyed = true;
     
     // Limpiar event listeners
@@ -81,9 +72,6 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
    * 🔥 Cargar roles desde el backend
    */
   loadRoles(): void {
-    console.log('📡 HIJO - Cargando roles desde API...');
-    console.log('🔍 Estado destroy$:', { hasSubscribers: this.destroy$.observers.length });
-    
     Swal.fire({
       title: 'Cargando roles',
       text: 'Por favor espera...',
@@ -94,49 +82,35 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
     });
     
     // 🔥 Cargar TODOS los roles
-    console.log('🚀 Llamando a roleService.getRoles()...');
     const rolesObservable = this.roleService.getRoles();
-    console.log('📦 Observable creado:', !!rolesObservable);
     
     rolesObservable
       .pipe(takeUntil(this.destroy$))
       .subscribe({
       next: (response) => {
-        console.log('📥 Respuesta recibida del servicio:', response);
         if (this.isDestroyed) {
-          console.log('⚠️ Componente destruido, ignorando respuesta');
           return;
         }
         
         if (response.success && response.data) {
           this.roles = response.data.roles;
-          console.log('✅ HIJO - Roles cargados:', this.roles.length);
           
           // 🔥 Actualizar estadísticas
           this.updateStatistics();
+          this.cdr.detectChanges();
         }
         
         Swal.close();
         
-        console.log('📊 Estado antes de inicializar DataTable:', {
-          rolesDataTable: !!this.rolesDataTable,
-          rolesLength: this.roles.length
-        });
-        
         // Si DataTable no existe, crear; si existe, actualizar
         if (!this.rolesDataTable) {
-          console.log('⏱️ Programando inicialización de DataTable con requestAnimationFrame...');
           // Usar requestAnimationFrame en lugar de setTimeout para asegurar que el DOM esté listo
           requestAnimationFrame(() => {
-            console.log('✨ requestAnimationFrame ejecutado, inicializando DataTable...');
             if (!this.isDestroyed) {
               this.initRolesDataTable();
-            } else {
-              console.log('⚠️ Componente ya destruido, no inicializar DataTable');
             }
           });
         } else {
-          console.log('🔄 DataTable ya existe, actualizando...');
           this.refreshDataTables();
         }
       },
@@ -157,14 +131,7 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
   private initRolesDataTable(): void {
     if (this.isDestroyed) return;
     
-    console.log('🔍 Intentando inicializar DataTable:', {
-      rolesTable: !!this.rolesTable,
-      rolesLength: this.roles.length,
-      roles: this.roles
-    });
-    
     if (this.rolesTable && this.roles.length > 0) {
-      console.log('✅ Inicializando DataTable con', this.roles.length, 'roles');
       this.rolesDataTable = $(this.rolesTable.nativeElement).DataTable({
         data: this.roles,
         columns: [
@@ -258,18 +225,14 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
       
       // 🔥 Event delegation para botones (evitar double-click)
       $(this.rolesTable.nativeElement).off('click', '.edit-btn').on('click', '.edit-btn', (e: any) => {
-        console.log('🖱️ Click en botón editar');
         const roleId = $(e.currentTarget).data('id');
-        console.log('📋 Role ID:', roleId, 'tipo:', typeof roleId);
         const role = this.roles.find(r => String(r.id) === String(roleId));
-        console.log('🔍 Role encontrado:', role);
         if (role) {
           this.onEditRole(role);
         }
       });
       
       $(this.rolesTable.nativeElement).off('click', '.toggle-status-btn').on('click', '.toggle-status-btn', (e: any) => {
-        console.log('🖱️ Click en botón toggle status');
         const roleId = $(e.currentTarget).data('id');
         const role = this.roles.find(r => String(r.id) === String(roleId));
         if (role) {
@@ -278,7 +241,6 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
       });
       
       $(this.rolesTable.nativeElement).off('click', '.delete-btn').on('click', '.delete-btn', (e: any) => {
-        console.log('🖱️ Click en botón eliminar');
         const roleId = $(e.currentTarget).data('id');
         const role = this.roles.find(r => String(r.id) === String(roleId));
         if (role) {
@@ -299,9 +261,7 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onEditRole(role: Role): void {
-    console.log('✏️ onEditRole llamado con role:', role);
     // Emitir solo el ID del rol
-    console.log('📤 Emitiendo editRole con ID:', role.id);
     this.editRole.emit(role.id);
   }
 
@@ -367,13 +327,6 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.activeCount = this.roles.filter(r => r.isActive).length;
     this.inactiveCount = this.roles.filter(r => !r.isActive).length;
     this.systemCount = this.roles.filter(r => r.isSystem).length;
-    
-    console.log('📊 Estadísticas actualizadas:', {
-      total: this.totalRoles,
-      activos: this.activeCount,
-      inactivos: this.inactiveCount,
-      sistema: this.systemCount
-    });
   }
 
   /**
@@ -446,7 +399,5 @@ export class RolesListComponent implements OnInit, AfterViewInit, OnDestroy {
         self.updateFilteredCount();
       }
     });
-    
-    console.log('✅ Filtros inicializados');
   }
 }
