@@ -113,7 +113,9 @@ export class UserFormComponent implements OnInit, OnChanges {
   availableDepartments: { id: string; name: string; }[] = [];
 
   // Locations disponibles
-  availableLocations: { id: string; name: string; }[] = [];
+  availableLocations: { id: string; name: string; }[] = [
+    { id: '0', name: 'Corporativo' }
+  ];
 
   // Permisos del rol seleccionado (solo lectura)
   rolePermissions: RolePermission[] = [];
@@ -370,7 +372,6 @@ export class UserFormComponent implements OnInit, OnChanges {
         // 🔥 Cargar productos disponibles desde form-data
         if (data.products?.items) {
           // Solo usar form-data como reference, cargar completos con categoría desde getAllProducts
-          console.log('📦 [USER-FORM] Productos disponibles en form-data:', data.products.items.length);
           // NO cargar aquí, dejar que se carguen en loadProducts() cuando se active la pestaña
         }
         
@@ -390,7 +391,6 @@ export class UserFormComponent implements OnInit, OnChanges {
 
   private loadUserData(): void {
     if (!this.userId) {
-      console.log('⚠️ No userId provided, clearing form');
       this.clearForm();
       return;
     }
@@ -409,7 +409,6 @@ export class UserFormComponent implements OnInit, OnChanges {
     this.userService.getUserById(this.userId).subscribe({
       next: (userDetails) => {
         Swal.close();
-        console.log('📥 Datos completos del usuario:', userDetails);
         
         // Cargar datos del usuario desde userDetails
         const user = userDetails.user;
@@ -481,11 +480,11 @@ export class UserFormComponent implements OnInit, OnChanges {
    * Este método se ejecuta SOLO cuando el usuario hace click en la pestaña de productos
    */
   private loadProducts(): void {
-    this.isLoadingProducts = true; // 🔥 Mostrar spinner
+    this.isLoadingProducts = true;
     
-    this.productService.getAllProducts().subscribe({
+    this.productService.getAllProducts(5000, 1, undefined, true).subscribe({
       next: (products) => {
-        this.availableProducts = products.filter(p => !p.isActive);
+        this.availableProducts = products;
         this.filteredProducts = this.availableProducts;
         
         // 🔥 INVALIDAR EL CACHE
@@ -555,7 +554,6 @@ export class UserFormComponent implements OnInit, OnChanges {
   private loadRoleProductsDirectly(roleId: string): void {
     
     if (!roleId) {
-      console.log('❌ [LOAD-ROLE-PRODUCTS-DIRECTLY] Sin roleId');
       return;
     }
 
@@ -591,22 +589,16 @@ export class UserFormComponent implements OnInit, OnChanges {
       roleService.getRoleById(roleId).subscribe({
         next: (response) => {
           if (response.success && response.data && response.data.products) {
-            console.log('✅ [LOAD-ROLE-PRODUCTS-API] Productos obtenidos para rol', roleId, ':', response.data.products.length);
             
             // Actualizar el rol con sus productos
             const roleIndex = this.availableRoles.findIndex(r => r.id === roleId);
             if (roleIndex !== -1) {
               (this.availableRoles[roleIndex] as any).products = response.data.products;
-              console.log('📌 [LOAD-ROLE-PRODUCTS-API] Rol actualizado con productos:', {
-                roleId,
-                productCount: response.data.products.length,
-                products: response.data.products
-              });
             }
           }
         },
         error: (error) => {
-          console.error('❌ [LOAD-ROLE-PRODUCTS-API] Error al cargar productos del rol:', roleId, error);
+          console.error('Error al cargar productos del rol:', roleId, error);
         }
       });
     });
@@ -622,27 +614,12 @@ export class UserFormComponent implements OnInit, OnChanges {
       this.productAssignments = [];
       return;
     }
-
-    console.log('🔎 [LOAD-ROLE-PRODUCTS] Roles disponibles:', this.availableRoles.map(r => ({ id: r.id, display_name: r.display_name })));
     
     const selectedRole = this.availableRoles.find(r => String(r.id) === String(roleId));
     
-    console.log('🎯 [LOAD-ROLE-PRODUCTS] Rol encontrado:', {
-      found: !!selectedRole,
-      id: selectedRole?.id,
-      display_name: selectedRole?.display_name,
-      has_products_prop: !!(selectedRole as any)?.products,
-      products_type: typeof (selectedRole as any)?.products,
-      is_array: Array.isArray((selectedRole as any)?.products),
-      products_length: ((selectedRole as any)?.products as any[])?.length || 0,
-      products_sample: ((selectedRole as any)?.products as any[])?.[0]
-    });
     
     if (selectedRole && (selectedRole as any).products && Array.isArray((selectedRole as any).products)) {
       const roleProducts = (selectedRole as any).products;
-      
-      console.log('✅ [LOAD-ROLE-PRODUCTS] Productos encontrados para rol:', roleProducts.length);
-      console.log('📊 [LOAD-ROLE-PRODUCTS] Primeros 3 productos:', roleProducts.slice(0, 3));
       
       // Auto-asignar productos del rol
       this.productAssignments = roleProducts.map((prod: any) => {
@@ -651,15 +628,11 @@ export class UserFormComponent implements OnInit, OnChanges {
           limit_per_requisition: prod.limit_per_requisition || 0,
           is_assigned: true
         };
-        console.log('  📌 Asignando producto:', { original: prod.product_id || prod.id, assignment });
         return assignment;
       });
       
-      console.log('✅ [LOAD-ROLE-PRODUCTS] Productos del rol asignados:', this.productAssignments.length);
-      console.log('📋 [LOAD-ROLE-PRODUCTS] ProductAssignments:', this.productAssignments);
       this.cdr.detectChanges();
     } else {
-      console.log('⚠️ [LOAD-ROLE-PRODUCTS] El rol no tiene productos asignados (products es undefined o no es array)');
       this.productAssignments = [];
     }
   }

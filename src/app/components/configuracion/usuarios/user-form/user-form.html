@@ -59,7 +59,7 @@
                     [(ngModel)]="userForm.location_id" 
                     name="location_id"
                     required
-                    disabled>
+                    [disabled]="!isEditMode">
               <option value="">Seleccionar...</option>
               <option *ngFor="let location of availableLocations" [value]="location.id">
                 {{ location.name }}
@@ -83,6 +83,7 @@
                     [(ngModel)]="userForm.rol_id" 
                     name="rol_id"
                     (change)="onRoleChange()"
+                    [disabled]="!isEditMode"
                     required>
               <option value="">Seleccionar...</option>
               <option *ngFor="let role of availableRoles" [value]="role.id">
@@ -178,6 +179,7 @@
                            class="form-check-input me-2"
                            [checked]="isSubmoduleAllSelected(submodule.id)"
                            [indeterminate]="isSubmoduleIndeterminate(submodule.id)"
+                           [disabled]="!isEditMode"
                            (change)="toggleAllSubmodulePermissions(submodule.id)">
                     <strong>{{ submodule.display_name }}</strong>
                     <span class="badge bg-light text-dark ms-2">
@@ -191,6 +193,7 @@
                                type="checkbox" 
                                [id]="'perm_' + submodule.id + '_' + permission.id"
                                [checked]="hasPermission(submodule.id, permission.id)"
+                               [disabled]="!isEditMode"
                                (change)="togglePermission(submodule.id, permission.id)">
                         <label class="form-check-label" 
                                [for]="'perm_' + submodule.id + '_' + permission.id">
@@ -289,6 +292,7 @@
                                class="form-check-input"
                                [checked]="isCategoryAllSelected(category)"
                                [indeterminate]="isCategoryIndeterminate(category)"
+                               [disabled]="!isEditMode"
                                (change)="toggleCategoryProducts(category)">
                       </th>
                       <th>Producto</th>
@@ -302,6 +306,7 @@
                         <input type="checkbox" 
                                class="form-check-input"
                                [checked]="isProductAssigned(product.id)"
+                               [disabled]="!isEditMode"
                                (change)="toggleProductAssignment(product.id)">
                       </td>
                       <td class="align-middle">
@@ -319,7 +324,7 @@
                             placeholder="0"
                             [value]="getProductLimit(product.id)"
                             (input)="updateProductLimit(product.id, $event)"
-                            [disabled]="!isProductAssigned(product.id)">
+                            [disabled]="!isEditMode || !isProductAssigned(product.id)">
                           <span class="input-group-text">{{ product.unit }}</span>
                         </div>
                       </td>
@@ -391,8 +396,8 @@
           <button type="button" class="btn btn-light" (click)="onCancel()" style="border: 1px solid #dee2e6;">
             Cancelar
           </button>
-          <button type="submit" class="btn btn-primary">
-            {{ isEditMode ? 'Actualizar Usuario' : 'Guardar' }}
+          <button *ngIf="isEditMode" type="submit" class="btn btn-primary">
+            Actualizar Usuario
           </button>
         </div>
       </form>
