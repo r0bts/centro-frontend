@@ -67,13 +67,10 @@
                         [ngModel]="filterStatus()"
                         (ngModelChange)="onStatusChange($event)">
                   <option value="">Todos</option>
-                  <option value="solicitado">Solicitado</option>
-                  <option value="autorizado">Autorizada</option>
-                  <option value="en_proceso">En Proceso</option>
-                  <option value="listo_recoger">Listo para Recoger</option>
-                  <option value="entregado">Entregado</option>
-                  <option value="espera_devolucion">Espera Devolución</option>
-                  <option value="cancelado">Cancelado</option>
+                  <option *ngFor="let status of availableStatusOptions()" 
+                          [value]="status.value">
+                    {{ status.label }}
+                  </option>
                 </select>
               </div>
               

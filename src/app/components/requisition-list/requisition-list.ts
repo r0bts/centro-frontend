@@ -47,6 +47,9 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   canSupply = signal(false);
   canDelete = signal(false);
   
+  // Estados disponibles según permisos del usuario
+  availableStatuses = signal<string[]>([]);
+  
   // Paginación
   currentPage = signal(1);
   itemsPerPage = signal(20);
@@ -68,6 +71,25 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     Math.max(1, Math.ceil(this.totalItems() / this.itemsPerPage()))
   );
   
+  // Opciones de estado disponibles según permisos
+  availableStatusOptions = computed(() => {
+    const allStatuses = [
+      { value: 'solicitado', label: 'Solicitado' },
+      { value: 'autorizado', label: 'Autorizada' },
+      { value: 'en_proceso', label: 'En Proceso' },
+      { value: 'listo_recoger', label: 'Listo para Recoger' },
+      { value: 'entregado', label: 'Entregado' },
+      { value: 'espera_devolucion', label: 'Espera Devolución' },
+      { value: 'cancelado', label: 'Cancelado' }
+    ];
+    
+    const allowed = this.availableStatuses();
+    if (allowed.length === 0) {
+      return allStatuses;
+    }
+    return allStatuses.filter(s => allowed.includes(s.value));
+  });
+  
   // Subscription para limpiar
   private navigationSubscription?: Subscription;
 
@@ -78,8 +100,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    console.log('RequisitionListComponent initialized');
-    
     // Verificar si el usuario puede filtrar por ubicación
     const locationId = localStorage.getItem('location_id');
     this.canFilterLocation.set(locationId === '0');
@@ -89,6 +109,13 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     this.canSupply.set(this.authService.hasPermission('requisition_list', 'supply'));
     this.canDelete.set(this.authService.hasPermission('requisition_list', 'delete'));
     
+    console.log('[Requisitions] Permisos inicializados:', {
+      canUpdate: this.canUpdate(),
+      canSupply: this.canSupply(),
+      canDelete: this.canDelete(),
+      canFilterLocation: this.canFilterLocation()
+    });
+    
     this.loadRequisitions();
     
     // Recargar datos cuando se navega de vuelta a este componente
@@ -96,7 +123,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: any) => {
       if (event.url.includes('/requisicion/lista')) {
-        console.log('🔄 Recargando datos del listado...');
         this.loadRequisitions();
       }
     });
@@ -115,7 +141,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
   
   loadRequisitions(): void {
-    console.log('🔄 Cargando requisiciones desde API...');
     this.isLoading.set(true);
 
     // Construir parámetros de consulta
@@ -149,6 +174,13 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
         const pagination = response.data.pagination || { total: apiItems.length };
         this.totalItems.set(pagination.total || 0);
         
+        // Extraer estados permitidos del backend
+        const allowedStatuses = response.data.allowedStatuses || [];
+        this.availableStatuses.set(allowedStatuses);
+        
+        console.log('[Requisitions] Estados permitidos:', allowedStatuses);
+        console.log('[Requisitions] Opciones de filtro disponibles:', allowedStatuses.length);
+        
         // Usar Helper para transformar y agrupar
         const mappedRequisitions = RequisitionGroupingHelper.mapFromAPI(apiItems);
         this.requisitions.set(mappedRequisitions);
@@ -162,10 +194,9 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
         this.filteredDateGroups.set([...dateKeys]);
         
         this.isLoading.set(false);
-        console.log('✅ Cargadas:', mappedRequisitions.length, 'requisiciones en', dateKeys.length, 'grupos de fechas. Total:', this.totalItems());
       },
       error: (error) => {
-        console.error('❌ Error al cargar requisiciones:', error);
+        console.error('[Requisitions] Error al cargar:', error.message || error);
         this.isLoading.set(false);
         Swal.fire({
           icon: 'error',
@@ -233,7 +264,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('Eliminar requisición:', requisition);
         // Aquí implementarías la lógica de eliminación
         this.requisitions.update(reqs => reqs.filter(r => r.id !== requisition.id));
         
@@ -257,7 +287,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   supplyRequisition(requisition: RequisitionItem): void {
-    console.log('Editar/Surtir requisición:', requisition);
     // Navegar a la vista de confirmación en modo edición
     this.router.navigate(['/requisicion/confirmacion'], {
       queryParams: {
@@ -283,8 +312,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   warehouseSupply(requisition: RequisitionItem): void {
-    console.log('Gestionar en almacén:', requisition);
-    
     // Extraer el número del ID (REQ-0006 -> 6)
     const numericId = requisition.id.replace(/^REQ-0*/, '');
     
@@ -298,7 +325,6 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   // Función para ir al consolidado general del almacén
   goToWarehouseConsolidated(): void {
-    console.log('Navegando al consolidado de almacén');
     // Navegar directamente al consolidado sin parámetros específicos
     this.router.navigate(['/almacen/surtir']);
   }
