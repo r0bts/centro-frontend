@@ -63,6 +63,50 @@
                 <i class="bi bi-x-circle"></i>
               </button>
               
+              <button type="button" 
+                      class="btn btn-outline-danger btn-sm" 
+                      (click)="clearAllFilters()"
+                      [disabled]="!searchTerm() && !filterStatus() && !filterLocation() && !filterStartDate() && !filterEndDate()"
+                      title="Limpiar todos los filtros">
+                <i class="bi bi-arrow-counterclockwise"></i> Limpiar
+              </button>
+              
+              <!-- Separador -->
+              <div class="vr"></div>
+              
+              <!-- Filtro por Estado -->
+              <div class="d-flex align-items-center gap-2">
+                <label for="statusFilter" class="form-label mb-0 text-muted">Estado:</label>
+                <select id="statusFilter" 
+                        class="form-select form-select-sm" 
+                        style="width: 180px;"
+                        [ngModel]="filterStatus()"
+                        (ngModelChange)="onStatusChange($event)">
+                  <option value="">Todos</option>
+                  <option value="solicitado">Solicitado</option>
+                  <option value="autorizado">Autorizada</option>
+                  <option value="en_proceso">En Proceso</option>
+                  <option value="listo_recoger">Listo para Recoger</option>
+                  <option value="entregado">Entregado</option>
+                  <option value="espera_devolucion">Espera Devolución</option>
+                  <option value="cancelado">Cancelado</option>
+                </select>
+              </div>
+              
+              <!-- Filtro por Ubicación -->
+              <div class="d-flex align-items-center gap-2">
+                <label for="locationFilter" class="form-label mb-0 text-muted">Ubicación:</label>
+                <select id="locationFilter" 
+                        class="form-select form-select-sm" 
+                        style="width: 140px;"
+                        [ngModel]="filterLocation()"
+                        (ngModelChange)="onLocationChange($event)">
+                  <option value="">Todas</option>
+                  <option value="1">HERMES</option>
+                  <option value="9">GLACIAR</option>
+                </select>
+              </div>
+              
               <!-- Separador -->
               <div class="vr"></div>
               
@@ -205,6 +249,44 @@
                 </table>
               </div>
             </div>
+          </div>
+          
+          <!-- Controles de paginación -->
+          <div *ngIf="!isLoading() && totalItems() > 0" class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted">
+              Mostrando 
+              <strong>{{ Math.min((currentPage() - 1) * itemsPerPage() + 1, totalItems()) }}</strong> - 
+              <strong>{{ Math.min(currentPage() * itemsPerPage(), totalItems()) }}</strong> 
+              de <strong>{{ totalItems() }}</strong> requisiciones
+            </div>
+            
+            <nav aria-label="Paginación de requisiciones">
+              <ul class="pagination mb-0">
+                <li class="page-item" [class.disabled]="currentPage() === 1">
+                  <button class="page-link" 
+                          (click)="prevPage()" 
+                          [disabled]="currentPage() === 1"
+                          title="Página anterior">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                  </button>
+                </li>
+                
+                <li class="page-item active">
+                  <span class="page-link">
+                    Página {{ currentPage() }} de {{ totalPages() }}
+                  </span>
+                </li>
+                
+                <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                  <button class="page-link" 
+                          (click)="nextPage()" 
+                          [disabled]="currentPage() === totalPages()"
+                          title="Página siguiente">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                  </button>
+                </li>
+              </ul>
+            </nav>
           </div>
           </div>
         </div>

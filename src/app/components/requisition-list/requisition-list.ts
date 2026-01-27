@@ -34,6 +34,15 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   filterStartDate = signal('');
   filterEndDate = signal('');
   
+  // Filtros adicionales
+  filterStatus = signal('');
+  filterLocation = signal('');
+  
+  // Paginación
+  currentPage = signal(1);
+  itemsPerPage = signal(20);
+  totalItems = signal(0);
+  
   // Datos cargados desde API
   requisitions = signal<RequisitionItem[]>([]);
   
@@ -45,6 +54,9 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   totalCount = computed(() => 
     Object.values(this.filteredGroupedRequisitions())
       .reduce((sum, reqs) => sum + reqs.length, 0)
+  );
+  totalPages = computed(() => 
+    Math.max(1, Math.ceil(this.totalItems() / this.itemsPerPage()))
   );
   
   // Subscription para limpiar
@@ -86,7 +98,19 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     console.log('🔄 Cargando requisiciones desde API...');
     this.isLoading.set(true);
 
-    this.requisitionService.getRequisitions().subscribe({
+    // Construir parámetros de consulta
+    const params: any = {
+      page: this.currentPage(),
+      limit: this.itemsPerPage()
+    };
+    
+    if (this.searchTerm()) params.search = this.searchTerm();
+    if (this.filterStatus()) params.status = this.filterStatus();
+    if (this.filterLocation()) params.location_id = this.filterLocation();
+    if (this.filterStartDate()) params.start_date = this.filterStartDate();
+    if (this.filterEndDate()) params.end_date = this.filterEndDate();
+
+    this.requisitionService.getRequisitions(params).subscribe({
       next: (response) => {
         // Detectar estructura del response automáticamente
         let apiItems: any[] = [];
@@ -101,6 +125,10 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
           console.error('❌ No se pudo encontrar el array de requisiciones');
         }
         
+        // Extraer paginación
+        const pagination = response.data.pagination || { total: apiItems.length };
+        this.totalItems.set(pagination.total || 0);
+        
         // Usar Helper para transformar y agrupar
         const mappedRequisitions = RequisitionGroupingHelper.mapFromAPI(apiItems);
         this.requisitions.set(mappedRequisitions);
@@ -114,7 +142,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
         this.filteredDateGroups.set([...dateKeys]);
         
         this.isLoading.set(false);
-        console.log('✅ Cargadas:', mappedRequisitions.length, 'requisiciones en', dateKeys.length, 'grupos de fechas');
+        console.log('✅ Cargadas:', mappedRequisitions.length, 'requisiciones en', dateKeys.length, 'grupos de fechas. Total:', this.totalItems());
       },
       error: (error) => {
         console.error('❌ Error al cargar requisiciones:', error);
@@ -373,40 +401,72 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   // Método para buscar - delegar al API
   performSearch(): void {
-    // Recargar datos con el término de búsqueda actual
+    // Resetear a página 1 cuando se busca
+    this.currentPage.set(1);
     this.loadRequisitions();
   }
 
-  // Métodos para filtrado por fecha (del lado del cliente)
+  // Métodos para filtrado por fecha (ahora usa backend)
   applyDateFilter(): void {
-    if (!this.filterStartDate() && !this.filterEndDate()) {
-      // Si no hay filtros de fecha, usar datos completos
-      this.filteredGroupedRequisitions.set({ ...this.groupedRequisitions() });
-      this.filteredDateGroups.set([...this.dateGroups()]);
-      return;
-    }
-
-    const startDate = this.filterStartDate() ? new Date(this.filterStartDate()) : undefined;
-    const endDate = this.filterEndDate() ? new Date(this.filterEndDate()) : undefined;
-    
-    // Usar Helper para filtrar
-    const { grouped, dateKeys } = RequisitionGroupingHelper.filterByDateRange(
-      this.groupedRequisitions(),
-      this.dateGroups(),
-      startDate,
-      endDate
-    );
-    
-    this.filteredGroupedRequisitions.set(grouped);
-    this.filteredDateGroups.set(dateKeys);
+    // Resetear a página 1 cuando se filtra
+    this.currentPage.set(1);
+    this.loadRequisitions();
   }
 
   clearDateFilter(): void {
     this.filterStartDate.set('');
     this.filterEndDate.set('');
-    
-    // Restaurar datos completos sin filtro de fecha
-    this.filteredGroupedRequisitions.set({ ...this.groupedRequisitions() });
-    this.filteredDateGroups.set([...this.dateGroups()]);
+    this.currentPage.set(1);
+    this.loadRequisitions();
   }
+
+  // Métodos para filtro de estado
+  onStatusChange(status: string): void {
+    this.filterStatus.set(status);
+    this.currentPage.set(1);
+    this.loadRequisitions();
+  }
+
+  // Métodos para filtro de ubicación
+  onLocationChange(location: string): void {
+    this.filterLocation.set(location);
+    this.currentPage.set(1);
+    this.loadRequisitions();
+  }
+
+  // Métodos de paginación
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update(p => p + 1);
+      this.loadRequisitions();
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.currentPage.update(p => p - 1);
+      this.loadRequisitions();
+    }
+  }
+
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+      this.loadRequisitions();
+    }
+  }
+
+  // Método para limpiar TODOS los filtros
+  clearAllFilters(): void {
+    this.searchTerm.set('');
+    this.filterStatus.set('');
+    this.filterLocation.set('');
+    this.filterStartDate.set('');
+    this.filterEndDate.set('');
+    this.currentPage.set(1);
+    this.loadRequisitions();
+  }
+
+  // Helper para Math en template
+  Math = Math;
 }
