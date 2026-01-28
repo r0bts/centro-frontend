@@ -409,4 +409,18 @@ export class AuthService {
       this.hasPermission(submoduleName, permission)
     );
   }
+
+  /**
+   * Obtener perfil del usuario autenticado
+   */
+  getCurrentUserProfile(): Observable<any> {
+    return this.http.get(`${this.API_URL}/users/profile`);
+  }
+
+  /**
+   * Cambiar contraseña del usuario autenticado
+   */
+  changePassword(data: { currentPassword: string; newPassword: string; confirmPassword: string }): Observable<any> {
+    return this.http.post(`${this.API_URL}/users/change-password`, data);
+  }
 }

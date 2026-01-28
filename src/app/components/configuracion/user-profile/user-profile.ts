@@ -1,7 +1,8 @@
-import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
+import { AuthService } from '../../../services/auth.service';
 
 declare var $: any;
 
@@ -44,75 +45,20 @@ interface PasswordForm {
 })
 export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   private productsTable: any;
-  // User Profile Data (simulated from API)
+  
+  // User Profile Data (loaded from API)
   userProfile: UserProfile = {
-    id: '1',
-    username: 'roberto.garcia',
-    email: 'roberto.garcia@centro.com',
-    firstName: 'Roberto',
-    lastName: 'García',
-    employeeNumber: 'EMP-001234',
-    role: 'Administrador',
-    createdAt: '2024-01-15T08:30:00',
-    lastLogin: '2025-11-26T09:15:00',
-    isActive: true,
-    // Productos asignados al usuario (opcional - viene de la API)
-    assignedProducts: [
-      {
-        id: 'PROD-001',
-        code: 'OF-001',
-        name: 'Papel Bond Carta',
-        category: 'Papelería',
-        unit: 'Resma',
-        maxQuantity: 10,
-        description: 'Papel bond tamaño carta, 75g/m²'
-      },
-      {
-        id: 'PROD-002',
-        code: 'OF-045',
-        name: 'Bolígrafos Azules',
-        category: 'Papelería',
-        unit: 'Caja',
-        maxQuantity: 5,
-        description: 'Caja con 12 bolígrafos de tinta azul'
-      },
-      {
-        id: 'PROD-003',
-        code: 'OF-089',
-        name: 'Folders Manila',
-        category: 'Papelería',
-        unit: 'Paquete',
-        maxQuantity: 15,
-        description: 'Paquete de 50 folders tamaño carta'
-      },
-      {
-        id: 'PROD-004',
-        code: 'LIM-012',
-        name: 'Desinfectante Multiusos',
-        category: 'Limpieza',
-        unit: 'Botella',
-        maxQuantity: 3,
-        description: 'Desinfectante spray 500ml'
-      },
-      {
-        id: 'PROD-005',
-        code: 'TEC-023',
-        name: 'Mouse Inalámbrico',
-        category: 'Tecnología',
-        unit: 'Unidad',
-        maxQuantity: 1,
-        description: 'Mouse óptico inalámbrico 2.4GHz'
-      },
-      {
-        id: 'PROD-006',
-        code: 'OF-156',
-        name: 'Grapadora Industrial',
-        category: 'Papelería',
-        unit: 'Unidad',
-        maxQuantity: 1,
-        description: 'Grapadora metálica de alta capacidad'
-      }
-    ]
+    id: '',
+    username: '',
+    email: '',
+    firstName: '',
+    lastName: '',
+    employeeNumber: '',
+    role: '',
+    createdAt: '',
+    lastLogin: '',
+    isActive: false,
+    assignedProducts: []
   };
 
   // Password Form
@@ -127,7 +73,10 @@ export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   showNewPassword = false;
   showConfirmPassword = false;
 
-  constructor() {}
+  constructor(
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
+  ) {}
 
   ngOnInit(): void {
     this.loadUserProfile();
@@ -150,24 +99,37 @@ export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   /**
-   * Cargar perfil de usuario (simulado desde API)
+   * Cargar perfil de usuario desde API
    */
   loadUserProfile(): void {
-    // TODO: Reemplazar con llamada real a la API
-    // this.authService.getCurrentUser().subscribe({
-    //   next: (profile) => {
-    //     this.userProfile = profile;
-    //   },
-    //   error: (error) => {
-    //     console.error('Error al cargar perfil:', error);
-    //     Swal.fire({
-    //       icon: 'error',
-    //       title: 'Error al cargar perfil',
-    //       text: error.message,
-    //       confirmButtonText: 'Entendido'
-    //     });
-    //   }
-    // });
+    this.authService.getCurrentUserProfile().subscribe({
+      next: (response) => {
+        console.log('📥 Respuesta del perfil:', response);
+        if (response.success && response.data) {
+          this.userProfile = response.data;
+          console.log('✅ Perfil cargado:', this.userProfile);
+          
+          // Forzar detección de cambios
+          this.cdr.detectChanges();
+          
+          // Re-inicializar DataTable si hay productos
+          if (this.userProfile.assignedProducts && this.userProfile.assignedProducts.length > 0) {
+            setTimeout(() => {
+              this.initializeProductsDataTable();
+            }, 500);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error al cargar perfil:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al cargar perfil',
+          text: error.error?.message || 'No se pudo cargar el perfil del usuario',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   /**
@@ -341,8 +303,6 @@ export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('🔐 Cambiando contraseña...');
-        
         // Mostrar loading
         Swal.fire({
           title: 'Cambiando contraseña',
@@ -353,24 +313,19 @@ export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
           }
         });
 
-        // Simular llamada a API
-        setTimeout(() => {
-          // TODO: Implementar llamada real a la API
-          // this.authService.changePassword({
-          //   currentPassword: this.passwordForm.currentPassword,
-          //   newPassword: this.passwordForm.newPassword
-          // }).subscribe({
-          //   next: (response) => {
-          //     this.onPasswordChangeSuccess();
-          //   },
-          //   error: (error) => {
-          //     this.onPasswordChangeError(error);
-          //   }
-          // });
-
-          // Simular éxito
-          this.onPasswordChangeSuccess();
-        }, 2000);
+        // Llamada a la API
+        this.authService.changePassword({
+          currentPassword: this.passwordForm.currentPassword,
+          newPassword: this.passwordForm.newPassword,
+          confirmPassword: this.passwordForm.confirmPassword
+        }).subscribe({
+          next: (response) => {
+            this.onPasswordChangeSuccess();
+          },
+          error: (error) => {
+            this.onPasswordChangeError(error);
+          }
+        });
       }
     });
   }
@@ -407,7 +362,9 @@ export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   private onPasswordChangeError(error: any): void {
     let errorMessage = 'No se pudo cambiar la contraseña. Intenta de nuevo.';
     
-    if (error.message) {
+    if (error.error?.message) {
+      errorMessage = error.error.message;
+    } else if (error.message) {
       errorMessage = error.message;
     }
 

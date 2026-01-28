@@ -46,7 +46,6 @@
                     <!-- Profile Information Section -->
                     <div class="mb-5">
                         <h6 class="text-primary mb-3">
-                            <i class="bi bi-person-vcard me-2"></i>
                             Información de Perfil
                         </h6>
                         
@@ -151,12 +150,34 @@
                     <!-- Change Password Section -->
                     <div>
                         <h6 class="text-primary mb-3">
-                            <i class="bi bi-shield-lock me-2"></i>
                             Cambiar Contraseña
                         </h6>
                         
                         <form (ngSubmit)="onChangePassword()">
                             <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="currentPassword" class="form-label">
+                                        Contraseña Actual <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input 
+                                            [type]="showCurrentPassword ? 'text' : 'password'"
+                                            class="form-control" 
+                                            id="currentPassword"
+                                            [(ngModel)]="passwordForm.currentPassword"
+                                            name="currentPassword"
+                                            placeholder="Ingresa tu contraseña actual"
+                                            required>
+                                        <button 
+                                            class="btn btn-outline-secondary" 
+                                            type="button"
+                                            (click)="showCurrentPassword = !showCurrentPassword">
+                                            <i [class]="showCurrentPassword ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Por seguridad, debes ingresar tu contraseña actual</small>
+                                </div>
+
                                 <div class="col-md-6 mb-3">
                                     <label for="newPassword" class="form-label">
                                         Nueva Contraseña <span class="text-danger">*</span>
