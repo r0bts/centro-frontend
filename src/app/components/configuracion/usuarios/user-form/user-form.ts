@@ -416,8 +416,8 @@ export class UserFormComponent implements OnInit, OnChanges {
         this.userForm = {
           username: user.username || '',
           nombre: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-          departamento: String(user.departmentId || ''),
-          location_id: String(user.locationId || ''),
+          departamento: user.departmentId !== null && user.departmentId !== undefined ? String(user.departmentId) : '',
+          location_id: user.locationId !== null && user.locationId !== undefined ? String(user.locationId) : '',
           status: user.isActive !== undefined ? user.isActive : true,
           id_netsuite: user.employeeNumber || '',
           rol_id: user.role?.id || ''
