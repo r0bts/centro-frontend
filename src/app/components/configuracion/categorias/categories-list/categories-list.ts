@@ -22,6 +22,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
   private categoriesDataTable: any;
   private accountsInventario: Account[] = [];
   private accountsGasto: Account[] = [];
+  private filterRegistered = false; // Flag para evitar registrar filtro múltiples veces
   
   // Estadísticas de filtrado
   totalCategories = 0;
@@ -267,20 +268,21 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
   private initFilters() {
     const self = this;
     
-    // Filtro personalizado para DataTables
-    $.fn.dataTable.ext.search.push(
-      (settings: any, data: any, dataIndex: number) => {
-        const category = self.categories[dataIndex];
-        if (!category) return true;
+    // Registrar filtro personalizado solo UNA vez para evitar duplicados
+    if (!this.filterRegistered) {
+      $.fn.dataTable.ext.search.push(
+        (settings: any, data: any, dataIndex: number) => {
+          const category = self.categories[dataIndex];
+          if (!category) return true;
 
-        // Obtener valores de filtros
-        const statusFilter = ($('#statusFilter') as any).val();
-        const accountInventarioFilter = ($('#accountInventarioFilter') as any).val();
-        const accountGastoFilter = ($('#accountGastoFilter') as any).val();
+          // Obtener valores de filtros
+          const statusFilter = ($('#statusFilter') as any).val();
+          const accountInventarioFilter = ($('#accountInventarioFilter') as any).val();
+          const accountGastoFilter = ($('#accountGastoFilter') as any).val();
 
-        // Filtro por estado
-        if (statusFilter === 'active' && category.is_inactive) return false;
-        if (statusFilter === 'inactive' && !category.is_inactive) return false;
+          // Filtro por estado (is_inactive: true=INACTIVA, false=ACTIVA)
+          if (statusFilter === 'active' && category.is_inactive) return false;
+          if (statusFilter === 'inactive' && !category.is_inactive) return false;
 
         // Filtro por cuenta de inventario
         if (accountInventarioFilter === 'assigned') {
@@ -309,6 +311,9 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
         return true;
       }
     );
+      
+      this.filterRegistered = true;
+    }
 
     // Event listeners para filtros
     $('#searchInput').on('keyup', function(this: HTMLInputElement) {
