@@ -224,6 +224,14 @@ export class UserProfileComponent implements OnInit, AfterViewInit, OnDestroy {
   // Helper Methods
   // ==========================================
 
+  /**
+   * Verificar si el usuario tiene permiso para editar su perfil
+   * Requiere permiso 'update' en submódulo 'configuracion_general'
+   */
+  canEditProfile(): boolean {
+    return this.authService.hasPermission('configuracion_general', 'update');
+  }
+
   // ==========================================
   // Password Validation Methods
   // ==========================================

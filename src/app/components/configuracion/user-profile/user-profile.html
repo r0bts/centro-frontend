@@ -148,7 +148,7 @@
                     <hr class="my-4">
 
                     <!-- Change Password Section -->
-                    <div>
+                    <div *ngIf="canEditProfile()">
                         <h6 class="text-primary mb-3">
                             Cambiar Contraseña
                         </h6>
@@ -278,6 +278,15 @@
                                 </div>
                             </div>
                         </form>
+                    </div>
+
+                    <!-- Mensaje si no tiene permiso para editar -->
+                    <div *ngIf="!canEditProfile()" class="alert alert-warning d-flex align-items-center" role="alert">
+                        <i class="bi bi-shield-lock me-2"></i>
+                        <div>
+                            <strong>Cambio de contraseña restringido</strong><br>
+                            <small>No tienes permisos para cambiar tu contraseña. Contacta al administrador del sistema si necesitas modificarla.</small>
+                        </div>
                     </div>
                 </div>
 
