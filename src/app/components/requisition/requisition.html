@@ -31,7 +31,7 @@
 
                         <!-- Select de Locación (GLACIAR, HERMES) -->
                         <div class="col-12 col-md-3">
-                          <label class="form-label mb-1 fw-bold">Locación:</label>
+                          <label class="form-label mb-1 fw-bold"><span class="text-danger">*</span> Locación:</label>
                           <select 
                             class="form-select" 
                             [(ngModel)]="businessUnit"
@@ -44,18 +44,16 @@
                           </select>
                         </div>
                         
-                        <!-- Checkbox de Devolución -->
+                        <!-- Select de Tipo de solicitud (Devolución) -->
                         <div class="col-12 col-md-3">
-                          <div class="form-check">
-                            <input 
-                              class="form-check-input" 
-                              type="checkbox" 
-                              id="devolucionCheck"
-                              [(ngModel)]="isDevolucion">
-                            <label class="form-check-label fw-bold text-danger" for="devolucionCheck">
-                              Devolución
-                            </label>
-                          </div>
+                          <label class="form-label mb-1 fw-bold"><span class="text-danger">*</span> Tipo de solicitud:</label>
+                          <select 
+                            class="form-select" 
+                            [(ngModel)]="isDevolucion"
+                            [disabled]="isLoadingFormData || !businessUnit">
+                            <option [value]="false">Requisición normal</option>
+                            <option [value]="true">Devolución de productos</option>
+                          </select>
                         </div>
                         
                         <!-- Select de Evento especial (solo visible con permiso 'events') -->
@@ -77,7 +75,7 @@
                         </div>
                         
                         <div class="col-12 col-md-3">
-                          <label class="form-label mb-1 fw-bold">Fecha personalizada:</label>
+                          <label class="form-label mb-1 fw-bold"><span class="text-danger">*</span> Fecha de entrega:</label>
                           <input 
                             type="date" 
                             class="form-control"
@@ -85,11 +83,11 @@
                             (change)="onCustomDateChange()"
                             [min]="getMinDate()"
                             [disabled]="!businessUnit">
-                          <small class="text-muted">*Entrega en la fecha exacta</small>
+                          <small class="text-muted">Fecha exacta de entrega</small>
                         </div>
                         
                         <div class="col-12 col-md-2">
-                          <label class="form-label mb-1 fw-bold">Hora de entrega:</label>
+                          <label class="form-label mb-1 fw-bold"><span class="text-danger">*</span> Hora:</label>
                           <input 
                             type="time" 
                             class="form-control"
@@ -117,7 +115,7 @@
               <!-- 2. Selección de área (SEGUNDO) -->
               <div class="row align-items-center mb-4">
                 <div class="col-12 col-lg-auto">
-                  <label class="form-label fw-bold mb-2">Área:</label>
+                  <label class="form-label fw-bold mb-2"><span class="text-danger">*</span> Área:</label>
                 </div>
                 <div class="col-12 col-lg-5 position-relative">
                   <input 
@@ -164,7 +162,7 @@
               <!-- 3. Búsqueda de productos (TERCERO) -->
               <div class="row mb-4">
                 <div class="col-md-5 position-relative">
-                  <label class="form-label ">Producto</label>
+                  <label class="form-label "><span class="text-danger">*</span> Producto</label>
                   <input 
                     type="text" 
                     class="form-control" 
@@ -205,7 +203,7 @@
                   </div>
                 </div>
                 <div class="col-md-2">
-                  <label class="form-label ">Cantidad</label>
+                  <label class="form-label "><span class="text-danger">*</span> Cantidad</label>
                   <input 
                     type="text" 
                     class="form-control " 
@@ -338,12 +336,25 @@
                 <div class="flex-grow-1">
                   <h5 class="text-primary fw-bold mb-1">{{ summary.area }}</h5>
                 </div>
-                <button 
-                  class="btn btn-outline-danger btn-sm"
-                  (click)="removeAreaFromSummary(summary.area)"
-                  title="Eliminar área">
-                  <i class="bi bi-trash"></i>
-                </button>
+                
+                <!-- Grupo de botones -->
+                <div class="btn-group btn-group-sm" role="group">
+                  <!-- Botón Editar -->
+                  <button 
+                    class="btn btn-outline-primary"
+                    (click)="editAreaFromSummary(summary.area)"
+                    title="Editar área">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  
+                  <!-- Botón Eliminar -->
+                  <button 
+                    class="btn btn-outline-danger"
+                    (click)="removeAreaFromSummary(summary.area)"
+                    title="Eliminar área">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
               </div>
               <div class="table-responsive">
                 <table class="table table-borderless">

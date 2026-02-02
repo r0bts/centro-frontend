@@ -159,6 +159,22 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
           position: `#${user.employee_number}` // Mostrar número de empleado
         }));
         
+        // Auto-seleccionar usuario logueado como empleado responsable
+        const currentUser = this.authService.getCurrentUser();
+        if (currentUser) {
+          const loggedUserEmployee = this.employees.find(
+            emp => emp.id === currentUser.id.toString()
+          );
+          
+          if (loggedUserEmployee) {
+            this.selectedEmployee = loggedUserEmployee;
+            this.employeeSearchTerm = loggedUserEmployee.name;
+            console.log('✅ Usuario logueado auto-seleccionado:', loggedUserEmployee);
+          } else {
+            console.warn('⚠️ Usuario logueado no encontrado en lista de empleados');
+          }
+        }
+        
         this.isLoadingEmployees = false;
         Swal.close();
       },

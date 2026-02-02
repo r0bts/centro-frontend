@@ -889,6 +889,38 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     this.isResumeCollapsed = !this.isResumeCollapsed;
   }
 
+  /**
+   * Editar área desde el resumen
+   * Carga el área y sus productos en el panel izquierdo para edición
+   */
+  editAreaFromSummary(areaName: string): void {
+    // 1. Establecer el área seleccionada
+    this.selectedArea = areaName;
+    this.areaSearchTerm = areaName;
+    
+    // 2. Cargar los productos de esa área (usa loadProductsForArea existente)
+    this.loadProductsForArea();
+    
+    // 3. Si el panel está colapsado, expandirlo
+    if (this.isResumeCollapsed) {
+      this.isResumeCollapsed = false;
+    }
+    
+    // 4. Forzar detección de cambios
+    this.cdr.markForCheck();
+    
+    // 5. Mostrar mensaje de confirmación
+    Swal.fire({
+      icon: 'info',
+      title: 'Editando área',
+      text: `Ahora puedes modificar los productos del área "${areaName}" en el panel izquierdo`,
+      timer: 2000,
+      showConfirmButton: false,
+      toast: true,
+      position: 'top-end'
+    });
+  }
+
   onLocationChange(): void {
     if (this.businessUnit) {
       const selectedLocation = this.locations.find(loc => loc.name === this.businessUnit);
@@ -994,9 +1026,8 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   }
 
   getMinDate(): string {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   }
 
   getRequestDeliveryDate(): Date | null {
