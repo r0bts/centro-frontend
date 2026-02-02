@@ -20,7 +20,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
   
   categories: Category[] = []; // Ya NO es @Input
   private categoriesDataTable: any;
-  private accountsInventario: Account[] = [];
+  // private accountsInventario: Account[] = [];
   private accountsGasto: Account[] = [];
   private filterRegistered = false; // Flag para evitar registrar filtro múltiples veces
   
@@ -28,7 +28,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
   totalCategories = 0;
   filteredCount = 0;
   activeCount = 0;
-  withInventarioCount = 0;
+  // withInventarioCount = 0;
   withGastoCount = 0;
   
   // Permisos del usuario
@@ -92,9 +92,9 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     this.totalCategories = this.categories.length;
     this.filteredCount = this.totalCategories;
     this.activeCount = this.categories.filter(c => !c.is_inactive).length;
-    this.withInventarioCount = this.categories.filter(c => 
-      typeof c.account_inventario === 'object' && c.account_inventario !== null
-    ).length;
+    // this.withInventarioCount = this.categories.filter(c => 
+    //   typeof c.account_inventario === 'object' && c.account_inventario !== null
+    // ).length;
     this.withGastoCount = this.categories.filter(c => 
       typeof c.account_gasto === 'object' && c.account_gasto !== null
     ).length;
@@ -182,16 +182,16 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
           title: 'Record ID',
           data: 'record_id'
         },
-        { 
-          title: 'Cuenta Inventario',
-          data: 'account_inventario',
-          render: (data: any, type: any, row: Category) => {
-            if (typeof data === 'object' && data !== null && data.account_number) {
-              return `${data.account_number} - ${data.full_name}`;
-            }
-            return '<span class="text-muted">Sin asignación</span>';
-          }
-        },
+        // { 
+        //   title: 'Cuenta Inventario',
+        //   data: 'account_inventario',
+        //   render: (data: any, type: any, row: Category) => {
+        //     if (typeof data === 'object' && data !== null && data.account_number) {
+        //       return `${data.account_number} - ${data.full_name}`;
+        //     }
+        //     return '<span class="text-muted">Sin asignación</span>';
+        //   }
+        // },
         { 
           title: 'Cuenta Gasto',
           data: 'account_gasto',
@@ -242,8 +242,8 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
       pageLength: 25,
       order: [[0, 'asc']],
       columnDefs: [
-        { orderable: false, targets: [6] },
-        { className: 'text-center', targets: [6] }
+        { orderable: false, targets: [5] },
+        { className: 'text-center', targets: [5] }
       ]
     });
     
@@ -285,16 +285,16 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
           if (statusFilter === 'inactive' && !category.is_inactive) return false;
 
         // Filtro por cuenta de inventario
-        if (accountInventarioFilter === 'assigned') {
-          const isObject = typeof category.account_inventario === 'object';
-          const notNull = category.account_inventario !== null;
-          if (!(isObject && notNull)) return false;
-        }
-        if (accountInventarioFilter === 'unassigned') {
-          const isObject = typeof category.account_inventario === 'object';
-          const notNull = category.account_inventario !== null;
-          if (isObject && notNull) return false;
-        }
+        // if (accountInventarioFilter === 'assigned') {
+        //   const isObject = typeof category.account_inventario === 'object';
+        //   const notNull = category.account_inventario !== null;
+        //   if (!(isObject && notNull)) return false;
+        // }
+        // if (accountInventarioFilter === 'unassigned') {
+        //   const isObject = typeof category.account_inventario === 'object';
+        //   const notNull = category.account_inventario !== null;
+        //   if (isObject && notNull) return false;
+        // }
 
         // Filtro por cuenta de gasto
         if (accountGastoFilter === 'assigned') {
@@ -321,7 +321,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
       self.updateFilteredCount();
     });
 
-    $('#statusFilter, #accountInventarioFilter, #accountGastoFilter').on('change', () => {
+    $('#statusFilter, #accountGastoFilter').on('change', () => {
       self.categoriesDataTable.draw();
       self.updateFilteredCount();
     });
@@ -330,7 +330,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     $('#clearFiltersBtn').on('click', () => {
       $('#searchInput').val('');
       $('#statusFilter').val('');
-      $('#accountInventarioFilter').val('');
+      // $('#accountInventarioFilter').val('');
       $('#accountGastoFilter').val('');
       self.categoriesDataTable.search('').draw();
       self.updateFilteredCount();
@@ -390,7 +390,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     console.log('📊 Cuenta Gasto actual:', category.account_gasto);
     
     // Cargar cuentas si aún no se han cargado
-    if (this.accountsInventario.length === 0 || this.accountsGasto.length === 0) {
+    if (this.accountsGasto.length === 0) {
       await this.loadAccounts();
     }
 
@@ -398,11 +398,12 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     let currentType = 'none';
     let currentAccountId: number | null = null;
     
-    if (this.isAccountObject(category.account_inventario)) {
-      currentType = 'inventario';
-      currentAccountId = (category.account_inventario as any).id;
-      console.log('🔵 Cuenta INVENTARIO detectada:', currentAccountId, category.account_inventario);
-    } else if (this.isAccountObject(category.account_gasto)) {
+    // if (this.isAccountObject(category.account_inventario)) {
+    //   currentType = 'inventario';
+    //   currentAccountId = (category.account_inventario as any).id;
+    //   console.log('🔵 Cuenta INVENTARIO detectada:', currentAccountId, category.account_inventario);
+    // } else 
+    if (this.isAccountObject(category.account_gasto)) {
       currentType = 'gasto';
       currentAccountId = (category.account_gasto as any).id;
       console.log('🔵 Cuenta GASTO detectada:', currentAccountId, category.account_gasto);
@@ -411,9 +412,9 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
     console.log('📊 Tipo actual:', currentType, '| ID:', currentAccountId);
 
     // Crear opciones para inventario
-    const inventarioOptions = this.accountsInventario.map(acc => 
-      `<option value="${acc.id}">${acc.account_number} - ${acc.full_name}</option>`
-    ).join('');
+    // const inventarioOptions = this.accountsInventario.map(acc => 
+    //   `<option value="${acc.id}">${acc.account_number} - ${acc.full_name}</option>`
+    // ).join('');
 
     // Crear opciones para gasto
     const gastoOptions = this.accountsGasto.map(acc => 
@@ -431,10 +432,10 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
                 <input class="form-check-input" type="radio" name="accountType" id="typeNone" value="none" ${currentType === 'none' ? 'checked' : ''}>
                 <label class="form-check-label" for="typeNone">Sin asignación</label>
               </div>
-              <div class="form-check">
+              <!-- <div class="form-check">
                 <input class="form-check-input" type="radio" name="accountType" id="typeInventario" value="inventario" ${currentType === 'inventario' ? 'checked' : ''}>
                 <label class="form-check-label" for="typeInventario">Cuenta de Inventario</label>
-              </div>
+              </div> -->
               <div class="form-check">
                 <input class="form-check-input" type="radio" name="accountType" id="typeGasto" value="gasto" ${currentType === 'gasto' ? 'checked' : ''}>
                 <label class="form-check-label" for="typeGasto">Cuenta de Gasto</label>
@@ -473,7 +474,8 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
             allOptions = [];
           } else {
             accountContainer.style.display = 'block';
-            const accounts = type === 'inventario' ? this.accountsInventario : this.accountsGasto;
+            // const accounts = type === 'inventario' ? this.accountsInventario : this.accountsGasto;
+            const accounts = this.accountsGasto;
             
             // Guardar todas las opciones
             allOptions = accounts.map(acc => ({
@@ -518,7 +520,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
 
         // Event listeners para cambio de tipo
         typeNone.addEventListener('change', () => updateAccountSelect('none'));
-        typeInventario.addEventListener('change', () => updateAccountSelect('inventario'));
+        // typeInventario.addEventListener('change', () => updateAccountSelect('inventario'));
         typeGasto.addEventListener('change', () => updateAccountSelect('gasto'));
       },
       preConfirm: () => {
@@ -565,7 +567,7 @@ export class CategoriesListComponent implements OnInit, AfterViewInit, OnDestroy
       this.categoryService.getAccounts().subscribe({
         next: (response) => {
           if (response.success) {
-            this.accountsInventario = response.data.inventario;
+            // this.accountsInventario = response.data.inventario;
             this.accountsGasto = response.data.gasto;
           }
           Swal.close();
