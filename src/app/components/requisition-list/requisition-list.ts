@@ -76,8 +76,8 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     const allStatuses = [
       { value: 'solicitado', label: 'Solicitado' },
       { value: 'autorizado', label: 'Autorizada' },
-      { value: 'en_proceso', label: 'En Proceso' },
       { value: 'listo_recoger', label: 'Listo para Recoger' },
+      { value: 'entrega_parcial', label: 'Parcialmente Entregado' },
       { value: 'entregado', label: 'Entregado' },
       { value: 'espera_devolucion', label: 'Espera Devolución' },
       { value: 'cancelado', label: 'Cancelado' }
@@ -308,7 +308,9 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   canWarehouseSupplyReq(requisition: RequisitionItem): boolean {
-    return requisition.status === 'Autorizada' || requisition.status === 'En Proceso';
+    return requisition.status === 'Autorizada' || 
+           requisition.status === 'En Proceso' || 
+           requisition.status === 'Parcialmente Entregado';
   }
 
   warehouseSupply(requisition: RequisitionItem): void {

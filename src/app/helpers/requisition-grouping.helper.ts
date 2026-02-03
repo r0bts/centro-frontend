@@ -8,7 +8,7 @@ export interface RequisitionItem {
   creator: string;
   authorizer: string | null;
   pickupPerson?: string | null;
-  status: 'Solicitado' | 'Autorizada' | 'En Proceso' | 'Listo para Recoger' | 'Entregado' | 'Espera Devolución' | 'Cancelado';
+  status: 'Solicitado' | 'Autorizada' | 'En Proceso' | 'Listo para Recoger' | 'Parcialmente Entregado' | 'Entregado' | 'Espera Devolución' | 'Cancelado';
   creationDate: Date;
   deliveryDate: Date;
   businessUnit?: string;
@@ -46,6 +46,7 @@ export class RequisitionGroupingHelper {
       'Autorizada',
       'En Proceso',
       'Listo para Recoger',
+      'Parcialmente Entregado',
       'Entregado',
       'Espera Devolución',
       'Cancelado'

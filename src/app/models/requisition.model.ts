@@ -8,6 +8,7 @@ export type RequisitionStatus =
   | 'Autorizada' 
   | 'En Proceso' 
   | 'Listo para Recoger' 
+  | 'Parcialmente Entregado'
   | 'Entregado' 
   | 'Espera Devolución' 
   | 'Cancelado';

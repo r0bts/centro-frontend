@@ -484,14 +484,14 @@
                 </button>
 
                <div class="d-flex flex-column flex-sm-row gap-2">
-                  <!-- Botón: Listo para Recolección (estado: autorizado) -->
+                  <!-- Botón: Listo para Recolección (estado: autorizado o entrega_parcial) -->
                   <button 
                     *ngIf="canMarkReady()"
                     type="button" 
                     class="btn btn-primary"
                     [disabled]="!canCompleteSupply()"
                     (click)="markReadyForCollection()">
-                    Listo para Recolección
+                    {{ requisition()?.statusRaw === 'entrega_parcial' ? 'Completar Entrega' : 'Listo para Recolección' }}
                   </button>
                   
                   <!-- Botón: Completar Surtido (estado: listo_recoger) -->
@@ -520,13 +520,21 @@
                     <span>Requisición completada - No hay acciones pendientes</span>
                   </div>
                   
+                  <!-- Mensaje: Entrega parcial -->
+                  <div *ngIf="requisition()?.statusRaw === 'entrega_parcial'" 
+                       class="alert alert-warning mb-0 d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <span>Algunos productos no fueron entregados. Podrás completar la entrega cuando haya stock disponible</span>
+                  </div>
+                  
                   <!-- Badge de estado actual -->
                   <div class="d-flex align-items-center ms-2">
                     <span class="badge" 
                           [class.bg-secondary]="requisition()?.statusRaw === 'autorizado'"
                           [class.bg-primary]="requisition()?.statusRaw === 'listo_recoger'"
+                          [class.bg-warning]="requisition()?.statusRaw === 'entrega_parcial'"
                           [class.bg-success]="requisition()?.statusRaw === 'entregado'"
-                          [class.bg-warning]="requisition()?.statusRaw === 'espera_devolucion'">
+                          [class.bg-info]="requisition()?.statusRaw === 'espera_devolucion'">
                       {{ requisition()?.status }}
                     </span>
                   </div>

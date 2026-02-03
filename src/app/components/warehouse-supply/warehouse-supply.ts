@@ -177,8 +177,8 @@ export class WarehouseSupplyComponent implements OnInit {
   canMarkReady = computed(() => {
     const req = this.requisition();
     if (!req) return false;
-    // Solo se puede marcar como lista cuando está autorizado
-    return req.statusRaw === 'autorizado';
+    // Solo se puede marcar como lista cuando está autorizado o parcialmente entregado
+    return req.statusRaw === 'autorizado' || req.statusRaw === 'entrega_parcial';
   });
   
   canDeliver = computed(() => {
@@ -806,25 +806,53 @@ export class WarehouseSupplyComponent implements OnInit {
             `;
           }
           
-          Swal.fire({
-            icon: 'success',
-            title: '¡Suministro Completado!',
-            html: `
-              <div class=\"text-start\">
-                <p><strong>ID:</strong> ${data.id}</p>
-                <p><strong>Estado:</strong> <span class=\"badge bg-success\">${data.status}</span></p>
-                <p><strong>Entregado el:</strong> ${new Date(data.delivered_at).toLocaleString('es-MX')}</p>
-                ${data.pickup_person ? `<p><strong>Recogido por:</strong> ${data.pickup_person.full_name}</p>` : ''}
-                ${itemsHtml}
-                ${netsuiteStatusHtml}
-                ${data.awaiting_return ? '<div class=\"alert alert-warning mt-3 mb-0\"><small><i class=\"bi bi-arrow-return-left me-1\"></i>Se espera devolución de productos</small></div>' : ''}
-              </div>
-            `,
-            confirmButtonText: 'Continuar',
-            confirmButtonColor: '#28a745'
-          }).then(() => {
-            this.goBackToList();
-          });
+          // Manejar respuesta según estado resultante
+          const status = data.status;
+          if (status === 'Parcialmente Entregado') {
+            Swal.fire({
+              icon: 'info',
+              title: 'Entrega Parcial Completada',
+              html: `
+                <div class="text-start">
+                  <p class="mb-3">Algunos productos no fueron entregados en esta ocasión.</p>
+                  <p><strong>ID:</strong> ${data.id}</p>
+                  <p><strong>Estado:</strong> <span class="badge bg-warning text-dark">${status}</span></p>
+                  <p><strong>Entregado el:</strong> ${new Date(data.delivered_at).toLocaleString('es-MX')}</p>
+                  ${data.pickup_person ? `<p><strong>Recogido por:</strong> ${data.pickup_person.full_name}</p>` : ''}
+                  ${itemsHtml}
+                  ${netsuiteStatusHtml}
+                  <div class="alert alert-info mt-3 mb-0">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    Podrás completar la entrega de los productos faltantes cuando haya stock disponible
+                  </div>
+                </div>
+              `,
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#ffc107'
+            }).then(() => {
+              this.loadRequisitionData(this.requisitionId());
+            });
+          } else {
+            Swal.fire({
+              icon: 'success',
+              title: '¡Suministro Completado!',
+              html: `
+                <div class="text-start">
+                  <p><strong>ID:</strong> ${data.id}</p>
+                  <p><strong>Estado:</strong> <span class="badge bg-success">${status}</span></p>
+                  <p><strong>Entregado el:</strong> ${new Date(data.delivered_at).toLocaleString('es-MX')}</p>
+                  ${data.pickup_person ? `<p><strong>Recogido por:</strong> ${data.pickup_person.full_name}</p>` : ''}
+                  ${itemsHtml}
+                  ${netsuiteStatusHtml}
+                  ${data.awaiting_return ? '<div class="alert alert-warning mt-3 mb-0"><small><i class="bi bi-arrow-return-left me-1"></i>Se espera devolución de productos</small></div>' : ''}
+                </div>
+              `,
+              confirmButtonText: 'Continuar',
+              confirmButtonColor: '#28a745'
+            }).then(() => {
+              this.goBackToList();
+            });
+          }
         }
       },
       error: (error) => {
