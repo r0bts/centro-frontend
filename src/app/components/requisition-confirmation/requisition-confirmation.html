@@ -58,6 +58,24 @@
                 </div>
               </div>
 
+              <!-- Indicador de PIN de Recolección -->
+              <div class="alert alert-warning border-warning mb-3" *ngIf="isFromList && requisitionPin">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <i class="bi bi-key-fill fs-2 text-warning"></i>
+                  </div>
+                  <div class="col">
+                    <h6 class="mb-1 fw-bold">PIN de Recolección</h6>
+                    <small class="text-muted">Necesario para recoger la requisición</small>
+                  </div>
+                  <div class="col-auto">
+                    <div class="bg-white rounded px-4 py-2 border border-warning">
+                      <h2 class="mb-0 fw-bold text-warning" style="letter-spacing: 0.5rem;">{{ requisitionPin }}</h2>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Mensaje cuando no hay fecha -->
               <div class="alert alert-warning border mb-4" *ngIf="!deliveryDate">
                 <div class="d-flex align-items-center">

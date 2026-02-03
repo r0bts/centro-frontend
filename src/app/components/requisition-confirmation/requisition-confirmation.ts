@@ -98,6 +98,9 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
   // Status de la requisición para controlar botones
   requisitionStatus: string = '';
 
+  // PIN de la requisición para recoger
+  requisitionPin: string = '';
+
   constructor(private router: Router, private route: ActivatedRoute) {
     // Obtener datos del estado de navegación (para flujo normal y desde listado)
     const navigation = this.router.getCurrentNavigation();
@@ -217,6 +220,9 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
           this.selectedDepartmentId = data.departmentId;
           this.selectedProjectId = data.projectId;
           this.requisitionStatus = data.status || '';
+          
+          // Capturar PIN de la requisición
+          this.requisitionPin = data.pin || '';
           
           // Mapear empleado responsable (persona que recoge)
           if (data.pickupPersonId && data.pickupPerson) {
