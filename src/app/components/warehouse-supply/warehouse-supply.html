@@ -53,7 +53,18 @@
             <!-- Información de autorización -->
             <div class="card-body bg-light border-top">
               <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                  <div class="d-flex align-items-center">
+                    <div>
+                      <small class="text-muted d-block">Persona que recogerá</small>
+                      <strong class="text-dark">
+                        <i class="bi bi-person-check me-1"></i>
+                        {{ requisition()!.pickupPerson || 'Sin asignar' }}
+                      </strong>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-3">
                   <div class="d-flex align-items-center">
                     <div>
                       <small class="text-muted d-block">Autorizado por</small>
@@ -61,7 +72,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <div class="d-flex align-items-center">
                     <div>
                       <small class="text-muted d-block">Fecha de autorización</small>
@@ -69,7 +80,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                   <div class="d-flex align-items-center">
                     <div>
                       <small class="text-muted d-block">Firma electrónica</small>
@@ -114,7 +125,8 @@
                         class="form-control"
                         placeholder="Buscar producto, código, ubicación..."
                         [ngModel]="searchTerm()"
-                        (ngModelChange)="searchTerm.set($event)">
+                        (ngModelChange)="searchTerm.set($event)"
+                        autocomplete="off">
                     </div>
                     <div class="col-md-2 col-12">
                     </div>
@@ -256,7 +268,8 @@
                               inputmode="numeric"
                               placeholder="0"
                               (input)="updateSuppliedQuantity(product, $event)"
-                              [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)">
+                              [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)"
+                              autocomplete="off">
                           </div>
                         </td>
 
@@ -271,7 +284,8 @@
                               inputmode="numeric"
                               placeholder="0"
                               (input)="updateReturnQuantity(product, $event)"
-                              [disabled]="product.availableStock === 0">
+                              [disabled]="product.availableStock === 0"
+                              autocomplete="off">
                           </div>
                         </td>
 
@@ -403,7 +417,8 @@
                             inputmode="numeric"
                             placeholder="0"
                             (input)="updateSuppliedQuantity(product, $event)"
-                            [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)">
+                            [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)"
+                            autocomplete="off">
                         </div>
                       </td>
 
@@ -418,7 +433,8 @@
                             inputmode="numeric"
                             placeholder="0"
                             (input)="updateReturnQuantity(product, $event)"
-                            [disabled]="product.availableStock === 0">
+                            [disabled]="product.availableStock === 0"
+                            autocomplete="off">
                         </div>
                       </td>
 
@@ -553,11 +569,13 @@
               type="password" 
               class="form-control form-control-lg text-center" 
               id="nipInput"
+              name="verification-pin"
               [ngModel]="enteredNip()"
               (ngModelChange)="enteredNip.set($event)"
               maxlength="4"
               placeholder="****"
-              style="letter-spacing: 0.5rem; font-size: 1.5rem;">
+              style="letter-spacing: 0.5rem; font-size: 1.5rem;"
+              autocomplete="one-time-code">
           </div>
           
           <div *ngIf="nipError()" class="alert alert-danger d-flex align-items-center" role="alert">

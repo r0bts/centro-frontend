@@ -100,6 +100,12 @@ export interface RequisitionWarehouse {
   /** Fecha de autorización en formato ISO 8601 */
   authorizationDate?: string;
   
+  /** Nombre completo del usuario que recogerá la requisición */
+  pickupPerson?: string;
+  
+  /** ID del usuario que recogerá */
+  pickupPersonId?: number;
+  
   /** Indica si tiene firma electrónica */
   electronicSignature?: boolean;
   
@@ -139,9 +145,12 @@ export interface APIRequisitionWarehouse {
   businessUnit: string | null;
   authorizedBy: string | null;
   authorizationDate: string | null;
+  pickupPerson: string | null;
+  pickupPersonId: number | null;
   electronicSignature: boolean;
   signatureHash: string | null;
   signatureDate: string | null;
+  pin: string | null;
   totalProducts: number;
   suppliedProducts: number;
   pendingProducts: number;
