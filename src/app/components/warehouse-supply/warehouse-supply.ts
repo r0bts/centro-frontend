@@ -263,25 +263,10 @@ export class WarehouseSupplyComponent implements OnInit {
     this.http.get<WarehouseSupplyResponse>(apiUrl, { headers }).subscribe({
       next: (response) => {
         if (response.success && response.data?.requisition) {
-          console.log('✅ Requisición cargada:', response.data.requisition);
-          
           // Mapear datos de la API usando el helper
           const mappedRequisition = WarehouseSupplyHelper.mapRequisitionFromAPI(
             response.data.requisition
           );
-          
-          // Debug: Verificar estados
-          console.log('📋 Estado de la requisición:', {
-            status: mappedRequisition.status,
-            statusRaw: mappedRequisition.statusRaw,
-            awaiting_return: mappedRequisition.awaiting_return
-          });
-          console.log('🔘 Botones visibles:', {
-            canStartSupply: mappedRequisition.statusRaw === 'autorizado',
-            canMarkReady: mappedRequisition.statusRaw === 'en_proceso',
-            canDeliver: mappedRequisition.statusRaw === 'listo_recoger',
-            canProcessReturn: (mappedRequisition.statusRaw === 'entregado' || mappedRequisition.statusRaw === 'espera_devolucion') && mappedRequisition.awaiting_return
-          });
           
           this.requisition.set(mappedRequisition);
           
@@ -300,13 +285,11 @@ export class WarehouseSupplyComponent implements OnInit {
           );
           this.supplySession.set(session);
         } else {
-          console.error('❌ Respuesta inválida del servidor');
           this.requisition.set(null);
         }
         this.isLoading.set(false);
       },
       error: (error) => {
-        console.error('❌ Error al cargar requisición:', error);
         this.isLoading.set(false);
         this.requisition.set(null);
         
@@ -570,8 +553,6 @@ export class WarehouseSupplyComponent implements OnInit {
           delivered_quantity: product.suppliedQuantity || 0
         }));
         
-        console.log('📦 Items a enviar (delivered_quantity registrado en BD):', items);
-        
         // Mostrar loading
         Swal.fire({
           title: 'Procesando...',
@@ -585,8 +566,6 @@ export class WarehouseSupplyComponent implements OnInit {
         // Llamar al endpoint con items
         this.requisitionService.markReady(req.id, items).subscribe({
           next: (response) => {
-            console.log('✅ Respuesta mark-ready:', response);
-            
             if (response.success) {
               const data = response.data;
               
@@ -629,8 +608,6 @@ export class WarehouseSupplyComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('❌ Error al marcar como lista:', error);
-            
             let errorMessage = 'No se pudo marcar la requisición como lista';
             if (error.error?.message) {
               errorMessage = error.error.message;
@@ -790,9 +767,6 @@ export class WarehouseSupplyComponent implements OnInit {
     // Llamar al endpoint de entrega (solo envía PIN, las cantidades ya fueron guardadas en mark-ready)
     this.requisitionService.deliver(req.id, nip).subscribe({
       next: (response) => {
-        console.log('✅ Respuesta deliver:', response);
-        console.log('🔄 Estado de sincronización NetSuite:', response.data?.netsuite_sync || 'No aplica (devolución pendiente)');
-        
         if (response.success) {
           const data = response.data;
           
@@ -854,26 +828,45 @@ export class WarehouseSupplyComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('❌ Error al completar suministro:', error);
+        // Cerrar el loading primero
+        Swal.close();
         
         let errorMessage = 'No se pudo completar el suministro';
         let errorTitle = 'Error';
+        let allowRetry = false;
         
-        if (error.error?.message) {
-          errorMessage = error.error.message;
+        // Obtener mensaje del backend
+        if (error.message) {
+          errorMessage = error.message;
         }
         
-        if (error.error?.error?.code === 'INVALID_PIN') {
+        // Manejo específico para PIN incorrecto
+        // El error viene como Error.message después del handleError del servicio
+        if (error.message && error.message.includes('PIN incorrecto')) {
           errorTitle = 'PIN Incorrecto';
-          errorMessage = 'El PIN proporcionado no coincide. Verifica e intenta nuevamente.';
+          errorMessage = `El PIN que ingresaste (${this.enteredNip()}) no coincide con el PIN de la requisición.\n\n¿Deseas intentar nuevamente?`;
+          allowRetry = true;
+        } else if (error.message && error.message.includes('Estado')) {
+          errorTitle = 'Estado Inválido';
+          errorMessage = error.message;
         }
         
         Swal.fire({
           icon: 'error',
           title: errorTitle,
-          text: errorMessage,
-          confirmButtonText: 'Entendido',
-          confirmButtonColor: '#dc3545'
+          html: errorMessage.replace(/\n/g, '<br>'),
+          showCancelButton: allowRetry,
+          confirmButtonText: allowRetry ? 'Sí, reintentar' : 'Entendido',
+          cancelButtonText: allowRetry ? 'Cancelar' : undefined,
+          confirmButtonColor: allowRetry ? '#007bff' : '#dc3545',
+          cancelButtonColor: '#6c757d'
+        }).then((result) => {
+          if (result.isConfirmed && allowRetry) {
+            // Limpiar el PIN y reabrir modal para reintentar
+            this.enteredNip.set('');
+            this.nipError.set('');
+            this.openNipModalForCompletion();
+          }
         });
       }
     });
@@ -1011,9 +1004,6 @@ export class WarehouseSupplyComponent implements OnInit {
         // Llamar al endpoint
         this.requisitionService.processReturn(req.id, items, notes).subscribe({
           next: (response) => {
-            console.log('✅ Respuesta process-return:', response);
-            console.log('🔄 Sincronización NetSuite:', response.data?.netsuite_sync);
-            
             if (response.success) {
               const data = response.data;
               
@@ -1080,8 +1070,6 @@ export class WarehouseSupplyComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('❌ Error al procesar devolución:', error);
-            
             let errorMessage = 'No se pudo procesar la devolución';
             if (error.error?.message) {
               errorMessage = error.error.message;

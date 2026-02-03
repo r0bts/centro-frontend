@@ -527,16 +527,6 @@ export class RequisitionService {
    */
   deliver(id: string, pin: string): Observable<DeliverResponse> {
     return this.http.post<DeliverResponse>(`${this.API_URL}/requisitions/${id}/deliver`, { pin }).pipe(
-      tap(response => {
-        const data = response.data;
-        if (data.awaiting_return) {
-          console.log('✅ Requisición entregada (Devolución pendiente, NetSuite: diferido):', response);
-        } else if (data.netsuite_sync) {
-          console.log('✅ Requisición entregada + NetSuite sincronizado:', response);
-        } else {
-          console.log('✅ Requisición entregada:', response);
-        }
-      }),
       catchError(this.handleError)
     );
   }
