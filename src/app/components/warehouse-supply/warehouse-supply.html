@@ -10,10 +10,16 @@
     <div class="container-fluid p-4">
       <!-- Loading State -->
       <div *ngIf="isLoading()" class="text-center py-5">
-        <div class="spinner-border text-primary" role="status">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
           <span class="visually-hidden">Cargando...</span>
         </div>
-        <p class="mt-3 text-muted">Cargando datos de la requisición...</p>
+        <h5 class="text-primary mb-2">Consultando inventario disponible</h5>
+        <p class="text-muted mb-0">
+          Conectando con <strong>NetSuite</strong> para obtener stock actualizado
+        </p>
+        <small class="text-muted d-block mt-2">
+          Este proceso puede tardar unos segundos
+        </small>
       </div>
 
       <!-- Main Content -->
