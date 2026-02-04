@@ -26,6 +26,7 @@ export class WarehouseSupplyHelper {
       category: apiProduct.category || 'Sin categoría',
       requestedQuantity: apiProduct.requestedQuantity || 0,
       suppliedQuantity: apiProduct.suppliedQuantity || 0,
+      newDeliveryQuantity: 0, // Inicializar en 0 para nueva entrega
       returnQuantity: apiProduct.returnQuantity || 0,
       availableStock: apiProduct.availableStock || 0,
       unit: apiProduct.unit || '',

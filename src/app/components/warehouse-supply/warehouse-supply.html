@@ -208,8 +208,9 @@
                         <th>Producto</th>
                        <!--  <th class="text-center">Ubicación</th>-->
                         <th class="text-center">Solicitado</th>
+                        <th class="text-center">Ya Entregado</th>
                         <th class="text-center">Stock</th>
-                        <th class="text-center">Surtir</th>
+                        <th class="text-center">Agregar</th>
                         <th *ngIf="showReturnColumn()" class="text-center">Devolución</th>
                         <th class="text-center">Acciones</th>
                       </tr>
@@ -256,6 +257,15 @@
                           </span>
                         </td>
 
+                        <!-- Ya Entregado -->
+                        <td class="text-center align-middle">
+                          <span class="badge fs-6 px-3 py-2" 
+                                [class.bg-success]="product.suppliedQuantity > 0"
+                                [class.bg-secondary]="!product.suppliedQuantity || product.suppliedQuantity === 0">
+                            {{ product.suppliedQuantity || 0 }} {{ product.unit }}
+                          </span>
+                        </td>
+
                         <!-- Stock -->
                         <td class="text-center align-middle">
                           <span class="fw-bold fs-6" [class]="getStockStatusClass(product)">
@@ -263,20 +273,23 @@
                           </span>
                         </td>
 
-                        <!-- Surtir -->
+                        <!-- Agregar (entrega incremental) -->
                         <td class="text-center align-middle">
-                          <div class="input-group input-group-sm mx-auto" style="width: 80px;">
+                          <div class="input-group input-group-sm mx-auto" style="width: 100px;">
                             <input 
                               type="text" 
                               class="form-control text-center"
-                              [value]="product.suppliedQuantity || ''"
+                              [value]="product.newDeliveryQuantity || ''"
                               pattern="[0-9]*"
                               inputmode="numeric"
-                              placeholder="0"
+                              [placeholder]="'+ ' + (product.requestedQuantity - (product.suppliedQuantity || 0))"
                               (input)="updateSuppliedQuantity(product, $event)"
-                              [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return)"
+                              [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return) || (product.suppliedQuantity >= product.requestedQuantity)"
                               autocomplete="off">
                           </div>
+                          <small class="text-muted d-block mt-1" *ngIf="product.newDeliveryQuantity && product.newDeliveryQuantity > 0">
+                            Total: {{ (product.suppliedQuantity || 0) + product.newDeliveryQuantity }}
+                          </small>
                         </td>
 
                         <!-- Devolución -->

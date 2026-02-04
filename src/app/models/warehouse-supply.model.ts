@@ -23,8 +23,11 @@ export interface WarehouseProduct {
   /** Cantidad solicitada */
   requestedQuantity: number;
   
-  /** Cantidad surtida/entregada */
+  /** Cantidad surtida/entregada (acumulada) */
   suppliedQuantity: number;
+  
+  /** Cantidad nueva a agregar en esta entrega (temporal, no viene del backend) */
+  newDeliveryQuantity?: number;
   
   /** Cantidad devuelta (opcional) */
   returnQuantity: number;

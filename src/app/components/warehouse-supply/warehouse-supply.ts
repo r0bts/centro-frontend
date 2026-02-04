@@ -158,7 +158,10 @@ export class WarehouseSupplyComponent implements OnInit {
   canComplete = computed(() => {
     const req = this.requisition();
     if (!req) return false;
-    return WarehouseSupplyHelper.canCompleteSupply(req);
+    // Permitir si hay al menos un producto con nueva cantidad a entregar
+    const hasNewDeliveries = req.products.some(p => p.newDeliveryQuantity && p.newDeliveryQuantity > 0);
+    console.log('🔍 canComplete - hasNewDeliveries:', hasNewDeliveries);
+    return hasNewDeliveries;
   });
   
   hasProductsForReturn = computed(() => {
@@ -394,44 +397,49 @@ export class WarehouseSupplyComponent implements OnInit {
   }
 
   selectProductForSupply(product: WarehouseProduct): void {
-    if (product.isSupplied) {
+    const alreadyDelivered = product.suppliedQuantity || 0;
+    const remaining = product.requestedQuantity - alreadyDelivered;
+    
+    if (remaining <= 0) {
       Swal.fire({
         icon: 'info',
-        title: 'Producto ya surtido',
-        text: `El producto "${product.name}" ya fue surtido completamente.`,
+        title: 'Producto ya surtido completamente',
+        text: `El producto "${product.name}" ya fue surtido completamente (${alreadyDelivered} ${product.unit}).`,
         confirmButtonText: 'Entendido'
       });
       return;
     }
     
-    if (product.availableStock < product.requestedQuantity) {
+    if (product.availableStock < remaining) {
       Swal.fire({
         title: 'Stock insuficiente',
         html: `
           <p><strong>${product.name}</strong></p>
-          <p>Cantidad solicitada: <strong>${product.requestedQuantity} ${product.unit}</strong></p>
+          <p>Cantidad pendiente: <strong>${remaining} ${product.unit}</strong></p>
           <p>Disponible: <strong>${product.availableStock} ${product.unit}</strong></p>
-          <p>¿Surtir cantidad disponible?</p>
+          <p>¿Agregar cantidad disponible?</p>
         `,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sí, surtir disponible',
+        confirmButtonText: 'Sí, agregar disponible',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#007bff',
         cancelButtonColor: '#6c757d'
       }).then((result) => {
         if (result.isConfirmed) {
-          this.updateProductInRequisition(product.id, (p) => 
-            WarehouseSupplyHelper.updateSuppliedQuantity(p, p.availableStock)
-          );
+          this.updateProductInRequisition(product.id, (p) => {
+            p.newDeliveryQuantity = Math.min(p.availableStock, remaining);
+            return p;
+          });
           this.updateProgress();
         }
       });
       return;
     } else {
-      this.updateProductInRequisition(product.id, (p) => 
-        WarehouseSupplyHelper.updateSuppliedQuantity(p, p.requestedQuantity)
-      );
+      this.updateProductInRequisition(product.id, (p) => {
+        p.newDeliveryQuantity = remaining;
+        return p;
+      });
     }
     
     this.updateProgress();
@@ -447,18 +455,23 @@ export class WarehouseSupplyComponent implements OnInit {
     
     const quantity = parseInt(numericValue) || 0;
     
-    if (quantity > product.requestedQuantity) {
+    // Calcular cuánto ya se entregó y cuánto falta (VALIDACIÓN INCREMENTAL)
+    const alreadyDelivered = product.suppliedQuantity || 0;
+    const remaining = product.requestedQuantity - alreadyDelivered;
+    
+    if (quantity > remaining) {
       Swal.fire({
         icon: 'warning',
         title: 'Cantidad excedida',
-        text: `No se puede surtir más de ${product.requestedQuantity} ${product.unit} (cantidad solicitada)`,
+        text: `Solo puedes agregar ${remaining} ${product.unit} más (ya entregado: ${alreadyDelivered}, solicitado: ${product.requestedQuantity})`,
         confirmButtonText: 'Entendido'
       });
       
-      this.updateProductInRequisition(product.id, (p) => 
-        WarehouseSupplyHelper.updateSuppliedQuantity(p, p.requestedQuantity)
-      );
-      event.target.value = product.requestedQuantity.toString();
+      this.updateProductInRequisition(product.id, (p) => {
+        p.newDeliveryQuantity = remaining;
+        return p;
+      });
+      event.target.value = remaining.toString();
       return;
     }
     
@@ -470,16 +483,20 @@ export class WarehouseSupplyComponent implements OnInit {
         confirmButtonText: 'Entendido'
       });
       
-      this.updateProductInRequisition(product.id, (p) => 
-        WarehouseSupplyHelper.updateSuppliedQuantity(p, p.availableStock)
-      );
-      event.target.value = product.availableStock.toString();
+      const maxCanDeliver = Math.min(product.availableStock, remaining);
+      this.updateProductInRequisition(product.id, (p) => {
+        p.newDeliveryQuantity = maxCanDeliver;
+        return p;
+      });
+      event.target.value = maxCanDeliver.toString();
       return;
     }
     
-    this.updateProductInRequisition(product.id, (p) => 
-      WarehouseSupplyHelper.updateSuppliedQuantity(p, quantity)
-    );
+    // Guardar en newDeliveryQuantity (cantidad a AGREGAR, no total)
+    this.updateProductInRequisition(product.id, (p) => {
+      p.newDeliveryQuantity = quantity;
+      return p;
+    });
     this.updateProgress();
   }
 
@@ -548,9 +565,22 @@ export class WarehouseSupplyComponent implements OnInit {
     const req = this.requisition();
     if (!req) return;
     
+    // Verificar que haya productos con nueva entrega
+    const productsToDeliver = req.products.filter(p => p.newDeliveryQuantity && p.newDeliveryQuantity > 0);
+    
+    if (productsToDeliver.length === 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Sin productos para entregar',
+        text: 'Debes agregar al menos un producto con cantidad a entregar',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+    
     Swal.fire({
       title: '¿Marcar como lista para recolección?',
-      text: 'Se registrarán las cantidades surtidas y se generará un PIN para validar la entrega.',
+      text: `Se registrarán ${productsToDeliver.length} producto(s) y se generará un PIN para validar la entrega.`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, marcar como lista',
@@ -559,10 +589,10 @@ export class WarehouseSupplyComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Preparar array de items con cantidades surtidas
+        // Preparar array de items con cantidades NUEVAS a agregar (incremental)
         const items = this.filteredProducts().map((product: WarehouseProduct) => ({
           item_id: parseInt(product.id, 10),
-          delivered_quantity: product.suppliedQuantity || 0
+          delivered_quantity: product.newDeliveryQuantity || 0
         }));
         
         // Mostrar loading
