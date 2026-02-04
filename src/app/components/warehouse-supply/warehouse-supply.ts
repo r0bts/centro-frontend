@@ -170,29 +170,38 @@ export class WarehouseSupplyComponent implements OnInit {
   showReturnColumn = computed(() => {
     const req = this.requisition();
     if (!req) return false;
-    return req.awaiting_return;
+    // Mostrar columna cuando: espera_devolucion O (parcialmente_entregado/entregado + awaiting_return)
+    return req.statusRaw === 'espera_devolucion' || 
+           ((req.statusRaw === 'parcialmente_entregado' || req.statusRaw === 'entregado') && req.awaiting_return);
   });
   
   // Computed para control de botones según documentación
   canMarkReady = computed(() => {
     const req = this.requisition();
+    console.log('🔍 canMarkReady - req:', req);
     if (!req) return false;
-    // Solo se puede marcar como lista cuando está autorizado o parcialmente entregado
-    return req.statusRaw === 'autorizado' || req.statusRaw === 'entrega_parcial';
+    const result = req.statusRaw === 'autorizado' || req.statusRaw === 'parcialmente_entregado';
+    console.log('🔍 canMarkReady - statusRaw:', req.statusRaw, 'result:', result);
+    return result;
   });
   
   canDeliver = computed(() => {
     const req = this.requisition();
+    console.log('🔍 canDeliver - req:', req);
     if (!req) return false;
-    return req.statusRaw === 'listo_recoger';
+    const result = req.statusRaw === 'listo_recoger';
+    console.log('🔍 canDeliver - statusRaw:', req.statusRaw, 'result:', result);
+    return result;
   });
   
   canProcessReturn = computed(() => {
     const req = this.requisition();
+    console.log('🔍 canProcessReturn - req:', req);
     if (!req) return false;
-    // Solo mostrar botón de devolución si está en estado de devolución Y tiene flag awaiting_return
-    // Si está "entregado" sin awaiting_return, no se puede hacer nada (requisición completada)
-    return (req.statusRaw === 'entregado' || req.statusRaw === 'espera_devolucion') && req.awaiting_return;
+    const allowedStatuses = ['espera_devolucion', 'entregado', 'parcialmente_entregado'];
+    const result = allowedStatuses.includes(req.statusRaw) && req.awaiting_return;
+    console.log('🔍 canProcessReturn - statusRaw:', req.statusRaw, 'awaiting_return:', req.awaiting_return, 'result:', result);
+    return result;
   });
   
   filteredProducts = computed(() => {
@@ -267,6 +276,9 @@ export class WarehouseSupplyComponent implements OnInit {
           const mappedRequisition = WarehouseSupplyHelper.mapRequisitionFromAPI(
             response.data.requisition
           );
+          
+          console.log('📦 Requisición cargada:', mappedRequisition);
+          console.log('📊 Estado:', mappedRequisition.statusRaw, 'Awaiting Return:', mappedRequisition.awaiting_return);
           
           this.requisition.set(mappedRequisition);
           
@@ -964,26 +976,39 @@ export class WarehouseSupplyComponent implements OnInit {
     const req = this.requisition();
     if (!req) return;
     
-    const productsToReturn = WarehouseSupplyHelper.getProductsToReturn(req.products);
+    // Obtener TODOS los productos que fueron entregados (con o sin devolución)
+    const productsDelivered = req.products.filter(p => p.suppliedQuantity && p.suppliedQuantity > 0);
     
-    if (productsToReturn.length === 0) {
+    if (productsDelivered.length === 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'No hay productos para devolver',
-        text: 'No se han especificado cantidades de devolución en ningún producto.',
+        title: 'No hay productos entregados',
+        text: 'No se puede procesar devolución porque no hay productos entregados.',
         confirmButtonText: 'Entendido'
       });
       return;
     }
 
-    let returnListHtml = '<div class="text-start"><h6>Productos a devolver:</h6><ul class="list-unstyled">';
-    productsToReturn.forEach(product => {
-      returnListHtml += `<li class="mb-2">
-        <strong>${product.name}</strong><br>
-        <small class="text-muted">Cantidad: ${product.returnQuantity} ${product.unit}</small>
-      </li>`;
-    });
-    returnListHtml += '</ul></div>';
+    // Calcular productos con devolución
+    const productsToReturn = WarehouseSupplyHelper.getProductsToReturn(req.products);
+    const hasReturns = productsToReturn.length > 0;
+
+    let returnListHtml = '<div class="text-start">';
+    
+    if (hasReturns) {
+      returnListHtml += '<h6>Productos a devolver:</h6><ul class="list-unstyled">';
+      productsToReturn.forEach(product => {
+        returnListHtml += `<li class="mb-2">
+          <strong>${product.name}</strong><br>
+          <small class="text-muted">Devolver: ${product.returnQuantity} ${product.unit}</small>
+        </li>`;
+      });
+      returnListHtml += '</ul>';
+    } else {
+      returnListHtml += '<div class="alert alert-info"><i class="bi bi-info-circle me-2"></i><strong>Sin devoluciones:</strong> Se cerrará la requisición sin devolver productos.</div>';
+    }
+    
+    returnListHtml += '</div>';
 
     Swal.fire({
       title: '¿Confirmar devolución al almacén?',
@@ -1013,10 +1038,10 @@ export class WarehouseSupplyComponent implements OnInit {
       if (result.isConfirmed) {
         const notes = result.value?.trim() || undefined;
         
-        // Preparar items para la devolución
-        const items = productsToReturn.map(product => ({
+        // Preparar items para la devolución (incluir TODOS los entregados, incluso con returned=0)
+        const items = productsDelivered.map(product => ({
           item_id: parseInt(product.id),
-          returned_quantity: product.returnQuantity
+          returned_quantity: product.returnQuantity || 0
         }));
         
         // Mostrar loading
