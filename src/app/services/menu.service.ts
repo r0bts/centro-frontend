@@ -46,7 +46,11 @@ export class MenuService {
     const submoduleItems: MenuItem[] = [];
     
     // Rutas internas que no deben aparecer en el menú
-    const excludedRoutes = ['/requisicion/confirmacion'];
+    const excludedRoutes = [
+      '/requisicion/confirmacion',
+      '/reportes/historial',      // Temporalmente oculto - en desarrollo
+      //'/requisicion/frecuentes'   // Temporalmente oculto - en desarrollo
+    ];
 
     // Obtener submódulos y ordenarlos por sort_order
     const submodules = Object.values(module.submodules)
