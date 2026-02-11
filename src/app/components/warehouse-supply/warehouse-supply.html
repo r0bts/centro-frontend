@@ -282,13 +282,18 @@
                               [value]="product.newDeliveryQuantity || ''"
                               pattern="[0-9]*"
                               inputmode="numeric"
-                              [placeholder]="'+ ' + (product.requestedQuantity - (product.suppliedQuantity || 0))"
+                              placeholder="0"
                               (input)="updateSuppliedQuantity(product, $event)"
                               [disabled]="product.availableStock === 0 || (requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return) || (product.suppliedQuantity >= product.requestedQuantity)"
                               autocomplete="off">
                           </div>
-                          <small class="text-muted d-block mt-1" *ngIf="product.newDeliveryQuantity && product.newDeliveryQuantity > 0">
-                            Total: {{ (product.suppliedQuantity || 0) + product.newDeliveryQuantity }}
+                          <small class="text-muted d-block mt-1">
+                            <span *ngIf="product.newDeliveryQuantity && product.newDeliveryQuantity > 0">
+                              Total: {{ (product.suppliedQuantity || 0) + product.newDeliveryQuantity }}
+                            </span>
+                            <span *ngIf="!product.newDeliveryQuantity || product.newDeliveryQuantity === 0" class="fst-italic">
+                              Faltante: {{ product.requestedQuantity - (product.suppliedQuantity || 0) }}
+                            </span>
                           </small>
                         </td>
 
@@ -496,16 +501,27 @@
                   Volver a la lista
                 </button>
 
-               <div class="d-flex flex-column flex-sm-row gap-2">
-                  <!-- Botón: Listo para Recolección (estado: autorizado o parcialmente_entregado) -->
-                  <button 
-                    *ngIf="canMarkReady()"
-                    type="button" 
-                    class="btn btn-primary"
-                    [disabled]="!canCompleteSupply()"
-                    (click)="markReadyForCollection()">
-                    {{ requisition()?.statusRaw === 'parcialmente_entregado' ? 'Completar Entrega' : 'Listo para Recolección' }}
-                  </button>
+               <div class="d-flex flex-column gap-2">
+                  <!-- Badge de estado de surtido -->
+                  <div *ngIf="canMarkReady() && !canCompleteSupply()" 
+                       class="alert alert-info d-flex align-items-center mb-0">
+                    <i class="bi bi-info-circle-fill me-2"></i>
+                    <div>
+                      <strong>Siguiente paso:</strong> Ingresa cantidades en los productos para continuar con la entrega
+                    </div>
+                  </div>
+
+                  <div class="d-flex flex-sm-row gap-2">
+                    <!-- Botón: Listo para Recolección (estado: autorizado o parcialmente_entregado) -->
+                    <button 
+                      *ngIf="canMarkReady() && canCompleteSupply()"
+                      type="button" 
+                      class="btn btn-primary"
+                      title="Click para generar PIN de recolección"
+                      (click)="markReadyForCollection()">
+                      <i class="bi bi-box-seam me-2"></i>
+                      {{ requisition()?.statusRaw === 'parcialmente_entregado' ? 'Completar Entrega' : 'Listo para Recolección' }}
+                    </button>
                   
                   <!-- Botón: Completar Surtido (estado: listo_recoger) -->
                   <button 
@@ -544,16 +560,17 @@
                     </span>
                   </div>
                   
-                  <!-- Badge de estado actual -->
-                  <div class="d-flex align-items-center ms-2">
-                    <span class="badge" 
-                          [class.bg-secondary]="requisition()?.statusRaw === 'autorizado'"
-                          [class.bg-primary]="requisition()?.statusRaw === 'listo_recoger'"
-                          [class.bg-warning]="requisition()?.statusRaw === 'parcialmente_entregado'"
-                          [class.bg-success]="requisition()?.statusRaw === 'entregado'"
-                          [class.bg-info]="requisition()?.statusRaw === 'espera_devolucion'">
-                      {{ requisition()?.status }}
-                    </span>
+                    <!-- Badge de estado actual -->
+                    <div class="d-flex align-items-center ms-2">
+                      <span class="badge" 
+                            [class.bg-secondary]="requisition()?.statusRaw === 'autorizado'"
+                            [class.bg-primary]="requisition()?.statusRaw === 'listo_recoger'"
+                            [class.bg-warning]="requisition()?.statusRaw === 'parcialmente_entregado'"
+                            [class.bg-success]="requisition()?.statusRaw === 'entregado'"
+                            [class.bg-info]="requisition()?.statusRaw === 'espera_devolucion'">
+                        {{ requisition()?.status }}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
