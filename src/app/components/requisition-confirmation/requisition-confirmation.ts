@@ -11,6 +11,7 @@ import {
   RequisitionItemPayload 
 } from '../../services/requisition.service';
 import { AuthService } from '../../services/auth.service';
+import { FrequentTemplatesService } from '../../services/frequent-templates.service';
 
 export interface RequisitionSummary {
   area: string;
@@ -54,6 +55,7 @@ export interface Employee {
 export class RequisitionConfirmationComponent implements OnInit, AfterViewChecked {
   private requisitionService = inject(RequisitionService);
   private authService = inject(AuthService);
+  private frequentTemplatesService = inject(FrequentTemplatesService);
   private cdr = inject(ChangeDetectorRef);
   
   private viewCheckedCount = 0;
@@ -797,10 +799,10 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
 
   saveAsTemplate(): void {
     Swal.fire({
-      title: 'Guardar como lista frecuente',
-      text: 'Ingrese un nombre para esta lista frecuente:',
+      title: 'Guardar como plantilla frecuente',
+      text: 'Ingrese un nombre para esta plantilla:',
       input: 'text',
-      inputPlaceholder: 'Nombre de la lista frecuente',
+      inputPlaceholder: 'Nombre de la plantilla',
       showCancelButton: true,
       confirmButtonText: 'Guardar',
       cancelButtonText: 'Cancelar',
@@ -808,7 +810,7 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
       cancelButtonColor: '#6c757d',
       inputValidator: (value) => {
         if (!value || !value.trim()) {
-          return 'Debes ingresar un nombre para la lista frecuente';
+          return 'Debes ingresar un nombre para la plantilla';
         }
         return null;
       }
@@ -816,34 +818,42 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
       if (result.isConfirmed && result.value) {
         const templateName = result.value.trim();
         
-        console.log('Guardando como plantilla:', {
-          name: templateName,
-          areas: this.requisitionData,
-          consolidatedProducts: this.consolidatedProducts,
-          createdFrom: this.requisitionId,
-          createdDate: new Date()
+        // Mostrar loading
+        Swal.fire({
+          title: 'Guardando plantilla...',
+          text: 'Por favor espera',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
         });
         
-        // Aquí se guardaría la plantilla en el servidor o localStorage
-        const template = {
-          id: `TEMPLATE-${Date.now()}`,
+        // 🔍 DEBUG: Ver qué ID se está enviando
+        
+        // Llamar al servicio para crear la plantilla
+        this.frequentTemplatesService.createTemplate({
+          requisition_id: this.requisitionId,
           name: templateName,
-          areas: this.requisitionData,
-          consolidatedProducts: this.consolidatedProducts,
-          createdFrom: this.requisitionId,
-          createdDate: new Date()
-        };
-        
-        // Simular guardado en localStorage
-        const existingTemplates = JSON.parse(localStorage.getItem('requisitionTemplates') || '[]');
-        existingTemplates.push(template);
-        localStorage.setItem('requisitionTemplates', JSON.stringify(existingTemplates));
-        
-        Swal.fire({
-          icon: 'success',
-          title: '¡Lista frecuente guardada!',
-          text: `La lista frecuente "${templateName}" ha sido guardada exitosamente.`,
-          confirmButtonText: 'Entendido'
+          description: `Creada desde requisición ${this.requisitionId}`,
+          is_public: false
+        }).subscribe({
+          next: (response) => {
+            Swal.fire({
+              icon: 'success',
+              title: '¡Plantilla guardada!',
+              text: response.message,
+              confirmButtonText: 'Entendido'
+            });
+          },
+          error: (error) => {
+            console.error('Error al guardar plantilla:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.error?.message || 'No se pudo guardar la plantilla',
+              confirmButtonText: 'Entendido'
+            });
+          }
         });
       }
     });

@@ -1,9 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ContentMenu } from '../content-menu/content-menu';
 import Swal from 'sweetalert2';
+import { 
+  FrequentTemplatesService, 
+  Template,
+  ShareTemplateRequest
+} from '../../services/frequent-templates.service';
 
 export interface FrequentTemplate {
   id: string;
@@ -39,16 +44,20 @@ export interface ShareTemplateData {
   styleUrls: ['./frequent-templates.scss']
 })
 export class FrequentTemplatesComponent implements OnInit {
+  private templatesService = inject(FrequentTemplatesService);
+  private cdr = inject(ChangeDetectorRef);
+  
   activeSection: string = 'requisicion';
-  templates: FrequentTemplate[] = [];
-  filteredTemplates: FrequentTemplate[] = [];
+  templates: Template[] = [];
+  filteredTemplates: Template[] = [];
   searchTerm: string = '';
-  selectedTemplate: FrequentTemplate | null = null;
+  selectedTemplate: Template | null = null;
   showDetails: boolean = false;
+  isLoading: boolean = false;
 
   // Propiedades para compartir plantilla
   showShareModal: boolean = false;
-  templateToShare: FrequentTemplate | null = null;
+  templateToShare: Template | null = null;
   selectedBusinessUnit: string = '';
   availableUsers: SharedUser[] = [];
   canModify: boolean = false;
@@ -61,41 +70,59 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   loadTemplates(): void {
-    try {
-      const templatesData = localStorage.getItem('requisitionTemplates');
-      if (templatesData) {
-        this.templates = JSON.parse(templatesData);
-        // Convertir strings de fecha a objetos Date
-        this.templates = this.templates.map(template => ({
-          ...template,
-          createdDate: new Date(template.createdDate)
-        }));
-        // Ordenar por fecha de creación (más reciente primero)
-        this.templates.sort((a, b) => b.createdDate.getTime() - a.createdDate.getTime());
+    this.isLoading = true;
+    
+    console.log('🔍 [FrequentTemplates] Iniciando carga de plantillas...');
+    console.log('🔍 [FrequentTemplates] Parámetros:', { filter: 'all', search: this.searchTerm, orderBy: 'recent' });
+    
+    this.templatesService.getTemplates('all', this.searchTerm, 'recent').subscribe({
+      next: (response) => {
+        console.log('✅ [FrequentTemplates] Respuesta recibida:', response);
+        if (response.success) {
+          this.templates = response.data.templates;
+          this.filteredTemplates = [...this.templates];
+          console.log('✅ [FrequentTemplates] Plantillas cargadas:', this.templates.length);
+          this.cdr.detectChanges();
+        }
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('❌ [FrequentTemplates] Error al cargar plantillas:', error);
+        console.error('❌ [FrequentTemplates] Status:', error.status);
+        console.error('❌ [FrequentTemplates] Error completo:', error.error);
+        this.isLoading = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.error?.message || 'No se pudieron cargar las plantillas frecuentes.',
+          confirmButtonText: 'Entendido'
+        });
       }
-      this.filteredTemplates = [...this.templates];
-    } catch (error) {
-      console.error('Error al cargar plantillas:', error);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudieron cargar las plantillas frecuentes.',
-        confirmButtonText: 'Entendido'
-      });
-    }
+    });
   }
 
   onSearch(): void {
     if (this.searchTerm.trim()) {
-      this.filteredTemplates = this.templates.filter(template =>
-        template.name.toLowerCase().includes(this.searchTerm.toLowerCase())
-      );
+      this.isLoading = true;
+      this.templatesService.getTemplates('all', this.searchTerm, 'recent').subscribe({
+        next: (response) => {
+          if (response.success) {
+            this.filteredTemplates = response.data.templates;
+            this.cdr.detectChanges();
+          }
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error en búsqueda:', error);
+          this.isLoading = false;
+        }
+      });
     } else {
       this.filteredTemplates = [...this.templates];
     }
   }
 
-  viewTemplateDetails(template: FrequentTemplate): void {
+  viewTemplateDetails(template: Template): void {
     this.selectedTemplate = template;
     this.showDetails = true;
   }
@@ -105,7 +132,7 @@ export class FrequentTemplatesComponent implements OnInit {
     this.showDetails = false;
   }
 
-  loadTemplate(template: FrequentTemplate): void {
+  loadTemplate(template: Template): void {
     Swal.fire({
       title: '¿Cargar plantilla?',
       text: `¿Deseas usar la plantilla "${template.name}" para crear una nueva requisición?`,
@@ -129,7 +156,7 @@ export class FrequentTemplatesComponent implements OnInit {
     });
   }
 
-  editTemplate(template: FrequentTemplate): void {
+  editTemplate(template: Template): void {
     Swal.fire({
       title: 'Editar nombre de plantilla',
       text: 'Ingrese el nuevo nombre para esta plantilla:',
@@ -151,30 +178,45 @@ export class FrequentTemplatesComponent implements OnInit {
       if (result.isConfirmed && result.value) {
         const newName = result.value.trim();
         
-        // Actualizar el nombre de la plantilla
-        const templateIndex = this.templates.findIndex(t => t.id === template.id);
-        if (templateIndex !== -1) {
-          this.templates[templateIndex].name = newName;
-          
-          // Guardar en localStorage
-          localStorage.setItem('requisitionTemplates', JSON.stringify(this.templates));
-          
-          // Actualizar la vista
-          this.loadTemplates();
-          
-          Swal.fire({
-            icon: 'success',
-            title: '¡Actualizado!',
-            text: 'El nombre de la plantilla ha sido actualizado.',
-            confirmButtonText: 'Entendido',
-            timer: 2000
-          });
-        }
+        // Mostrar loading
+        Swal.fire({
+          title: 'Actualizando...',
+          text: 'Por favor espera',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Llamar al servicio
+        this.templatesService.updateTemplate(template.id, { name: newName }).subscribe({
+          next: () => {
+            // Recargar plantillas
+            this.loadTemplates();
+            
+            Swal.fire({
+              icon: 'success',
+              title: '¡Actualizado!',
+              text: 'El nombre de la plantilla ha sido actualizado.',
+              confirmButtonText: 'Entendido',
+              timer: 2000
+            });
+          },
+          error: (error) => {
+            console.error('Error al actualizar:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.error?.message || 'No se pudo actualizar la plantilla',
+              confirmButtonText: 'Entendido'
+            });
+          }
+        });
       }
     });
   }
 
-  deleteTemplate(template: FrequentTemplate): void {
+  deleteTemplate(template: Template): void {
     Swal.fire({
       title: '¿Eliminar plantilla?',
       text: `¿Estás seguro de que deseas eliminar la plantilla "${template.name}"? Esta acción no se puede deshacer.`,
@@ -186,27 +228,45 @@ export class FrequentTemplatesComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Eliminar la plantilla del array
-        this.templates = this.templates.filter(t => t.id !== template.id);
-        
-        // Guardar en localStorage
-        localStorage.setItem('requisitionTemplates', JSON.stringify(this.templates));
-        
-        // Actualizar la vista
-        this.loadTemplates();
-        
+        // Mostrar loading
         Swal.fire({
-          icon: 'success',
-          title: '¡Eliminada!',
-          text: 'La plantilla ha sido eliminada exitosamente.',
-          confirmButtonText: 'Entendido',
-          timer: 2000
+          title: 'Eliminando...',
+          text: 'Por favor espera',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Llamar al servicio
+        this.templatesService.deleteTemplate(template.id).subscribe({
+          next: (response) => {
+            // Recargar plantillas
+            this.loadTemplates();
+            
+            Swal.fire({
+              icon: 'success',
+              title: '¡Eliminada!',
+              text: response.message,
+              confirmButtonText: 'Entendido',
+              timer: 2000
+            });
+          },
+          error: (error) => {
+            console.error('Error al eliminar:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.error?.message || 'No se pudo eliminar la plantilla',
+              confirmButtonText: 'Entendido'
+            });
+          }
         });
       }
     });
   }
 
-  duplicateTemplate(template: FrequentTemplate): void {
+  duplicateTemplate(template: Template): void {
     Swal.fire({
       title: 'Duplicar plantilla',
       text: 'Ingrese un nombre para la copia de esta plantilla:',
@@ -228,50 +288,60 @@ export class FrequentTemplatesComponent implements OnInit {
       if (result.isConfirmed && result.value) {
         const newName = result.value.trim();
         
-        // Crear una copia de la plantilla
-        const newTemplate: FrequentTemplate = {
-          id: `TEMPLATE-${Date.now()}`,
-          name: newName,
-          areas: JSON.parse(JSON.stringify(template.areas)),
-          consolidatedProducts: JSON.parse(JSON.stringify(template.consolidatedProducts)),
-          createdFrom: template.id,
-          createdDate: new Date()
-        };
-        
-        // Agregar al array
-        this.templates.unshift(newTemplate);
-        
-        // Guardar en localStorage
-        localStorage.setItem('requisitionTemplates', JSON.stringify(this.templates));
-        
-        // Actualizar la vista
-        this.loadTemplates();
-        
+        // Mostrar loading
         Swal.fire({
-          icon: 'success',
-          title: '¡Duplicada!',
-          text: 'La plantilla ha sido duplicada exitosamente.',
-          confirmButtonText: 'Entendido',
-          timer: 2000
+          title: 'Duplicando...',
+          text: 'Por favor espera',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+        
+        // Llamar al servicio
+        this.templatesService.duplicateTemplate(template.id, newName).subscribe({
+          next: () => {
+            // Recargar plantillas
+            this.loadTemplates();
+            
+            Swal.fire({
+              icon: 'success',
+              title: '¡Duplicada!',
+              text: 'La plantilla ha sido duplicada exitosamente.',
+              confirmButtonText: 'Entendido',
+              timer: 2000
+            });
+          },
+          error: (error) => {
+            console.error('Error al duplicar:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.error?.message || 'No se pudo duplicar la plantilla',
+              confirmButtonText: 'Entendido'
+            });
+          }
         });
       }
     });
   }
 
-  formatDate(date: Date): string {
-    return new Date(date).toLocaleDateString('es-ES', {
+  formatDate(date: Date | string | null): string {
+    if (!date) return 'N/A';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     });
   }
 
-  getTotalProducts(template: FrequentTemplate): number {
-    return template.consolidatedProducts?.length || 0;
+  getTotalProducts(template: Template): number {
+    return template.total_products || 0;
   }
 
-  getTotalAreas(template: FrequentTemplate): number {
-    return template.areas?.length || 0;
+  getTotalAreas(template: Template): number {
+    return template.total_areas || 0;
   }
 
   onSectionChange(section: string): void {
@@ -283,7 +353,7 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   // Métodos para compartir plantilla
-  shareTemplate(template: FrequentTemplate): void {
+  shareTemplate(template: Template): void {
     this.templateToShare = template;
     this.selectedBusinessUnit = '';
     this.canModify = false;
@@ -368,37 +438,43 @@ export class FrequentTemplatesComponent implements OnInit {
       return;
     }
 
-    // Crear objeto de datos compartidos
-    const shareData: ShareTemplateData = {
-      templateId: this.templateToShare.id,
-      templateName: this.templateToShare.name,
-      businessUnit: this.selectedBusinessUnit,
-      sharedWith: selectedUsers.map(u => u.id),
-      canModify: this.canModify,
-      sharedDate: new Date()
-    };
-
-    // Guardar en localStorage (en producción, esto iría a una API)
-    const existingShares = localStorage.getItem('sharedTemplates');
-    const shares = existingShares ? JSON.parse(existingShares) : [];
-    shares.push(shareData);
-    localStorage.setItem('sharedTemplates', JSON.stringify(shares));
-
-    // Mostrar confirmación
-    const userNames = selectedUsers.map(u => u.name).join(', ');
+    // Mostrar loading
     Swal.fire({
-      icon: 'success',
-      title: '¡Plantilla compartida!',
-      html: `
-        <p><strong>${this.templateToShare.name}</strong> ha sido compartida con:</p>
-        <p>${userNames}</p>
-        <p><strong>Unidad:</strong> ${this.selectedBusinessUnit}</p>
-        <p><strong>Permisos:</strong> ${this.canModify ? 'Puede modificar' : 'Solo lectura'}</p>
-      `,
-      confirmButtonText: 'Entendido',
-      timer: 3000
+      title: 'Compartiendo plantilla...',
+      text: 'Por favor espera',
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
     });
 
-    this.closeShareModal();
+    // Llamar al servicio
+    const userIds = selectedUsers.map(u => parseInt(u.id));
+    const shareRequest: ShareTemplateRequest = {
+      user_ids: userIds,
+      can_edit: this.canModify
+    };
+
+    this.templatesService.shareTemplate(this.templateToShare.id, shareRequest).subscribe({
+      next: (response) => {
+        this.closeShareModal();
+        
+        Swal.fire({
+          icon: 'success',
+          title: '¡Compartida!',
+          text: response.message,
+          confirmButtonText: 'Entendido'
+        });
+      },
+      error: (error) => {
+        console.error('Error al compartir:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.error?.message || 'No se pudo compartir la plantilla',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 }
