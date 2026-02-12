@@ -79,8 +79,10 @@ export class RequisitionComponent implements OnInit, OnDestroy {
       this.loadExistingRequisitionData(navigation.extras.state);
     }
     // Verificar si vienen datos de una plantilla frecuente
+    // ⚡ IMPORTANTE: Guardamos el state para procesarlo DESPUÉS de loadFormData
     if (navigation?.extras.state?.['loadFromTemplate']) {
-      this.loadTemplateData(navigation.extras.state);
+      console.log('📥 [Constructor] State de plantilla detectado, guardando para procesar después');
+      this.pendingTemplateState = navigation.extras.state;
     }
   }
   
@@ -131,6 +133,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   // Resumen de requisiciones por área (inicialmente vacío)
   requisitionSummary: RequisitionSummary[] = [];
+  
+  // State de plantilla (se procesa después de cargar form data)
+  private pendingTemplateState: any = null;
 
   ngOnInit(): void {
     // 🔥 PASO 1: Verificar location_id del localStorage
@@ -291,6 +296,13 @@ export class RequisitionComponent implements OnInit, OnDestroy {
             areas: this.backendAreas.length,
             locaciones: this.locations.length
           });
+          
+          // ⚡ PROCESAR PLANTILLA PENDIENTE (si existe)
+          if (this.pendingTemplateState) {
+            console.log('🎯 [loadFormData] Procesando plantilla pendiente...');
+            this.loadTemplateData(this.pendingTemplateState);
+            this.pendingTemplateState = null; // Limpiar después de procesar
+          }
         }
       },
       error: (error) => {
@@ -351,20 +363,76 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   }
 
   loadTemplateData(state: any): void {
+    console.log('🚀 [loadTemplateData] Iniciando carga de plantilla');
+    console.log('📦 [loadTemplateData] State recibido:', state);
+    
     // Cargar los datos de la plantilla frecuente
     if (state['templateData']) {
-      this.requisitionSummary = JSON.parse(JSON.stringify(state['templateData']));
+      console.log('📋 [loadTemplateData] templateData encontrado:', state['templateData']);
+      console.log('📊 [loadTemplateData] Número de áreas:', state['templateData'].length);
+      
+      // ⚡ CRÍTICO: Crear NUEVA referencia para que OnPush detecte el cambio
+      // Usar spread operator [...] para crear nuevo array
+      const templateData = JSON.parse(JSON.stringify(state['templateData']));
+      this.requisitionSummary = [...templateData];
+      
+      console.log('✅ [loadTemplateData] requisitionSummary asignado (nueva referencia):', this.requisitionSummary);
+      console.log('📏 [loadTemplateData] Longitud del resumen:', this.requisitionSummary.length);
+      
+      // Verificar contenido de cada área
+      this.requisitionSummary.forEach((area, index) => {
+        console.log(`📌 [loadTemplateData] Área ${index + 1}:`, {
+          nombre: area.area,
+          productos: area.products?.length || 0,
+          areaId: area.areaId
+        });
+      });
       
       console.log('Plantilla cargada:', {
         templateName: state['templateName'],
         areas: this.requisitionSummary.length
       });
       
+      // ⚡ SOLUCIÓN DEFINITIVA: setTimeout para forzar actualización en próximo ciclo
+      setTimeout(() => {
+        this.cdr.markForCheck();
+        console.log('🔄 [loadTemplateData] markForCheck() ejecutado (setTimeout)');
+      }, 0);
+      
+      // También forzar inmediatamente
+      this.cdr.markForCheck();
+      console.log('🔄 [loadTemplateData] markForCheck() ejecutado (inmediato)');
+      
+      // Forzar también detectChanges para asegurar
+      this.cdr.detectChanges();
+      console.log('🔄 [loadTemplateData] detectChanges() ejecutado');
+      
+      // Verificar estado del panel
+      console.log('👁️ [loadTemplateData] Estado del panel:', {
+        isResumeCollapsed: this.isResumeCollapsed,
+        requisitionSummaryLength: this.requisitionSummary.length,
+        primeraArea: this.requisitionSummary[0]?.area || 'N/A',
+        productosEnPrimeraArea: this.requisitionSummary[0]?.products?.length || 0
+      });
+      
       // Opcional: Mostrar notificación al usuario
       if (state['templateName']) {
-        // Aquí podrías mostrar un toast o mensaje indicando que se cargó la plantilla
         console.log(`Plantilla "${state['templateName']}" cargada exitosamente`);
+        
+        // Mostrar toast de éxito
+        Swal.fire({
+          icon: 'success',
+          title: 'Plantilla cargada',
+          text: `Se cargó la plantilla "${state['templateName']}" con ${this.requisitionSummary.length} área(s)`,
+          toast: true,
+          position: 'top-end',
+          showConfirmButton: false,
+          timer: 3000,
+          timerProgressBar: true
+        });
       }
+    } else {
+      console.warn('⚠️ [loadTemplateData] No se encontró templateData en el state');
     }
   }
 

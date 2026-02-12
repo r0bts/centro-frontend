@@ -46,6 +46,7 @@ export interface TemplateProduct {
 }
 
 export interface TemplateAreaDetail {
+  id?: number | null;
   area: string;
   products: TemplateProduct[];
 }
@@ -208,6 +209,7 @@ export class FrequentTemplatesService {
    * Obtener detalles completos de una plantilla
    */
   getTemplateDetails(id: number): Observable<{ success: boolean; data: { template: TemplateDetail } }> {
+    console.log(`📡 [FrequentTemplatesService] GET ${this.apiUrl}/${id}`);
     return this.http.get<{ success: boolean; data: { template: TemplateDetail } }>(
       `${this.apiUrl}/${id}`,
       { headers: this.getHeaders() }

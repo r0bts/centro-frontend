@@ -7,7 +7,8 @@ import Swal from 'sweetalert2';
 import { 
   FrequentTemplatesService, 
   Template,
-  ShareTemplateRequest
+  ShareTemplateRequest,
+  TemplateDetail
 } from '../../services/frequent-templates.service';
 
 export interface FrequentTemplate {
@@ -51,7 +52,7 @@ export class FrequentTemplatesComponent implements OnInit {
   templates: Template[] = [];
   filteredTemplates: Template[] = [];
   searchTerm: string = '';
-  selectedTemplate: Template | null = null;
+  selectedTemplate: TemplateDetail | null = null;
   showDetails: boolean = false;
   isLoading: boolean = false;
 
@@ -123,8 +124,29 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   viewTemplateDetails(template: Template): void {
-    this.selectedTemplate = template;
-    this.showDetails = true;
+    console.log('🔍 [viewTemplateDetails] Template seleccionada:', template);
+    this.isLoading = true;
+
+    this.templatesService.getTemplateDetails(template.id).subscribe({
+      next: (response) => {
+        console.log('✅ [viewTemplateDetails] Respuesta recibida:', response);
+        console.log('📦 [viewTemplateDetails] Template detail:', response.data.template);
+        this.selectedTemplate = response.data.template;
+        this.showDetails = true;
+        this.isLoading = false;
+        console.log('👁️ [viewTemplateDetails] Modal abierto, selectedTemplate:', this.selectedTemplate);
+      },
+      error: (error) => {
+        console.error('❌ [viewTemplateDetails] Error al obtener detalles:', error);
+        this.isLoading = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.error?.message || 'No se pudieron obtener los detalles de la plantilla',
+          confirmButtonText: 'Entendido'
+        });
+      }
+    });
   }
 
   closeDetails(): void {
@@ -132,7 +154,14 @@ export class FrequentTemplatesComponent implements OnInit {
     this.showDetails = false;
   }
 
-  loadTemplate(template: Template): void {
+  private isTemplateDetail(template: Template | TemplateDetail): template is TemplateDetail {
+    return (template as TemplateDetail).consolidated_products !== undefined;
+  }
+
+  loadTemplate(template: Template | TemplateDetail): void {
+    console.log('🚀 [loadTemplate] Iniciando carga de plantilla:', template);
+    console.log('🔍 [loadTemplate] ¿Es TemplateDetail?', this.isTemplateDetail(template));
+    
     Swal.fire({
       title: '¿Cargar plantilla?',
       text: `¿Deseas usar la plantilla "${template.name}" para crear una nueva requisición?`,
@@ -144,12 +173,80 @@ export class FrequentTemplatesComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Navegar al componente de requisición con los datos de la plantilla
-        this.router.navigate(['/requisicion'], {
-          state: {
+        console.log('✅ [loadTemplate] Usuario confirmó carga');
+        if (this.isTemplateDetail(template)) {
+          console.log('📦 [loadTemplate] Usando TemplateDetail directamente');
+          const mappedAreas = template.areas.map(area => ({
+            area: area.area,
+            areaId: area.id ? String(area.id) : undefined,
+            products: area.products.map(product => ({
+              id: String(product.id),
+              name: product.name,
+              quantity: product.quantity,
+              unit: product.unit,
+              actions: ''
+            }))
+          }));
+
+          console.log('🗺️ [loadTemplate] Áreas mapeadas:', mappedAreas);
+          console.log('🧭 [loadTemplate] Navegando a /requisicion con state:', {
             loadFromTemplate: true,
-            templateData: template.areas,
+            templateData: mappedAreas,
             templateName: template.name
+          });
+
+          this.router.navigate(['/requisicion'], {
+            state: {
+              loadFromTemplate: true,
+              templateData: mappedAreas,
+              templateName: template.name
+            }
+          });
+          return;
+        }
+
+        console.log('📡 [loadTemplate] Solicitando detalle completo al backend...');
+        // Obtener detalle completo antes de cargar
+        this.templatesService.getTemplateDetails(template.id).subscribe({
+          next: (response) => {
+            console.log('✅ [loadTemplate] Detalle recibido:', response);
+            const templateDetail = response.data.template;
+            const mappedAreas = templateDetail.areas.map(area => ({
+              area: area.area,
+              areaId: area.id ? String(area.id) : undefined,
+              products: area.products.map(product => ({
+                id: String(product.id),
+                name: product.name,
+                quantity: product.quantity,
+                unit: product.unit,
+                actions: ''
+              }))
+            }));
+
+            console.log('🗺️ [loadTemplate] Áreas mapeadas:', mappedAreas);
+            console.log('🧭 [loadTemplate] Navegando a /requisicion con state:', {
+              loadFromTemplate: true,
+              templateData: mappedAreas,
+              templateName: templateDetail.name
+            });
+
+            // Navegar al componente de requisición con los datos completos
+            this.router.navigate(['/requisicion'], {
+              state: {
+                loadFromTemplate: true,
+                templateData: mappedAreas,
+                templateName: templateDetail.name
+              }
+            });
+          },
+          error: (error) => {
+            console.error('❌ [loadTemplate] Error al cargar plantilla:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.error?.message || 'No se pudo cargar la plantilla',
+              confirmButtonText: 'Entendido'
+            });
           }
         });
       }
