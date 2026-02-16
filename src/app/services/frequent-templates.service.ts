@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 
@@ -277,4 +278,53 @@ export class FrequentTemplatesService {
       { headers: this.getHeaders() }
     );
   }
+
+  /**
+   * GET /api/users/by-location?location_id={location_id}
+   * Obtener usuarios filtrados por location_id del usuario actual
+   * Endpoint optimizado (solo retorna id, username, full_name)
+   */
+  getUsersByLocation(): Observable<SharedUser[]> {
+    const userJson = localStorage.getItem('centro_user');
+    let locationId = 0;
+    
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        locationId = user.location_id || 0;
+      } catch {
+        locationId = 0;
+      }
+    }
+    
+    const url = `${environment.apiUrl}/users/by-location?location_id=${locationId}`;
+    
+    console.log('🚀 [NUEVO ENDPOINT] Llamando:', url);
+    
+    return this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
+      map((response: any) => {
+        if (!response.success || !response.data.users) {
+          return [];
+        }
+        
+        return response.data.users.map((user: any) => ({
+          id: user.id, // Ya viene como number del backend
+          username: user.username,
+          full_name: user.full_name,
+          email: '',
+          location_id: locationId,
+          selected: false
+        }));
+      })
+    );
+  }
+}
+
+export interface SharedUser {
+  id: number;
+  username: string;
+  full_name: string;
+  email?: string;
+  location_id: number | null;
+  selected?: boolean;
 }

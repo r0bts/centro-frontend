@@ -22,11 +22,12 @@ export interface FrequentTemplate {
 }
 
 export interface SharedUser {
-  id: string;
-  name: string;
-  email: string;
-  businessUnit: string;
-  selected: boolean;
+  id: number;
+  username: string;
+  full_name: string;
+  email?: string;
+  location_id: number | null;
+  selected?: boolean;
 }
 
 export interface ShareTemplateData {
@@ -69,8 +70,11 @@ export class FrequentTemplatesComponent implements OnInit {
   templateToShare: Template | null = null;
   selectedBusinessUnit: string = '';
   availableUsers: SharedUser[] = [];
+  searchUserTerm: string = '';
   canModify: boolean = false;
-  businessUnits: string[] = ['Unidad Centro', 'Corporativo'];
+  businessUnits: string[] = ['HERMES', 'GLACIAR'];
+  currentUserLocationId: number = 0;
+  canSelectBusinessUnit: boolean = true;
 
   constructor(
     private router: Router
@@ -501,9 +505,37 @@ export class FrequentTemplatesComponent implements OnInit {
   // Métodos para compartir plantilla
   shareTemplate(template: Template): void {
     this.templateToShare = template;
-    this.selectedBusinessUnit = '';
     this.canModify = false;
-    this.availableUsers = []; // Limpiar usuarios hasta que se seleccione una unidad
+    this.availableUsers = [];
+    
+    // Obtener location_id del usuario actual
+    const userJson = localStorage.getItem('centro_user');
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson);
+        this.currentUserLocationId = user.location_id || 0;
+      } catch {
+        this.currentUserLocationId = 0;
+      }
+    }
+    
+    // Configurar según location_id
+    if (this.currentUserLocationId === 0) {
+      // Admin puede elegir cualquier Business Unit
+      this.canSelectBusinessUnit = true;
+      this.selectedBusinessUnit = '';
+    } else if (this.currentUserLocationId === 1) {
+      // HERMES - Auto-seleccionar
+      this.canSelectBusinessUnit = false;
+      this.selectedBusinessUnit = 'HERMES';
+      this.loadUsersFromApi();
+    } else if (this.currentUserLocationId === 9) {
+      // GLACIAR - Auto-seleccionar
+      this.canSelectBusinessUnit = false;
+      this.selectedBusinessUnit = 'GLACIAR';
+      this.loadUsersFromApi();
+    }
+    
     this.showShareModal = true;
   }
 
@@ -512,41 +544,58 @@ export class FrequentTemplatesComponent implements OnInit {
     this.templateToShare = null;
     this.selectedBusinessUnit = '';
     this.availableUsers = [];
+    this.searchUserTerm = '';
     this.canModify = false;
   }
 
+  /**
+   * Filtrar usuarios localmente por nombre o número de empleado
+   */
+  get filteredUsers(): SharedUser[] {
+    if (!this.searchUserTerm.trim()) {
+      return this.availableUsers;
+    }
+    
+    const term = this.searchUserTerm.toLowerCase();
+    return this.availableUsers.filter(user => 
+      user.full_name.toLowerCase().includes(term) ||
+      user.username.toLowerCase().includes(term)
+    );
+  }
+
   onBusinessUnitChange(): void {
-    // Limpiar selecciones previas
     this.availableUsers = [];
     
     if (this.selectedBusinessUnit) {
-      this.loadUsersForUnit(this.selectedBusinessUnit);
+      this.loadUsersFromApi();
     }
   }
 
-  loadUsersForUnit(businessUnit: string): void {
-    // Simular carga de usuarios desde el servicio filtrados por unidad
-    // En producción, esto vendría de una API: /api/users?businessUnit=...
-    
-    // Base de datos simulada de usuarios con sus unidades
-    const allUsers: SharedUser[] = [
-      { id: '1', name: 'Juan Pérez', email: 'jperez@centro.com', businessUnit: 'Unidad Centro', selected: false },
-      { id: '2', name: 'María García', email: 'mgarcia@centro.com', businessUnit: 'Unidad Centro', selected: false },
-      { id: '3', name: 'Carlos López', email: 'clopez@centro.com', businessUnit: 'Unidad Centro', selected: false },
-      { id: '4', name: 'Ana Martínez', email: 'amartinez@centro.com', businessUnit: 'Corporativo', selected: false },
-      { id: '5', name: 'Roberto Rodríguez', email: 'rrodriguez@centro.com', businessUnit: 'Corporativo', selected: false },
-      { id: '6', name: 'Laura Fernández', email: 'lfernandez@centro.com', businessUnit: 'Corporativo', selected: false },
-      { id: '7', name: 'David Gómez', email: 'dgomez@centro.com', businessUnit: 'Unidad Centro', selected: false },
-      { id: '8', name: 'Sandra Hernández', email: 'shernandez@centro.com', businessUnit: 'Corporativo', selected: false },
-      { id: '9', name: 'Pedro Díaz', email: 'pdiaz@centro.com', businessUnit: 'Unidad Centro', selected: false },
-      { id: '10', name: 'Isabel Torres', email: 'itorres@centro.com', businessUnit: 'Corporativo', selected: false }
-    ];
-    
-    // Filtrar usuarios por la unidad seleccionada
-    this.availableUsers = allUsers.filter(user => user.businessUnit === businessUnit);
+  loadUsersFromApi(): void {
+    const t0 = performance.now();
+
+    this.templatesService.getUsersByLocation()
+      .subscribe({
+        next: (users: SharedUser[]) => {
+          const t1 = performance.now();
+          this.availableUsers = users;
+          const t2 = performance.now();
+          
+          console.log(`⏱️ TIMING: API=${(t1-t0).toFixed(0)}ms | DOM=${(t2-t1).toFixed(0)}ms | Total=${(t2-t0).toFixed(0)}ms | Users=${users.length}`);
+        },
+        error: (error: any) => {
+          console.error('❌ Error cargando usuarios:', error.status, error.message);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar los usuarios disponibles.',
+            confirmButtonText: 'Entendido'
+          });
+        }
+      });
   }
 
-  toggleUserSelection(userId: string): void {
+  toggleUserSelection(userId: number): void {
     const user = this.availableUsers.find(u => u.id === userId);
     if (user) {
       user.selected = !user.selected;
@@ -558,23 +607,18 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   confirmShare(): void {
+    console.log('1️⃣ confirmShare() INICIADO');
+    
     if (!this.templateToShare) {
+      console.log('❌ No hay templateToShare');
       return;
     }
 
     const selectedUsers = this.getSelectedUsers();
-
-    if (!this.selectedBusinessUnit) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Unidad requerida',
-        text: 'Debes seleccionar una unidad de negocio.',
-        confirmButtonText: 'Entendido'
-      });
-      return;
-    }
+    console.log('2️⃣ Usuarios seleccionados:', selectedUsers.length, selectedUsers);
 
     if (selectedUsers.length === 0) {
+      console.log('⚠️ Mostrando alerta: sin usuarios');
       Swal.fire({
         icon: 'warning',
         title: 'Usuarios requeridos',
@@ -585,6 +629,7 @@ export class FrequentTemplatesComponent implements OnInit {
     }
 
     // Mostrar loading
+    console.log('3️⃣ Mostrando loading...');
     Swal.fire({
       title: 'Compartiendo plantilla...',
       text: 'Por favor espera',
@@ -595,25 +640,49 @@ export class FrequentTemplatesComponent implements OnInit {
     });
 
     // Llamar al servicio
-    const userIds = selectedUsers.map(u => parseInt(u.id));
+    const userIds = selectedUsers.map(u => u.id);
     const shareRequest: ShareTemplateRequest = {
       user_ids: userIds,
       can_edit: this.canModify
     };
 
+    console.log('4️⃣ Llamando API...', {
+      template_id: this.templateToShare.id,
+      user_ids: userIds,
+      can_edit: this.canModify
+    });
+
     this.templatesService.shareTemplate(this.templateToShare.id, shareRequest).subscribe({
       next: (response) => {
+        console.log('5️⃣ ✅ Respuesta SUCCESS:', response);
         this.closeShareModal();
         
+        // Construir mensaje detallado
+        const sharedCount = response.data.shared_with?.length || 0;
+        const alreadyCount = response.data.already_shared?.length || 0;
+        
+        let message = '';
+        let icon: 'success' | 'info' = 'success';
+        
+        if (sharedCount > 0 && alreadyCount > 0) {
+          message = `Se compartió con ${sharedCount} usuario(s) nuevo(s).\n${alreadyCount} usuario(s) ya tenían acceso.`;
+        } else if (sharedCount > 0) {
+          message = `Plantilla compartida con ${sharedCount} usuario(s).`;
+        } else if (alreadyCount > 0) {
+          message = `${alreadyCount === 1 ? 'Este usuario ya tiene' : 'Estos usuarios ya tienen'} acceso a la plantilla.`;
+          icon = 'info';
+        }
+        
         Swal.fire({
-          icon: 'success',
-          title: '¡Compartida!',
-          text: response.message,
+          icon: icon,
+          title: sharedCount > 0 ? '¡Compartida!' : 'Información',
+          text: message,
           confirmButtonText: 'Entendido'
         });
       },
       error: (error) => {
-        console.error('❌ Error al compartir:', error.error?.message || error.message);
+        console.log('5️⃣ ❌ Respuesta ERROR:', error);
+        console.error('❌ Error completo:', error);
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -622,6 +691,8 @@ export class FrequentTemplatesComponent implements OnInit {
         });
       }
     });
+    
+    console.log('6️⃣ Subscribe registrado, esperando respuesta...');
   }
 
   /**
