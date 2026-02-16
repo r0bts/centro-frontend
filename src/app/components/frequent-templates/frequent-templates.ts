@@ -204,14 +204,24 @@ export class FrequentTemplatesComponent implements OnInit {
           console.log('🧭 [loadTemplate] Navegando a /requisicion con state:', {
             loadFromTemplate: true,
             templateData: mappedAreas,
-            templateName: template.name
+            templateName: template.name,
+            locationId: template.location?.id || null,
+            locationName: template.location?.name || null,
+            departmentId: template.department?.id || null,
+            projectId: template.project?.id || null,
+            awaitingReturn: template.awaiting_return || false
           });
 
           this.router.navigate(['/requisicion'], {
             state: {
               loadFromTemplate: true,
               templateData: mappedAreas,
-              templateName: template.name
+              templateName: template.name,
+              locationId: template.location?.id || null,
+              locationName: template.location?.name || null,
+              departmentId: template.department?.id || null,
+              projectId: template.project?.id || null,
+              awaitingReturn: template.awaiting_return || false
             }
           });
           return;
@@ -239,7 +249,12 @@ export class FrequentTemplatesComponent implements OnInit {
             console.log('🧭 [loadTemplate] Navegando a /requisicion con state:', {
               loadFromTemplate: true,
               templateData: mappedAreas,
-              templateName: templateDetail.name
+              templateName: templateDetail.name,
+              locationId: templateDetail.location?.id || null,
+              locationName: templateDetail.location?.name || null,
+              departmentId: templateDetail.department?.id || null,
+              projectId: templateDetail.project?.id || null,
+              awaitingReturn: templateDetail.awaiting_return || false
             });
 
             // Navegar al componente de requisición con los datos completos
@@ -247,7 +262,12 @@ export class FrequentTemplatesComponent implements OnInit {
               state: {
                 loadFromTemplate: true,
                 templateData: mappedAreas,
-                templateName: templateDetail.name
+                templateName: templateDetail.name,
+                locationId: templateDetail.location?.id || null,
+                locationName: templateDetail.location?.name || null,
+                departmentId: templateDetail.department?.id || null,
+                projectId: templateDetail.project?.id || null,
+                awaitingReturn: templateDetail.awaiting_return || false
               }
             });
           },

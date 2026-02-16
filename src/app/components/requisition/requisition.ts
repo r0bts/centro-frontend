@@ -388,9 +388,37 @@ export class RequisitionComponent implements OnInit, OnDestroy {
         });
       });
       
+      // ✨ NUEVO: Procesar locationId de la plantilla
+      if (state['locationId']) {
+        const locationId = state['locationId'];
+        console.log('📍 [loadTemplateData] LocationId de plantilla:', locationId, 'Tipo:', typeof locationId);
+        console.log('📋 [loadTemplateData] Locations disponibles:', this.locations.map(loc => ({id: loc.id, name: loc.name, tipo: typeof loc.id})));
+        
+        // Buscar la location en el array de locations (comparación flexible number/string)
+        const foundLocation = this.locations.find(loc => loc.id == locationId || String(loc.id) === String(locationId));
+        
+        if (foundLocation) {
+          // Preseleccionar businessUnit y selectedLocationId
+          this.businessUnit = foundLocation.name;
+          this.selectedLocationId = String(locationId);
+          console.log('✅ [loadTemplateData] Location preseleccionada:', foundLocation.name);
+        } else {
+          console.warn('⚠️ [loadTemplateData] Location no encontrada en array:', locationId);
+          console.warn('⚠️ [loadTemplateData] IDs disponibles:', this.locations.map(loc => loc.id));
+        }
+      }
+      
+      // ✨ NUEVO: Procesar awaitingReturn
+      if (state['awaitingReturn'] !== undefined) {
+        this.isDevolucion = state['awaitingReturn'];
+        console.log('🔄 [loadTemplateData] Devolución:', this.isDevolucion);
+      }
+      
       console.log('Plantilla cargada:', {
         templateName: state['templateName'],
-        areas: this.requisitionSummary.length
+        areas: this.requisitionSummary.length,
+        locationId: state['locationId'] || 'N/A',
+        awaitingReturn: state['awaitingReturn'] || false
       });
       
       // ⚡ SOLUCIÓN DEFINITIVA: setTimeout para forzar actualización en próximo ciclo
