@@ -194,7 +194,7 @@ export class FrequentTemplatesComponent implements OnInit {
             products: area.products.map(product => ({
               id: String(product.id),
               name: product.name,
-              quantity: product.quantity,
+              quantity: Number(product.quantity) || 0,
               unit: product.unit,
               actions: ''
             }))
@@ -239,7 +239,7 @@ export class FrequentTemplatesComponent implements OnInit {
               products: area.products.map(product => ({
                 id: String(product.id),
                 name: product.name,
-                quantity: product.quantity,
+                quantity: Number(product.quantity) || 0,
                 unit: product.unit,
                 actions: ''
               }))

@@ -302,20 +302,20 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
         if (productMap.has(key)) {
           // Si el producto ya existe, agregar la cantidad y el detalle del área
           const existingProduct = productMap.get(key)!;
-          existingProduct.totalQuantity += product.quantity;
+          existingProduct.totalQuantity += Number(product.quantity) || 0;
           existingProduct.details.push({
             area: summary.area,
-            quantity: product.quantity
+            quantity: Number(product.quantity) || 0
           });
         } else {
           // Si es un producto nuevo, crearlo
           productMap.set(key, {
             name: product.name,
-            totalQuantity: product.quantity,
+            totalQuantity: Number(product.quantity) || 0,
             unit: product.unit,
             details: [{
               area: summary.area,
-              quantity: product.quantity
+              quantity: Number(product.quantity) || 0
             }]
           });
         }
