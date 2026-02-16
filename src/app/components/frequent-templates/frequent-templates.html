@@ -145,33 +145,33 @@
                 <div class="btn-group">
                   <button 
                     class="btn btn-outline-secondary"
-                    (click)="viewTemplateDetails(template)"
+                    (click)="viewTemplateDetails(template, $event)"
                     title="Ver detalles">
-                    <i class="bi bi-eye"></i>
+                    <i class="bi bi-eye btn-icon"></i>
                   </button>
                   <button 
                     class="btn btn-outline-secondary"
                     (click)="shareTemplate(template)"
                     title="Compartir plantilla">
-                    <i class="bi bi-share"></i>
+                    <i class="bi bi-share btn-icon"></i>
                   </button>
                   <button 
                     class="btn btn-outline-secondary"
                     (click)="editTemplate(template)"
                     title="Editar nombre">
-                    <i class="bi bi-pencil"></i>
+                    <i class="bi bi-pencil btn-icon"></i>
                   </button>
                   <button 
                     class="btn btn-outline-secondary"
                     (click)="duplicateTemplate(template)"
                     title="Duplicar plantilla">
-                    <i class="bi bi-files"></i>
+                    <i class="bi bi-files btn-icon"></i>
                   </button>
                   <button 
                     class="btn btn-outline-danger"
                     (click)="deleteTemplate(template)"
                     title="Eliminar">
-                    <i class="bi bi-trash"></i>
+                    <i class="bi bi-trash btn-icon"></i>
                   </button>
                 </div>
               </div>

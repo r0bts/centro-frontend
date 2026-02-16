@@ -123,8 +123,19 @@ export class FrequentTemplatesComponent implements OnInit {
     }
   }
 
-  viewTemplateDetails(template: Template): void {
+  viewTemplateDetails(template: Template, event?: MouseEvent): void {
     console.log('🔍 [viewTemplateDetails] Template seleccionada:', template);
+    console.log('🖱️ [viewTemplateDetails] Event:', event);
+    console.log('🎯 [viewTemplateDetails] Event target:', event?.target);
+    console.log('🎯 [viewTemplateDetails] Event currentTarget:', event?.currentTarget);
+    console.log('⏱️ [viewTemplateDetails] Timestamp:', Date.now());
+    
+    // Prevenir propagación y default
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    
     this.isLoading = true;
 
     this.templatesService.getTemplateDetails(template.id).subscribe({
@@ -134,6 +145,7 @@ export class FrequentTemplatesComponent implements OnInit {
         this.selectedTemplate = response.data.template;
         this.showDetails = true;
         this.isLoading = false;
+        this.cdr.detectChanges(); // ← FORZAR detección inmediata
         console.log('👁️ [viewTemplateDetails] Modal abierto, selectedTemplate:', this.selectedTemplate);
       },
       error: (error) => {
