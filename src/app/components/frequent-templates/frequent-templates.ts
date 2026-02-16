@@ -1,7 +1,8 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import { ContentMenu } from '../content-menu/content-menu';
 import Swal from 'sweetalert2';
 import { 
@@ -46,15 +47,22 @@ export interface ShareTemplateData {
 })
 export class FrequentTemplatesComponent implements OnInit {
   private templatesService = inject(FrequentTemplatesService);
-  private cdr = inject(ChangeDetectorRef);
   
   activeSection: string = 'requisicion';
-  templates: Template[] = [];
-  filteredTemplates: Template[] = [];
+  
+  // Reactive state con BehaviorSubjects
+  private templatesSubject = new BehaviorSubject<Template[]>([]);
+  templates$ = this.templatesSubject.asObservable();
+  
+  private filteredTemplatesSubject = new BehaviorSubject<Template[]>([]);
+  filteredTemplates$ = this.filteredTemplatesSubject.asObservable();
+  
   searchTerm: string = '';
   selectedTemplate: TemplateDetail | null = null;
   showDetails: boolean = false;
   isLoading: boolean = false;
+  isProcessing: boolean = false;
+  showTemplatesList: boolean = true;
 
   // Propiedades para compartir plantilla
   showShareModal: boolean = false;
@@ -64,7 +72,9 @@ export class FrequentTemplatesComponent implements OnInit {
   canModify: boolean = false;
   businessUnits: string[] = ['Unidad Centro', 'Corporativo'];
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadTemplates();
@@ -73,25 +83,16 @@ export class FrequentTemplatesComponent implements OnInit {
   loadTemplates(): void {
     this.isLoading = true;
     
-    console.log('🔍 [FrequentTemplates] Iniciando carga de plantillas...');
-    console.log('🔍 [FrequentTemplates] Parámetros:', { filter: 'all', search: this.searchTerm, orderBy: 'recent' });
-    
     this.templatesService.getTemplates('all', this.searchTerm, 'recent').subscribe({
       next: (response) => {
-        console.log('✅ [FrequentTemplates] Respuesta recibida:', response);
-        if (response.success) {
-          this.templates = response.data.templates;
-          this.filteredTemplates = [...this.templates];
-          console.log('✅ [FrequentTemplates] Plantillas cargadas:', this.templates.length);
-          this.cdr.detectChanges();
-        }
+        this.templatesSubject.next(response.data.templates);
+        this.filteredTemplatesSubject.next(response.data.templates);
+        this.showTemplatesList = true;
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('❌ [FrequentTemplates] Error al cargar plantillas:', error);
-        console.error('❌ [FrequentTemplates] Status:', error.status);
-        console.error('❌ [FrequentTemplates] Error completo:', error.error);
         this.isLoading = false;
+        this.showTemplatesList = true;
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -108,29 +109,21 @@ export class FrequentTemplatesComponent implements OnInit {
       this.templatesService.getTemplates('all', this.searchTerm, 'recent').subscribe({
         next: (response) => {
           if (response.success) {
-            this.filteredTemplates = response.data.templates;
-            this.cdr.detectChanges();
+            this.filteredTemplatesSubject.next(response.data.templates);
           }
           this.isLoading = false;
         },
         error: (error) => {
-          console.error('Error en búsqueda:', error);
+          console.error('Error en búsqueda:', error.error?.message || error.message);
           this.isLoading = false;
         }
       });
     } else {
-      this.filteredTemplates = [...this.templates];
+      this.filteredTemplatesSubject.next(this.templatesSubject.value);
     }
   }
 
   viewTemplateDetails(template: Template, event?: MouseEvent): void {
-    console.log('🔍 [viewTemplateDetails] Template seleccionada:', template);
-    console.log('🖱️ [viewTemplateDetails] Event:', event);
-    console.log('🎯 [viewTemplateDetails] Event target:', event?.target);
-    console.log('🎯 [viewTemplateDetails] Event currentTarget:', event?.currentTarget);
-    console.log('⏱️ [viewTemplateDetails] Timestamp:', Date.now());
-    
-    // Prevenir propagación y default
     if (event) {
       event.stopPropagation();
       event.preventDefault();
@@ -140,16 +133,12 @@ export class FrequentTemplatesComponent implements OnInit {
 
     this.templatesService.getTemplateDetails(template.id).subscribe({
       next: (response) => {
-        console.log('✅ [viewTemplateDetails] Respuesta recibida:', response);
-        console.log('📦 [viewTemplateDetails] Template detail:', response.data.template);
         this.selectedTemplate = response.data.template;
         this.showDetails = true;
         this.isLoading = false;
-        this.cdr.detectChanges(); // ← FORZAR detección inmediata
-        console.log('👁️ [viewTemplateDetails] Modal abierto, selectedTemplate:', this.selectedTemplate);
       },
       error: (error) => {
-        console.error('❌ [viewTemplateDetails] Error al obtener detalles:', error);
+        console.error('❌ Error al obtener detalles:', error.error?.message || error.message);
         this.isLoading = false;
         Swal.fire({
           icon: 'error',
@@ -171,9 +160,6 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   loadTemplate(template: Template | TemplateDetail): void {
-    console.log('🚀 [loadTemplate] Iniciando carga de plantilla:', template);
-    console.log('🔍 [loadTemplate] ¿Es TemplateDetail?', this.isTemplateDetail(template));
-    
     Swal.fire({
       title: '¿Cargar plantilla?',
       text: `¿Deseas usar la plantilla "${template.name}" para crear una nueva requisición?`,
@@ -185,9 +171,7 @@ export class FrequentTemplatesComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('✅ [loadTemplate] Usuario confirmó carga');
         if (this.isTemplateDetail(template)) {
-          console.log('📦 [loadTemplate] Usando TemplateDetail directamente');
           const mappedAreas = template.areas.map(area => ({
             area: area.area,
             areaId: area.id ? String(area.id) : undefined,
@@ -200,17 +184,6 @@ export class FrequentTemplatesComponent implements OnInit {
             }))
           }));
 
-          console.log('🗺️ [loadTemplate] Áreas mapeadas:', mappedAreas);
-          console.log('🧭 [loadTemplate] Navegando a /requisicion con state:', {
-            loadFromTemplate: true,
-            templateData: mappedAreas,
-            templateName: template.name,
-            locationId: template.location?.id || null,
-            locationName: template.location?.name || null,
-            departmentId: template.department?.id || null,
-            projectId: template.project?.id || null,
-            awaitingReturn: template.awaiting_return || false
-          });
 
           this.router.navigate(['/requisicion'], {
             state: {
@@ -227,11 +200,8 @@ export class FrequentTemplatesComponent implements OnInit {
           return;
         }
 
-        console.log('📡 [loadTemplate] Solicitando detalle completo al backend...');
-        // Obtener detalle completo antes de cargar
         this.templatesService.getTemplateDetails(template.id).subscribe({
           next: (response) => {
-            console.log('✅ [loadTemplate] Detalle recibido:', response);
             const templateDetail = response.data.template;
             const mappedAreas = templateDetail.areas.map(area => ({
               area: area.area,
@@ -245,19 +215,7 @@ export class FrequentTemplatesComponent implements OnInit {
               }))
             }));
 
-            console.log('🗺️ [loadTemplate] Áreas mapeadas:', mappedAreas);
-            console.log('🧭 [loadTemplate] Navegando a /requisicion con state:', {
-              loadFromTemplate: true,
-              templateData: mappedAreas,
-              templateName: templateDetail.name,
-              locationId: templateDetail.location?.id || null,
-              locationName: templateDetail.location?.name || null,
-              departmentId: templateDetail.department?.id || null,
-              projectId: templateDetail.project?.id || null,
-              awaitingReturn: templateDetail.awaiting_return || false
-            });
 
-            // Navegar al componente de requisición con los datos completos
             this.router.navigate(['/requisicion'], {
               state: {
                 loadFromTemplate: true,
@@ -272,7 +230,7 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('❌ [loadTemplate] Error al cargar plantilla:', error);
+            console.error('❌ Error al cargar plantilla:', error.error?.message || error.message);
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -286,6 +244,10 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   editTemplate(template: Template): void {
+    if (this.isProcessing) {
+      return;
+    }
+
     Swal.fire({
       title: 'Editar nombre de plantilla',
       text: 'Ingrese el nuevo nombre para esta plantilla:',
@@ -305,23 +267,31 @@ export class FrequentTemplatesComponent implements OnInit {
       }
     }).then((result) => {
       if (result.isConfirmed && result.value) {
+        this.isProcessing = true;
         const newName = result.value.trim();
+        const oldName = template.name;
         
-        // Mostrar loading
+        // OPTIMISTIC UPDATE - Actualizar inmutablemente
+        const updatedTemplates = this.templatesSubject.value.map(t => 
+          t.id === template.id ? { ...t, name: newName } : t
+        );
+        this.templatesSubject.next(updatedTemplates);
+        this.filteredTemplatesSubject.next(updatedTemplates);
+        
         Swal.fire({
           title: 'Actualizando...',
           text: 'Por favor espera',
           allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
           didOpen: () => {
             Swal.showLoading();
           }
         });
         
-        // Llamar al servicio
         this.templatesService.updateTemplate(template.id, { name: newName }).subscribe({
           next: () => {
-            // Recargar plantillas
-            this.loadTemplates();
+            this.isProcessing = false;
             
             Swal.fire({
               icon: 'success',
@@ -332,7 +302,15 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('Error al actualizar:', error);
+            this.isProcessing = false;
+            
+            // REVERTIR - Restaurar nombre anterior
+            const revertedTemplates = this.templatesSubject.value.map(t => 
+              t.id === template.id ? { ...t, name: oldName } : t
+            );
+            this.templatesSubject.next(revertedTemplates);
+            this.filteredTemplatesSubject.next(revertedTemplates);
+            
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -346,6 +324,10 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   deleteTemplate(template: Template): void {
+    if (this.isProcessing) {
+      return;
+    }
+
     Swal.fire({
       title: '¿Eliminar plantilla?',
       text: `¿Estás seguro de que deseas eliminar la plantilla "${template.name}"? Esta acción no se puede deshacer.`,
@@ -357,21 +339,32 @@ export class FrequentTemplatesComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Mostrar loading
+        this.isProcessing = true;
+        
+        // OPTIMISTIC UPDATE - Eliminar inmediatamente
+        const templatesCopy = [...this.templatesSubject.value];
+        const filteredCopy = [...this.filteredTemplatesSubject.value];
+        
+        const updatedTemplates = this.templatesSubject.value.filter(t => t.id !== template.id);
+        const updatedFiltered = this.filteredTemplatesSubject.value.filter(t => t.id !== template.id);
+        
+        this.templatesSubject.next(updatedTemplates);
+        this.filteredTemplatesSubject.next(updatedFiltered);
+        
         Swal.fire({
           title: 'Eliminando...',
           text: 'Por favor espera',
           allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
           didOpen: () => {
             Swal.showLoading();
           }
         });
         
-        // Llamar al servicio
         this.templatesService.deleteTemplate(template.id).subscribe({
           next: (response) => {
-            // Recargar plantillas
-            this.loadTemplates();
+            this.isProcessing = false;
             
             Swal.fire({
               icon: 'success',
@@ -382,13 +375,31 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('Error al eliminar:', error);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: error.error?.message || 'No se pudo eliminar la plantilla',
-              confirmButtonText: 'Entendido'
-            });
+            this.isProcessing = false;
+            const errorCode = error.status;
+            const errorMsg = error.error?.message || error.message;
+            
+            if (errorCode === 410 || errorCode === 404) {
+              // Ya fue eliminada, mantener update optimista
+              Swal.fire({
+                icon: 'info',
+                title: 'Plantilla ya eliminada',
+                text: 'La plantilla ya había sido eliminada anteriormente',
+                confirmButtonText: 'Entendido',
+                timer: 2000
+              });
+            } else {
+              // Error real, REVERTIR cambios
+              this.templatesSubject.next(templatesCopy);
+              this.filteredTemplatesSubject.next(filteredCopy);
+              
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: errorMsg || 'No se pudo eliminar la plantilla',
+                confirmButtonText: 'Entendido'
+              });
+            }
           }
         });
       }
@@ -396,6 +407,10 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   duplicateTemplate(template: Template): void {
+    if (this.isProcessing) {
+      return;
+    }
+
     Swal.fire({
       title: 'Duplicar plantilla',
       text: 'Ingrese un nombre para la copia de esta plantilla:',
@@ -415,22 +430,23 @@ export class FrequentTemplatesComponent implements OnInit {
       }
     }).then((result) => {
       if (result.isConfirmed && result.value) {
+        this.isProcessing = true;
         const newName = result.value.trim();
         
-        // Mostrar loading
         Swal.fire({
           title: 'Duplicando...',
           text: 'Por favor espera',
           allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
           didOpen: () => {
             Swal.showLoading();
           }
         });
         
-        // Llamar al servicio
         this.templatesService.duplicateTemplate(template.id, newName).subscribe({
-          next: () => {
-            // Recargar plantillas
+          next: (response) => {
+            this.isProcessing = false;
             this.loadTemplates();
             
             Swal.fire({
@@ -442,7 +458,8 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('Error al duplicar:', error);
+            this.isProcessing = false;
+            
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -596,7 +613,7 @@ export class FrequentTemplatesComponent implements OnInit {
         });
       },
       error: (error) => {
-        console.error('Error al compartir:', error);
+        console.error('❌ Error al compartir:', error.error?.message || error.message);
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -605,5 +622,12 @@ export class FrequentTemplatesComponent implements OnInit {
         });
       }
     });
+  }
+
+  /**
+   * TrackBy function para optimizar ngFor y detectar cambios
+   */
+  trackByTemplateId(index: number, template: Template): number {
+    return template.id;
   }
 }

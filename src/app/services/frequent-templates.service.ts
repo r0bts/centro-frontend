@@ -270,10 +270,10 @@ export class FrequentTemplatesService {
    * POST /api/requisition-templates/{id}/duplicate
    * Duplicar una plantilla existente
    */
-  duplicateTemplate(id: number, newName?: string): Observable<any> {
+  duplicateTemplate(id: number, newName: string): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/${id}/duplicate`,
-      { new_name: newName },
+      { name: newName },
       { headers: this.getHeaders() }
     );
   }
