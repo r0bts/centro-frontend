@@ -109,18 +109,22 @@ export class UserService {
             id: user.id,
             username: user.username,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            employeeNumber: user.employeeNumber,
-            locationId: user.locationId,
-            locationName: user.locationName,
-            departmentId: user.departmentId,
-            departmentName: user.departmentName,
-            role: user.role,
-            isActive: user.isActive,
-            createdAt: new Date(user.createdAt),
-            lastLogin: user.lastLogin && user.lastLogin !== 'Sin información' 
-              ? new Date(user.lastLogin) 
+            // ✅ CORRECCIÓN: Backend usa snake_case
+            firstName: user.first_name || user.firstName,
+            lastName: user.last_name || user.lastName,
+            employeeNumber: user.number_employee || user.employeeNumber,
+            locationId: user.location_id || user.locationId,
+            locationName: user.location?.name || user.locationName,
+            departmentId: user.department_id || user.departmentId,
+            departmentName: user.department?.name || user.departmentName,
+            // Extraer rol desde user_roles array
+            role: user.user_roles && user.user_roles.length > 0 
+              ? (user.user_roles[0].role?.display_name || user.user_roles[0].role?.name || 'Sin rol')
+              : (user.role || 'Sin rol'),
+            isActive: user.is_active !== undefined ? user.is_active : user.isActive,
+            createdAt: new Date(user.created_at || user.createdAt),
+            lastLogin: user.last_login_at || user.lastLogin && user.last_login_at !== null && user.lastLogin !== 'Sin información' 
+              ? new Date(user.last_login_at || user.lastLogin) 
               : undefined
           }));
         }
