@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -76,6 +76,46 @@ export class NetsuiteSyncComponent implements OnInit {
       type: 'subcategories',
       isLoading: false,
       recordCount: 0
+    },
+    payment_frequencies: {
+      type: 'payment_frequencies',
+      isLoading: false,
+      recordCount: 0
+    },
+    condicion_patrimonial: {
+      type: 'condicion_patrimonial',
+      isLoading: false,
+      recordCount: 0
+    },
+    condicion_adm: {
+      type: 'condicion_adm',
+      isLoading: false,
+      recordCount: 0
+    },
+    parentesco: {
+      type: 'parentesco',
+      isLoading: false,
+      recordCount: 0
+    },
+    acceso_clubes: {
+      type: 'acceso_clubes',
+      isLoading: false,
+      recordCount: 0
+    },
+    genero: {
+      type: 'genero',
+      isLoading: false,
+      recordCount: 0
+    },
+    estado_membresia: {
+      type: 'estado_membresia',
+      isLoading: false,
+      recordCount: 0
+    },
+    cuotas_membresia: {
+      type: 'cuotas_membresia',
+      isLoading: false,
+      recordCount: 0
     }
   };
 
@@ -130,6 +170,38 @@ export class NetsuiteSyncComponent implements OnInit {
     this.performSync('subcategories', 'Subcategorías', () => this.netsuiteSyncService.syncSubcategories());
   }
 
+  syncPaymentFrequencies(): void {
+    this.performSync('payment_frequencies', 'Frecuencias de Pago', () => this.netsuiteSyncService.syncPaymentFrequencies());
+  }
+
+  syncCondicionPatrimonial(): void {
+    this.performSync('condicion_patrimonial', 'Condición Patrimonial', () => this.netsuiteSyncService.syncCondicionPatrimonial());
+  }
+
+  syncCondicionAdm(): void {
+    this.performSync('condicion_adm', 'Condición Administrativa', () => this.netsuiteSyncService.syncCondicionAdm());
+  }
+
+  syncParentesco(): void {
+    this.performSync('parentesco', 'Parentesco', () => this.netsuiteSyncService.syncParentesco());
+  }
+
+  syncAccesoClubes(): void {
+    this.performSync('acceso_clubes', 'Acceso Clubes', () => this.netsuiteSyncService.syncAccesoClubes());
+  }
+
+  syncGenero(): void {
+    this.performSync('genero', 'Género', () => this.netsuiteSyncService.syncGenero());
+  }
+
+  syncEstadoMembresia(): void {
+    this.performSync('estado_membresia', 'Estado Membresía', () => this.netsuiteSyncService.syncEstadoMembresia());
+  }
+
+  syncCuotasMembresia(): void {
+    this.performSync('cuotas_membresia', 'Cuotas Membresía', () => this.netsuiteSyncService.syncCuotasMembresia());
+  }
+
   syncAll(): void {
     console.log('🔄 Iniciando sincronización completa de todos los recursos...');
     
@@ -148,6 +220,14 @@ export class NetsuiteSyncComponent implements OnInit {
             <li>Cuentas de Inventario y Pagos</li>
             <li>Razones de Ajuste</li>
             <li>Productos</li>
+            <li>Frecuencias de Pago</li>
+            <li>Condición Patrimonial</li>
+            <li>Condición Administrativa</li>
+            <li>Parentesco</li>
+            <li>Acceso Clubes</li>
+            <li>Género</li>
+            <li>Estado Membresía</li>
+            <li>Cuotas Membresía</li>
           </ul>
           <p class="mb-0 text-muted small">⏱️ Este proceso puede tomar entre 2-5 minutos</p>
         </div>
@@ -232,6 +312,30 @@ export class NetsuiteSyncComponent implements OnInit {
               if (results.adjustment_reasons?.data) {
                 this.syncStatus['adjustment_reasons'].recordCount = results.adjustment_reasons.data.synced || 0;
               }
+              if (results.payment_frequencies?.data) {
+                this.syncStatus['payment_frequencies'].recordCount = results.payment_frequencies.data.synced || 0;
+              }
+              if (results.condicion_patrimonial?.data) {
+                this.syncStatus['condicion_patrimonial'].recordCount = results.condicion_patrimonial.data.synced || 0;
+              }
+              if (results.condicion_adm?.data) {
+                this.syncStatus['condicion_adm'].recordCount = results.condicion_adm.data.synced || 0;
+              }
+              if (results.parentesco?.data) {
+                this.syncStatus['parentesco'].recordCount = results.parentesco.data.synced || 0;
+              }
+              if (results.acceso_clubes?.data) {
+                this.syncStatus['acceso_clubes'].recordCount = results.acceso_clubes.data.synced || 0;
+              }
+              if (results.genero?.data) {
+                this.syncStatus['genero'].recordCount = results.genero.data.synced || 0;
+              }
+              if (results.estado_membresia?.data) {
+                this.syncStatus['estado_membresia'].recordCount = results.estado_membresia.data.synced || 0;
+              }
+              if (results.cuotas_membresia?.data) {
+                this.syncStatus['cuotas_membresia'].recordCount = results.cuotas_membresia.data.synced || 0;
+              }
             }
 
             // Mostrar resultado
@@ -248,7 +352,7 @@ export class NetsuiteSyncComponent implements OnInit {
                     <tbody>
                       <tr>
                         <td class="text-muted">Total de recursos:</td>
-                        <td class="text-end"><strong>${summary.total_resources || 11}</strong></td>
+                        <td class="text-end"><strong>${summary.total_resources || 19}</strong></td>
                       </tr>
                       <tr>
                         <td class="text-muted">Sincronizados:</td>

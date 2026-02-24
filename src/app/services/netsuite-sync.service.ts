@@ -176,6 +176,109 @@ export class NetsuiteSyncService {
   }
 
   /**
+   * Sincroniza frecuencias de pago desde NetSuite
+   * POST /api/payment-frequencies/sync
+   */
+  syncPaymentFrequencies(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/payment-frequencies/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza condiciones patrimoniales desde NetSuite
+   * POST /api/condicion-patrimonial/sync
+   * Total: 12 registros
+   */
+  syncCondicionPatrimonial(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/condicion-patrimonial/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza condiciones administrativas desde NetSuite
+   * POST /api/condicion-adm/sync
+   * Total: 4 registros
+   */
+  syncCondicionAdm(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/condicion-adm/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza parentesco desde NetSuite
+   * POST /api/parentesco/sync
+   * Total: 10 registros
+   */
+  syncParentesco(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/parentesco/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza acceso a clubes desde NetSuite
+   * POST /api/acceso-clubes/sync
+   * Total: 2 registros (Hermes, Glaciar)
+   */
+  syncAccesoClubes(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/acceso-clubes/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza géneros desde NetSuite
+   * POST /api/genero/sync
+   * Total: 2 registros (Hombre, Mujer)
+   */
+  syncGenero(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/genero/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza estados de membresía desde NetSuite
+   * POST /api/estado-membresia/sync
+   * Total: 7 registros
+   */
+  syncEstadoMembresia(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/estado-membresia/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza cuotas de membresía desde NetSuite
+   * POST /api/cuotas-membresia/sync
+   * Total: 8 registros
+   */
+  syncCuotasMembresia(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/cuotas-membresia/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
    * Sincroniza todos los recursos desde NetSuite
    * POST /api/netsuite/sync-all
    * Sincroniza: usuarios, categorías, subcategorías, departamentos, áreas, 
