@@ -94,6 +94,21 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'membresias',
+    redirectTo: '/membresias/buscar',
+    pathMatch: 'full'
+  },
+  {
+    path: 'membresias/buscar',
+    loadComponent: () => import('./components/membresias-buscar/membresias-buscar').then(m => m.MembresiasBuscarComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'membresias/reglas',
+    loadComponent: () => import('./components/membresias-reglas/membresias-reglas').then(m => m.MembresiasReglasComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'unauthorized',
     loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
   },
