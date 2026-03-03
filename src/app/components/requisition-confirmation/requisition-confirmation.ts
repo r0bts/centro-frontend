@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewChecked, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -12,6 +12,8 @@ import {
 } from '../../services/requisition.service';
 import { AuthService } from '../../services/auth.service';
 import { FrequentTemplatesService } from '../../services/frequent-templates.service';
+import { Subject } from 'rxjs';
+import { debounceTime, takeUntil } from 'rxjs/operators';
 
 export interface RequisitionSummary {
   area: string;
@@ -50,16 +52,23 @@ export interface Employee {
   standalone: true,
   imports: [CommonModule, FormsModule, ContentMenu],
   templateUrl: './requisition-confirmation.html',
-  styleUrls: ['./requisition-confirmation.scss']
+  styleUrls: ['./requisition-confirmation.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class RequisitionConfirmationComponent implements OnInit, AfterViewChecked {
+export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   private requisitionService = inject(RequisitionService);
   private authService = inject(AuthService);
   private frequentTemplatesService = inject(FrequentTemplatesService);
   private cdr = inject(ChangeDetectorRef);
   
-  private viewCheckedCount = 0;
-  
+  // Subjects para debounce y limpieza de suscripciones
+  private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
+
+  // Conteos cacheados: evitan ejecutar métodos en cada ciclo de detección de cambios
+  totalAreasCount: number = 0;
+  totalProductsCount: number = 0;
+
   activeSection: string = 'requisicion';
   
   // Datos de la requisición recibidos del componente anterior
@@ -119,6 +128,12 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
   }
 
   ngOnInit(): void {
+    // Configurar debounce de 300ms para búsqueda de empleados
+    this.searchSubject.pipe(
+      debounceTime(300),
+      takeUntil(this.destroy$)
+    ).subscribe(term => this._filterEmployees(term));
+
     // Verificar si vienen parámetros de query (desde la lista)
     this.route.queryParams.subscribe(params => {
       if (params['id'] && params['mode']) {
@@ -174,17 +189,14 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
           if (loggedUserEmployee) {
             this.selectedEmployee = loggedUserEmployee;
             this.employeeSearchTerm = loggedUserEmployee.name;
-            console.log('✅ Usuario logueado auto-seleccionado:', loggedUserEmployee);
-          } else {
-            console.warn('⚠️ Usuario logueado no encontrado en lista de empleados');
           }
         }
         
         this.isLoadingEmployees = false;
+        this.cdr.markForCheck();
         Swal.close();
       },
       error: (error) => {
-        console.error('Error al cargar empleados:', error);
         this.isLoadingEmployees = false;
         
         Swal.fire({
@@ -264,21 +276,11 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
           this.requisitionData = Array.from(areaMap.values());
           
           this.consolidateProducts();
-          
-          // Forzar detección de cambios
           this.cdr.markForCheck();
-          
-          // Usar setTimeout para asegurar que Angular actualice en el próximo ciclo
-          setTimeout(() => {
-            this.cdr.detectChanges();
-          }, 0);
-          
           Swal.close();
         }
       },
       error: (error: any) => {
-        console.error('❌ Error al cargar requisición:', error);
-        
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -325,14 +327,19 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
     // Convertir el map a array y ordenar alfabéticamente
     this.consolidatedProducts = Array.from(productMap.values())
       .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Actualizar conteos cacheados una sola vez al final
+    this.totalAreasCount = this.requisitionData.length;
+    this.totalProductsCount = this.consolidatedProducts.length;
   }
 
   onSectionChange(section: string): void {
     this.activeSection = section;
   }
 
-  ngAfterViewChecked(): void {
-    // Nada que loguear
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   formatDate(date: Date): string {
@@ -355,15 +362,27 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
     return `${this.formatDate(date)} ${this.formatTime(date)}`;
   }
 
-  getTotalProductsCount(): number {
-    const total = this.consolidatedProducts.length;
-    return total;
+  // --- TrackBy functions: evitan destruir y recrear nodos DOM en cada *ngFor ---
+  trackByProductName(_index: number, product: ConsolidatedProduct): string {
+    return product.name + '-' + product.unit;
   }
 
-  getTotalAreasCount(): number {
-    const total = this.requisitionData.length;
-    return total;
+  trackBySummaryArea(_index: number, summary: RequisitionSummary): string {
+    return summary.area;
   }
+
+  trackByProductId(_index: number, product: Product): string {
+    return product.id;
+  }
+
+  trackByEmployeeId(_index: number, employee: Employee): string {
+    return employee.id;
+  }
+
+  trackByDetail(_index: number, detail: ProductDetail): string {
+    return detail.area;
+  }
+  // ---------------------------------------------------------------------------
 
   goBack(): void {
     // Si vino desde la lista, regresar a la lista
@@ -387,26 +406,34 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
 
   // Métodos para el manejo de empleados
   onEmployeeSearch(): void {
-    if (this.employeeSearchTerm.trim()) {
-      this.filteredEmployees = this.employees.filter(employee =>
-        employee.name.toLowerCase().includes(this.employeeSearchTerm.toLowerCase()) ||
-        employee.position.toLowerCase().includes(this.employeeSearchTerm.toLowerCase())
-      );
-    } else {
-      this.filteredEmployees = [...this.employees];
-    }
     this.showEmployeeDropdown = true;
+    this.searchSubject.next(this.employeeSearchTerm);
+  }
+
+  private _filterEmployees(term: string): void {
+    if (term.trim()) {
+      this.filteredEmployees = this.employees
+        .filter(e =>
+          e.name.toLowerCase().includes(term.toLowerCase()) ||
+          e.position.toLowerCase().includes(term.toLowerCase())
+        )
+        .slice(0, 20);
+    } else {
+      this.filteredEmployees = this.employees.slice(0, 20);
+    }
+    this.cdr.markForCheck();
   }
 
   onEmployeeFocus(): void {
-    this.filteredEmployees = [...this.employees];
+    this.filteredEmployees = this.employees.slice(0, 20);
     this.showEmployeeDropdown = true;
+    this.cdr.markForCheck();
   }
 
   onEmployeeBlur(): void {
-    // Timeout para permitir clic en dropdown
     setTimeout(() => {
       this.showEmployeeDropdown = false;
+      this.cdr.markForCheck();
     }, 200);
   }
 
@@ -414,11 +441,13 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
     this.selectedEmployee = employee;
     this.employeeSearchTerm = employee.name;
     this.showEmployeeDropdown = false;
+    this.cdr.markForCheck();
   }
 
   clearEmployee(): void {
     this.selectedEmployee = null;
     this.employeeSearchTerm = '';
+    this.cdr.markForCheck();
   }
 
   confirmFinalRequisition(): void {
@@ -433,27 +462,16 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
       return;
     }
 
-    console.log('📋 Datos de requisición recibidos:', this.requisitionData);
-    console.log('👤 Empleado seleccionado:', this.selectedEmployee);
-    console.log('📍 Location ID:', this.selectedLocationId);
-    console.log('📁 Project ID:', this.selectedProjectId);
-    console.log('🏢 Department ID:', this.selectedDepartmentId);
-
     // Construir el payload para enviar al backend
     const items: RequisitionItemPayload[] = [];
     
     // Iterar por cada área y sus productos
     this.requisitionData.forEach(summary => {
-      console.log(`📦 Procesando área: ${summary.area}, ID: ${summary.areaId}`);
-      
       summary.products.forEach(product => {
-        console.log(`  - Producto: ${product.name}, ID: ${product.id}, Cantidad: ${product.quantity}, Unit: ${product.unit}`);
-        
         const productId = parseInt(product.id);
         const areaId = summary.areaId ? parseInt(summary.areaId) : undefined;
         
         if (isNaN(productId)) {
-          console.error(`❌ Product ID inválido: ${product.id}`);
           return;
         }
         
@@ -526,8 +544,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
       payload.project_id = this.selectedProjectId;
     }
 
-    console.log('📦 Payload final a enviar:', JSON.stringify(payload, null, 2));
-
     // Mostrar loading
     Swal.fire({
       title: 'Enviando requisición...',
@@ -541,8 +557,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
     // Enviar la requisición al backend
     this.requisitionService.createRequisition(payload).subscribe({
       next: (response) => {
-        console.log('✅ Requisición creada exitosamente:', response);
-        
         // Determinar el mensaje según si fue auto-autorizada o no
         const wasAutoAuthorized = response.data.auto_authorized === true;
         const statusBadgeClass = response.data.status === 'autorizado' ? 'bg-success' : 'bg-warning';
@@ -591,8 +605,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
         });
       },
       error: (error) => {
-        console.error('❌ Error al crear requisición:', error);
-        
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -629,8 +641,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
         // Llamar al endpoint de autorización
         this.requisitionService.authorizeRequisition(this.requisitionId).subscribe({
           next: (response) => {
-            console.log('✅ Respuesta de autorización:', response);
-            
             if (response.success) {
               const data = response.data;
               
@@ -668,8 +678,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
             }
           },
           error: (error) => {
-            console.error('❌ Error al autorizar requisición:', error);
-            
             let errorMessage = 'No se pudo autorizar la requisición';
             let errorTitle = 'Error de Autorización';
             
@@ -743,8 +751,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
         // Llamar al endpoint de cancelación
         this.requisitionService.cancelRequisition(this.requisitionId, reason).subscribe({
           next: (response) => {
-            console.log('✅ Respuesta de cancelación:', response);
-            
             if (response.success) {
               const data = response.data;
               
@@ -769,8 +775,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
             }
           },
           error: (error) => {
-            console.error('❌ Error al cancelar requisición:', error);
-            
             let errorMessage = 'No se pudo cancelar la requisición';
             let errorTitle = 'Error de Cancelación';
             
@@ -846,7 +850,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
             });
           },
           error: (error) => {
-            console.error('Error al guardar plantilla:', error);
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -871,11 +874,6 @@ export class RequisitionConfirmationComponent implements OnInit, AfterViewChecke
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        console.log('Cerrando devolución para requisición:', this.requisitionId);
-        
-        // Aquí implementarías la lógica para cerrar la devolución
-        // Por ejemplo, cambiar el estado de la requisición
-        
         Swal.fire({
           icon: 'success',
           title: 'Devolución cerrada',
