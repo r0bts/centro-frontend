@@ -1,5 +1,5 @@
 <div class="container-fluid">
-  <div class="bg-light" style="min-height: 100vh; max-height: 100vh; overflow: hidden;">
+  <div class="bg-light" style="height: 100vh; display: flex; flex-direction: column; overflow: hidden;">
     <!-- Content Menu Component -->
     <app-content-menu 
       [activeSection]="activeSection"
@@ -7,8 +7,8 @@
     </app-content-menu>
 
     <!-- Main Content -->
-    <div class="p-2" style="height: calc(100vh - 120px); overflow: hidden;">
-      <div class="row g-4">
+    <div class="p-2" style="flex: 1 1 0; min-height: 0; overflow: hidden;">
+      <div class="row g-4" style="height: 100%;">
         
         <!-- Panel izquierdo - Resumen por áreas -->
         <div class="col-lg-6">
@@ -180,7 +180,7 @@
               </div>
 
               <!-- Lista de áreas y productos -->
-              <div class="overflow-auto flex-grow-1" style="max-height: 30vh;">
+              <div class="scroll-panel">
                 <div *ngFor="let summary of requisitionData; let i = index; trackBy: trackBySummaryArea" class="mb-4">
                   <div class="card border shadow-sm">
                     <div class="card-header bg-light border-bottom">
@@ -253,7 +253,7 @@
             
             <div class="card-body d-flex flex-column">
               <!-- Tabla consolidada -->
-              <div class="overflow-auto flex-grow-1" style="max-height: 60vh;">
+              <div class="scroll-panel">
                 <div class="table-responsive">
                   <table class="table table-hover">
                     <thead class="table-light">

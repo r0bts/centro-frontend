@@ -11,21 +11,32 @@
   overflow: hidden;
 }
 
-/* Scrollbar personalizado usando variables del proyecto */
+/* Panel de scroll interno: ocupa el espacio flex disponible sin altura fija */
+.scroll-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Scrollbar personalizado — aplica a scroll-panel y overflow-auto */
+.scroll-panel::-webkit-scrollbar,
 .overflow-auto::-webkit-scrollbar {
   width: 6px;
 }
 
+.scroll-panel::-webkit-scrollbar-track,
 .overflow-auto::-webkit-scrollbar-track {
   background: var(--neutral-100);
   border-radius: 3px;
 }
 
+.scroll-panel::-webkit-scrollbar-thumb,
 .overflow-auto::-webkit-scrollbar-thumb {
   background: var(--primary-color);
   border-radius: 3px;
 }
 
+.scroll-panel::-webkit-scrollbar-thumb:hover,
 .overflow-auto::-webkit-scrollbar-thumb:hover {
   background: var(--primary-dark);
 }
@@ -40,10 +51,5 @@
   .btn-lg {
     font-size: 0.9rem;
     padding: 0.5rem 1rem;
-  }
-  
-  /* Reducir altura en móviles */
-  .overflow-auto {
-    max-height: 30vh !important;
   }
 }
