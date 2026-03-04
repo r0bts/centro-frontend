@@ -145,6 +145,10 @@ export class WarehouseSupplyComponent implements OnInit {
   enteredNip = signal<string>('');
   nipError = signal<string>('');
   generatedNip = signal<string>('');
+
+  /** Productos sin consolidar tal como vienen del backend.
+   * Se usan en mark-ready y process-return para enviar item_id individuales. */
+  private originalProducts: WarehouseProduct[] = [];
   
   // Computed signals
   hasRequisition = computed(() => this.requisition() !== null);
@@ -279,14 +283,20 @@ export class WarehouseSupplyComponent implements OnInit {
           const mappedRequisition = WarehouseSupplyHelper.mapRequisitionFromAPI(
             response.data.requisition
           );
-          
-          console.log('📦 Requisición cargada:', mappedRequisition);
-          console.log('📊 Estado:', mappedRequisition.statusRaw, 'Awaiting Return:', mappedRequisition.awaiting_return);
-          
-          this.requisition.set(mappedRequisition);
+
+          // Guardar productos originales (1 por área) para distribuir cantidades al backend
+          this.originalProducts = [...mappedRequisition.products];
+
+          // Consolidar productos con mismo código en una sola fila
+          const consolidatedRequisition = {
+            ...mappedRequisition,
+            products: WarehouseSupplyHelper.consolidateProducts(mappedRequisition.products)
+          };
+
+          this.requisition.set(consolidatedRequisition);
           
           // Agrupar productos por categoría
-          const grouped = WarehouseSupplyHelper.groupProductsByCategory(mappedRequisition.products);
+          const grouped = WarehouseSupplyHelper.groupProductsByCategory(consolidatedRequisition.products);
           this.productsByCategory.set(grouped);
           
           // Extraer categorías únicas
@@ -295,7 +305,7 @@ export class WarehouseSupplyComponent implements OnInit {
           
           // Inicializar sesión de surtido
           const session = WarehouseSupplyHelper.initializeSupplySession(
-            mappedRequisition,
+            consolidatedRequisition,
             'Usuario Almacén' // En producción vendría del servicio de autenticación
           );
           this.supplySession.set(session);
@@ -589,11 +599,32 @@ export class WarehouseSupplyComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Preparar array de items con cantidades NUEVAS a agregar (incremental)
-        const items = this.filteredProducts().map((product: WarehouseProduct) => ({
-          item_id: parseInt(product.id, 10),
-          delivered_quantity: product.newDeliveryQuantity || 0
-        }));
+        // Preparar array de items con cantidades NUEVAS a agregar (incremental).
+        // Los productos consolidados se distribuyen entre los ítems originales usando
+        // la estrategia greedy: llena cada ítem original en orden hasta agotar el total.
+        const items: { item_id: number; delivered_quantity: number }[] = [];
+        req.products.forEach(consolidated => {
+          const key = consolidated.code || consolidated.name;
+          const originals = this.originalProducts.filter(p => (p.code || p.name) === key);
+          const totalNew = consolidated.newDeliveryQuantity || 0;
+
+          if (originals.length <= 1) {
+            const orig = originals[0];
+            if (orig) {
+              items.push({ item_id: parseInt(orig.id, 10), delivered_quantity: totalNew });
+            }
+          } else {
+            // Distribución greedy entre ítems originales del mismo código
+            let remaining = totalNew;
+            originals.forEach(orig => {
+              const alreadyDelivered = orig.suppliedQuantity || 0;
+              const canStillDeliver = orig.requestedQuantity - alreadyDelivered;
+              const toDeliver = remaining > 0 ? Math.min(canStillDeliver, remaining) : 0;
+              items.push({ item_id: parseInt(orig.id, 10), delivered_quantity: toDeliver });
+              remaining = Math.max(0, remaining - toDeliver);
+            });
+          }
+        });
         
         // Mostrar loading
         Swal.fire({
@@ -1068,11 +1099,30 @@ export class WarehouseSupplyComponent implements OnInit {
       if (result.isConfirmed) {
         const notes = result.value?.trim() || undefined;
         
-        // Preparar items para la devolución (incluir TODOS los entregados, incluso con returned=0)
-        const items = productsDelivered.map(product => ({
-          item_id: parseInt(product.id),
-          returned_quantity: product.returnQuantity || 0
-        }));
+        // Preparar items para la devolución (incluir TODOS los entregados, incluso con returned=0).
+        // Los productos consolidados se distribuyen entre los ítems originales usando estrategia greedy.
+        const items: { item_id: number; returned_quantity: number }[] = [];
+        productsDelivered.forEach(consolidated => {
+          const key = consolidated.code || consolidated.name;
+          const originals = this.originalProducts.filter(p => (p.code || p.name) === key);
+          const totalReturn = consolidated.returnQuantity || 0;
+
+          if (originals.length <= 1) {
+            const orig = originals[0];
+            if (orig) {
+              items.push({ item_id: parseInt(orig.id), returned_quantity: totalReturn });
+            }
+          } else {
+            // Distribución greedy: devuelve hasta lo entregado por cada ítem original
+            let remaining = totalReturn;
+            originals.forEach(orig => {
+              const maxReturn = orig.suppliedQuantity || 0;
+              const toReturn = remaining > 0 ? Math.min(maxReturn, remaining) : 0;
+              items.push({ item_id: parseInt(orig.id), returned_quantity: toReturn });
+              remaining = Math.max(0, remaining - toReturn);
+            });
+          }
+        });
         
         // Mostrar loading
         Swal.fire({

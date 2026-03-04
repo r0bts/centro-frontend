@@ -378,6 +378,47 @@ export class WarehouseSupplyHelper {
   }
 
   /**
+   * Consolida productos con el mismo código en una sola fila.
+   * Suma requestedQuantity, suppliedQuantity y returnQuantity.
+   * El resto de campos se toma del primer ítem del grupo.
+   */
+  static consolidateProducts(products: WarehouseProduct[]): WarehouseProduct[] {
+    const groups = new Map<string, WarehouseProduct[]>();
+
+    // Agrupar manteniendo el orden de inserción
+    products.forEach(product => {
+      const key = product.code || product.name;
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(product);
+    });
+
+    const consolidated: WarehouseProduct[] = [];
+
+    groups.forEach((items) => {
+      if (items.length === 1) {
+        consolidated.push({ ...items[0] });
+        return;
+      }
+
+      // Múltiples ítems con mismo código → consolidar
+      const first = items[0];
+      consolidated.push({
+        ...first,
+        requestedQuantity: items.reduce((sum, p) => sum + p.requestedQuantity, 0),
+        suppliedQuantity:  items.reduce((sum, p) => sum + p.suppliedQuantity,  0),
+        returnQuantity:    items.reduce((sum, p) => sum + p.returnQuantity,    0),
+        isSupplied:        items.every(p => p.isSupplied),
+        newDeliveryQuantity: 0,
+        // availableStock viene de ...first (mismo producto en NetSuite = mismo stock)
+      });
+    });
+
+    return consolidated;
+  }
+
+  /**
    * Busca un producto por código de barras
    */
   static findProductByBarcode(
