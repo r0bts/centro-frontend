@@ -210,6 +210,16 @@ export class WarehouseSupplyComponent implements OnInit {
     console.log('🔍 canProcessReturn - statusRaw:', req.statusRaw, 'awaiting_return:', req.awaiting_return, 'result:', result);
     return result;
   });
+
+  /** Todos los productos consolidados — se muestran en el modal de devolución completo */
+  allProductsForModal = computed(() => {
+    const req = this.requisition();
+    if (!req) return [];
+    return req.products;
+  });
+
+  /** Total dinámico de unidades a devolver en el modal de devolución */
+  _returnModalTotal = signal<number>(0);
   
   filteredProducts = computed(() => {
     const req = this.requisition();
@@ -522,6 +532,13 @@ export class WarehouseSupplyComponent implements OnInit {
     this.updateProductInRequisition(product.id, (p) => 
       WarehouseSupplyHelper.updateReturnQuantity(p, quantity)
     );
+
+    // Sincronizar en originalProducts (input inline = producto de un solo área)
+    const key = product.code || product.name;
+    const idx = this.originalProducts.findIndex(p => (p.code || p.name) === key);
+    if (idx !== -1) {
+      this.originalProducts[idx] = { ...this.originalProducts[idx], returnQuantity: quantity };
+    }
   }
 
   toggleProductSupply(productId: string): void {
@@ -1099,30 +1116,16 @@ export class WarehouseSupplyComponent implements OnInit {
       if (result.isConfirmed) {
         const notes = result.value?.trim() || undefined;
         
-        // Preparar items para la devolución (incluir TODOS los entregados, incluso con returned=0).
-        // Los productos consolidados se distribuyen entre los ítems originales usando estrategia greedy.
-        const items: { item_id: number; returned_quantity: number }[] = [];
-        productsDelivered.forEach(consolidated => {
-          const key = consolidated.code || consolidated.name;
-          const originals = this.originalProducts.filter(p => (p.code || p.name) === key);
-          const totalReturn = consolidated.returnQuantity || 0;
-
-          if (originals.length <= 1) {
-            const orig = originals[0];
-            if (orig) {
-              items.push({ item_id: parseInt(orig.id), returned_quantity: totalReturn });
-            }
-          } else {
-            // Distribución greedy: devuelve hasta lo entregado por cada ítem original
-            let remaining = totalReturn;
-            originals.forEach(orig => {
-              const maxReturn = orig.suppliedQuantity || 0;
-              const toReturn = remaining > 0 ? Math.min(maxReturn, remaining) : 0;
-              items.push({ item_id: parseInt(orig.id), returned_quantity: toReturn });
-              remaining = Math.max(0, remaining - toReturn);
-            });
-          }
-        });
+        // Cada ítem original ya tiene su returnQuantity asignado:
+        // - Producto 1 área    → input inline sincronizó originalProducts[i].returnQuantity
+        // - Producto multi-área → modal de áreas actualizó originalProducts[i].returnQuantity
+        const items: { item_id: number; returned_quantity: number }[] =
+          this.originalProducts
+            .filter(p => (p.suppliedQuantity || 0) > 0)
+            .map(p => ({
+              item_id: parseInt(p.id),
+              returned_quantity: p.returnQuantity || 0
+            }));
         
         // Mostrar loading
         Swal.fire({
@@ -1224,6 +1227,63 @@ export class WarehouseSupplyComponent implements OnInit {
         });
       }
     });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // DEVOLUCIÓN POR ÁREA
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /** Retorna los ítems originales (uno por área) de un producto consolidado */
+  getOriginalsForProduct(codeOrName: string): WarehouseProduct[] {
+    return this.originalProducts.filter(p => (p.code || p.name) === codeOrName);
+  }
+
+  /** Suma de returnQuantity de todos los originales de un producto (badge en tabla) */
+  getReturnSummaryForProduct(codeOrName: string): number {
+    return this.getOriginalsForProduct(codeOrName)
+      .reduce((sum, p) => sum + (p.returnQuantity || 0), 0);
+  }
+
+  /** Actualiza returnQuantity en un ítem original desde el modal (inputs por área) */
+  updateOriginalReturnQty(itemId: string, event: any): void {
+    const value = event.target.value;
+    const numericValue = value.replace(/[^0-9]/g, '');
+    event.target.value = numericValue;
+    const qty = parseInt(numericValue) || 0;
+    const idx = this.originalProducts.findIndex(p => p.id === itemId);
+    if (idx !== -1) {
+      const orig = this.originalProducts[idx];
+      const maxReturn = orig.suppliedQuantity || 0;
+      const clamped = Math.min(qty, maxReturn);
+      if (clamped !== qty) event.target.value = clamped.toString();
+      this.originalProducts[idx] = { ...orig, returnQuantity: clamped };
+    }
+    // Recalcular total del modal
+    const total = this.originalProducts.reduce((sum, p) => sum + (p.returnQuantity || 0), 0);
+    this._returnModalTotal.set(total);
+  }
+
+  /** Abre el modal de devolución unificado con todos los productos */
+  openReturnModal(): void {
+    const total = this.originalProducts.reduce((sum, p) => sum + (p.returnQuantity || 0), 0);
+    this._returnModalTotal.set(total);
+    const modalElement = document.getElementById('returnAreaModal');
+    if (modalElement) {
+      const bootstrap = (window as any).bootstrap;
+      const modal = new bootstrap.Modal(modalElement);
+      modal.show();
+    }
+  }
+
+  /** Cierra el modal de áreas y procede con la devolución */
+  applyReturnModal(): void {
+    const modalElement = document.getElementById('returnAreaModal');
+    if (modalElement) {
+      const bootstrap = (window as any).bootstrap;
+      const modal = bootstrap.Modal.getInstance(modalElement);
+      modal?.hide();
+    }
+    this.returnProductsToWarehouse();
   }
 
   // Funciones de utilidad para CSS/clases

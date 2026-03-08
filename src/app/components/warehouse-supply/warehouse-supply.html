@@ -211,7 +211,6 @@
                         <th class="text-center">Ya Entregado</th>
                         <th class="text-center">Stock</th>
                         <th class="text-center">Agregar</th>
-                        <th *ngIf="showReturnColumn()" class="text-center">Devolución</th>
                         <th class="text-center">Acciones</th>
                       </tr>
                     </thead>
@@ -297,22 +296,6 @@
                           </small>
                         </td>
 
-                        <!-- Devolución -->
-                        <td *ngIf="showReturnColumn()" class="text-center align-middle">
-                          <div class="input-group input-group-sm mx-auto" style="width: 80px;">
-                            <input 
-                              type="text" 
-                              class="form-control text-center"
-                              [value]="product.returnQuantity || ''"
-                              pattern="[0-9]*"
-                              inputmode="numeric"
-                              placeholder="0"
-                              (input)="updateReturnQuantity(product, $event)"
-                              [disabled]="product.availableStock === 0"
-                              autocomplete="off">
-                          </div>
-                        </td>
-
                         <!-- Acciones -->
                         <td class="text-center align-middle">
                           <button 
@@ -370,7 +353,6 @@
                       <th class="text-center">Solicitado</th>
                       <th class="text-center">Stock</th>
                       <th class="text-center">Surtir</th>
-                      <th *ngIf="showReturnColumn" class="text-center">Devolución</th>
                       <th class="text-center">Acciones</th>
                     </tr>
                   </thead>
@@ -448,18 +430,28 @@
 
                       <!-- Devolución -->
                       <td *ngIf="showReturnColumn" class="text-center align-middle">
-                        <div class="input-group input-group-sm mx-auto" style="width: 80px;">
-                          <input 
-                            type="text" 
-                            class="form-control text-center"
-                            [value]="product.returnQuantity || ''"
-                            pattern="[0-9]*"
-                            inputmode="numeric"
-                            placeholder="0"
-                            (input)="updateReturnQuantity(product, $event)"
-                            [disabled]="product.availableStock === 0"
-                            autocomplete="off">
-                        </div>
+                        <ng-container *ngIf="getOriginalsForProduct(product.code || product.name).length > 1; else inlineReturnFiltered">
+                          <span class="badge bg-info text-white">
+                            <i class="bi bi-geo-alt me-1"></i>Por áreas
+                          </span>
+                          <small *ngIf="getReturnSummaryForProduct(product.code || product.name) > 0" class="d-block text-success mt-1">
+                            {{ getReturnSummaryForProduct(product.code || product.name) }} {{ product.unit }}
+                          </small>
+                        </ng-container>
+                        <ng-template #inlineReturnFiltered>
+                          <div class="input-group input-group-sm mx-auto" style="width: 80px;">
+                            <input 
+                              type="text" 
+                              class="form-control text-center"
+                              [value]="product.returnQuantity || ''"
+                              pattern="[0-9]*"
+                              inputmode="numeric"
+                              placeholder="0"
+                              (input)="updateReturnQuantity(product, $event)"
+                              [disabled]="product.availableStock === 0"
+                              autocomplete="off">
+                          </div>
+                        </ng-template>
                       </td>
 
                       <!-- Acciones -->
@@ -537,7 +529,7 @@
                     *ngIf="canProcessReturn()"
                     type="button" 
                     class="btn btn-warning"
-                    (click)="returnProductsToWarehouse()">
+                    (click)="openReturnModal()">
                     Procesar Devoluciones
                   </button>
                   
@@ -647,6 +639,95 @@
             (click)="validateNipAndProceed()"
             [disabled]="!enteredNip() || enteredNip().length < 4">
             Completar Surtido
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Devolución por Área -->
+  <div class="modal fade" id="returnAreaModal" tabindex="-1" aria-labelledby="returnAreaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header bg-warning">
+          <h5 class="modal-title" id="returnAreaModalLabel">
+            <i class="bi bi-arrow-return-left me-2"></i>Procesar Devolución
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small mb-3">
+            Registra cuántas unidades devuelve de cada producto. Deja en 0 los que no se devuelven.
+          </p>
+
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Producto</th>
+                <th class="text-center" style="width:120px">Área</th>
+                <th class="text-center" style="width:130px">Entregado</th>
+                <th class="text-center" style="width:110px">Devolver</th>
+              </tr>
+            </thead>
+            <tbody>
+              <ng-container *ngFor="let product of allProductsForModal()">
+                <ng-container *ngFor="let orig of getOriginalsForProduct(product.code || product.name); let first = first; let last = last">
+                  <tr>
+                    <!-- Nombre del producto: rowspan sobre sus áreas -->
+                    <td *ngIf="first"
+                        [attr.rowspan]="getOriginalsForProduct(product.code || product.name).length"
+                        class="fw-semibold align-middle">
+                      {{ product.name }}
+                      <small class="d-block text-muted fw-normal">{{ product.unit }}</small>
+                    </td>
+                    <!-- Área -->
+                    <td class="text-center">
+                      <small><i class="bi bi-geo-alt me-1 text-muted"></i>{{ orig.area }}</small>
+                    </td>
+                    <!-- Entregado -->
+                    <td class="text-center">
+                      <span class="badge"
+                            [class.bg-success]="(orig.suppliedQuantity || 0) > 0"
+                            [class.bg-secondary]="(orig.suppliedQuantity || 0) === 0">
+                        {{ orig.suppliedQuantity || 0 }} {{ orig.unit }}
+                      </span>
+                    </td>
+                    <!-- Input devolver -->
+                    <td class="text-center">
+                      <div class="input-group input-group-sm mx-auto" style="width: 90px;">
+                        <input
+                          type="text"
+                          class="form-control text-center"
+                          [value]="orig.returnQuantity || ''"
+                          pattern="[0-9]*"
+                          inputmode="numeric"
+                          placeholder="0"
+                          [disabled]="(orig.suppliedQuantity || 0) === 0"
+                          (input)="updateOriginalReturnQty(orig.id, $event)"
+                          autocomplete="off">
+                      </div>
+                    </td>
+                  </tr>
+                </ng-container>
+                <!-- Separador visual entre productos -->
+                <tr class="table-light">
+                  <td [attr.colspan]="4" style="height:4px; padding:0;"></td>
+                </tr>
+              </ng-container>
+            </tbody>
+          </table>
+
+          <div class="alert alert-info d-flex align-items-center mb-0">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <span>Total a devolver: <strong>{{ _returnModalTotal() }} unidades</strong></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-warning" (click)="applyReturnModal()">
+            <i class="bi bi-check-lg me-1"></i>Confirmar Devolución
           </button>
         </div>
       </div>
