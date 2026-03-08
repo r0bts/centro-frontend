@@ -1123,7 +1123,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   getMinDate(): string {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    const oneMonthAgo = new Date(today);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    return oneMonthAgo.toISOString().split('T')[0];
   }
 
   getRequestDeliveryDate(): Date | null {
