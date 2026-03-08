@@ -231,7 +231,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       'En Proceso': 'badge bg-primary text-white',          // usa --bs-primary
       'Listo para Recoger': 'badge bg-info text-white',     // usa --bs-info
       'Entregado': 'badge bg-secondary text-white',         // Bootstrap estándar
-      'Espera Devolución': 'badge bg-cyan text-white',      // devolución pendiente
+      'Espera Devolución': 'badge bg-warning text-dark',      // devolución pendiente
       'Cancelado': 'badge bg-danger text-white'             // usa --bs-danger
     };
     return statusClasses[status] || 'badge bg-secondary text-white';
