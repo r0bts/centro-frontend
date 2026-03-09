@@ -2,14 +2,839 @@
   <!-- Content Menu Component -->
   <app-content-menu></app-content-menu>
 
-  <!-- Membresías Reglas Content -->
-  <div class="py-5 text-center">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <i class="bi bi-list-check display-1 text-muted mb-4 d-block"></i>
-        <h2 class="fw-bold text-muted">Reglas de Membresías</h2>
-        <p class="text-muted">Este módulo se encuentra en desarrollo. Próximamente disponible.</p>
+  <div class="reglas-wrapper">
+
+    <!-- ══════════════════════════════════════
+         STEPPER — barra de progreso 4 pasos
+    ══════════════════════════════════════ -->
+    <div class="stepper-bar">
+      <div class="step-wrap">
+
+        <div class="step-item" [class.active]="currentStep === 1" [class.done]="currentStep > 1">
+          <div class="step-circle">{{ currentStep > 1 ? '✓' : '1' }}</div>
+          <span class="step-name">Identidad</span>
+        </div>
+        <div class="step-line" [class.done]="currentStep > 1"></div>
+
+        <div class="step-item" [class.active]="currentStep === 2" [class.done]="currentStep > 2">
+          <div class="step-circle">{{ currentStep > 2 ? '✓' : '2' }}</div>
+          <span class="step-name">Mensajes</span>
+        </div>
+        <div class="step-line" [class.done]="currentStep > 2"></div>
+
+        <div class="step-item" [class.active]="currentStep === 3" [class.done]="currentStep > 3">
+          <div class="step-circle">{{ currentStep > 3 ? '✓' : '3' }}</div>
+          <span class="step-name">Condiciones</span>
+        </div>
+        <div class="step-line" [class.done]="currentStep > 3"></div>
+
+        <div class="step-item" [class.active]="currentStep === 4" [class.done]="currentStep > 4">
+          <div class="step-circle">4</div>
+          <span class="step-name">Alcance</span>
+        </div>
+
       </div>
-    </div>
-  </div>
+    </div><!-- /stepper-bar -->
+
+
+    <!-- ══════════════════════════════════════
+         LAYOUT: formulario + sidebar resumen
+    ══════════════════════════════════════ -->
+    <div class="reglas-layout">
+
+      <!-- ── COLUMNA PRINCIPAL ── -->
+      <div class="main-col">
+
+        <!-- ═══════════════════════════════════
+             PASO 1 — Identidad y Acción
+        ═══════════════════════════════════ -->
+        <div *ngIf="currentStep === 1" class="pane-anim">
+
+          <div class="pane-header">
+            <h2>Identidad y acción</h2>
+            <p class="text-muted">Define cómo se identifica la regla, qué acción ejecuta y si tiene vigencia</p>
+          </div>
+
+          <!-- PANEL: Identidad -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-blue"><i class="bi bi-pencil-square"></i></div>
+                <div>
+                  <div class="fw-bold">Identidad de la regla</div>
+                  <div class="text-muted small">Número de evaluación y nombre descriptivo</div>
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-auto" style="width:140px">
+                  <label class="form-label fw-semibold small text-uppercase text-muted">
+                    Regla # <span class="text-danger">*</span>
+                  </label>
+                  <input type="number" class="form-control" [(ngModel)]="numeroRegla"
+                    min="1" max="9999" step="10" placeholder="10">
+                  <div class="form-text">Menor # = evalúa primero</div>
+                </div>
+                <div class="col">
+                  <label class="form-label fw-semibold small text-uppercase text-muted">
+                    Nombre de la regla <span class="text-danger">*</span>
+                  </label>
+                  <input type="text" class="form-control" [(ngModel)]="nombre"
+                    maxlength="150" placeholder="Ej: Niños y adultos mayores — libre acceso">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL: Tipo -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-purple"><i class="bi bi-bullseye"></i></div>
+                <div>
+                  <div class="fw-bold">Tipo <span class="text-danger">*</span></div>
+                  <div class="text-muted small">¿A quiénes aplica esta regla?</div>
+                </div>
+              </div>
+
+              <div class="row g-2">
+                <div class="col-6">
+                  <div class="opt-card" [class.sel-primary]="tipo === 'GENERAL'" (click)="selectTipo('GENERAL')">
+                    <div class="opt-check" *ngIf="tipo === 'GENERAL'"><i class="bi bi-check-lg"></i></div>
+                    <div class="oc-top"><span class="oc-icon">🌐</span><span class="oc-label">GENERAL</span></div>
+                    <div class="oc-sub">Aplica a <strong>todos los socios</strong> que cumplan las condiciones</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="opt-card" [class.sel-purple]="tipo === 'PARTICULAR'" (click)="selectTipo('PARTICULAR')">
+                    <div class="opt-check" *ngIf="tipo === 'PARTICULAR'"><i class="bi bi-check-lg"></i></div>
+                    <div class="oc-top"><span class="oc-icon">👤</span><span class="oc-label">PARTICULAR</span></div>
+                    <div class="oc-sub">Solo para <strong>membresías o socios específicos</strong> (paso 4)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL: Acción -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-success"><i class="bi bi-lightning-fill"></i></div>
+                <div>
+                  <div class="fw-bold">Acción <span class="text-danger">*</span></div>
+                  <div class="text-muted small">¿Qué publica el motor cuando se cumplen las condiciones?</div>
+                </div>
+              </div>
+
+              <div class="row g-2">
+                <div class="col-6">
+                  <div class="opt-card" [class.sel-success]="accion === 'PERMITIR'" (click)="selectAccion('PERMITIR')">
+                    <div class="opt-check" *ngIf="accion === 'PERMITIR'"><i class="bi bi-check-lg"></i></div>
+                    <div class="oc-top"><span class="oc-icon">✅</span><span class="oc-label">PERMITIR</span></div>
+                    <div class="oc-sub">El socio <strong>CUMPLE</strong>. Override positivo aunque haya fallado en otro nivel</div>
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="opt-card" [class.sel-danger]="accion === 'BLOQUEAR'" (click)="selectAccion('BLOQUEAR')">
+                    <div class="opt-check" *ngIf="accion === 'BLOQUEAR'"><i class="bi bi-check-lg"></i></div>
+                    <div class="oc-top"><span class="oc-icon">🚫</span><span class="oc-label">BLOQUEAR</span></div>
+                    <div class="oc-sub">El socio <strong>NO CUMPLE</strong>. Bloquea aunque la membresía esté activa</div>
+                  </div>
+                </div>
+              </div>
+              <div *ngIf="!accion" class="text-danger small mt-2">⚠ Selecciona una acción</div>
+            </div>
+          </div>
+
+          <!-- PANEL: Configuración -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-warning"><i class="bi bi-gear-fill"></i></div>
+                <div>
+                  <div class="fw-bold">Configuración</div>
+                  <div class="text-muted small">Estado de la regla y vigencia temporal opcional</div>
+                </div>
+              </div>
+
+              <!-- Toggle activa -->
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" role="switch"
+                    id="f-activa" [(ngModel)]="activa" style="width:2.5rem;height:1.3rem;">
+                </div>
+                <div>
+                  <span *ngIf="activa" class="fw-semibold text-success">Regla activa</span>
+                  <span *ngIf="!activa" class="fw-semibold text-danger">Regla inactiva</span>
+                  <div class="text-muted small" *ngIf="activa">El motor la evaluará al guardar</div>
+                  <div class="text-muted small" *ngIf="!activa">El motor la ignorará hasta activarla</div>
+                </div>
+              </div>
+
+              <hr>
+
+              <!-- Vigencia colapsable -->
+              <button type="button" class="btn btn-link text-muted p-0 text-decoration-none fw-semibold small"
+                (click)="toggleVigencia()">
+                <i class="bi bi-calendar3 me-1"></i>
+                📅 {{ showVigencia ? 'Ocultar vigencia' : 'Agregar vigencia (opcional)' }}
+                <i class="bi ms-1" [class.bi-chevron-down]="!showVigencia" [class.bi-chevron-up]="showVigencia"></i>
+              </button>
+
+              <div *ngIf="showVigencia" class="mt-3">
+                <div class="alert alert-info py-2 small">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Deja en blanco para que la regla sea <strong>permanente</strong>. Las fechas limitan el período de evaluación.
+                </div>
+                <div class="row g-3">
+                  <div class="col-6">
+                    <label class="form-label fw-semibold small text-uppercase text-muted">Fecha inicio</label>
+                    <input type="date" class="form-control" [(ngModel)]="fechaInicio">
+                    <div class="form-text">Desde cuándo aplica (vacío = ya)</div>
+                  </div>
+                  <div class="col-6">
+                    <label class="form-label fw-semibold small text-uppercase text-muted">Fecha fin</label>
+                    <input type="date" class="form-control" [(ngModel)]="fechaFin">
+                    <div class="form-text">Hasta cuándo aplica (vacío = sin límite)</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end mt-3">
+            <button class="btn btn-primary px-4" (click)="goTo(2)">
+              Siguiente: Mensajes <i class="bi bi-chevron-right ms-1"></i>
+            </button>
+          </div>
+        </div><!-- /paso 1 -->
+
+
+        <!-- ═══════════════════════════════════
+             PASO 2 — Mensajes al socio
+        ═══════════════════════════════════ -->
+        <div *ngIf="currentStep === 2" class="pane-anim">
+
+          <div class="pane-header">
+            <h2>Mensajes al socio</h2>
+            <p class="text-muted">Textos que ve el socio o el operador según el resultado de la evaluación</p>
+          </div>
+
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-warning"><i class="bi bi-chat-left-text-fill"></i></div>
+                <div>
+                  <div class="fw-bold">Mensajes de la regla</div>
+                  <div class="text-muted small">Todos son opcionales. Se guardan en cat_reglas y se copian al log de cada evaluación</div>
+                </div>
+              </div>
+
+              <!-- Mensaje cumplimiento -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold small text-uppercase text-muted">
+                  Mensaje cuando se cumpla la regla
+                </label>
+                <textarea class="form-control" rows="3" maxlength="500"
+                  [(ngModel)]="mensajeCumplimiento"
+                  placeholder="Ej: Membresía con acuerdo de pago vigente. Aplica cumplimiento temporal."></textarea>
+                <div class="d-flex justify-content-between mt-1">
+                  <div class="form-text">→ BD: cat_reglas.mensaje_cumplimiento</div>
+                  <div class="form-text"
+                    [class.text-warning]="mensajeCumplimiento.length >= 450 && mensajeCumplimiento.length < 500"
+                    [class.text-danger]="mensajeCumplimiento.length >= 500">
+                    {{ mensajeCumplimiento.length }} / 500
+                  </div>
+                </div>
+              </div>
+
+              <hr>
+
+              <div class="row g-3">
+                <!-- Mensaje acuerdo -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small text-uppercase text-muted">
+                    Si el socio está de acuerdo
+                  </label>
+                  <textarea class="form-control" rows="3" maxlength="500"
+                    [(ngModel)]="mensajeAcuerdo"
+                    placeholder="Ej: Entendido. Acceso registrado con esta condición."></textarea>
+                  <div class="d-flex justify-content-between mt-1">
+                    <div class="form-text">→ BD: cat_reglas.mensaje_acuerdo</div>
+                    <div class="form-text"
+                      [class.text-warning]="mensajeAcuerdo.length >= 450 && mensajeAcuerdo.length < 500"
+                      [class.text-danger]="mensajeAcuerdo.length >= 500">
+                      {{ mensajeAcuerdo.length }} / 500
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mensaje desacuerdo -->
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small text-uppercase text-muted">
+                    Si el socio no está de acuerdo
+                  </label>
+                  <textarea class="form-control" rows="3" maxlength="500"
+                    [(ngModel)]="mensajeDesacuerdo"
+                    placeholder="Ej: Acude a caja o llama al ext. 101 para regularizarte."></textarea>
+                  <div class="d-flex justify-content-between mt-1">
+                    <div class="form-text">→ BD: cat_reglas.mensaje_desacuerdo</div>
+                    <div class="form-text"
+                      [class.text-warning]="mensajeDesacuerdo.length >= 450 && mensajeDesacuerdo.length < 500"
+                      [class.text-danger]="mensajeDesacuerdo.length >= 500">
+                      {{ mensajeDesacuerdo.length }} / 500
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button class="btn btn-outline-secondary" (click)="goTo(1)">
+              <i class="bi bi-chevron-left me-1"></i> Atrás
+            </button>
+            <button class="btn btn-primary px-4" (click)="goTo(3)">
+              Siguiente: Condiciones <i class="bi bi-chevron-right ms-1"></i>
+            </button>
+          </div>
+        </div><!-- /paso 2 -->
+
+
+        <!-- ═══════════════════════════════════
+             PASO 3 — Condiciones
+        ═══════════════════════════════════ -->
+        <div *ngIf="currentStep === 3" class="pane-anim">
+
+          <div class="pane-header">
+            <h2>
+              Condiciones
+              <span class="badge bg-primary ms-2">{{ conditions.length }}</span>
+            </h2>
+            <p class="text-muted">¿Cuándo aplica esta regla? El motor las evalúa en el orden A, B, C…</p>
+          </div>
+
+          <div class="alert alert-info py-2 small mb-3">
+            <i class="bi bi-info-circle me-1"></i>
+            Cada condición = una fila en <strong>cat_regla_condiciones</strong>.
+            Usa <strong>Y (AND)</strong> cuando todas deben cumplirse y <strong>O (OR)</strong> cuando basta cualquiera.
+          </div>
+
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+
+              <!-- Lista de condiciones -->
+              <div class="cond-list">
+                <ng-container *ngFor="let cond of conditions; let i = index; trackBy: trackById">
+
+                  <!-- Tarjeta de condición -->
+                  <div class="cond-card mb-2">
+                    <!-- Header del accordion -->
+                    <button type="button" class="cond-toggle w-100 text-start"
+                      (click)="toggleCondition(cond.id)">
+                      <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                          <i class="bi text-muted"
+                            [class.bi-chevron-up]="cond.open"
+                            [class.bi-chevron-down]="!cond.open"></i>
+                          <span class="cond-letter">{{ getConditionLetter(i) }}</span>
+                          <span class="fw-semibold text-primary" *ngIf="!cond.variable">Nueva condición</span>
+                          <span class="fw-semibold text-primary" *ngIf="cond.variable">
+                            {{ VARS[cond.variable].icon }} {{ VARS[cond.variable].label }}
+                            <span class="text-muted fw-normal small" *ngIf="cond.valor.length > 0">
+                              — {{ CMP_LBL[cond.comparador] }} {{ cond.valor.join(', ') }}
+                            </span>
+                          </span>
+                        </div>
+                        <button *ngIf="conditions.length > 1" type="button"
+                          class="btn btn-link text-danger p-0 ms-2"
+                          (click)="$event.stopPropagation(); removeCondition(cond.id)"
+                          title="Eliminar condición">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                    </button>
+
+                    <!-- Body del accordion -->
+                    <div class="cond-body" *ngIf="cond.open">
+                      <div class="row g-2 p-3 border-top">
+
+                        <!-- Variable -->
+                        <div class="col-md-4">
+                          <label class="form-label fw-bold small text-uppercase text-muted mb-1">Variable</label>
+                          <select class="form-select form-select-sm"
+                            [ngModel]="cond.variable"
+                            (ngModelChange)="setVariable(cond.id, $event)">
+                            <option value="">— Variable —</option>
+                            <option *ngFor="let key of varKeys; trackBy: trackByKey" [value]="key">
+                              {{ VARS[key].icon }} {{ VARS[key].label }}
+                            </option>
+                          </select>
+                        </div>
+
+                        <!-- Comparador -->
+                        <div class="col-md-3">
+                          <label class="form-label fw-bold small text-uppercase text-muted mb-1">Comparador</label>
+                          <select class="form-select form-select-sm"
+                            [disabled]="!cond.variable"
+                            [ngModel]="cond.comparador"
+                            (ngModelChange)="setComparador(cond.id, $event)">
+                            <option *ngFor="let op of getConditionOps(cond.variable); trackBy: trackByString" [value]="op">
+                              {{ op }} — {{ CMP_LBL[op] }}
+                            </option>
+                          </select>
+                        </div>
+
+                        <!-- Valor -->
+                        <div class="col-md-5">
+                          <label class="form-label fw-bold small text-uppercase text-muted mb-1">Valor</label>
+
+                          <!-- Sin variable -->
+                          <input *ngIf="!cond.variable" type="text" class="form-control form-control-sm"
+                            disabled placeholder="Elige una variable primero">
+
+                          <!-- Numérico -->
+                          <div *ngIf="cond.variable && VARS[cond.variable].tipo === 'NUMERO'" class="input-group input-group-sm">
+                            <span *ngIf="VARS[cond.variable].prefix" class="input-group-text">
+                              {{ VARS[cond.variable].prefix }}
+                            </span>
+                            <input type="number"
+                              class="form-control form-control-sm"
+                              [value]="cond.valor[0] || ''"
+                              (input)="setNumericValue(cond.id, $any($event.target).value)"
+                              placeholder="0">
+                            <span *ngIf="VARS[cond.variable].unit" class="input-group-text">
+                              {{ VARS[cond.variable].unit }}
+                            </span>
+                          </div>
+
+                          <!-- Catálogo: chips -->
+                          <div *ngIf="cond.variable && VARS[cond.variable].tipo === 'CATALOGO'" class="chips-wrap">
+                            <span
+                              *ngFor="let val of getConditionVals(cond.variable); trackBy: trackByString"
+                              class="chip"
+                              [class.chip-on]="isChipSelected(cond.id, val)"
+                              (click)="toggleChip(cond.id, val, isMultiComparador(cond.comparador))">
+                              {{ val }}
+                            </span>
+                          </div>
+                          <div *ngIf="cond.variable && VARS[cond.variable].tipo === 'CATALOGO' && isMultiComparador(cond.comparador) && cond.valor.length === 0"
+                            class="form-text">Puedes seleccionar varios</div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div><!-- /cond-card -->
+
+                  <!-- Conector AND / OR entre condiciones -->
+                  <div *ngIf="i < conditions.length - 1" class="cond-connector my-1">
+                    <div class="connector-line"></div>
+                    <div class="connector-pills">
+                      <button type="button" class="cpill"
+                        [class.cpill-and]="cond.logico === 'AND'"
+                        (click)="setLogic(cond.id, 'AND')">Y (AND)</button>
+                      <button type="button" class="cpill"
+                        [class.cpill-or]="cond.logico === 'OR'"
+                        (click)="setLogic(cond.id, 'OR')">O (OR)</button>
+                    </div>
+                    <div class="connector-line"></div>
+                  </div>
+
+                </ng-container>
+              </div><!-- /cond-list -->
+
+              <!-- Botón agregar condición -->
+              <button type="button" class="btn btn-add-cond w-100 mt-3" (click)="addCondition()">
+                <i class="bi bi-plus-lg me-1"></i> Agregar condición
+              </button>
+
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button class="btn btn-outline-secondary" (click)="goTo(2)">
+              <i class="bi bi-chevron-left me-1"></i> Atrás
+            </button>
+            <button class="btn btn-primary px-4" (click)="goTo(4)">
+              Siguiente: Alcance <i class="bi bi-chevron-right ms-1"></i>
+            </button>
+          </div>
+        </div><!-- /paso 3 -->
+
+
+        <!-- ═══════════════════════════════════
+             PASO 4 — Alcance y Confirmación
+        ═══════════════════════════════════ -->
+        <div *ngIf="currentStep === 4" class="pane-anim">
+
+          <div class="pane-header">
+            <h2>Alcance y confirmación</h2>
+            <p class="text-muted">Revisa todo lo configurado y agrega entidades si el tipo es PARTICULAR</p>
+          </div>
+
+          <!-- Panel de revisión -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-blue"><i class="bi bi-clipboard2-check-fill"></i></div>
+                <div>
+                  <div class="fw-bold">Revisión completa</div>
+                  <div class="text-muted small">Confirma que todo esté correcto antes de guardar la regla</div>
+                </div>
+              </div>
+
+              <!-- Identidad y acción -->
+              <div class="rev-section mb-3">
+                <div class="rev-section-title">Identidad y acción</div>
+                <div class="row g-2 mb-2">
+                  <div class="col-auto">
+                    <div class="rev-item">
+                      <div class="rev-item-label">Regla #</div>
+                      <div class="rev-item-val"
+                        [class.text-primary]="numeroRegla"
+                        [class.text-muted]="!numeroRegla">
+                        {{ numeroRegla ? '#' + numeroRegla : '—' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <div class="rev-item">
+                      <div class="rev-item-label">Nombre</div>
+                      <div class="rev-item-val" [class.text-muted]="!nombre.trim()">
+                        {{ nombre.trim() || '(sin nombre)' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row g-2">
+                  <div class="col-4">
+                    <div class="rev-item">
+                      <div class="rev-item-label">Tipo</div>
+                      <div class="rev-item-val"
+                        [class.text-primary]="tipo === 'GENERAL'"
+                        [class.text-purple]="tipo === 'PARTICULAR'">
+                        {{ tipo === 'GENERAL' ? '🌐 GENERAL' : '👤 PARTICULAR' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="rev-item">
+                      <div class="rev-item-label">Acción</div>
+                      <div class="rev-item-val"
+                        [class.text-success]="accion === 'PERMITIR'"
+                        [class.text-danger]="accion === 'BLOQUEAR'"
+                        [class.text-muted]="!accion">
+                        {{ accion === 'PERMITIR' ? '✅ PERMITIR' : accion === 'BLOQUEAR' ? '🚫 BLOQUEAR' : '—' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-4">
+                    <div class="rev-item">
+                      <div class="rev-item-label">Estado</div>
+                      <div class="rev-item-val"
+                        [class.text-success]="activa"
+                        [class.text-warning]="!activa">
+                        {{ activa ? '✅ Activa' : '⏸ Inactiva' }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="fechaInicio || fechaFin" class="rev-item mt-2">
+                  <div class="rev-item-label">📅 Vigencia</div>
+                  <div class="rev-item-val text-warning">{{ vigenciaText }}</div>
+                </div>
+              </div>
+
+              <hr>
+
+              <!-- Mensajes -->
+              <div class="rev-section mb-3">
+                <div class="rev-section-title">Mensajes al socio</div>
+                <div class="mb-2">
+                  <div class="rev-item-label mb-1">Mensaje cuando se cumpla la regla:</div>
+                  <div class="rev-msg-box" [class.text-muted]="!mensajeCumplimiento.trim()">
+                    {{ mensajeCumplimiento.trim() || '(no especificado)' }}
+                  </div>
+                </div>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <div class="rev-item-label mb-1">Si el socio está de acuerdo:</div>
+                    <div class="rev-msg-box" [class.text-muted]="!mensajeAcuerdo.trim()">
+                      {{ mensajeAcuerdo.trim() || '(no especificado)' }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="rev-item-label mb-1">Si el socio no está de acuerdo:</div>
+                    <div class="rev-msg-box" [class.text-muted]="!mensajeDesacuerdo.trim()">
+                      {{ mensajeDesacuerdo.trim() || '(no especificado)' }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <hr>
+
+              <!-- Condiciones -->
+              <div class="rev-section">
+                <div class="rev-section-title">
+                  Condiciones
+                  <span class="badge bg-primary ms-2">{{ validConditions.length }}</span>
+                </div>
+                <div *ngIf="validConditions.length === 0" class="text-muted fst-italic small">
+                  Sin condiciones configuradas
+                </div>
+                <div class="d-flex flex-column gap-1">
+                  <div *ngFor="let c of validConditions; let i = index; trackBy: trackById"
+                    class="rev-cond-item">
+                    <span class="rev-cond-letter">{{ getConditionLetter(i) }}</span>
+                    <span class="text-primary fw-semibold">{{ VARS[c.variable].icon }} {{ VARS[c.variable].label }}</span>
+                    <span class="text-muted small">{{ CMP_LBL[c.comparador] }}</span>
+                    <span class="text-warning fw-semibold">{{ c.valor.join(', ') }}</span>
+                    <span *ngIf="i < validConditions.length - 1"
+                      class="cond-logic-badge"
+                      [class.badge-and]="c.logico === 'AND'"
+                      [class.badge-or]="c.logico === 'OR'">
+                      {{ c.logico === 'AND' ? 'Y (AND)' : 'O (OR)' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Panel GENERAL -->
+          <div *ngIf="tipo === 'GENERAL'" class="alert alert-success">
+            🌐 <strong>Tipo GENERAL:</strong> La regla aplica automáticamente a todos los socios que cumplan las condiciones.
+          </div>
+
+          <!-- Panel PARTICULAR -->
+          <div *ngIf="tipo === 'PARTICULAR'" class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-purple"><i class="bi bi-person-fill"></i></div>
+                <div>
+                  <div class="fw-bold">Entidades particulares</div>
+                  <div class="text-muted small">Membresías o socios a los que aplica exclusivamente esta regla</div>
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mb-3">
+                <select class="form-select" style="width:160px;flex-shrink:0" [(ngModel)]="newEntityTipo">
+                  <option value="MEMBRESIA">Membresía</option>
+                  <option value="SOCIO">Socio individual</option>
+                </select>
+                <input type="text" class="form-control"
+                  [(ngModel)]="newEntityNumero"
+                  (keydown)="onEntityKeydown($event)"
+                  placeholder="Número (ej: 888)" maxlength="50">
+                <button class="btn btn-primary px-3" type="button" (click)="addEntity()">
+                  <i class="bi bi-plus-lg"></i> Agregar
+                </button>
+              </div>
+
+              <div *ngIf="entities.length === 0" class="ent-empty text-center text-muted py-3">
+                <i class="bi bi-person-slash d-block fs-3 mb-1"></i>
+                Escribe un número arriba y presiona <strong>Agregar</strong>
+              </div>
+
+              <div class="d-flex flex-column gap-2">
+                <div *ngFor="let ent of entities; trackBy: trackById" class="ent-item">
+                  <span class="badge me-2"
+                    [class.bg-primary]="ent.tipo === 'SOCIO'"
+                    [class.ent-badge-mem]="ent.tipo === 'MEMBRESIA'">
+                    {{ ent.tipo === 'MEMBRESIA' ? 'MEMBRESÍA' : 'SOCIO' }}
+                  </span>
+                  <span class="fw-semibold flex-grow-1"># {{ ent.numero }}</span>
+                  <button class="btn btn-link text-danger p-0" (click)="removeEntity(ent.id)">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="alert alert-warning py-2 small">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Al guardar con la regla <strong>activa</strong>, el motor la evaluará en tiempo real desde ese momento. Verifica que todo esté correcto.
+          </div>
+
+          <div class="d-flex justify-content-between mt-3">
+            <button class="btn btn-outline-secondary" (click)="goTo(3)">
+              <i class="bi bi-chevron-left me-1"></i> Atrás
+            </button>
+            <button class="btn btn-success px-4 fw-bold" (click)="saveRule()">
+              <i class="bi bi-floppy me-1"></i> Guardar regla
+            </button>
+          </div>
+
+        </div><!-- /paso 4 -->
+
+      </div><!-- /main-col -->
+
+
+      <!-- ══════════════════════════════════════
+           SIDEBAR RESUMEN — sticky
+      ══════════════════════════════════════ -->
+      <div class="sidebar-info">
+
+        <!-- Progreso de pasos -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-header py-2 small fw-bold text-uppercase text-muted">
+            <i class="bi bi-geo-alt me-1"></i> Progreso
+          </div>
+          <div class="card-body py-2">
+            <div class="d-flex flex-column gap-2">
+              <div *ngFor="let s of [1,2,3,4]; let i = index" class="d-flex align-items-center gap-2">
+                <div class="ss-dot"
+                  [class.ss-dot-active]="currentStep === s"
+                  [class.ss-dot-done]="currentStep > s">
+                  {{ currentStep > s ? '✓' : s }}
+                </div>
+                <span class="small"
+                  [class.fw-semibold]="currentStep === s"
+                  [class.text-muted]="currentStep !== s && currentStep <= s"
+                  [class.text-success]="currentStep > s">
+                  {{ ['Identidad y acción', 'Mensajes', 'Condiciones', 'Alcance'][i] }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resumen de datos -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-header py-2 small fw-bold text-uppercase text-muted">
+            <i class="bi bi-clipboard2 me-1"></i> Resumen de la regla
+          </div>
+          <div class="card-body py-2">
+
+            <div class="meta-row">
+              <span class="text-muted small">Regla #</span>
+              <span class="fw-bold small"
+                [class.text-primary]="numeroRegla"
+                [class.text-muted]="!numeroRegla" style="font-style: italic">
+                {{ numeroRegla ? '#' + numeroRegla : '—' }}
+              </span>
+            </div>
+
+            <div class="meta-row">
+              <span class="text-muted small">Nombre</span>
+              <span class="fw-bold small" [class.text-muted]="!nombre.trim()" style="font-style: italic; max-width:130px; text-align:right;">
+                {{ nombre.trim() ? sumNombre : '—' }}
+              </span>
+            </div>
+
+            <div class="meta-row">
+              <span class="text-muted small">Tipo</span>
+              <span class="fw-bold small"
+                [class.text-primary]="tipo === 'GENERAL'"
+                [class.text-purple]="tipo === 'PARTICULAR'">
+                {{ tipo === 'GENERAL' ? '🌐 GENERAL' : '👤 PARTICULAR' }}
+              </span>
+            </div>
+
+            <div class="meta-row">
+              <span class="text-muted small">Acción</span>
+              <span class="fw-bold small"
+                [class.text-success]="accion === 'PERMITIR'"
+                [class.text-danger]="accion === 'BLOQUEAR'"
+                [class.text-muted]="!accion">
+                {{ accion === 'PERMITIR' ? '✅ PERMITIR' : accion === 'BLOQUEAR' ? '🚫 BLOQUEAR' : '—' }}
+              </span>
+            </div>
+
+            <div class="meta-row">
+              <span class="text-muted small">Estado</span>
+              <span class="fw-bold small"
+                [class.text-success]="activa"
+                [class.text-warning]="!activa">
+                {{ activa ? '✅ Activa' : '⏸ Inactiva' }}
+              </span>
+            </div>
+
+            <div class="meta-row" *ngIf="vigenciaText">
+              <span class="text-muted small">Vigencia</span>
+              <span class="small text-warning" style="max-width:130px;text-align:right;">{{ vigenciaText }}</span>
+            </div>
+
+            <div class="meta-row" *ngIf="mensajeCumplimiento.trim()">
+              <span class="text-muted small">Mensaje</span>
+              <span class="small text-muted" style="max-width:130px;text-align:right;">{{ msgCTruncated }}</span>
+            </div>
+
+            <div class="meta-row">
+              <span class="text-muted small">Condiciones</span>
+              <span class="fw-bold small"
+                [class.text-warning]="validConditions.length === 0"
+                [class.text-success]="validConditions.length > 0">
+                {{ conditionsCount }}
+              </span>
+            </div>
+
+            <div class="meta-row" *ngIf="tipo === 'PARTICULAR'">
+              <span class="text-muted small">Entidades</span>
+              <span class="fw-bold small"
+                [class.text-warning]="entities.length === 0"
+                [class.text-purple]="entities.length > 0">
+                {{ entities.length }}
+              </span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Lista de condiciones (desde paso 3) -->
+        <div *ngIf="currentStep >= 3" class="card shadow-sm mb-3">
+          <div class="card-header py-2 small fw-bold text-uppercase text-muted">
+            <i class="bi bi-funnel me-1"></i> Condiciones
+          </div>
+          <div class="card-body py-2">
+            <div *ngIf="validConditions.length === 0" class="text-muted small fst-italic">Ninguna aún</div>
+            <div *ngFor="let c of validConditions; let i = index; trackBy: trackById" class="small py-1">
+              <span class="text-primary fw-semibold">{{ getConditionLetter(i) }}:</span>
+              <span class="text-primary"> {{ VARS[c.variable].label }}</span>
+              <span class="text-muted"> {{ c.comparador }}</span>
+              <span class="text-warning fw-semibold"> {{ c.valor.join(', ') }}</span>
+              <span *ngIf="i < validConditions.length - 1" class="fw-bold"
+                [class.text-primary]="c.logico === 'AND'"
+                [class.text-warning]="c.logico === 'OR'">
+                {{ c.logico === 'AND' ? ' Y' : ' O' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón guardar (paso 4) -->
+        <div *ngIf="currentStep === 4" class="card shadow-sm">
+          <div class="card-body">
+            <button class="btn btn-success w-100 fw-bold" (click)="saveRule()">
+              <i class="bi bi-floppy me-1"></i> Guardar regla
+            </button>
+            <p class="text-muted small mt-2 mb-0">
+              La regla quedará <strong>activa</strong> inmediatamente si así lo configuraste.
+            </p>
+          </div>
+        </div>
+
+        <!-- Guía rápida -->
+        <div class="card shadow-sm mt-3">
+          <div class="card-header py-2 small fw-bold text-uppercase text-muted">
+            <i class="bi bi-lightbulb me-1"></i> Guía rápida
+          </div>
+          <div class="card-body py-2 small text-muted lh-lg">
+            <p class="mb-1"><strong class="text-dark">Regla #</strong> — Menor número = se evalúa primero. La primera que aplique gana.</p>
+            <p class="mb-1"><strong class="text-dark">PERMITIR</strong> — Override positivo. Cumple aunque otro nivel haya fallado.</p>
+            <p class="mb-1"><strong class="text-dark">BLOQUEAR</strong> — Override negativo. Bloquea aunque la membresía esté activa.</p>
+            <p class="mb-1"><strong class="text-dark">PARTICULAR</strong> — Agrega entidades en el paso 4.</p>
+            <p class="mb-0"><strong class="text-dark">Vigencia</strong> — Opcional. Sin fechas la regla es permanente.</p>
+          </div>
+        </div>
+
+      </div><!-- /sidebar-info -->
+
+    </div><!-- /reglas-layout -->
+  </div><!-- /reglas-wrapper -->
 </div>

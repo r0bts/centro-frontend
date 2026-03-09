@@ -1,0 +1,31 @@
+.container-fluid {
+  min-height: 100vh;
+}
+
+// Badge para tipo PARTICULAR (púrpura — no existe en Bootstrap por defecto)
+.badge.bg-purple {
+  background-color: #6f42c1 !important;
+  color: #fff;
+}
+
+// Hover sutil en filas de la tabla
+.table-hover tbody tr:hover td {
+  background-color: var(--neutral-50, #F6F6F6);
+}
+
+// Barra de búsqueda: quitar doble borde entre icono y campo
+.input-group .input-group-text {
+  border-right: none;
+}
+.input-group .form-control {
+  border-left: none;
+  &:focus {
+    box-shadow: none;
+    border-color: #ced4da;
+  }
+}
+
+// Scroll en móviles para tabla
+.table-responsive {
+  border-radius: var(--border-global, 20px);
+}

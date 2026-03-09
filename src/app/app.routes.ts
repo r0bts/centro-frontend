@@ -105,6 +105,11 @@ export const routes: Routes = [
   },
   {
     path: 'membresias/reglas',
+    loadComponent: () => import('./components/membresias-reglas-lista/membresias-reglas-lista').then(m => m.MembresiasReglasListaComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'membresias/reglas/crear',
     loadComponent: () => import('./components/membresias-reglas/membresias-reglas').then(m => m.MembresiasReglasComponent),
     canActivate: [authGuard]
   },
