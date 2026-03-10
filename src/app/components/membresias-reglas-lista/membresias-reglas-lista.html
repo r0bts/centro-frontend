@@ -10,7 +10,7 @@
     <div class="row">
       <div class="col-12">
 
-        <!-- Barra de herramientas superior -->
+        <!-- ── Barra de herramientas superior ────────────────────────── -->
         <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
 
           <!-- Título -->
@@ -19,7 +19,7 @@
               <i class="bi bi-list-check me-2 text-primary"></i>Reglas de Membresías
             </h4>
             <small class="text-muted">
-              {{ filteredReglas().length }} regla{{ filteredReglas().length !== 1 ? 's' : '' }} encontrada{{ filteredReglas().length !== 1 ? 's' : '' }}
+              {{ totalItems() }} regla{{ totalItems() !== 1 ? 's' : '' }} en total
             </small>
           </div>
 
@@ -29,7 +29,7 @@
           </button>
         </div>
 
-        <!-- Barra de filtros -->
+        <!-- ── Barra de filtros ──────────────────────────────────────── -->
         <div class="card shadow-sm mb-4">
           <div class="card-body py-3">
             <div class="row g-2 align-items-end">
@@ -104,187 +104,275 @@
           </div>
         </div>
 
-        <!-- Estado: cargando -->
-        <div *ngIf="isLoading()" class="text-center py-5">
-          <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Cargando...</span>
+        <!-- ── Aviso drag & drop habilitado ─────────────────────────── -->
+        @if (!isLoading() && !hasActiveFilters() && reglas().length > 1) {
+          <div class="alert alert-info d-flex align-items-center py-2 mb-3" role="alert">
+            <i class="bi bi-grip-vertical fs-5 me-2"></i>
+            <span class="small">
+              <strong>Reordenamiento activado:</strong>
+              Arrastra las filas para cambiar la prioridad de evaluación.
+              El número de regla se actualiza automáticamente.
+            </span>
+            @if (isReordering()) {
+              <span class="ms-auto spinner-border spinner-border-sm text-primary" role="status"></span>
+            }
           </div>
-          <p class="text-muted mt-3">Cargando reglas...</p>
-        </div>
+        }
 
-        <!-- Estado: sin resultados -->
-        <div *ngIf="!isLoading() && filteredReglas().length === 0" class="card shadow-sm">
-          <div class="card-body text-center py-5">
-            <i class="bi bi-inbox display-4 text-muted d-block mb-3"></i>
-            <h5 class="text-muted">No se encontraron reglas</h5>
-            <p class="text-muted small mb-3">
-              {{ hasActiveFilters() ? 'Intenta ajustar los filtros de búsqueda.' : 'Comienza creando tu primera regla de membresía.' }}
-            </p>
-            <button *ngIf="!hasActiveFilters()" class="btn btn-primary" (click)="onNuevaRegla()">
-              <i class="bi bi-plus-lg me-2"></i>Nueva regla
-            </button>
-            <button *ngIf="hasActiveFilters()" class="btn btn-outline-secondary" (click)="clearAllFilters()">
-              <i class="bi bi-x-circle me-2"></i>Limpiar filtros
-            </button>
+        <!-- ── Aviso drag & drop desactivado por filtros ─────────────── -->
+        @if (!isLoading() && hasActiveFilters() && reglas().length > 0) {
+          <div class="alert alert-warning d-flex align-items-center py-2 mb-3" role="alert">
+            <i class="bi bi-funnel me-2"></i>
+            <span class="small">
+              El reordenamiento por arrastre está <strong>desactivado</strong>
+              mientras haya filtros activos.
+            </span>
           </div>
-        </div>
+        }
 
-        <!-- Tabla de reglas -->
-        <div *ngIf="!isLoading() && filteredReglas().length > 0" class="card shadow-sm">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-              <thead class="table-light">
-                <tr>
-                  <th class="border ps-3" style="width: 70px;">#</th>
-                  <th class="border">Nombre</th>
-                  <th class="border text-center" style="width: 120px;">Tipo</th>
-                  <th class="border text-center" style="width: 120px;">Acción</th>
-                  <th class="border text-center" style="width: 100px;">Estado</th>
-                  <th class="border text-center" style="width: 110px;">Condiciones</th>
-                  <th class="border" style="width: 180px;">Vigencia</th>
-                  <th class="border text-center" style="width: 120px;">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let regla of pagedReglas(); trackBy: trackById">
-
-                  <!-- Número de regla -->
-                  <td class="border ps-3">
-                    <span class="fw-bold text-primary">#{{ regla.numeroRegla }}</span>
-                  </td>
-
-                  <!-- Nombre -->
-                  <td class="border">
-                    <div class="fw-semibold">{{ regla.nombre }}</div>
-                    <small class="text-muted">Creada: {{ formatDate(regla.createdAt) }}</small>
-                  </td>
-
-                  <!-- Tipo -->
-                  <td class="border text-center">
-                    <span [class]="getTipoBadgeClass(regla.tipo)">
-                      {{ regla.tipo === 'GENERAL' ? '🌐' : '👤' }} {{ regla.tipo }}
-                    </span>
-                  </td>
-
-                  <!-- Acción -->
-                  <td class="border text-center">
-                    <span [class]="getAccionBadgeClass(regla.accion)">
-                      {{ regla.accion === 'PERMITIR' ? '✅' : '🚫' }} {{ regla.accion }}
-                    </span>
-                  </td>
-
-                  <!-- Estado -->
-                  <td class="border text-center">
-                    <span [class]="getEstadoBadgeClass(regla.activa)">
-                      {{ regla.activa ? 'Activa' : 'Inactiva' }}
-                    </span>
-                  </td>
-
-                  <!-- Condiciones -->
-                  <td class="border text-center">
-                    <span class="badge bg-secondary rounded-pill">
-                      {{ regla.condicionesCount }}
-                    </span>
-                  </td>
-
-                  <!-- Vigencia -->
-                  <td class="border">
-                    <span *ngIf="!regla.fechaInicio && !regla.fechaFin" class="text-muted small">
-                      <i class="bi bi-infinity me-1"></i>Permanente
-                    </span>
-                    <span *ngIf="regla.fechaInicio || regla.fechaFin" class="small text-warning-emphasis">
-                      <i class="bi bi-calendar-range me-1"></i>{{ getVigenciaText(regla) }}
-                    </span>
-                  </td>
-
-                  <!-- Acciones -->
-                  <td class="border text-center">
-                    <div class="d-flex gap-1 justify-content-center">
-
-                      <!-- Ver -->
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary btn-sm"
-                        (click)="onVerRegla(regla)"
-                        title="Ver detalle">
-                        <i class="bi bi-eye"></i>
-                      </button>
-
-                      <!-- Editar -->
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm"
-                        (click)="onEditarRegla(regla)"
-                        title="Editar regla">
-                        <i class="bi bi-pencil"></i>
-                      </button>
-
-                      <!-- Activar / Desactivar -->
-                      <button
-                        type="button"
-                        class="btn btn-sm"
-                        [class]="regla.activa ? 'btn-outline-warning' : 'btn-outline-success'"
-                        (click)="onToggleEstado(regla)"
-                        [title]="regla.activa ? 'Desactivar' : 'Activar'">
-                        <i [class]="regla.activa ? 'bi bi-pause-circle' : 'bi bi-play-circle'"></i>
-                      </button>
-
-                      <!-- Eliminar -->
-                      <button
-                        type="button"
-                        class="btn btn-outline-danger btn-sm"
-                        (click)="onEliminarRegla(regla)"
-                        title="Eliminar regla">
-                        <i class="bi bi-trash"></i>
-                      </button>
-
-                    </div>
-                  </td>
-
-                </tr>
-              </tbody>
-            </table>
+        <!-- ── Estado: cargando ──────────────────────────────────────── -->
+        @if (isLoading()) {
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="text-muted mt-3">Cargando reglas...</p>
           </div>
-        </div>
+        }
 
-        <!-- Paginación -->
-        <div
-          *ngIf="!isLoading() && filteredReglas().length > itemsPerPage()"
-          class="d-flex justify-content-between align-items-center mt-4">
-
-          <div class="text-muted small">
-            Mostrando
-            <strong>{{ Math.min((currentPage() - 1) * itemsPerPage() + 1, filteredReglas().length) }}</strong> -
-            <strong>{{ Math.min(currentPage() * itemsPerPage(), filteredReglas().length) }}</strong>
-            de <strong>{{ filteredReglas().length }}</strong> reglas
-          </div>
-
-          <nav aria-label="Paginación de reglas">
-            <ul class="pagination mb-0">
-              <li class="page-item" [class.disabled]="currentPage() === 1">
-                <button
-                  class="page-link"
-                  (click)="prevPage()"
-                  [disabled]="currentPage() === 1">
-                  <i class="bi bi-chevron-left"></i> Anterior
+        <!-- ── Estado: sin resultados ────────────────────────────────── -->
+        @if (!isLoading() && reglas().length === 0) {
+          <div class="card shadow-sm">
+            <div class="card-body text-center py-5">
+              <i class="bi bi-inbox display-4 text-muted d-block mb-3"></i>
+              <h5 class="text-muted">No se encontraron reglas</h5>
+              <p class="text-muted small mb-3">
+                {{ hasActiveFilters() ? 'Intenta ajustar los filtros de búsqueda.' : 'Comienza creando tu primera regla de membresía.' }}
+              </p>
+              @if (!hasActiveFilters()) {
+                <button class="btn btn-primary" (click)="onNuevaRegla()">
+                  <i class="bi bi-plus-lg me-2"></i>Nueva regla
                 </button>
-              </li>
-              <li class="page-item active">
-                <span class="page-link">
-                  Página {{ currentPage() }} de {{ totalPages() }}
-                </span>
-              </li>
-              <li class="page-item" [class.disabled]="currentPage() === totalPages()">
-                <button
-                  class="page-link"
-                  (click)="nextPage()"
-                  [disabled]="currentPage() === totalPages()">
-                  Siguiente <i class="bi bi-chevron-right"></i>
+              }
+              @if (hasActiveFilters()) {
+                <button class="btn btn-outline-secondary" (click)="clearAllFilters()">
+                  <i class="bi bi-x-circle me-2"></i>Limpiar filtros
                 </button>
-              </li>
-            </ul>
-          </nav>
-        </div>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- ── Tabla de reglas con Drag & Drop ──────────────────────── -->
+        @if (!isLoading() && reglas().length > 0) {
+          <div class="card shadow-sm">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <!-- Columna handle — muestra ícono solo si el drag está habilitado -->
+                    <th class="border text-center" style="width: 48px;">
+                      @if (dragEnabled()) {
+                        <i class="bi bi-grip-vertical text-muted" title="Arrastra para reordenar"></i>
+                      }
+                    </th>
+                    <th class="border ps-2" style="width: 70px;">#</th>
+                    <th class="border">Nombre</th>
+                    <th class="border text-center" style="width: 120px;">Tipo</th>
+                    <th class="border text-center" style="width: 120px;">Acción</th>
+                    <th class="border text-center" style="width: 100px;">Estado</th>
+                    <th class="border text-center" style="width: 110px;">Condiciones</th>
+                    <th class="border" style="width: 180px;">Vigencia</th>
+                    <th class="border text-center" style="width: 120px;">Acciones</th>
+                  </tr>
+                </thead>
+
+                <!--
+                  cdkDropList   — marca el <tbody> como contenedor de DnD
+                  (cdkDropListDropped) — se dispara cuando el usuario suelta una fila
+                  [cdkDropListDisabled] — deshabilita DnD si hay filtros activos
+                -->
+                <tbody
+                  cdkDropList
+                  [cdkDropListData]="reglas()"
+                  (cdkDropListDropped)="onDropRegla($event)"
+                  [cdkDropListDisabled]="!dragEnabled()">
+
+                  @for (regla of reglas(); track regla.id) {
+                    <!--
+                      cdkDrag — hace esta fila arrastrable
+                      .opacity-50 mientras se persiste el nuevo orden
+                    -->
+                    <tr
+                      cdkDrag
+                      [cdkDragData]="regla"
+                      [class.opacity-50]="isReordering()">
+
+                      <!-- ── Handle de arrastre ──────────────────────── -->
+                      <td class="border text-center">
+                        @if (dragEnabled()) {
+                          <!--
+                            cdkDragHandle — restringe el área de arrastre a este elemento.
+                            Sin él, toda la fila sería el área de agarre.
+                          -->
+                          <span
+                            cdkDragHandle
+                            class="drag-handle"
+                            title="Arrastra para reordenar">
+                            <i class="bi bi-grip-vertical fs-5 text-secondary"></i>
+                          </span>
+                        } @else {
+                          <span class="text-muted small">—</span>
+                        }
+                      </td>
+
+                      <!-- ── Número de regla ──────────────────────────── -->
+                      <td class="border ps-2">
+                        <span class="fw-bold text-primary">#{{ regla.numeroRegla }}</span>
+                      </td>
+
+                      <!-- ── Nombre ───────────────────────────────────── -->
+                      <td class="border">
+                        <div class="fw-semibold">{{ regla.nombre }}</div>
+                        <small class="text-muted">Creada: {{ formatDate(regla.fechaCreacion) }}</small>
+                      </td>
+
+                      <!-- ── Tipo ─────────────────────────────────────── -->
+                      <td class="border text-center">
+                        <span [class]="getTipoBadgeClass(regla.tipo)">
+                          {{ regla.tipo === 'GENERAL' ? '🌐' : '👤' }} {{ regla.tipo }}
+                        </span>
+                      </td>
+
+                      <!-- ── Acción ───────────────────────────────────── -->
+                      <td class="border text-center">
+                        <span [class]="getAccionBadgeClass(regla.accion)">
+                          {{ regla.accion === 'PERMITIR' ? '✅' : '🚫' }} {{ regla.accion }}
+                        </span>
+                      </td>
+
+                      <!-- ── Estado ──────────────────────────────────── -->
+                      <td class="border text-center">
+                        <span [class]="getEstadoBadgeClass(regla.activa)">
+                          {{ regla.activa ? 'Activa' : 'Inactiva' }}
+                        </span>
+                      </td>
+
+                      <!-- ── Condiciones ─────────────────────────────── -->
+                      <td class="border text-center">
+                        <span class="badge bg-secondary rounded-pill">
+                          {{ regla.condicionesCount }}
+                        </span>
+                      </td>
+
+                      <!-- ── Vigencia ─────────────────────────────────── -->
+                      <td class="border">
+                        @if (!regla.fechaInicio && !regla.fechaFin) {
+                          <span class="text-muted small">
+                            <i class="bi bi-infinity me-1"></i>Permanente
+                          </span>
+                        } @else {
+                          <span class="small text-warning-emphasis">
+                            <i class="bi bi-calendar-range me-1"></i>{{ getVigenciaText(regla) }}
+                          </span>
+                        }
+                      </td>
+
+                      <!-- ── Acciones ─────────────────────────────────── -->
+                      <td class="border text-center">
+                        <div class="d-flex gap-1 justify-content-center">
+
+                          <!-- Ver -->
+                          <button
+                            type="button"
+                            class="btn btn-outline-secondary btn-sm"
+                            (click)="onVerRegla(regla)"
+                            title="Ver detalle">
+                            <i class="bi bi-eye"></i>
+                          </button>
+
+                          <!-- Editar -->
+                          <button
+                            type="button"
+                            class="btn btn-outline-primary btn-sm"
+                            (click)="onEditarRegla(regla)"
+                            title="Editar regla">
+                            <i class="bi bi-pencil"></i>
+                          </button>
+
+                          <!-- Activar / Desactivar -->
+                          <button
+                            type="button"
+                            class="btn btn-sm"
+                            [class]="regla.activa ? 'btn-outline-warning' : 'btn-outline-success'"
+                            (click)="onToggleEstado(regla)"
+                            [title]="regla.activa ? 'Desactivar' : 'Activar'">
+                            <i [class]="regla.activa ? 'bi bi-pause-circle' : 'bi bi-play-circle'"></i>
+                          </button>
+
+                          <!-- Eliminar -->
+                          <button
+                            type="button"
+                            class="btn btn-outline-danger btn-sm"
+                            (click)="onEliminarRegla(regla)"
+                            title="Eliminar regla">
+                            <i class="bi bi-trash"></i>
+                          </button>
+
+                        </div>
+                      </td>
+
+                      <!-- Placeholder visual de la fila mientras se arrastra -->
+                      <div *cdkDragPlaceholder class="drag-placeholder"></div>
+
+                    </tr>
+                  }
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+
+        <!-- ── Paginación ────────────────────────────────────────────── -->
+        @if (!isLoading() && totalItems() > itemsPerPage()) {
+          <div class="d-flex justify-content-between align-items-center mt-4">
+
+            <div class="text-muted small">
+              Mostrando
+              <strong>{{ Math.min((currentPage() - 1) * itemsPerPage() + 1, totalItems()) }}</strong> –
+              <strong>{{ Math.min(currentPage() * itemsPerPage(), totalItems()) }}</strong>
+              de <strong>{{ totalItems() }}</strong> reglas
+            </div>
+
+            <nav aria-label="Paginación de reglas">
+              <ul class="pagination mb-0">
+                <li class="page-item" [class.disabled]="currentPage() === 1">
+                  <button
+                    class="page-link"
+                    (click)="prevPage()"
+                    [disabled]="currentPage() === 1">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                  </button>
+                </li>
+                <li class="page-item active">
+                  <span class="page-link">
+                    Página {{ currentPage() }} de {{ totalPages() }}
+                  </span>
+                </li>
+                <li class="page-item" [class.disabled]="currentPage() === totalPages()">
+                  <button
+                    class="page-link"
+                    (click)="nextPage()"
+                    [disabled]="currentPage() === totalPages()">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                  </button>
+                </li>
+              </ul>
+            </nav>
+
+          </div>
+        }
 
       </div>
     </div>

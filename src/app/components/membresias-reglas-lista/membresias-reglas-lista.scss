@@ -29,3 +29,51 @@
 .table-responsive {
   border-radius: var(--border-global, 20px);
 }
+
+// ── Drag & Drop ─────────────────────────────────────────────────────────────
+
+// Handle de arrastre: cursor de mano al hacer hover
+.drag-handle {
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+// Fila que el CDK está moviendo actualmente (clon flotante)
+.cdk-drag-preview {
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.16);
+  border-radius: 4px;
+  opacity: 0.96;
+  display: table;
+  width: 100%;
+}
+
+// Espacio vacío que queda donde estaba la fila original
+.drag-placeholder {
+  background: #e8f0fe;
+  border: 2px dashed #4285f4;
+  min-height: 52px;
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Animación de retorno al soltar en la posición final
+.cdk-drag-animating {
+  transition: transform 220ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+// Mientras una fila se arrastra, las demás se animan suavemente
+.cdk-drop-list-dragging tr:not(.cdk-drag-placeholder) {
+  transition: transform 220ms cubic-bezier(0, 0, 0.2, 1);
+}
