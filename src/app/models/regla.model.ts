@@ -91,6 +91,59 @@ export interface ToggleResponse {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/reglas-negocio  (create rule)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** A single condition row — maps to cat_regla_condiciones */
+export interface AddReglaCondicion {
+  variable: string;
+  comparador: string;
+  /** Array of values — backend stores as CSV internally */
+  valor: string[];
+  operador_logico: 'AND' | 'OR';
+  orden: number;
+}
+
+/** A single entity row — maps to cat_regla_particular */
+export interface AddReglaEntidad {
+  tipo_entidad: 'MEMBRESIA' | 'SOCIO';
+  numero_humano: string;
+  /** Optional NetSuite internal ID */
+  id_entidad?: number | null;
+}
+
+/** Full payload sent to POST /api/reglas-negocio */
+export interface AddReglaPayload {
+  numero_regla: number;
+  nombre: string;
+  tipo: 'GENERAL' | 'PARTICULAR';
+  accion: 'PERMITIR' | 'BLOQUEAR';
+  activa: boolean;
+  mensaje_cumplimiento: string | null;
+  mensaje_acuerdo: string | null;
+  mensaje_desacuerdo: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  condiciones: AddReglaCondicion[];
+  /** Key matches what the backend reads: data['entidades'] */
+  entidades: AddReglaEntidad[];
+}
+
+/** Response envelope from POST /api/reglas-negocio (HTTP 201) */
+export interface AddReglaResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id_regla: number;
+    numero_regla: number;
+    nombre: string;
+    tipo: 'GENERAL' | 'PARTICULAR';
+    accion: 'PERMITIR' | 'BLOQUEAR';
+    activa: boolean;
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Generic success/error envelope
 // ─────────────────────────────────────────────────────────────────────────────
 export interface ApiResponse {

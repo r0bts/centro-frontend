@@ -10,6 +10,8 @@ import {
   ReorderResponse,
   ToggleResponse,
   ApiResponse,
+  AddReglaPayload,
+  AddReglaResponse,
 } from '../models/regla.model';
 
 /**
@@ -96,6 +98,21 @@ export class ReglaService {
   reorderReglas(ids: number[]): Observable<ReorderResponse> {
     const body: ReorderRequest = { ids };
     return this.http.patch<ReorderResponse>(`${this.BASE}/reorder`, body);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // POST /api/reglas-negocio
+  // ─────────────────────────────────────────────────────────────────────────
+  /**
+   * Create a new business rule with its conditions and entities.
+   * The backend wraps everything in a DB transaction — one failure
+   * rolls back the rule, its conditions AND its entities.
+   *
+   * Returns HTTP 201 on success; 400 for duplicate numero_regla;
+   * 422 for ORM validation errors; 500 for unexpected failures.
+   */
+  addRegla(payload: AddReglaPayload): Observable<AddReglaResponse> {
+    return this.http.post<AddReglaResponse>(this.BASE, payload);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

@@ -1,7 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil, finalize } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
+import { ReglaService } from '../../services/regla.service';
 import Swal from 'sweetalert2';
 
 // ── Catálogo de variables evaluables (espejo de cat_variables_regla) ──
@@ -72,7 +76,7 @@ export interface Entity {
   templateUrl: './membresias-reglas.html',
   styleUrls: ['./membresias-reglas.scss']
 })
-export class MembresiasReglasComponent implements OnInit {
+export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   // ── Estado del wizard ──
   currentStep: number = 1;
@@ -101,14 +105,28 @@ export class MembresiasReglasComponent implements OnInit {
   newEntityTipo: 'MEMBRESIA' | 'SOCIO' = 'MEMBRESIA';
   newEntityNumero: string = '';
 
+  // ── Estado de guardado ──
+  isSaving: boolean = false;
+  private destroy$ = new Subject<void>();
+
   // ── Catálogos expuestos al template ──
   readonly VARS = VARS;
   readonly CMP_LBL = CMP_LBL;
   readonly ALPHA = ALPHA;
   readonly varKeys = Object.keys(VARS);
 
+  constructor(
+    private router: Router,
+    private reglaService: ReglaService,
+  ) {}
+
   ngOnInit(): void {
     this.addCondition();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   // ════════════════════════════════════
@@ -334,39 +352,94 @@ export class MembresiasReglasComponent implements OnInit {
     if (!this.validateStep(3)) { this.goTo(3); return; }
     if (!this.validateStep(4)) return;
 
+    // ── Armar el payload que espera el backend ──
+    //
+    // GAP corregido #1: la clave es 'entidades' (no 'particulares')
+    // GAP corregido #2: valor se envia como string[] (no CSV)
+    //
     const payload = {
-      numero_regla: this.numeroRegla,
-      nombre: this.nombre.trim(),
-      tipo: this.tipo,
-      accion: this.accion,
-      activa: this.activa ? 1 : 0,
-      mensaje_cumplimiento: this.mensajeCumplimiento.trim() || null,
-      mensaje_acuerdo: this.mensajeAcuerdo.trim() || null,
-      mensaje_desacuerdo: this.mensajeDesacuerdo.trim() || null,
-      fecha_inicio: this.fechaInicio || null,
-      fecha_fin: this.fechaFin || null,
+      numero_regla:          this.numeroRegla!,
+      nombre:                this.nombre.trim(),
+      tipo:                  this.tipo,
+      accion:                this.accion!,
+      activa:                this.activa,
+      mensaje_cumplimiento:  this.mensajeCumplimiento.trim() || null,
+      mensaje_acuerdo:       this.mensajeAcuerdo.trim()      || null,
+      mensaje_desacuerdo:    this.mensajeDesacuerdo.trim()   || null,
+      fecha_inicio:          this.fechaInicio  || null,
+      fecha_fin:             this.fechaFin     || null,
       condiciones: this.validConditions.map((c, i) => ({
-        variable: c.variable,
-        comparador: c.comparador,
-        valor: c.valor.join(','),
-        operador_logico: c.logico,
-        orden: i + 1
+        variable:         c.variable,
+        comparador:       c.comparador,
+        valor:            c.valor,          // ← array, el back hace implode(',',...)
+        operador_logico:  c.logico,
+        orden:            i + 1,
       })),
-      particulares: this.tipo === 'PARTICULAR'
-        ? this.entities.map(e => ({ tipo_entidad: e.tipo, numero_humano: e.numero }))
-        : []
+      entidades: this.tipo === 'PARTICULAR'  // ← clave correcta para el back
+        ? this.entities.map(e => ({
+            tipo_entidad:  e.tipo,
+            numero_humano: e.numero,
+          }))
+        : [],
     };
 
-    console.log('📤 Payload → POST /reglas-negocio/agregar', JSON.stringify(payload, null, 2));
+    this.isSaving = true;
 
-    Swal.fire({
-      icon: 'success',
-      title: '¡Regla guardada!',
-      text: `La regla "${this.nombre}" ha sido guardada correctamente.`,
-      confirmButtonText: 'Continuar',
-      timer: 3000,
-      timerProgressBar: true
-    });
+    this.reglaService
+      .addRegla(payload as any)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => { this.isSaving = false; }),
+      )
+      .subscribe({
+        next: (res) => {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Regla guardada!',
+            html: `La regla <strong>#${res.data.numero_regla} — ${res.data.nombre}</strong>
+                   fue creada correctamente.`,
+            confirmButtonText: 'Ver listado',
+            timer: 4000,
+            timerProgressBar: true,
+          }).then(() => {
+            this.router.navigate(['/membresias/reglas']);
+          });
+        },
+        error: (err) => {
+          const status  = err?.status  ?? 0;
+          const message = err?.error?.message ?? err?.message ?? 'Error desconocido';
+          const field   = err?.error?.error?.field;
+
+          // 400 = número de regla duplicado
+          if (status === 400 && field === 'numero_regla') {
+            this.showToast(
+              `⚠ El número de regla #${this.numeroRegla} ya existe. Elige otro número.`,
+              'warning',
+            );
+            this.goTo(1);
+            return;
+          }
+
+          // 422 = errores de validación ORM
+          if (status === 422) {
+            Swal.fire({
+              icon: 'warning',
+              title: 'Datos inválidos',
+              text: 'Revisa los campos e intenta de nuevo.',
+              confirmButtonColor: '#F4D35E',
+            });
+            return;
+          }
+
+          // 500 / red
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al guardar',
+            html: `No se pudo guardar la regla.<br><small class="text-muted">${message}</small>`,
+            confirmButtonColor: '#DA3E3E',
+          });
+        },
+      });
   }
 
   // ════════════════════════════════════
