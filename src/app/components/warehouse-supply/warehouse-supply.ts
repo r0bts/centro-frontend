@@ -659,6 +659,8 @@ export class WarehouseSupplyComponent implements OnInit {
             if (response.success) {
               const data = response.data;
               
+              const pickupName = data.pickup_person?.full_name ?? 'Sin asignar';
+
               Swal.fire({
                 icon: 'success',
                 title: '¡Lista para Recolección!',
@@ -666,18 +668,16 @@ export class WarehouseSupplyComponent implements OnInit {
                   <div class="text-start">
                     <p><strong>ID:</strong> ${data.id}</p>
                     <p><strong>Estado:</strong> <span class="badge bg-success">${data.current_status}</span></p>
-                    <p><strong>Fecha de Preparación:</strong> ${new Date(data.ready_at).toLocaleString('es-MX')}</p>
+                    <p><strong>Fecha de preparación:</strong> ${new Date(data.ready_at).toLocaleString('es-MX')}</p>
                     <hr>
-                    <div class="alert alert-info mb-0 mt-3">
-                      <h5 class="mb-2"><i class="bi bi-key-fill me-2"></i>PIN de Recolección</h5>
-                      <p class="mb-2">El solicitante usará este PIN para recoger:</p>
-                      <div class="text-center">
-                        <h1 class="display-3 fw-bold text-primary mb-0" style="letter-spacing: 0.5rem;">${data.pin}</h1>
+                    <div class="alert alert-success mt-3 mb-0">
+                      <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-person-check-fill fs-2 text-success"></i>
+                        <div>
+                          <div class="fw-bold mb-1">Persona que recogerá:</div>
+                          <span class="fs-5 fw-bold text-dark">${pickupName}</span>
+                        </div>
                       </div>
-                      <small class="text-muted d-block mt-2">
-                        <i class="bi bi-info-circle me-1"></i>
-                        ${data.pickup_person ? `Recogerá: ${data.pickup_person.full_name}` : 'Comparte este PIN con quien recogerá'}
-                      </small>
                     </div>
                     <div class="alert alert-light mt-3 mb-0 text-muted">
                       <small>
@@ -691,7 +691,7 @@ export class WarehouseSupplyComponent implements OnInit {
                 `,
                 confirmButtonText: 'Continuar',
                 confirmButtonColor: '#28a745',
-                width: '600px'
+                width: '550px'
               }).then(() => {
                 this.goBackToList();
               });
