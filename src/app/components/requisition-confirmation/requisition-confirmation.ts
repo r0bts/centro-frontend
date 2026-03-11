@@ -135,7 +135,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
     ).subscribe(term => this._filterEmployees(term));
 
     // Verificar si vienen parámetros de query (desde la lista)
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
       if (params['id'] && params['mode']) {
         this.requisitionId = params['id'];
         this.viewMode = params['mode'];
@@ -276,8 +276,8 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
           this.requisitionData = Array.from(areaMap.values());
           
           this.consolidateProducts();
-          this.cdr.markForCheck();
           Swal.close();
+          this.cdr.detectChanges();
         }
       },
       error: (error: any) => {
