@@ -343,12 +343,6 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     // Cargar el evento seleccionado si existe
     if (state['selectedEventId']) {
       this.selectedEvent = state['selectedEventId'];
-      // Si hay un evento seleccionado, establecer automáticamente el área "Eventos"
-      if (this.selectedEvent) {
-        this.selectedArea = 'Eventos';
-        this.areaSearchTerm = 'Eventos';
-        this.loadProductsForArea();
-      }
     }
     
     // Mostrar mensaje de carga exitosa
@@ -811,11 +805,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     this.productSearchTerm = '';
     this.currentQuantity = '';
     
-    // Solo limpiar el área si NO es un evento (área "Eventos")
-    if (this.selectedArea !== 'Eventos') {
-      this.selectedArea = '';
-      this.areaSearchTerm = '';
-    }
+    // Limpiar el área después de aceptar (igual para todas las áreas)
+    this.selectedArea = '';
+    this.areaSearchTerm = '';
     // NO limpiar la fecha porque es para toda la solicitud
   }
 
@@ -1047,21 +1039,11 @@ export class RequisitionComponent implements OnInit, OnDestroy {
         
         // Llenar automáticamente el campo de fecha personalizada
         this.customDeliveryDate = this.formatDateForInput(deliveryDate);
-        
-        // Seleccionar automáticamente el área "Eventos"
-        this.selectedArea = 'Eventos';
-        this.areaSearchTerm = 'Eventos';
-        this.loadProductsForArea();
       }
     } else {
       this.selectedProjectId = undefined; // Limpiar el ID del proyecto
       this.currentDeliveryDate = null;
       this.customDeliveryDate = ''; // Limpiar fecha personalizada solo si no hay evento
-      // Limpiar el área de eventos
-      if (this.selectedArea === 'Eventos') {
-        this.selectedArea = '';
-        this.areaSearchTerm = '';
-      }
     }
   }
 
@@ -1082,11 +1064,6 @@ export class RequisitionComponent implements OnInit, OnDestroy {
       // this.selectedEvent = ''; // COMENTADO: El evento se mantiene seleccionado
     } else {
       this.currentDeliveryDate = null;
-      // Limpiar el área de eventos si no hay fecha
-      if (this.selectedArea === 'Eventos' && !this.selectedEvent) {
-        this.selectedArea = '';
-        this.areaSearchTerm = '';
-      }
     }
   }
 

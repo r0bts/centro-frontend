@@ -425,6 +425,9 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   }
 
   onEmployeeFocus(): void {
+    // Limpiar el texto para que el usuario pueda buscar libremente
+    // selectedEmployee se mantiene intacto hasta que elija uno nuevo
+    this.employeeSearchTerm = '';
     this.filteredEmployees = this.employees.slice(0, 20);
     this.showEmployeeDropdown = true;
     this.cdr.markForCheck();
@@ -433,6 +436,10 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   onEmployeeBlur(): void {
     setTimeout(() => {
       this.showEmployeeDropdown = false;
+      // Si salió sin seleccionar un empleado nuevo, restaurar el nombre del actual
+      if (this.selectedEmployee && !this.employeeSearchTerm.trim()) {
+        this.employeeSearchTerm = this.selectedEmployee.name;
+      }
       this.cdr.markForCheck();
     }, 200);
   }
