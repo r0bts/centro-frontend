@@ -46,6 +46,9 @@ export interface AreaMapEntry {
   newAreaName: string;
   productCount: number;
   products: any[];
+  showProducts?: boolean;   // toggle lista de productos
+  areaSearch?: string;      // texto de búsqueda del área
+  showDropdown?: boolean;   // visibilidad del dropdown de búsqueda
 }
 
 @Component({
@@ -308,6 +311,45 @@ export class FrequentTemplatesComponent implements OnInit {
       updated[index] = { ...updated[index], newAreaId: area.id, newAreaName: area.name };
       this.areaMapping.set(updated);
     }
+  }
+
+  toggleProductsView(index: number): void {
+    const updated = [...this.areaMapping()];
+    updated[index] = { ...updated[index], showProducts: !updated[index].showProducts };
+    this.areaMapping.set(updated);
+  }
+
+  getFilteredAreas(index: number): { id: string; name: string }[] {
+    const term = (this.areaMapping()[index]?.areaSearch || '').toLowerCase().trim();
+    if (!term) return this.availableAreas();
+    return this.availableAreas().filter(a => a.name.toLowerCase().includes(term));
+  }
+
+  onAreaSearch(index: number, term: string): void {
+    const updated = [...this.areaMapping()];
+    updated[index] = { ...updated[index], areaSearch: term, showDropdown: true };
+    this.areaMapping.set(updated);
+  }
+
+  selectArea(index: number, areaId: string): void {
+    const area = this.availableAreas().find(a => a.id === areaId);
+    if (area) {
+      const updated = [...this.areaMapping()];
+      updated[index] = {
+        ...updated[index],
+        newAreaId: area.id,
+        newAreaName: area.name,
+        areaSearch: '',
+        showDropdown: false
+      };
+      this.areaMapping.set(updated);
+    }
+  }
+
+  closeAreaDropdown(index: number): void {
+    const updated = [...this.areaMapping()];
+    updated[index] = { ...updated[index], showDropdown: false, areaSearch: '' };
+    this.areaMapping.set(updated);
   }
 
   confirmLoadWithMapping(): void {
