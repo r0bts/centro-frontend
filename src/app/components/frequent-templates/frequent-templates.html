@@ -442,7 +442,7 @@
 <!-- ═══════════════════════════════════════════════════════════════
      MODAL: CONFIGURAR ÁREAS AL USAR PLANTILLA
 ═══════════════════════════════════════════════════════════════ -->
-<div class="modal fade show d-block" *ngIf="showAreaMapModal && templateDetailToLoad"
+<div class="modal fade show d-block" *ngIf="showAreaMapModal() && templateDetailToLoad()"
      style="background-color: rgba(0,0,0,0.5);">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
        (click)="$event.stopPropagation()">
@@ -454,7 +454,7 @@
           <h5 class="modal-title mb-0">
             <i class="bi bi-diagram-3 me-2"></i>Configurar Áreas
           </h5>
-          <small class="opacity-75">{{ templateDetailToLoad.name }}</small>
+          <small class="opacity-75">{{ templateDetailToLoad()!.name }}</small>
         </div>
         <button type="button" class="btn-close btn-close-white" (click)="cancelAreaMapping()"></button>
       </div>
@@ -476,14 +476,14 @@
         </div>
 
         <!-- Spinner mientras cargan las áreas del catálogo -->
-        <div *ngIf="isLoadingAreas" class="text-center py-4">
+        <div *ngIf="isLoadingAreas()" class="text-center py-4">
           <div class="spinner-border text-primary" role="status"></div>
           <p class="text-muted mt-2 mb-0">Cargando áreas disponibles...</p>
         </div>
 
         <!-- Tabla de mapeo -->
-        <ng-container *ngIf="!isLoadingAreas">
-          <div *ngFor="let entry of areaMapping; let i = index" class="card border mb-3">
+        <ng-container *ngIf="!isLoadingAreas()">
+          <div *ngFor="let entry of areaMapping(); let i = index" class="card border mb-3">
             <div class="card-body py-3">
               <div class="row align-items-center g-3">
 
@@ -513,7 +513,7 @@
                     class="form-select"
                     [(ngModel)]="entry.newAreaId"
                     (ngModelChange)="onAreaMappingChange(i, $event)">
-                    <option *ngFor="let area of availableAreas" [value]="area.id">
+                    <option *ngFor="let area of availableAreas()" [value]="area.id">
                       {{ area.name }}
                     </option>
                   </select>
@@ -541,7 +541,7 @@
           type="button"
           class="btn btn-primary"
           (click)="confirmLoadWithMapping()"
-          [disabled]="isLoadingAreas">
+          [disabled]="isLoadingAreas()">
           <i class="bi bi-check2-circle me-2"></i>Usar con estas áreas
         </button>
       </div>

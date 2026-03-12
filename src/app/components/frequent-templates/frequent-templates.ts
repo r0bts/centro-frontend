@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, NgZone, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -57,8 +57,6 @@ export interface AreaMapEntry {
 })
 export class FrequentTemplatesComponent implements OnInit {
   private templatesService = inject(FrequentTemplatesService);
-  private ngZone = inject(NgZone);
-  private cdr = inject(ChangeDetectorRef);
   
   activeSection: string = 'requisicion';
   
@@ -76,12 +74,12 @@ export class FrequentTemplatesComponent implements OnInit {
   isProcessing: boolean = false;
   showTemplatesList: boolean = true;
 
-  // Propiedades para mapeo de áreas al usar plantilla
-  showAreaMapModal: boolean = false;
-  templateDetailToLoad: TemplateDetail | null = null;
-  areaMapping: AreaMapEntry[] = [];
-  availableAreas: { id: string; name: string }[] = [];
-  isLoadingAreas: boolean = false;
+  // Propiedades para mapeo de áreas al usar plantilla (signals para zoneless CD)
+  showAreaMapModal = signal(false);
+  templateDetailToLoad = signal<TemplateDetail | null>(null);
+  areaMapping = signal<AreaMapEntry[]>([]);
+  availableAreas = signal<{ id: string; name: string }[]>([]);
+  isLoadingAreas = signal(false);
 
   // Propiedades para compartir plantilla
   showShareModal: boolean = false;
@@ -192,39 +190,23 @@ export class FrequentTemplatesComponent implements OnInit {
       confirmButtonColor: '#007bff',
       cancelButtonColor: '#6c757d'
     }).then((result) => {
-      console.log('🟡 [loadTemplate] Swal.then() ejecutado, isConfirmed:', result.isConfirmed);
-      console.log('🔍 [loadTemplate] NgZone.isInAngularZone():', NgZone.isInAngularZone());
-      this.ngZone.run(() => {
-        console.log('🟢 [loadTemplate] ngZone.run() ejecutado, isInAngularZone:', NgZone.isInAngularZone());
-        if (result.isConfirmed) {
-          console.log('🟢 [loadTemplate] isConfirmed=true, isTemplateDetail:', this.isTemplateDetail(template));
+      if (!result.isConfirmed) return;
 
-          // Si ya tenemos el detalle completo, abrir modal directo (con delay para que Swal cierre)
-          if (this.isTemplateDetail(template)) {
-            console.log('📋 [loadTemplate] Ruta TemplateDetail directo → openAreaMappingModal');
-            setTimeout(() => this.ngZone.run(() => this.openAreaMappingModal(template)), 50);
-            return;
-          }
+      if (this.isTemplateDetail(template)) {
+        this.openAreaMappingModal(template);
+        return;
+      }
 
-          // Si solo tenemos el resumen, cargar detalle sin Swal (el Swal previo tapaba el modal)
-          console.log('📡 [loadTemplate] Ruta Template → getTemplateDetails llamando API...');
-
-          this.templatesService.getTemplateDetails(template.id).subscribe({
-            next: (response) => {
-              console.log('✅ [loadTemplate] getTemplateDetails OK, isInAngularZone:', NgZone.isInAngularZone());
-              // setTimeout deja que el Swal de confirmación se desmonte antes de abrir el modal
-              // ngZone.run() garantiza que zone.js dispare el CD después del callback
-              setTimeout(() => this.ngZone.run(() => this.openAreaMappingModal(response.data.template)), 50);
-            },
-            error: (error) => {
-              console.error('❌ [loadTemplate] getTemplateDetails ERROR:', error.error?.message || error.message);
-              Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: error.error?.message || 'No se pudo cargar la plantilla',
-                confirmButtonText: 'Entendido'
-              });
-            }
+      this.templatesService.getTemplateDetails(template.id).subscribe({
+        next: (response) => {
+          this.openAreaMappingModal(response.data.template);
+        },
+        error: (error) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: error.error?.message || 'No se pudo cargar la plantilla',
+            confirmButtonText: 'Entendido'
           });
         }
       });
@@ -281,51 +263,34 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   openAreaMappingModal(templateDetail: TemplateDetail): void {
-    console.log('🚀 [openAreaMappingModal] INICIO, template:', templateDetail?.name);
-    console.log('🔍 [openAreaMappingModal] isInAngularZone:', NgZone.isInAngularZone());
-
-    this.templateDetailToLoad = templateDetail;
-    this.isLoadingAreas = true;
-    this.showAreaMapModal = true;
-
-    console.log('🔍 [openAreaMappingModal] DESPUÉS de set flags:',
-      '| showAreaMapModal:', this.showAreaMapModal,
-      '| templateDetailToLoad:', !!this.templateDetailToLoad,
-      '| isLoadingAreas:', this.isLoadingAreas
-    );
-
-    // Construir mapping inicial con las áreas originales preseleccionadas
-    this.areaMapping = templateDetail.areas.map(area => ({
+    this.templateDetailToLoad.set(templateDetail);
+    this.isLoadingAreas.set(true);
+    this.areaMapping.set(templateDetail.areas.map(area => ({
       originalAreaId: area.id ?? null,
       originalAreaName: area.area,
       newAreaId: area.id ? String(area.id) : '',
       newAreaName: area.area,
       productCount: area.products.length,
       products: area.products
-    }));
+    })));
+    // Abrir el modal DESPUÉS de construir el mapping (signal notifica el cambio)
+    this.showAreaMapModal.set(true);
 
-    // Cargar áreas disponibles desde la API
     this.templatesService.getAreas().subscribe({
       next: (areas) => {
-        console.log('✅ [openAreaMappingModal] getAreas() OK, total:', areas.length, '| isInAngularZone:', NgZone.isInAngularZone());
-        this.availableAreas = areas;
-        this.isLoadingAreas = false;
-
-        // Si algún área original no existe en el catálogo, seleccionar la primera disponible
-        this.areaMapping = this.areaMapping.map(entry => {
+        this.availableAreas.set(areas);
+        // Corregir áreas que no existan en el catálogo
+        this.areaMapping.set(this.areaMapping().map(entry => {
           const found = areas.find(a => a.id === entry.newAreaId);
-          if (!found && areas.length > 0) {
-            return { ...entry, newAreaId: areas[0].id, newAreaName: areas[0].name };
-          }
-          return entry;
-        });
-
-        console.log('🔄 [openAreaMappingModal] getAreas() procesado, areaMapping lista');
+          return (!found && areas.length > 0)
+            ? { ...entry, newAreaId: areas[0].id, newAreaName: areas[0].name }
+            : entry;
+        }));
+        this.isLoadingAreas.set(false);
       },
       error: () => {
-        console.error('❌ [openAreaMappingModal] getAreas() ERROR');
-        this.isLoadingAreas = false;
-        this.showAreaMapModal = false;
+        this.isLoadingAreas.set(false);
+        this.showAreaMapModal.set(false);
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -337,28 +302,27 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   onAreaMappingChange(index: number, newAreaId: string): void {
-    const area = this.availableAreas.find(a => a.id === newAreaId);
+    const area = this.availableAreas().find(a => a.id === newAreaId);
     if (area) {
-      this.areaMapping[index] = {
-        ...this.areaMapping[index],
-        newAreaId: area.id,
-        newAreaName: area.name
-      };
+      const updated = [...this.areaMapping()];
+      updated[index] = { ...updated[index], newAreaId: area.id, newAreaName: area.name };
+      this.areaMapping.set(updated);
     }
   }
 
   confirmLoadWithMapping(): void {
-    if (!this.templateDetailToLoad) return;
-    this.showAreaMapModal = false;
-    this.navigateWithTemplate(this.templateDetailToLoad, this.areaMapping);
-    this.templateDetailToLoad = null;
-    this.areaMapping = [];
+    const detail = this.templateDetailToLoad();
+    if (!detail) return;
+    this.showAreaMapModal.set(false);
+    this.navigateWithTemplate(detail, this.areaMapping());
+    this.templateDetailToLoad.set(null);
+    this.areaMapping.set([]);
   }
 
   cancelAreaMapping(): void {
-    this.showAreaMapModal = false;
-    this.templateDetailToLoad = null;
-    this.areaMapping = [];
+    this.showAreaMapModal.set(false);
+    this.templateDetailToLoad.set(null);
+    this.areaMapping.set([]);
   }
 
   editTemplate(template: Template): void {
