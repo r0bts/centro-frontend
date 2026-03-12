@@ -280,6 +280,25 @@ export class FrequentTemplatesService {
   }
 
   /**
+   * GET /api/areas
+   * Obtener todas las áreas disponibles para el mapeo de plantillas
+   */
+  getAreas(): Observable<{ id: string; name: string }[]> {
+    const url = `${environment.apiUrl}/areas`;
+    return this.http.get<any>(url, { headers: this.getHeaders() }).pipe(
+      map((response: any) => {
+        if (!response.success || !response.data?.areas) {
+          return [];
+        }
+        return response.data.areas.map((a: any) => ({
+          id: String(a.id),
+          name: a.name
+        }));
+      })
+    );
+  }
+
+  /**
    * GET /api/users/by-location?location_id={location_id}
    * Obtener usuarios filtrados por location_id del usuario actual
    * Endpoint optimizado (solo retorna id, username, full_name)

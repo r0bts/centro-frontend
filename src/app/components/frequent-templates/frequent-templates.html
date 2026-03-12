@@ -438,3 +438,114 @@
     </div>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL: CONFIGURAR ÁREAS AL USAR PLANTILLA
+═══════════════════════════════════════════════════════════════ -->
+<div class="modal fade show d-block" *ngIf="showAreaMapModal && templateDetailToLoad"
+     style="background-color: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"
+       (click)="$event.stopPropagation()">
+    <div class="modal-content">
+
+      <!-- Header -->
+      <div class="modal-header bg-primary text-white">
+        <div>
+          <h5 class="modal-title mb-0">
+            <i class="bi bi-diagram-3 me-2"></i>Configurar Áreas
+          </h5>
+          <small class="opacity-75">{{ templateDetailToLoad.name }}</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" (click)="cancelAreaMapping()"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+
+        <!-- Info banner -->
+        <div class="alert alert-info d-flex align-items-start gap-2 mb-4">
+          <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 mt-1"></i>
+          <div>
+            <strong>¿Quieres cambiar las áreas?</strong><br>
+            <small>
+              Cada área de la plantilla original aparece a la izquierda.
+              Puedes asignarla a cualquier área disponible usando el selector de la derecha.
+              Los productos se mantendrán igual.
+            </small>
+          </div>
+        </div>
+
+        <!-- Spinner mientras cargan las áreas del catálogo -->
+        <div *ngIf="isLoadingAreas" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2 mb-0">Cargando áreas disponibles...</p>
+        </div>
+
+        <!-- Tabla de mapeo -->
+        <ng-container *ngIf="!isLoadingAreas">
+          <div *ngFor="let entry of areaMapping; let i = index" class="card border mb-3">
+            <div class="card-body py-3">
+              <div class="row align-items-center g-3">
+
+                <!-- Área original -->
+                <div class="col-12 col-md-5">
+                  <small class="text-muted d-block mb-1">
+                    <i class="bi bi-archive me-1"></i>Área original
+                  </small>
+                  <div class="fw-bold">{{ entry.originalAreaName }}</div>
+                  <span class="badge bg-light text-dark border mt-1">
+                    {{ entry.productCount }} producto(s)
+                  </span>
+                </div>
+
+                <!-- Flecha -->
+                <div class="col-12 col-md-2 text-center">
+                  <i class="bi bi-arrow-right-circle-fill fs-3 text-primary d-none d-md-inline"></i>
+                  <i class="bi bi-arrow-down-circle-fill fs-3 text-primary d-inline d-md-none"></i>
+                </div>
+
+                <!-- Selector de área destino -->
+                <div class="col-12 col-md-5">
+                  <small class="text-muted d-block mb-1">
+                    <i class="bi bi-geo-alt me-1"></i>Asignar a
+                  </small>
+                  <select
+                    class="form-select"
+                    [(ngModel)]="entry.newAreaId"
+                    (ngModelChange)="onAreaMappingChange(i, $event)">
+                    <option *ngFor="let area of availableAreas" [value]="area.id">
+                      {{ area.name }}
+                    </option>
+                  </select>
+                  <small class="text-success mt-1 d-block" *ngIf="entry.newAreaId === (entry.originalAreaId?.toString() || '')">
+                    <i class="bi bi-check-circle me-1"></i>Sin cambios
+                  </small>
+                  <small class="text-warning mt-1 d-block" *ngIf="entry.newAreaId !== (entry.originalAreaId?.toString() || '')">
+                    <i class="bi bi-pencil me-1"></i>Área modificada
+                  </small>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelAreaMapping()">
+          <i class="bi bi-x-circle me-2"></i>Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="confirmLoadWithMapping()"
+          [disabled]="isLoadingAreas">
+          <i class="bi bi-check2-circle me-2"></i>Usar con estas áreas
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

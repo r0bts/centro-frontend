@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -39,6 +39,15 @@ export interface ShareTemplateData {
   sharedDate: Date;
 }
 
+export interface AreaMapEntry {
+  originalAreaId: number | null;
+  originalAreaName: string;
+  newAreaId: string;
+  newAreaName: string;
+  productCount: number;
+  products: any[];
+}
+
 @Component({
   selector: 'app-frequent-templates',
   standalone: true,
@@ -48,6 +57,8 @@ export interface ShareTemplateData {
 })
 export class FrequentTemplatesComponent implements OnInit {
   private templatesService = inject(FrequentTemplatesService);
+  private ngZone = inject(NgZone);
+  private cdr = inject(ChangeDetectorRef);
   
   activeSection: string = 'requisicion';
   
@@ -64,6 +75,13 @@ export class FrequentTemplatesComponent implements OnInit {
   isLoading: boolean = false;
   isProcessing: boolean = false;
   showTemplatesList: boolean = true;
+
+  // Propiedades para mapeo de áreas al usar plantilla
+  showAreaMapModal: boolean = false;
+  templateDetailToLoad: TemplateDetail | null = null;
+  areaMapping: AreaMapEntry[] = [];
+  availableAreas: { id: string; name: string }[] = [];
+  isLoadingAreas: boolean = false;
 
   // Propiedades para compartir plantilla
   showShareModal: boolean = false;
@@ -169,82 +187,178 @@ export class FrequentTemplatesComponent implements OnInit {
       text: `¿Deseas usar la plantilla "${template.name}" para crear una nueva requisición?`,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: 'Sí, cargar',
+      confirmButtonText: 'Sí, continuar',
       cancelButtonText: 'Cancelar',
       confirmButtonColor: '#007bff',
       cancelButtonColor: '#6c757d'
     }).then((result) => {
-      if (result.isConfirmed) {
-        if (this.isTemplateDetail(template)) {
-          const mappedAreas = template.areas.map(area => ({
-            area: area.area,
-            areaId: area.id ? String(area.id) : undefined,
-            products: area.products.map(product => ({
-              id: String(product.id),
-              name: product.name,
-              quantity: Number(product.quantity) || 0,
-              unit: product.unit,
-              actions: ''
-            }))
-          }));
+      console.log('🟡 [loadTemplate] Swal.then() ejecutado, isConfirmed:', result.isConfirmed);
+      console.log('🔍 [loadTemplate] NgZone.isInAngularZone():', NgZone.isInAngularZone());
+      this.ngZone.run(() => {
+        console.log('🟢 [loadTemplate] ngZone.run() ejecutado, isInAngularZone:', NgZone.isInAngularZone());
+        if (result.isConfirmed) {
+          console.log('🟢 [loadTemplate] isConfirmed=true, isTemplateDetail:', this.isTemplateDetail(template));
 
+          // Si ya tenemos el detalle completo, abrir modal directo (con delay para que Swal cierre)
+          if (this.isTemplateDetail(template)) {
+            console.log('📋 [loadTemplate] Ruta TemplateDetail directo → openAreaMappingModal');
+            setTimeout(() => this.ngZone.run(() => this.openAreaMappingModal(template)), 50);
+            return;
+          }
 
-          this.router.navigate(['/requisicion'], {
-            state: {
-              loadFromTemplate: true,
-              templateData: mappedAreas,
-              templateName: template.name,
-              locationId: template.location?.id || null,
-              locationName: template.location?.name || null,
-              departmentId: template.department?.id || null,
-              projectId: template.project?.id || null,
-              awaitingReturn: template.awaiting_return || false
+          // Si solo tenemos el resumen, cargar detalle sin Swal (el Swal previo tapaba el modal)
+          console.log('📡 [loadTemplate] Ruta Template → getTemplateDetails llamando API...');
+
+          this.templatesService.getTemplateDetails(template.id).subscribe({
+            next: (response) => {
+              console.log('✅ [loadTemplate] getTemplateDetails OK, isInAngularZone:', NgZone.isInAngularZone());
+              // setTimeout deja que el Swal de confirmación se desmonte antes de abrir el modal
+              // ngZone.run() garantiza que zone.js dispare el CD después del callback
+              setTimeout(() => this.ngZone.run(() => this.openAreaMappingModal(response.data.template)), 50);
+            },
+            error: (error) => {
+              console.error('❌ [loadTemplate] getTemplateDetails ERROR:', error.error?.message || error.message);
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.error?.message || 'No se pudo cargar la plantilla',
+                confirmButtonText: 'Entendido'
+              });
             }
           });
-          return;
         }
+      });
+    });
+  }
 
-        this.templatesService.getTemplateDetails(template.id).subscribe({
-          next: (response) => {
-            const templateDetail = response.data.template;
-            const mappedAreas = templateDetail.areas.map(area => ({
-              area: area.area,
-              areaId: area.id ? String(area.id) : undefined,
-              products: area.products.map(product => ({
-                id: String(product.id),
-                name: product.name,
-                quantity: Number(product.quantity) || 0,
-                unit: product.unit,
-                actions: ''
-              }))
-            }));
+  // ─────────────────────────────────────────────
+  // MÉTODOS: MAPEO DE ÁREAS AL USAR PLANTILLA
+  // ─────────────────────────────────────────────
 
+  private navigateWithTemplate(templateDetail: TemplateDetail, areasOverride?: AreaMapEntry[]): void {
+    let mappedAreas: any[];
 
-            this.router.navigate(['/requisicion'], {
-              state: {
-                loadFromTemplate: true,
-                templateData: mappedAreas,
-                templateName: templateDetail.name,
-                locationId: templateDetail.location?.id || null,
-                locationName: templateDetail.location?.name || null,
-                departmentId: templateDetail.department?.id || null,
-                projectId: templateDetail.project?.id || null,
-                awaitingReturn: templateDetail.awaiting_return || false
-              }
-            });
-          },
-          error: (error) => {
-            console.error('❌ Error al cargar plantilla:', error.error?.message || error.message);
-            Swal.fire({
-              icon: 'error',
-              title: 'Error',
-              text: error.error?.message || 'No se pudo cargar la plantilla',
-              confirmButtonText: 'Entendido'
-            });
+    if (areasOverride && areasOverride.length > 0) {
+      // Usar el mapeo definido por el usuario
+      mappedAreas = areasOverride.map(entry => ({
+        area: entry.newAreaName,
+        areaId: entry.newAreaId,
+        products: entry.products.map(product => ({
+          id: String(product.id),
+          name: product.name,
+          quantity: Number(product.quantity) || 0,
+          unit: product.unit,
+          actions: ''
+        }))
+      }));
+    } else {
+      // Usar áreas originales de la plantilla
+      mappedAreas = templateDetail.areas.map(area => ({
+        area: area.area,
+        areaId: area.id ? String(area.id) : undefined,
+        products: area.products.map(product => ({
+          id: String(product.id),
+          name: product.name,
+          quantity: Number(product.quantity) || 0,
+          unit: product.unit,
+          actions: ''
+        }))
+      }));
+    }
+
+    this.router.navigate(['/requisicion'], {
+      state: {
+        loadFromTemplate: true,
+        templateData: mappedAreas,
+        templateName: templateDetail.name,
+        locationId: templateDetail.location?.id || null,
+        locationName: templateDetail.location?.name || null,
+        departmentId: templateDetail.department?.id || null,
+        projectId: templateDetail.project?.id || null,
+        awaitingReturn: templateDetail.awaiting_return || false
+      }
+    });
+  }
+
+  openAreaMappingModal(templateDetail: TemplateDetail): void {
+    console.log('🚀 [openAreaMappingModal] INICIO, template:', templateDetail?.name);
+    console.log('🔍 [openAreaMappingModal] isInAngularZone:', NgZone.isInAngularZone());
+
+    this.templateDetailToLoad = templateDetail;
+    this.isLoadingAreas = true;
+    this.showAreaMapModal = true;
+
+    console.log('🔍 [openAreaMappingModal] DESPUÉS de set flags:',
+      '| showAreaMapModal:', this.showAreaMapModal,
+      '| templateDetailToLoad:', !!this.templateDetailToLoad,
+      '| isLoadingAreas:', this.isLoadingAreas
+    );
+
+    // Construir mapping inicial con las áreas originales preseleccionadas
+    this.areaMapping = templateDetail.areas.map(area => ({
+      originalAreaId: area.id ?? null,
+      originalAreaName: area.area,
+      newAreaId: area.id ? String(area.id) : '',
+      newAreaName: area.area,
+      productCount: area.products.length,
+      products: area.products
+    }));
+
+    // Cargar áreas disponibles desde la API
+    this.templatesService.getAreas().subscribe({
+      next: (areas) => {
+        console.log('✅ [openAreaMappingModal] getAreas() OK, total:', areas.length, '| isInAngularZone:', NgZone.isInAngularZone());
+        this.availableAreas = areas;
+        this.isLoadingAreas = false;
+
+        // Si algún área original no existe en el catálogo, seleccionar la primera disponible
+        this.areaMapping = this.areaMapping.map(entry => {
+          const found = areas.find(a => a.id === entry.newAreaId);
+          if (!found && areas.length > 0) {
+            return { ...entry, newAreaId: areas[0].id, newAreaName: areas[0].name };
           }
+          return entry;
+        });
+
+        console.log('🔄 [openAreaMappingModal] getAreas() procesado, areaMapping lista');
+      },
+      error: () => {
+        console.error('❌ [openAreaMappingModal] getAreas() ERROR');
+        this.isLoadingAreas = false;
+        this.showAreaMapModal = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudieron cargar las áreas disponibles.',
+          confirmButtonText: 'Entendido'
         });
       }
     });
+  }
+
+  onAreaMappingChange(index: number, newAreaId: string): void {
+    const area = this.availableAreas.find(a => a.id === newAreaId);
+    if (area) {
+      this.areaMapping[index] = {
+        ...this.areaMapping[index],
+        newAreaId: area.id,
+        newAreaName: area.name
+      };
+    }
+  }
+
+  confirmLoadWithMapping(): void {
+    if (!this.templateDetailToLoad) return;
+    this.showAreaMapModal = false;
+    this.navigateWithTemplate(this.templateDetailToLoad, this.areaMapping);
+    this.templateDetailToLoad = null;
+    this.areaMapping = [];
+  }
+
+  cancelAreaMapping(): void {
+    this.showAreaMapModal = false;
+    this.templateDetailToLoad = null;
+    this.areaMapping = [];
   }
 
   editTemplate(template: Template): void {
