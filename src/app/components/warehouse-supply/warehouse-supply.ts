@@ -1146,11 +1146,11 @@ export class WarehouseSupplyComponent implements OnInit {
               let itemsHtml = '<div class="mt-3"><h6>Productos devueltos:</h6><ul class="list-unstyled text-start">';
               if (data.items_returned) {
                 data.items_returned.forEach((item: any) => {
-                  const cantidadConsumida = item.delivered - item.returned_quantity;
+                  const cantidadConsumida = item.delivered - item.returned;
                   itemsHtml += `<li class="mb-2">
                     <small>
                       <strong>Item ${item.item_id}:</strong> 
-                      Devuelto: ${item.returned_quantity} de ${item.delivered} entregados
+                      Devuelto: ${item.returned} de ${item.delivered} entregados
                       ${cantidadConsumida > 0 ? ` | <span class="text-danger">Consumido: ${cantidadConsumida}</span>` : ''}
                     </small>
                   </li>`;
