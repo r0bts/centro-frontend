@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
@@ -6,6 +6,7 @@ import { ContentMenu } from '../content-menu/content-menu';
 
 @Component({
   selector: 'app-dashboard',
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ContentMenu],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
