@@ -85,7 +85,7 @@
  * ==================================================================================
  */
 
-import { Component, OnInit, ViewChild, ElementRef, signal, computed } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -107,6 +107,7 @@ import { AuthService } from '../../services/auth.service';import { RequisitionSe
 @Component({
   selector: 'app-warehouse-supply',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ContentMenu],
   templateUrl: './warehouse-supply.html',
   styleUrls: ['./warehouse-supply.scss']

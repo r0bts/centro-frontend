@@ -44,14 +44,14 @@
                 <!-- Main Content -->
                 <div class="col-md-9">
                     <!-- User Profile Configuration -->
-                    <div *ngIf="activeSection === 'general'" class="config-panel">
+                    <div *ngIf="activeSection() === 'general'" class="config-panel">
                         <app-user-profile></app-user-profile>
                     </div>
                     
                     <!-- Users Management -->
-                    <div *ngIf="activeSection === 'users'" class="config-panel">
+                    <div *ngIf="activeSection() === 'users'" class="config-panel">
                         <!-- Mostrar formulario de usuario o lista -->
-                        <div *ngIf="!showUserForm">
+                        <div *ngIf="!showUserForm()">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
@@ -76,10 +76,10 @@
                         </div>
 
                         <!-- Formulario de usuario -->
-                        <div *ngIf="showUserForm">
+                        <div *ngIf="showUserForm()">
                             <app-user-form
-                                [userId]="selectedUserId"
-                                [isEditMode]="isUserEditMode"
+                                [userId]="selectedUserId()"
+                                [isEditMode]="isUserEditMode()"
                                 (cancel)="onCancelUserForm()"
                                 (save)="onSaveUser($event)">
                             </app-user-form>
@@ -87,9 +87,9 @@
                     </div>
 
                     <!-- Roles y Permisos Configuration -->
-                    <div *ngIf="activeSection === 'roles'" class="config-panel">
+                    <div *ngIf="activeSection() === 'roles'" class="config-panel">
                         <!-- Lista de Roles -->
-                        <div [hidden]="showRoleForm">
+                        <div [hidden]="showRoleForm()">
                             <div class="card">
                                 <div class="card-header">
                                     <h5 class="card-title mb-0">
@@ -113,10 +113,10 @@
                         </div>
 
                         <!-- Formulario de rol -->
-                        <div *ngIf="showRoleForm">
+                        <div *ngIf="showRoleForm()">
                             <app-role-form
-                                [roleId]="selectedRoleId"
-                                [isEditMode]="isRoleEditMode"
+                                [roleId]="selectedRoleId()"
+                                [isEditMode]="isRoleEditMode()"
                                 (cancel)="onCancelRoleForm()"
                                 (save)="onSaveRole($event)">
                             </app-role-form>
@@ -124,7 +124,7 @@
                     </div>
 
                     <!-- Products Management -->
-                    <div *ngIf="activeSection === 'products'" class="config-panel">
+                    <div *ngIf="activeSection() === 'products'" class="config-panel">
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
@@ -145,12 +145,12 @@
                     </div>
 
                     <!-- Categories Management -->
-                    <div *ngIf="activeSection === 'categories'" class="config-panel">
+                    <div *ngIf="activeSection() === 'categories'" class="config-panel">
                         <app-categories-list></app-categories-list>
                     </div>
 
                     <!-- NetSuite Sync Configuration -->
-                    <div *ngIf="activeSection === 'netsuite'" class="config-panel">
+                    <div *ngIf="activeSection() === 'netsuite'" class="config-panel">
                         <app-netsuite-sync></app-netsuite-sync>
                     </div>
                 </div>

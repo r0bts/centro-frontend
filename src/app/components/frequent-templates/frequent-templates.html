@@ -38,7 +38,7 @@
             </div>
             <div class="col-md-4 text-end">
               <span class="badge bg-primary fs-6 px-3 py-2">
-                {{ (filteredTemplates$ | async)?.length || 0 }} plantilla(s)
+                {{ filteredTemplates().length }} plantilla(s)
               </span>
             </div>
           </div>
@@ -46,9 +46,9 @@
       </div>
 
       <!-- Templates Grid -->
-      <div class="row g-4" *ngIf="showTemplatesList && (filteredTemplates$ | async) as filteredTemplates">
-        <ng-container *ngIf="filteredTemplates.length > 0; else emptyState">
-        <div class="col-md-6 col-lg-4" *ngFor="let template of filteredTemplates; trackBy: trackByTemplateId">
+      <div class="row g-4" *ngIf="showTemplatesList()">
+        <ng-container *ngIf="filteredTemplates().length > 0; else emptyState">
+        <div class="col-md-6 col-lg-4" *ngFor="let template of filteredTemplates(); trackBy: trackByTemplateId">
           <div class="card shadow-sm h-100 template-card">
             <div class="card-header bg-primary text-white">
               <div class="d-flex justify-content-between align-items-start">
@@ -175,7 +175,7 @@
 </div>
 
 <!-- Modal de Detalles -->
-<div class="modal fade show d-block" *ngIf="showDetails && selectedTemplate" 
+<div class="modal fade show d-block" *ngIf="showDetails() && selectedTemplate()" 
      style="background-color: rgba(0,0,0,0.5);" 
      (click)="closeDetails()">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" 
@@ -183,7 +183,7 @@
     <div class="modal-content">
       <div class="modal-header bg-primary text-white">
         <h5 class="modal-title">
-          {{ selectedTemplate.name }}
+          {{ selectedTemplate()!.name }}
         </h5>
         <button type="button" class="btn-close btn-close-white" (click)="closeDetails()"></button>
       </div>
@@ -194,18 +194,18 @@
           <div class="row g-3">
             <div class="col-md-6">
               <small class="text-muted d-block">Fecha de creación</small>
-              <strong>{{ formatDate(selectedTemplate.created_date) }}</strong>
+              <strong>{{ formatDate(selectedTemplate()!.created_date) }}</strong>
             </div>
-            <div class="col-md-6" *ngIf="selectedTemplate.created_from">
+            <div class="col-md-6" *ngIf="selectedTemplate()!.created_from">
               <small class="text-muted d-block">Basada en requisición</small>
-              <strong>{{ selectedTemplate.created_from }}</strong>
+              <strong>{{ selectedTemplate()!.created_from }}</strong>
             </div>
           </div>
         </div>
 
         <!-- Areas y Productos -->
         <h6 class="mb-3">Áreas y Productos</h6>
-        <div *ngFor="let area of selectedTemplate.areas" class="mb-3">
+        <div *ngFor="let area of selectedTemplate()!.areas" class="mb-3">
           <div class="card border">
             <div class="card-header bg-light">
               <h6 class="mb-0">
@@ -253,7 +253,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let product of selectedTemplate.consolidated_products">
+                  <tr *ngFor="let product of selectedTemplate()!.consolidated_products">
                     <td><strong>{{ product.name }}</strong></td>
                     <td class="text-center">
                       <span class="badge bg-primary text-white">
@@ -273,7 +273,7 @@
         <button type="button" class="btn btn-secondary" (click)="closeDetails()">
           Cerrar
         </button>
-        <button type="button" class="btn btn-primary" (click)="loadTemplate(selectedTemplate); closeDetails()">
+        <button type="button" class="btn btn-primary" (click)="loadTemplate(selectedTemplate()!); closeDetails()">
           Usar esta Plantilla
         </button>
       </div>
@@ -282,7 +282,7 @@
 </div>
 
 <!-- Modal de Compartir Plantilla -->
-<div class="modal fade show d-block" *ngIf="showShareModal && templateToShare" 
+<div class="modal fade show d-block" *ngIf="showShareModal() && templateToShare()" 
      style="background-color: rgba(0,0,0,0.5);" 
      (click)="closeShareModal()">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" 
@@ -299,10 +299,10 @@
       <div class="modal-body">
         <!-- Información de la plantilla -->
         <div class="alert alert-light border mb-4">
-          <h6 class="mb-2"><i class="bi bi-file-text me-2"></i>{{ templateToShare.name }}</h6>
+          <h6 class="mb-2"><i class="bi bi-file-text me-2"></i>{{ templateToShare()!.name }}</h6>
           <small class="text-muted">
-            {{ getTotalAreas(templateToShare) }} áreas • 
-            {{ getTotalProducts(templateToShare) }} productos
+            {{ getTotalAreas(templateToShare()!) }} áreas • 
+            {{ getTotalProducts(templateToShare()!) }} productos
           </small>
         </div>
 
@@ -334,14 +334,14 @@
           </label>
 
           <!-- Buscador de usuarios -->
-          <div *ngIf="selectedBusinessUnit && availableUsers.length > 0" class="mb-3">
+          <div *ngIf="selectedBusinessUnit && availableUsers().length > 0" class="mb-3">
             <input 
               type="text" 
               class="form-control"
               [(ngModel)]="searchUserTerm"
               placeholder="🔍 Buscar por nombre o número de empleado...">
             <small class="text-muted">
-              Mostrando {{ filteredUsers.length }} de {{ availableUsers.length }} usuarios
+              Mostrando {{ filteredUsers.length }} de {{ availableUsers().length }} usuarios
             </small>
           </div>
           
@@ -380,13 +380,13 @@
           </div>
 
           <!-- Mensaje cuando no hay usuarios en la búsqueda -->
-          <div *ngIf="selectedBusinessUnit && availableUsers.length > 0 && filteredUsers.length === 0" class="alert alert-warning">
+          <div *ngIf="selectedBusinessUnit && availableUsers().length > 0 && filteredUsers.length === 0" class="alert alert-warning">
             <i class="bi bi-search me-2"></i>
             No se encontraron usuarios con "{{ searchUserTerm }}"
           </div>
 
           <!-- Mensaje cuando no hay usuarios en la unidad -->
-          <div *ngIf="selectedBusinessUnit && availableUsers.length === 0" class="alert alert-warning">
+          <div *ngIf="selectedBusinessUnit && availableUsers().length === 0" class="alert alert-warning">
             <i class="bi bi-exclamation-triangle me-2"></i>
             No hay usuarios disponibles en esta ubicación
           </div>

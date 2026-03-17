@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
@@ -9,6 +9,7 @@ import { filter } from 'rxjs/operators';
 @Component({
   selector: 'app-content-menu',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   templateUrl: './content-menu.html',
   styleUrls: ['./content-menu.scss']
@@ -17,7 +18,7 @@ export class ContentMenu implements OnInit {
   @Input() activeSection: string = '';
   @Output() sectionChange = new EventEmitter<string>();
 
-  menuItems: MenuItem[] = [];
+  menuItems = signal<MenuItem[]>([]);
 
   constructor(
     private authService: AuthService,
@@ -46,7 +47,7 @@ export class ContentMenu implements OnInit {
    * Cargar menú dinámico desde permisos del usuario
    */
   private loadMenu(): void {
-    this.menuItems = this.menuService.generateMenu();
+    this.menuItems.set(this.menuService.generateMenu());
   }
 
   /**
@@ -54,7 +55,8 @@ export class ContentMenu implements OnInit {
    */
   private updateActiveStates(): void {
     const currentRoute = this.router.url;
-    this.menuService.updateActiveState(this.menuItems, currentRoute);
+    this.menuService.updateActiveState(this.menuItems(), currentRoute);
+    this.menuItems.update(items => [...items]);
   }
 
   onSectionClick(sectionId: string, event: Event): void {
@@ -89,21 +91,25 @@ export class ContentMenu implements OnInit {
     
     // Toggle del submenu actual usando el MenuService
     this.menuService.toggleExpanded(item);
+    this.menuItems.update(items => [...items]);
   }
 
   /**
    * Cerrar todos los dropdowns abiertos
    */
   private closeAllDropdowns(): void {
-    this.menuItems.forEach(item => {
-      if (item.isExpanded) {
-        item.isExpanded = false;
-      }
+    this.menuItems.update(items => {
+      items.forEach(item => {
+        if (item.isExpanded) {
+          item.isExpanded = false;
+        }
+      });
+      return [...items];
     });
   }
 
   findMenuItemById(id: string): MenuItem | null {
-    for (const item of this.menuItems) {
+    for (const item of this.menuItems()) {
       if (item.id === id) {
         return item;
       }

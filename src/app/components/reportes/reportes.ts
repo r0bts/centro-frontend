@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ContentMenu } from '../content-menu/content-menu';
@@ -12,6 +12,7 @@ import am5themes_Animated from "@amcharts/amcharts5/themes/Animated";
 @Component({
   selector: 'app-reportes',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ContentMenu],
   templateUrl: './reportes.html',
   styleUrls: ['./reportes.scss']

@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ViewChild, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -43,6 +43,7 @@ interface SystemConfig {
 @Component({
   selector: 'app-configuracion',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
@@ -53,19 +54,19 @@ export class ConfiguracionComponent implements OnInit {
   @ViewChild(CategoriesListComponent) categoriesListComponent!: CategoriesListComponent;
   @ViewChild(RolesListComponent) rolesListComponent!: RolesListComponent;
   
-  activeSection = 'general';
+  activeSection = signal('general');
   
   // Control para mostrar el formulario de usuario
-  showUserForm = false;
-  isUserEditMode = false;
-  selectedUserId: string | null = null;
+  showUserForm = signal(false);
+  isUserEditMode = signal(false);
+  selectedUserId = signal<string | null>(null);
   
   // Control para mostrar el formulario de rol
-  showRoleForm = false;
-  isRoleEditMode = false;
-  selectedRoleId: string | null = null;
+  showRoleForm = signal(false);
+  isRoleEditMode = signal(false);
+  selectedRoleId = signal<string | null>(null);
   
-  configSections: ConfigSection[] = [
+  configSections = signal<ConfigSection[]>([
     {
       id: 'general',
       title: 'Mi Perfil',
@@ -108,7 +109,7 @@ export class ConfiguracionComponent implements OnInit {
       description: 'Configuración de integración con NetSuite',
       active: false
     }
-  ];
+  ]);
 
   systemConfig: SystemConfig = {
     siteName: 'Centro de Control',
@@ -143,7 +144,6 @@ export class ConfiguracionComponent implements OnInit {
     private productService: ProductService,
     private categoryService: CategoryService,
     private roleService: RoleService,
-    private cdr: ChangeDetectorRef,
     private authService: AuthService
   ) {}
 
@@ -196,23 +196,23 @@ export class ConfiguracionComponent implements OnInit {
     }
     
     // 🔥 Resetear vista de usuario si está activa
-    if (this.showUserForm && sectionId !== 'users') {
-      this.showUserForm = false;
-      this.isUserEditMode = false;
-      this.selectedUserId = null;
+    if (this.showUserForm() && sectionId !== 'users') {
+      this.showUserForm.set(false);
+      this.isUserEditMode.set(false);
+      this.selectedUserId.set(null);
     }
     
     // 🔥 Resetear vista de rol si está activa
-    if (this.showRoleForm && sectionId !== 'roles') {
-      this.showRoleForm = false;
-      this.isRoleEditMode = false;
-      this.selectedRoleId = null;
+    if (this.showRoleForm() && sectionId !== 'roles') {
+      this.showRoleForm.set(false);
+      this.isRoleEditMode.set(false);
+      this.selectedRoleId.set(null);
     }
     
-    this.configSections.forEach(section => {
-      section.active = section.id === sectionId;
-    });
-    this.activeSection = sectionId;
+    this.configSections.update(sections =>
+      sections.map(s => ({ ...s, active: s.id === sectionId }))
+    );
+    this.activeSection.set(sectionId);
     
     // 🔥 No cargar datos - los componentes hijos cargan sus propios datos
     // categories, products, users y roles: los componentes hijos cargan sus propios datos
@@ -234,7 +234,7 @@ export class ConfiguracionComponent implements OnInit {
    * 🔥 Obtener solo las secciones visibles según los permisos del usuario
    */
   getVisibleSections(): ConfigSection[] {
-    return this.configSections.filter(section => this.hasAccessToSection(section.id));
+    return this.configSections().filter(section => this.hasAccessToSection(section.id));
   }
 
   /**
@@ -441,25 +441,25 @@ export class ConfiguracionComponent implements OnInit {
   }
 
   onViewUser(userId: string): void {
-    this.selectedUserId = userId;
-    this.isUserEditMode = false;
-    this.showUserForm = true;
+    this.selectedUserId.set(userId);
+    this.isUserEditMode.set(false);
+    this.showUserForm.set(true);
   }
 
   onEditUser(userId: string): void {
-    this.selectedUserId = userId;
-    this.isUserEditMode = true;
-    this.showUserForm = true;
+    this.selectedUserId.set(userId);
+    this.isUserEditMode.set(true);
+    this.showUserForm.set(true);
   }
 
   onCancelUserForm(): void {
-    this.showUserForm = false;
-    this.isUserEditMode = false;
-    this.selectedUserId = null;
+    this.showUserForm.set(false);
+    this.isUserEditMode.set(false);
+    this.selectedUserId.set(null);
   }
 
   onSaveUser(userData: any): void {
-    if (!this.selectedUserId) {
+    if (!this.selectedUserId()) {
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -480,7 +480,7 @@ export class ConfiguracionComponent implements OnInit {
     });
 
     // Llamar al backend para actualizar usuario
-    this.userService.updateUser(this.selectedUserId, userData).subscribe({
+    this.userService.updateUser(this.selectedUserId()!, userData).subscribe({
       next: (response) => {
         Swal.fire({
           icon: 'success',
@@ -490,12 +490,9 @@ export class ConfiguracionComponent implements OnInit {
           timer: 2000,
           timerProgressBar: true
         }).then(() => {
-          this.showUserForm = false;
-          this.isUserEditMode = false;
-          this.selectedUserId = null;
-          
-          // Forzar detección de cambios en Angular
-          this.cdr.detectChanges();
+          this.showUserForm.set(false);
+          this.isUserEditMode.set(false);
+          this.selectedUserId.set(null);
           
           // 🔥 Recargar listado de usuarios
           if (this.usersListComponent) {
@@ -518,26 +515,26 @@ export class ConfiguracionComponent implements OnInit {
 
   // Métodos de gestión de roles
   onCreateRole(): void {
-    this.selectedRoleId = null;
-    this.isRoleEditMode = false;
-    this.showRoleForm = true;
+    this.selectedRoleId.set(null);
+    this.isRoleEditMode.set(false);
+    this.showRoleForm.set(true);
   }
 
   onEditRole(roleId: string): void {
-    this.selectedRoleId = roleId;
-    this.isRoleEditMode = true;
-    this.showRoleForm = true;
+    this.selectedRoleId.set(roleId);
+    this.isRoleEditMode.set(true);
+    this.showRoleForm.set(true);
   }
 
   onCancelRoleForm(): void {
-    this.showRoleForm = false;
-    this.isRoleEditMode = false;
-    this.selectedRoleId = null;
+    this.showRoleForm.set(false);
+    this.isRoleEditMode.set(false);
+    this.selectedRoleId.set(null);
   }
 
   onSaveRole(roleData: any): void {
     Swal.fire({
-      title: this.isRoleEditMode ? 'Actualizando rol' : 'Creando rol',
+      title: this.isRoleEditMode() ? 'Actualizando rol' : 'Creando rol',
       text: 'Por favor espera...',
       allowOutsideClick: false,
       didOpen: () => {
@@ -545,26 +542,23 @@ export class ConfiguracionComponent implements OnInit {
       }
     });
 
-    const saveObservable = this.isRoleEditMode && this.selectedRoleId
-      ? this.roleService.updateRole(this.selectedRoleId, roleData)
+    const saveObservable = this.isRoleEditMode() && this.selectedRoleId()
+      ? this.roleService.updateRole(this.selectedRoleId()!, roleData)
       : this.roleService.createRole(roleData);
 
     saveObservable.subscribe({
       next: (response) => {
         Swal.fire({
           icon: 'success',
-          title: this.isRoleEditMode ? 'Rol actualizado' : 'Rol creado',
+          title: this.isRoleEditMode() ? 'Rol actualizado' : 'Rol creado',
           text: response.message || 'El rol ha sido guardado exitosamente',
           confirmButtonText: 'Continuar',
           timer: 2000,
           timerProgressBar: true
         }).then(() => {
-          this.showRoleForm = false;
-          this.isRoleEditMode = false;
-          this.selectedRoleId = null;
-          
-          // Forzar detección de cambios en Angular
-          this.cdr.detectChanges();
+          this.showRoleForm.set(false);
+          this.isRoleEditMode.set(false);
+          this.selectedRoleId.set(null);
           
           // Recargar la lista de roles
           if (this.rolesListComponent) {

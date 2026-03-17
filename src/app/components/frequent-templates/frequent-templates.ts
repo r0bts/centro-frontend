@@ -1,8 +1,8 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { BehaviorSubject } from 'rxjs';
+
 import { ContentMenu } from '../content-menu/content-menu';
 import Swal from 'sweetalert2';
 import { 
@@ -54,6 +54,7 @@ export interface AreaMapEntry {
 @Component({
   selector: 'app-frequent-templates',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ContentMenu],
   templateUrl: './frequent-templates.html',
   styleUrls: ['./frequent-templates.scss']
@@ -63,21 +64,18 @@ export class FrequentTemplatesComponent implements OnInit {
   
   activeSection: string = 'requisicion';
   
-  // Reactive state con BehaviorSubjects
-  private templatesSubject = new BehaviorSubject<Template[]>([]);
-  templates$ = this.templatesSubject.asObservable();
-  
-  private filteredTemplatesSubject = new BehaviorSubject<Template[]>([]);
-  filteredTemplates$ = this.filteredTemplatesSubject.asObservable();
-  
-  searchTerm: string = '';
-  selectedTemplate: TemplateDetail | null = null;
-  showDetails: boolean = false;
-  isLoading: boolean = false;
-  isProcessing: boolean = false;
-  showTemplatesList: boolean = true;
+  // Reactive state con signals
+  templates = signal<Template[]>([]);
+  filteredTemplates = signal<Template[]>([]);
 
-  // Propiedades para mapeo de áreas al usar plantilla (signals para zoneless CD)
+  searchTerm: string = '';
+  selectedTemplate = signal<TemplateDetail | null>(null);
+  showDetails = signal(false);
+  isLoading = signal(false);
+  isProcessing = signal(false);
+  showTemplatesList = signal(true);
+
+  // Propiedades para mapeo de áreas al usar plantilla
   showAreaMapModal = signal(false);
   templateDetailToLoad = signal<TemplateDetail | null>(null);
   areaMapping = signal<AreaMapEntry[]>([]);
@@ -85,10 +83,10 @@ export class FrequentTemplatesComponent implements OnInit {
   isLoadingAreas = signal(false);
 
   // Propiedades para compartir plantilla
-  showShareModal: boolean = false;
-  templateToShare: Template | null = null;
+  showShareModal = signal(false);
+  templateToShare = signal<Template | null>(null);
   selectedBusinessUnit: string = '';
-  availableUsers: SharedUser[] = [];
+  availableUsers = signal<SharedUser[]>([]);
   searchUserTerm: string = '';
   canModify: boolean = false;
   businessUnits: string[] = ['HERMES', 'GLACIAR'];
@@ -104,18 +102,18 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   loadTemplates(): void {
-    this.isLoading = true;
+    this.isLoading.set(true);
     
     this.templatesService.getTemplates('all', this.searchTerm, 'recent').subscribe({
       next: (response) => {
-        this.templatesSubject.next(response.data.templates);
-        this.filteredTemplatesSubject.next(response.data.templates);
-        this.showTemplatesList = true;
-        this.isLoading = false;
+        this.templates.set(response.data.templates);
+        this.filteredTemplates.set(response.data.templates);
+        this.showTemplatesList.set(true);
+        this.isLoading.set(false);
       },
       error: (error) => {
-        this.isLoading = false;
-        this.showTemplatesList = true;
+        this.isLoading.set(false);
+        this.showTemplatesList.set(true);
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -128,21 +126,21 @@ export class FrequentTemplatesComponent implements OnInit {
 
   onSearch(): void {
     if (this.searchTerm.trim()) {
-      this.isLoading = true;
+      this.isLoading.set(true);
       this.templatesService.getTemplates('all', this.searchTerm, 'recent').subscribe({
         next: (response) => {
           if (response.success) {
-            this.filteredTemplatesSubject.next(response.data.templates);
+            this.filteredTemplates.set(response.data.templates);
           }
-          this.isLoading = false;
+          this.isLoading.set(false);
         },
         error: (error) => {
           console.error('Error en búsqueda:', error.error?.message || error.message);
-          this.isLoading = false;
+          this.isLoading.set(false);
         }
       });
     } else {
-      this.filteredTemplatesSubject.next(this.templatesSubject.value);
+      this.filteredTemplates.set(this.templates());
     }
   }
 
@@ -152,17 +150,17 @@ export class FrequentTemplatesComponent implements OnInit {
       event.preventDefault();
     }
     
-    this.isLoading = true;
+    this.isLoading.set(true);
 
     this.templatesService.getTemplateDetails(template.id).subscribe({
       next: (response) => {
-        this.selectedTemplate = response.data.template;
-        this.showDetails = true;
-        this.isLoading = false;
+        this.selectedTemplate.set(response.data.template);
+        this.showDetails.set(true);
+        this.isLoading.set(false);
       },
       error: (error) => {
         console.error('❌ Error al obtener detalles:', error.error?.message || error.message);
-        this.isLoading = false;
+        this.isLoading.set(false);
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -174,8 +172,8 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   closeDetails(): void {
-    this.selectedTemplate = null;
-    this.showDetails = false;
+    this.selectedTemplate.set(null);
+    this.showDetails.set(false);
   }
 
   private isTemplateDetail(template: Template | TemplateDetail): template is TemplateDetail {
@@ -368,7 +366,7 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   editTemplate(template: Template): void {
-    if (this.isProcessing) {
+    if (this.isProcessing()) {
       return;
     }
 
@@ -391,16 +389,16 @@ export class FrequentTemplatesComponent implements OnInit {
       }
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        this.isProcessing = true;
+        this.isProcessing.set(true);
         const newName = result.value.trim();
         const oldName = template.name;
         
         // OPTIMISTIC UPDATE - Actualizar inmutablemente
-        const updatedTemplates = this.templatesSubject.value.map(t => 
+        const updatedTemplates = this.templates().map(t => 
           t.id === template.id ? { ...t, name: newName } : t
         );
-        this.templatesSubject.next(updatedTemplates);
-        this.filteredTemplatesSubject.next(updatedTemplates);
+        this.templates.set(updatedTemplates);
+        this.filteredTemplates.set(updatedTemplates);
         
         Swal.fire({
           title: 'Actualizando...',
@@ -415,7 +413,7 @@ export class FrequentTemplatesComponent implements OnInit {
         
         this.templatesService.updateTemplate(template.id, { name: newName }).subscribe({
           next: () => {
-            this.isProcessing = false;
+            this.isProcessing.set(false);
             
             Swal.fire({
               icon: 'success',
@@ -426,14 +424,14 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            this.isProcessing = false;
+            this.isProcessing.set(false);
             
             // REVERTIR - Restaurar nombre anterior
-            const revertedTemplates = this.templatesSubject.value.map(t => 
+            const revertedTemplates = this.templates().map(t => 
               t.id === template.id ? { ...t, name: oldName } : t
             );
-            this.templatesSubject.next(revertedTemplates);
-            this.filteredTemplatesSubject.next(revertedTemplates);
+            this.templates.set(revertedTemplates);
+            this.filteredTemplates.set(revertedTemplates);
             
             Swal.fire({
               icon: 'error',
@@ -448,7 +446,7 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   deleteTemplate(template: Template): void {
-    if (this.isProcessing) {
+    if (this.isProcessing()) {
       return;
     }
 
@@ -463,17 +461,17 @@ export class FrequentTemplatesComponent implements OnInit {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        this.isProcessing = true;
+        this.isProcessing.set(true);
         
         // OPTIMISTIC UPDATE - Eliminar inmediatamente
-        const templatesCopy = [...this.templatesSubject.value];
-        const filteredCopy = [...this.filteredTemplatesSubject.value];
+        const templatesCopy = [...this.templates()];
+        const filteredCopy = [...this.filteredTemplates()];
         
-        const updatedTemplates = this.templatesSubject.value.filter(t => t.id !== template.id);
-        const updatedFiltered = this.filteredTemplatesSubject.value.filter(t => t.id !== template.id);
+        const updatedTemplates = this.templates().filter(t => t.id !== template.id);
+        const updatedFiltered = this.filteredTemplates().filter(t => t.id !== template.id);
         
-        this.templatesSubject.next(updatedTemplates);
-        this.filteredTemplatesSubject.next(updatedFiltered);
+        this.templates.set(updatedTemplates);
+        this.filteredTemplates.set(updatedFiltered);
         
         Swal.fire({
           title: 'Eliminando...',
@@ -488,7 +486,7 @@ export class FrequentTemplatesComponent implements OnInit {
         
         this.templatesService.deleteTemplate(template.id).subscribe({
           next: (response) => {
-            this.isProcessing = false;
+            this.isProcessing.set(false);
             
             Swal.fire({
               icon: 'success',
@@ -499,7 +497,7 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            this.isProcessing = false;
+            this.isProcessing.set(false);
             const errorCode = error.status;
             const errorMsg = error.error?.message || error.message;
             
@@ -514,8 +512,8 @@ export class FrequentTemplatesComponent implements OnInit {
               });
             } else {
               // Error real, REVERTIR cambios
-              this.templatesSubject.next(templatesCopy);
-              this.filteredTemplatesSubject.next(filteredCopy);
+              this.templates.set(templatesCopy);
+              this.filteredTemplates.set(filteredCopy);
               
               Swal.fire({
                 icon: 'error',
@@ -531,7 +529,7 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   duplicateTemplate(template: Template): void {
-    if (this.isProcessing) {
+    if (this.isProcessing()) {
       return;
     }
 
@@ -554,7 +552,7 @@ export class FrequentTemplatesComponent implements OnInit {
       }
     }).then((result) => {
       if (result.isConfirmed && result.value) {
-        this.isProcessing = true;
+        this.isProcessing.set(true);
         const newName = result.value.trim();
         
         Swal.fire({
@@ -570,7 +568,7 @@ export class FrequentTemplatesComponent implements OnInit {
         
         this.templatesService.duplicateTemplate(template.id, newName).subscribe({
           next: (response) => {
-            this.isProcessing = false;
+            this.isProcessing.set(false);
             this.loadTemplates();
             
             Swal.fire({
@@ -582,7 +580,7 @@ export class FrequentTemplatesComponent implements OnInit {
             });
           },
           error: (error) => {
-            this.isProcessing = false;
+            this.isProcessing.set(false);
             
             Swal.fire({
               icon: 'error',
@@ -624,9 +622,9 @@ export class FrequentTemplatesComponent implements OnInit {
 
   // Métodos para compartir plantilla
   shareTemplate(template: Template): void {
-    this.templateToShare = template;
+    this.templateToShare.set(template);
     this.canModify = false;
-    this.availableUsers = [];
+    this.availableUsers.set([]);
     
     // Obtener location_id del usuario actual
     const userJson = localStorage.getItem('centro_user');
@@ -656,14 +654,14 @@ export class FrequentTemplatesComponent implements OnInit {
       this.loadUsersFromApi();
     }
     
-    this.showShareModal = true;
+    this.showShareModal.set(true);
   }
 
   closeShareModal(): void {
-    this.showShareModal = false;
-    this.templateToShare = null;
+    this.showShareModal.set(false);
+    this.templateToShare.set(null);
     this.selectedBusinessUnit = '';
-    this.availableUsers = [];
+    this.availableUsers.set([]);
     this.searchUserTerm = '';
     this.canModify = false;
   }
@@ -673,18 +671,18 @@ export class FrequentTemplatesComponent implements OnInit {
    */
   get filteredUsers(): SharedUser[] {
     if (!this.searchUserTerm.trim()) {
-      return this.availableUsers;
+      return this.availableUsers();
     }
     
     const term = this.searchUserTerm.toLowerCase();
-    return this.availableUsers.filter(user => 
+    return this.availableUsers().filter(user => 
       user.full_name.toLowerCase().includes(term) ||
       user.username.toLowerCase().includes(term)
     );
   }
 
   onBusinessUnitChange(): void {
-    this.availableUsers = [];
+    this.availableUsers.set([]);
     
     if (this.selectedBusinessUnit) {
       this.loadUsersFromApi();
@@ -698,7 +696,7 @@ export class FrequentTemplatesComponent implements OnInit {
       .subscribe({
         next: (users: SharedUser[]) => {
           const t1 = performance.now();
-          this.availableUsers = users;
+          this.availableUsers.set(users);
           const t2 = performance.now();
           
           console.log(`⏱️ TIMING: API=${(t1-t0).toFixed(0)}ms | DOM=${(t2-t1).toFixed(0)}ms | Total=${(t2-t0).toFixed(0)}ms | Users=${users.length}`);
@@ -716,20 +714,19 @@ export class FrequentTemplatesComponent implements OnInit {
   }
 
   toggleUserSelection(userId: number): void {
-    const user = this.availableUsers.find(u => u.id === userId);
-    if (user) {
-      user.selected = !user.selected;
-    }
+    this.availableUsers.update(users =>
+      users.map(u => u.id === userId ? { ...u, selected: !u.selected } : u)
+    );
   }
 
   getSelectedUsers(): SharedUser[] {
-    return this.availableUsers.filter(u => u.selected);
+    return this.availableUsers().filter(u => u.selected);
   }
 
   confirmShare(): void {
     console.log('1️⃣ confirmShare() INICIADO');
     
-    if (!this.templateToShare) {
+    if (!this.templateToShare()) {
       console.log('❌ No hay templateToShare');
       return;
     }
@@ -767,12 +764,12 @@ export class FrequentTemplatesComponent implements OnInit {
     };
 
     console.log('4️⃣ Llamando API...', {
-      template_id: this.templateToShare.id,
+      template_id: this.templateToShare()!.id,
       user_ids: userIds,
       can_edit: this.canModify
     });
 
-    this.templatesService.shareTemplate(this.templateToShare.id, shareRequest).subscribe({
+    this.templatesService.shareTemplate(this.templateToShare()!.id, shareRequest).subscribe({
       next: (response) => {
         console.log('5️⃣ ✅ Respuesta SUCCESS:', response);
         this.closeShareModal();

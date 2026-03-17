@@ -4,6 +4,7 @@ import {
   OnDestroy,
   signal,
   computed,
+  ChangeDetectionStrategy,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -18,6 +19,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-membresias-reglas-lista',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ContentMenu, DragDropModule],
   templateUrl: './membresias-reglas-lista.html',
   styleUrls: ['./membresias-reglas-lista.scss'],
