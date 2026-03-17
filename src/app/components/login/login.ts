@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -12,9 +12,9 @@ import { AuthService, LoginRequest } from '../../services/auth.service';
 })
 export class Login {
   loginForm: FormGroup;
-  isLoading = false;
-  errorMessage = '';
-  showPassword = false;
+  isLoading = signal(false);
+  errorMessage = signal('');
+  showPassword = signal(false);
 
   constructor(
     private formBuilder: FormBuilder,
@@ -29,8 +29,8 @@ export class Login {
 
   onSubmit(): void {
     if (this.loginForm.valid) {
-      this.isLoading = true;
-      this.errorMessage = '';
+      this.isLoading.set(true);
+      this.errorMessage.set('');
       
       const credentials: LoginRequest = {
         username: this.loginForm.value.username,
@@ -40,7 +40,7 @@ export class Login {
       this.authService.login(credentials).subscribe({
         next: (response) => {
           console.log('Login exitoso:', response);
-          this.isLoading = false;
+          this.isLoading.set(false);
           
           // 🔥 Redirigir a la primera ruta disponible según permisos del usuario
           const firstRoute = this.getFirstAvailableRoute(response.data);
@@ -59,8 +59,8 @@ export class Login {
         },
         error: (error) => {
           console.error('Error en login:', error);
-          this.isLoading = false;
-          this.errorMessage = error.message || 'Error al iniciar sesión. Verifica tus credenciales.';
+          this.isLoading.set(false);
+          this.errorMessage.set(error.message || 'Error al iniciar sesión. Verifica tus credenciales.');
         }
       });
     } else {
@@ -94,7 +94,7 @@ export class Login {
   }
 
   togglePasswordVisibility(): void {
-    this.showPassword = !this.showPassword;
+    this.showPassword.update(v => !v);
   }
 
   /**

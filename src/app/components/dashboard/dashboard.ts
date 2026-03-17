@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
@@ -11,8 +11,8 @@ import { ContentMenu } from '../content-menu/content-menu';
   styleUrl: './dashboard.scss'
 })
 export class Dashboard implements OnInit {
-  currentUser: User | null = null;
-  activeSection: string = 'dashboard';
+  currentUser = signal<User | null>(null);
+  activeSection = signal('dashboard');
   
   constructor(
     private router: Router,
@@ -20,11 +20,11 @@ export class Dashboard implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getCurrentUser();
+    this.currentUser.set(this.authService.getCurrentUser());
   }
 
   onSectionChange(section: string): void {
-    this.activeSection = section;
+    this.activeSection.set(section);
     // El cambio de sección ahora es manejado por el router
   }
 }

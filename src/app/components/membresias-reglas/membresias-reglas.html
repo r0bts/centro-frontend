@@ -3,7 +3,7 @@
   <app-content-menu></app-content-menu>
 
   <!-- ── Overlay de carga (modo editar) ── -->
-  <div *ngIf="isLoadingEdit"
+  <div *ngIf="isLoadingEdit()"
        class="d-flex flex-column align-items-center justify-content-center py-5 mt-4">
     <div class="spinner-border text-primary mb-3"
          style="width:3rem;height:3rem;" role="status">
@@ -12,14 +12,14 @@
     <p class="text-muted fw-semibold">Cargando datos de la regla…</p>
   </div>
 
-  <div *ngIf="!isLoadingEdit" class="reglas-wrapper">
+  <div *ngIf="!isLoadingEdit()" class="reglas-wrapper">
 
     <!-- ── Título de página ── -->
     <div class="d-flex align-items-center justify-content-between px-4 pt-3"
          style="max-width:1060px;margin:0 auto;">
       <h5 class="fw-bold mb-0">
         <i class="bi bi-list-check me-2 text-primary"></i>
-        {{ isEditMode ? 'Editar Regla #' + numeroRegla : 'Nueva Regla' }}
+        {{ isEditMode() ? 'Editar Regla #' + numeroRegla() : 'Nueva Regla' }}
       </h5>
       <button type="button" class="btn btn-sm btn-outline-secondary" (click)="onVolver()">
         <i class="bi bi-arrow-left me-1"></i> Volver al listado
@@ -32,25 +32,25 @@
     <div class="stepper-bar">
       <div class="step-wrap">
 
-        <div class="step-item" [class.active]="currentStep === 1" [class.done]="currentStep > 1">
-          <div class="step-circle">{{ currentStep > 1 ? '✓' : '1' }}</div>
+        <div class="step-item" [class.active]="currentStep() === 1" [class.done]="currentStep() > 1">
+          <div class="step-circle">{{ currentStep() > 1 ? '✓' : '1' }}</div>
           <span class="step-name">Identidad</span>
         </div>
-        <div class="step-line" [class.done]="currentStep > 1"></div>
+        <div class="step-line" [class.done]="currentStep() > 1"></div>
 
-        <div class="step-item" [class.active]="currentStep === 2" [class.done]="currentStep > 2">
-          <div class="step-circle">{{ currentStep > 2 ? '✓' : '2' }}</div>
+        <div class="step-item" [class.active]="currentStep() === 2" [class.done]="currentStep() > 2">
+          <div class="step-circle">{{ currentStep() > 2 ? '✓' : '2' }}</div>
           <span class="step-name">Mensajes</span>
         </div>
-        <div class="step-line" [class.done]="currentStep > 2"></div>
+        <div class="step-line" [class.done]="currentStep() > 2"></div>
 
-        <div class="step-item" [class.active]="currentStep === 3" [class.done]="currentStep > 3">
-          <div class="step-circle">{{ currentStep > 3 ? '✓' : '3' }}</div>
+        <div class="step-item" [class.active]="currentStep() === 3" [class.done]="currentStep() > 3">
+          <div class="step-circle">{{ currentStep() > 3 ? '✓' : '3' }}</div>
           <span class="step-name">Condiciones</span>
         </div>
-        <div class="step-line" [class.done]="currentStep > 3"></div>
+        <div class="step-line" [class.done]="currentStep() > 3"></div>
 
-        <div class="step-item" [class.active]="currentStep === 4" [class.done]="currentStep > 4">
+        <div class="step-item" [class.active]="currentStep() === 4" [class.done]="currentStep() > 4">
           <div class="step-circle">4</div>
           <span class="step-name">Alcance</span>
         </div>
@@ -70,7 +70,7 @@
         <!-- ═══════════════════════════════════
              PASO 1 — Identidad y Acción
         ═══════════════════════════════════ -->
-        <div *ngIf="currentStep === 1" class="pane-anim">
+        <div *ngIf="currentStep() === 1" class="pane-anim">
 
           <div class="pane-header">
             <h2>Identidad y acción</h2>
@@ -93,7 +93,9 @@
                   <label class="form-label fw-semibold small text-uppercase text-muted">
                     Regla # <span class="text-danger">*</span>
                   </label>
-                  <input type="number" class="form-control" [(ngModel)]="numeroRegla"
+                  <input type="number" class="form-control"
+                    [ngModel]="numeroRegla()"
+                    (ngModelChange)="numeroRegla.set($event)"
                     min="1" max="9999" step="10" placeholder="10">
                   <div class="form-text">Menor # = evalúa primero</div>
                 </div>
@@ -101,7 +103,9 @@
                   <label class="form-label fw-semibold small text-uppercase text-muted">
                     Nombre de la regla <span class="text-danger">*</span>
                   </label>
-                  <input type="text" class="form-control" [(ngModel)]="nombre"
+                  <input type="text" class="form-control"
+                    [ngModel]="nombre()"
+                    (ngModelChange)="nombre.set($event)"
                     maxlength="150" placeholder="Ej: Niños y adultos mayores — libre acceso">
                 </div>
               </div>
@@ -121,15 +125,15 @@
 
               <div class="row g-2">
                 <div class="col-6">
-                  <div class="opt-card" [class.sel-primary]="tipo === 'GENERAL'" (click)="selectTipo('GENERAL')">
-                    <div class="opt-check" *ngIf="tipo === 'GENERAL'"><i class="bi bi-check-lg"></i></div>
+                  <div class="opt-card" [class.sel-primary]="tipo() === 'GENERAL'" (click)="selectTipo('GENERAL')">
+                    <div class="opt-check" *ngIf="tipo() === 'GENERAL'"><i class="bi bi-check-lg"></i></div>
                     <div class="oc-top"><span class="oc-icon">🌐</span><span class="oc-label">GENERAL</span></div>
                     <div class="oc-sub">Aplica a <strong>todos los socios</strong> que cumplan las condiciones</div>
                   </div>
                 </div>
                 <div class="col-6">
-                  <div class="opt-card" [class.sel-purple]="tipo === 'PARTICULAR'" (click)="selectTipo('PARTICULAR')">
-                    <div class="opt-check" *ngIf="tipo === 'PARTICULAR'"><i class="bi bi-check-lg"></i></div>
+                  <div class="opt-card" [class.sel-purple]="tipo() === 'PARTICULAR'" (click)="selectTipo('PARTICULAR')">
+                    <div class="opt-check" *ngIf="tipo() === 'PARTICULAR'"><i class="bi bi-check-lg"></i></div>
                     <div class="oc-top"><span class="oc-icon">👤</span><span class="oc-label">PARTICULAR</span></div>
                     <div class="oc-sub">Solo para <strong>membresías o socios específicos</strong> (paso 4)</div>
                   </div>
@@ -151,21 +155,21 @@
 
               <div class="row g-2">
                 <div class="col-6">
-                  <div class="opt-card" [class.sel-success]="accion === 'PERMITIR'" (click)="selectAccion('PERMITIR')">
-                    <div class="opt-check" *ngIf="accion === 'PERMITIR'"><i class="bi bi-check-lg"></i></div>
+                  <div class="opt-card" [class.sel-success]="accion() === 'PERMITIR'" (click)="selectAccion('PERMITIR')">
+                    <div class="opt-check" *ngIf="accion() === 'PERMITIR'"><i class="bi bi-check-lg"></i></div>
                     <div class="oc-top"><span class="oc-icon">✅</span><span class="oc-label">PERMITIR</span></div>
                     <div class="oc-sub">El socio <strong>CUMPLE</strong>. Override positivo aunque haya fallado en otro nivel</div>
                   </div>
                 </div>
                 <div class="col-6">
-                  <div class="opt-card" [class.sel-danger]="accion === 'BLOQUEAR'" (click)="selectAccion('BLOQUEAR')">
-                    <div class="opt-check" *ngIf="accion === 'BLOQUEAR'"><i class="bi bi-check-lg"></i></div>
+                  <div class="opt-card" [class.sel-danger]="accion() === 'BLOQUEAR'" (click)="selectAccion('BLOQUEAR')">
+                    <div class="opt-check" *ngIf="accion() === 'BLOQUEAR'"><i class="bi bi-check-lg"></i></div>
                     <div class="oc-top"><span class="oc-icon">🚫</span><span class="oc-label">BLOQUEAR</span></div>
                     <div class="oc-sub">El socio <strong>NO CUMPLE</strong>. Bloquea aunque la membresía esté activa</div>
                   </div>
                 </div>
               </div>
-              <div *ngIf="!accion" class="text-danger small mt-2">⚠ Selecciona una acción</div>
+              <div *ngIf="!accion()" class="text-danger small mt-2">⚠ Selecciona una acción</div>
             </div>
           </div>
 
@@ -184,13 +188,16 @@
               <div class="d-flex align-items-center gap-3 mb-3">
                 <div class="form-check form-switch mb-0">
                   <input class="form-check-input" type="checkbox" role="switch"
-                    id="f-activa" [(ngModel)]="activa" style="width:2.5rem;height:1.3rem;">
+                    id="f-activa"
+                    [ngModel]="activa()"
+                    (ngModelChange)="activa.set($event)"
+                    style="width:2.5rem;height:1.3rem;">
                 </div>
                 <div>
-                  <span *ngIf="activa" class="fw-semibold text-success">Regla activa</span>
-                  <span *ngIf="!activa" class="fw-semibold text-danger">Regla inactiva</span>
-                  <div class="text-muted small" *ngIf="activa">El motor la evaluará al guardar</div>
-                  <div class="text-muted small" *ngIf="!activa">El motor la ignorará hasta activarla</div>
+                  <span *ngIf="activa()" class="fw-semibold text-success">Regla activa</span>
+                  <span *ngIf="!activa()" class="fw-semibold text-danger">Regla inactiva</span>
+                  <div class="text-muted small" *ngIf="activa()">El motor la evaluará al guardar</div>
+                  <div class="text-muted small" *ngIf="!activa()">El motor la ignorará hasta activarla</div>
                 </div>
               </div>
 
@@ -200,11 +207,11 @@
               <button type="button" class="btn btn-link text-muted p-0 text-decoration-none fw-semibold small"
                 (click)="toggleVigencia()">
                 <i class="bi bi-calendar3 me-1"></i>
-                📅 {{ showVigencia ? 'Ocultar vigencia' : 'Agregar vigencia (opcional)' }}
-                <i class="bi ms-1" [class.bi-chevron-down]="!showVigencia" [class.bi-chevron-up]="showVigencia"></i>
+                📅 {{ showVigencia() ? 'Ocultar vigencia' : 'Agregar vigencia (opcional)' }}
+                <i class="bi ms-1" [class.bi-chevron-down]="!showVigencia()" [class.bi-chevron-up]="showVigencia()"></i>
               </button>
 
-              <div *ngIf="showVigencia" class="mt-3">
+              <div *ngIf="showVigencia()" class="mt-3">
                 <div class="alert alert-info py-2 small">
                   <i class="bi bi-info-circle me-1"></i>
                   Deja en blanco para que la regla sea <strong>permanente</strong>. Las fechas limitan el período de evaluación.
@@ -212,12 +219,14 @@
                 <div class="row g-3">
                   <div class="col-6">
                     <label class="form-label fw-semibold small text-uppercase text-muted">Fecha inicio</label>
-                    <input type="date" class="form-control" [(ngModel)]="fechaInicio">
+                    <input type="date" class="form-control"
+                      [ngModel]="fechaInicio()" (ngModelChange)="fechaInicio.set($event)">
                     <div class="form-text">Desde cuándo aplica (vacío = ya)</div>
                   </div>
                   <div class="col-6">
                     <label class="form-label fw-semibold small text-uppercase text-muted">Fecha fin</label>
-                    <input type="date" class="form-control" [(ngModel)]="fechaFin">
+                    <input type="date" class="form-control"
+                      [ngModel]="fechaFin()" (ngModelChange)="fechaFin.set($event)">
                     <div class="form-text">Hasta cuándo aplica (vacío = sin límite)</div>
                   </div>
                 </div>
@@ -236,7 +245,7 @@
         <!-- ═══════════════════════════════════
              PASO 2 — Mensajes al socio
         ═══════════════════════════════════ -->
-        <div *ngIf="currentStep === 2" class="pane-anim">
+        <div *ngIf="currentStep() === 2" class="pane-anim">
 
           <div class="pane-header">
             <h2>Mensajes al socio</h2>
@@ -259,14 +268,15 @@
                   Mensaje cuando se cumpla la regla
                 </label>
                 <textarea class="form-control" rows="3" maxlength="500"
-                  [(ngModel)]="mensajeCumplimiento"
-                  placeholder="Ej: Membresía con acuerdo de pago vigente. Aplica cumplimiento temporal."></textarea>
+                  [ngModel]="mensajeCumplimiento()"
+                  (ngModelChange)="mensajeCumplimiento.set($event)"
+                  placeholder="Ej: Membri­a con acuerdo de pago vigente. Aplica cumplimiento temporal."></textarea>
                 <div class="d-flex justify-content-between mt-1">
                   <div class="form-text">→ BD: cat_reglas.mensaje_cumplimiento</div>
                   <div class="form-text"
-                    [class.text-warning]="mensajeCumplimiento.length >= 450 && mensajeCumplimiento.length < 500"
-                    [class.text-danger]="mensajeCumplimiento.length >= 500">
-                    {{ mensajeCumplimiento.length }} / 500
+                    [class.text-warning]="mensajeCumplimiento().length >= 450 && mensajeCumplimiento().length < 500"
+                    [class.text-danger]="mensajeCumplimiento().length >= 500">
+                    {{ mensajeCumplimiento().length }} / 500
                   </div>
                 </div>
               </div>
@@ -280,14 +290,15 @@
                     Si el socio está de acuerdo
                   </label>
                   <textarea class="form-control" rows="3" maxlength="500"
-                    [(ngModel)]="mensajeAcuerdo"
+                    [ngModel]="mensajeAcuerdo()"
+                    (ngModelChange)="mensajeAcuerdo.set($event)"
                     placeholder="Ej: Entendido. Acceso registrado con esta condición."></textarea>
                   <div class="d-flex justify-content-between mt-1">
                     <div class="form-text">→ BD: cat_reglas.mensaje_acuerdo</div>
                     <div class="form-text"
-                      [class.text-warning]="mensajeAcuerdo.length >= 450 && mensajeAcuerdo.length < 500"
-                      [class.text-danger]="mensajeAcuerdo.length >= 500">
-                      {{ mensajeAcuerdo.length }} / 500
+                      [class.text-warning]="mensajeAcuerdo().length >= 450 && mensajeAcuerdo().length < 500"
+                      [class.text-danger]="mensajeAcuerdo().length >= 500">
+                      {{ mensajeAcuerdo().length }} / 500
                     </div>
                   </div>
                 </div>
@@ -298,14 +309,15 @@
                     Si el socio no está de acuerdo
                   </label>
                   <textarea class="form-control" rows="3" maxlength="500"
-                    [(ngModel)]="mensajeDesacuerdo"
+                    [ngModel]="mensajeDesacuerdo()"
+                    (ngModelChange)="mensajeDesacuerdo.set($event)"
                     placeholder="Ej: Acude a caja o llama al ext. 101 para regularizarte."></textarea>
                   <div class="d-flex justify-content-between mt-1">
                     <div class="form-text">→ BD: cat_reglas.mensaje_desacuerdo</div>
                     <div class="form-text"
-                      [class.text-warning]="mensajeDesacuerdo.length >= 450 && mensajeDesacuerdo.length < 500"
-                      [class.text-danger]="mensajeDesacuerdo.length >= 500">
-                      {{ mensajeDesacuerdo.length }} / 500
+                      [class.text-warning]="mensajeDesacuerdo().length >= 450 && mensajeDesacuerdo().length < 500"
+                      [class.text-danger]="mensajeDesacuerdo().length >= 500">
+                      {{ mensajeDesacuerdo().length }} / 500
                     </div>
                   </div>
                 </div>
@@ -327,12 +339,12 @@
         <!-- ═══════════════════════════════════
              PASO 3 — Condiciones
         ═══════════════════════════════════ -->
-        <div *ngIf="currentStep === 3" class="pane-anim">
+        <div *ngIf="currentStep() === 3" class="pane-anim">
 
           <div class="pane-header">
             <h2>
               Condiciones
-              <span class="badge bg-primary ms-2">{{ conditions.length }}</span>
+              <span class="badge bg-primary ms-2">{{ conditions().length }}</span>
             </h2>
             <p class="text-muted">¿Cuándo aplica esta regla? El motor las evalúa en el orden A, B, C…</p>
           </div>
@@ -348,7 +360,7 @@
 
               <!-- Lista de condiciones -->
               <div class="cond-list">
-                <ng-container *ngFor="let cond of conditions; let i = index; trackBy: trackById">
+                <ng-container *ngFor="let cond of conditions(); let i = index; trackBy: trackById">
 
                   <!-- Tarjeta de condición -->
                   <div class="cond-card mb-2">
@@ -369,7 +381,7 @@
                             </span>
                           </span>
                         </div>
-                        <button *ngIf="conditions.length > 1" type="button"
+                        <button *ngIf="conditions().length > 1" type="button"
                           class="btn btn-link text-danger p-0 ms-2"
                           (click)="$event.stopPropagation(); removeCondition(cond.id)"
                           title="Eliminar condición">
@@ -450,7 +462,7 @@
                   </div><!-- /cond-card -->
 
                   <!-- Conector AND / OR entre condiciones -->
-                  <div *ngIf="i < conditions.length - 1" class="cond-connector my-1">
+                  <div *ngIf="i < conditions().length - 1" class="cond-connector my-1">
                     <div class="connector-line"></div>
                     <div class="connector-pills">
                       <button type="button" class="cpill"
@@ -488,7 +500,7 @@
         <!-- ═══════════════════════════════════
              PASO 4 — Alcance y Confirmación
         ═══════════════════════════════════ -->
-        <div *ngIf="currentStep === 4" class="pane-anim">
+        <div *ngIf="currentStep() === 4" class="pane-anim">
 
           <div class="pane-header">
             <h2>Alcance y confirmación</h2>
@@ -514,17 +526,17 @@
                     <div class="rev-item">
                       <div class="rev-item-label">Regla #</div>
                       <div class="rev-item-val"
-                        [class.text-primary]="numeroRegla"
-                        [class.text-muted]="!numeroRegla">
-                        {{ numeroRegla ? '#' + numeroRegla : '—' }}
+                        [class.text-primary]="numeroRegla()"
+                        [class.text-muted]="!numeroRegla()">
+                        {{ numeroRegla() ? '#' + numeroRegla() : '—' }}
                       </div>
                     </div>
                   </div>
                   <div class="col">
                     <div class="rev-item">
                       <div class="rev-item-label">Nombre</div>
-                      <div class="rev-item-val" [class.text-muted]="!nombre.trim()">
-                        {{ nombre.trim() || '(sin nombre)' }}
+                      <div class="rev-item-val" [class.text-muted]="!nombre().trim()">
+                        {{ nombre().trim() || '(sin nombre)' }}
                       </div>
                     </div>
                   </div>
@@ -534,9 +546,9 @@
                     <div class="rev-item">
                       <div class="rev-item-label">Tipo</div>
                       <div class="rev-item-val"
-                        [class.text-primary]="tipo === 'GENERAL'"
-                        [class.text-purple]="tipo === 'PARTICULAR'">
-                        {{ tipo === 'GENERAL' ? '🌐 GENERAL' : '👤 PARTICULAR' }}
+                        [class.text-primary]="tipo() === 'GENERAL'"
+                        [class.text-purple]="tipo() === 'PARTICULAR'">
+                        {{ tipo() === 'GENERAL' ? '🌐 GENERAL' : '👤 PARTICULAR' }}
                       </div>
                     </div>
                   </div>
@@ -544,10 +556,10 @@
                     <div class="rev-item">
                       <div class="rev-item-label">Acción</div>
                       <div class="rev-item-val"
-                        [class.text-success]="accion === 'PERMITIR'"
-                        [class.text-danger]="accion === 'BLOQUEAR'"
-                        [class.text-muted]="!accion">
-                        {{ accion === 'PERMITIR' ? '✅ PERMITIR' : accion === 'BLOQUEAR' ? '🚫 BLOQUEAR' : '—' }}
+                        [class.text-success]="accion() === 'PERMITIR'"
+                        [class.text-danger]="accion() === 'BLOQUEAR'"
+                        [class.text-muted]="!accion()">
+                        {{ accion() === 'PERMITIR' ? '✅ PERMITIR' : accion() === 'BLOQUEAR' ? '🚫 BLOQUEAR' : '—' }}
                       </div>
                     </div>
                   </div>
@@ -555,16 +567,16 @@
                     <div class="rev-item">
                       <div class="rev-item-label">Estado</div>
                       <div class="rev-item-val"
-                        [class.text-success]="activa"
-                        [class.text-warning]="!activa">
-                        {{ activa ? '✅ Activa' : '⏸ Inactiva' }}
+                        [class.text-success]="activa()"
+                        [class.text-warning]="!activa()">
+                        {{ activa() ? '✅ Activa' : '⏸ Inactiva' }}
                       </div>
                     </div>
                   </div>
                 </div>
-                <div *ngIf="fechaInicio || fechaFin" class="rev-item mt-2">
+                <div *ngIf="fechaInicio() || fechaFin()" class="rev-item mt-2">
                   <div class="rev-item-label">📅 Vigencia</div>
-                  <div class="rev-item-val text-warning">{{ vigenciaText }}</div>
+                  <div class="rev-item-val text-warning">{{ vigenciaText() }}</div>
                 </div>
               </div>
 
@@ -575,21 +587,21 @@
                 <div class="rev-section-title">Mensajes al socio</div>
                 <div class="mb-2">
                   <div class="rev-item-label mb-1">Mensaje cuando se cumpla la regla:</div>
-                  <div class="rev-msg-box" [class.text-muted]="!mensajeCumplimiento.trim()">
-                    {{ mensajeCumplimiento.trim() || '(no especificado)' }}
+                  <div class="rev-msg-box" [class.text-muted]="!mensajeCumplimiento().trim()">
+                    {{ mensajeCumplimiento().trim() || '(no especificado)' }}
                   </div>
                 </div>
                 <div class="row g-2">
                   <div class="col-md-6">
                     <div class="rev-item-label mb-1">Si el socio está de acuerdo:</div>
-                    <div class="rev-msg-box" [class.text-muted]="!mensajeAcuerdo.trim()">
-                      {{ mensajeAcuerdo.trim() || '(no especificado)' }}
+                    <div class="rev-msg-box" [class.text-muted]="!mensajeAcuerdo().trim()">
+                      {{ mensajeAcuerdo().trim() || '(no especificado)' }}
                     </div>
                   </div>
                   <div class="col-md-6">
                     <div class="rev-item-label mb-1">Si el socio no está de acuerdo:</div>
-                    <div class="rev-msg-box" [class.text-muted]="!mensajeDesacuerdo.trim()">
-                      {{ mensajeDesacuerdo.trim() || '(no especificado)' }}
+                    <div class="rev-msg-box" [class.text-muted]="!mensajeDesacuerdo().trim()">
+                      {{ mensajeDesacuerdo().trim() || '(no especificado)' }}
                     </div>
                   </div>
                 </div>
@@ -601,19 +613,19 @@
               <div class="rev-section">
                 <div class="rev-section-title">
                   Condiciones
-                  <span class="badge bg-primary ms-2">{{ validConditions.length }}</span>
+                  <span class="badge bg-primary ms-2">{{ validConditions().length }}</span>
                 </div>
-                <div *ngIf="validConditions.length === 0" class="text-muted fst-italic small">
+                <div *ngIf="validConditions().length === 0" class="text-muted fst-italic small">
                   Sin condiciones configuradas
                 </div>
                 <div class="d-flex flex-column gap-1">
-                  <div *ngFor="let c of validConditions; let i = index; trackBy: trackById"
+                  <div *ngFor="let c of validConditions(); let i = index; trackBy: trackById"
                     class="rev-cond-item">
                     <span class="rev-cond-letter">{{ getConditionLetter(i) }}</span>
                     <span class="text-primary fw-semibold">{{ VARS[c.variable].icon }} {{ VARS[c.variable].label }}</span>
                     <span class="text-muted small">{{ CMP_LBL[c.comparador] }}</span>
                     <span class="text-warning fw-semibold">{{ c.valor.join(', ') }}</span>
-                    <span *ngIf="i < validConditions.length - 1"
+                    <span *ngIf="i < validConditions().length - 1"
                       class="cond-logic-badge"
                       [class.badge-and]="c.logico === 'AND'"
                       [class.badge-or]="c.logico === 'OR'">
@@ -627,12 +639,12 @@
           </div>
 
           <!-- Panel GENERAL -->
-          <div *ngIf="tipo === 'GENERAL'" class="alert alert-success">
+          <div *ngIf="tipo() === 'GENERAL'" class="alert alert-success">
             🌐 <strong>Tipo GENERAL:</strong> La regla aplica automáticamente a todos los socios que cumplan las condiciones.
           </div>
 
           <!-- Panel PARTICULAR -->
-          <div *ngIf="tipo === 'PARTICULAR'" class="card shadow-sm mb-3">
+          <div *ngIf="tipo() === 'PARTICULAR'" class="card shadow-sm mb-3">
             <div class="card-body">
               <div class="sec-head mb-3">
                 <div class="sec-icon sec-purple"><i class="bi bi-person-fill"></i></div>
@@ -643,12 +655,15 @@
               </div>
 
               <div class="d-flex gap-2 mb-3">
-                <select class="form-select" style="width:160px;flex-shrink:0" [(ngModel)]="newEntityTipo">
+                <select class="form-select" style="width:160px;flex-shrink:0"
+                  [ngModel]="newEntityTipo()"
+                  (ngModelChange)="newEntityTipo.set($event)">
                   <option value="MEMBRESIA">Membresía</option>
                   <option value="SOCIO">Socio individual</option>
                 </select>
                 <input type="text" class="form-control"
-                  [(ngModel)]="newEntityNumero"
+                  [ngModel]="newEntityNumero()"
+                  (ngModelChange)="newEntityNumero.set($event)"
                   (keydown)="onEntityKeydown($event)"
                   placeholder="Número (ej: 888)" maxlength="50">
                 <button class="btn btn-primary px-3" type="button" (click)="addEntity()">
@@ -656,13 +671,13 @@
                 </button>
               </div>
 
-              <div *ngIf="entities.length === 0" class="ent-empty text-center text-muted py-3">
+              <div *ngIf="entities().length === 0" class="ent-empty text-center text-muted py-3">
                 <i class="bi bi-person-slash d-block fs-3 mb-1"></i>
                 Escribe un número arriba y presiona <strong>Agregar</strong>
               </div>
 
               <div class="d-flex flex-column gap-2">
-                <div *ngFor="let ent of entities; trackBy: trackById" class="ent-item">
+                <div *ngFor="let ent of entities(); trackBy: trackById" class="ent-item">
                   <span class="badge me-2"
                     [class.bg-primary]="ent.tipo === 'SOCIO'"
                     [class.ent-badge-mem]="ent.tipo === 'MEMBRESIA'">
@@ -689,10 +704,10 @@
             </button>
             <button class="btn btn-success px-4 fw-bold"
                     (click)="saveRule()"
-                    [disabled]="isSaving">
-              <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-1" role="status"></span>
-              <i *ngIf="!isSaving" class="bi bi-floppy me-1"></i>
-              {{ isSaving ? (isEditMode ? 'Actualizando...' : 'Guardando...') : (isEditMode ? 'Actualizar regla' : 'Guardar regla') }}
+                    [disabled]="isSaving()">
+              <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <i *ngIf="!isSaving()" class="bi bi-floppy me-1"></i>
+              {{ isSaving() ? (isEditMode() ? 'Actualizando...' : 'Guardando...') : (isEditMode() ? 'Actualizar regla' : 'Guardar regla') }}
             </button>
           </div>
 
@@ -715,14 +730,14 @@
             <div class="d-flex flex-column gap-2">
               <div *ngFor="let s of [1,2,3,4]; let i = index" class="d-flex align-items-center gap-2">
                 <div class="ss-dot"
-                  [class.ss-dot-active]="currentStep === s"
-                  [class.ss-dot-done]="currentStep > s">
-                  {{ currentStep > s ? '✓' : s }}
+                  [class.ss-dot-active]="currentStep() === s"
+                  [class.ss-dot-done]="currentStep() > s">
+                  {{ currentStep() > s ? '\u2713' : s }}
                 </div>
                 <span class="small"
-                  [class.fw-semibold]="currentStep === s"
-                  [class.text-muted]="currentStep !== s && currentStep <= s"
-                  [class.text-success]="currentStep > s">
+                  [class.fw-semibold]="currentStep() === s"
+                  [class.text-muted]="currentStep() !== s && currentStep() <= s"
+                  [class.text-success]="currentStep() > s">
                   {{ ['Identidad y acción', 'Mensajes', 'Condiciones', 'Alcance'][i] }}
                 </span>
               </div>
@@ -740,72 +755,72 @@
             <div class="meta-row">
               <span class="text-muted small">Regla #</span>
               <span class="fw-bold small"
-                [class.text-primary]="numeroRegla"
-                [class.text-muted]="!numeroRegla" style="font-style: italic">
-                {{ numeroRegla ? '#' + numeroRegla : '—' }}
+                [class.text-primary]="numeroRegla()"
+                [class.text-muted]="!numeroRegla()" style="font-style: italic">
+                {{ numeroRegla() ? '#' + numeroRegla() : '—' }}
               </span>
             </div>
 
             <div class="meta-row">
               <span class="text-muted small">Nombre</span>
-              <span class="fw-bold small" [class.text-muted]="!nombre.trim()" style="font-style: italic; max-width:130px; text-align:right;">
-                {{ nombre.trim() ? sumNombre : '—' }}
+              <span class="fw-bold small" [class.text-muted]="!nombre().trim()" style="font-style: italic; max-width:130px; text-align:right;">
+                {{ nombre().trim() ? sumNombre() : '—' }}
               </span>
             </div>
 
             <div class="meta-row">
               <span class="text-muted small">Tipo</span>
               <span class="fw-bold small"
-                [class.text-primary]="tipo === 'GENERAL'"
-                [class.text-purple]="tipo === 'PARTICULAR'">
-                {{ tipo === 'GENERAL' ? '🌐 GENERAL' : '👤 PARTICULAR' }}
+                [class.text-primary]="tipo() === 'GENERAL'"
+                [class.text-purple]="tipo() === 'PARTICULAR'">
+                {{ tipo() === 'GENERAL' ? '🌐 GENERAL' : '👤 PARTICULAR' }}
               </span>
             </div>
 
             <div class="meta-row">
               <span class="text-muted small">Acción</span>
               <span class="fw-bold small"
-                [class.text-success]="accion === 'PERMITIR'"
-                [class.text-danger]="accion === 'BLOQUEAR'"
-                [class.text-muted]="!accion">
-                {{ accion === 'PERMITIR' ? '✅ PERMITIR' : accion === 'BLOQUEAR' ? '🚫 BLOQUEAR' : '—' }}
+                [class.text-success]="accion() === 'PERMITIR'"
+                [class.text-danger]="accion() === 'BLOQUEAR'"
+                [class.text-muted]="!accion()">
+                {{ accion() === 'PERMITIR' ? '✅ PERMITIR' : accion() === 'BLOQUEAR' ? '🚫 BLOQUEAR' : '—' }}
               </span>
             </div>
 
             <div class="meta-row">
               <span class="text-muted small">Estado</span>
               <span class="fw-bold small"
-                [class.text-success]="activa"
-                [class.text-warning]="!activa">
-                {{ activa ? '✅ Activa' : '⏸ Inactiva' }}
+                [class.text-success]="activa()"
+                [class.text-warning]="!activa()">
+                {{ activa() ? '✅ Activa' : '⏸ Inactiva' }}
               </span>
             </div>
 
-            <div class="meta-row" *ngIf="vigenciaText">
+            <div class="meta-row" *ngIf="vigenciaText()">
               <span class="text-muted small">Vigencia</span>
-              <span class="small text-warning" style="max-width:130px;text-align:right;">{{ vigenciaText }}</span>
+              <span class="small text-warning" style="max-width:130px;text-align:right;">{{ vigenciaText() }}</span>
             </div>
 
-            <div class="meta-row" *ngIf="mensajeCumplimiento.trim()">
+            <div class="meta-row" *ngIf="mensajeCumplimiento().trim()">
               <span class="text-muted small">Mensaje</span>
-              <span class="small text-muted" style="max-width:130px;text-align:right;">{{ msgCTruncated }}</span>
+              <span class="small text-muted" style="max-width:130px;text-align:right;">{{ msgCTruncated() }}</span>
             </div>
 
             <div class="meta-row">
               <span class="text-muted small">Condiciones</span>
               <span class="fw-bold small"
-                [class.text-warning]="validConditions.length === 0"
-                [class.text-success]="validConditions.length > 0">
-                {{ conditionsCount }}
+                [class.text-warning]="validConditions().length === 0"
+                [class.text-success]="validConditions().length > 0">
+                {{ conditionsCount() }}
               </span>
             </div>
 
-            <div class="meta-row" *ngIf="tipo === 'PARTICULAR'">
+            <div class="meta-row" *ngIf="tipo() === 'PARTICULAR'">
               <span class="text-muted small">Entidades</span>
               <span class="fw-bold small"
-                [class.text-warning]="entities.length === 0"
-                [class.text-purple]="entities.length > 0">
-                {{ entities.length }}
+                [class.text-warning]="entities().length === 0"
+                [class.text-purple]="entities().length > 0">
+                {{ entities().length }}
               </span>
             </div>
 
@@ -813,18 +828,18 @@
         </div>
 
         <!-- Lista de condiciones (desde paso 3) -->
-        <div *ngIf="currentStep >= 3" class="card shadow-sm mb-3">
+        <div *ngIf="currentStep() >= 3" class="card shadow-sm mb-3">
           <div class="card-header py-2 small fw-bold text-uppercase text-muted">
             <i class="bi bi-funnel me-1"></i> Condiciones
           </div>
           <div class="card-body py-2">
-            <div *ngIf="validConditions.length === 0" class="text-muted small fst-italic">Ninguna aún</div>
-            <div *ngFor="let c of validConditions; let i = index; trackBy: trackById" class="small py-1">
+            <div *ngIf="validConditions().length === 0" class="text-muted small fst-italic">Ninguna aún</div>
+            <div *ngFor="let c of validConditions(); let i = index; trackBy: trackById" class="small py-1">
               <span class="text-primary fw-semibold">{{ getConditionLetter(i) }}:</span>
               <span class="text-primary"> {{ VARS[c.variable].label }}</span>
               <span class="text-muted"> {{ c.comparador }}</span>
               <span class="text-warning fw-semibold"> {{ c.valor.join(', ') }}</span>
-              <span *ngIf="i < validConditions.length - 1" class="fw-bold"
+              <span *ngIf="i < validConditions().length - 1" class="fw-bold"
                 [class.text-primary]="c.logico === 'AND'"
                 [class.text-warning]="c.logico === 'OR'">
                 {{ c.logico === 'AND' ? ' Y' : ' O' }}
@@ -834,14 +849,14 @@
         </div>
 
         <!-- Botón guardar (paso 4) -->
-        <div *ngIf="currentStep === 4" class="card shadow-sm">
+        <div *ngIf="currentStep() === 4" class="card shadow-sm">
           <div class="card-body">
             <button class="btn btn-success w-100 fw-bold"
                     (click)="saveRule()"
-                    [disabled]="isSaving">
-              <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-1" role="status"></span>
-              <i *ngIf="!isSaving" class="bi bi-floppy me-1"></i>
-              {{ isSaving ? (isEditMode ? 'Actualizando...' : 'Guardando...') : (isEditMode ? 'Actualizar regla' : 'Guardar regla') }}
+                    [disabled]="isSaving()">
+              <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <i *ngIf="!isSaving()" class="bi bi-floppy me-1"></i>
+              {{ isSaving() ? (isEditMode() ? 'Actualizando...' : 'Guardando...') : (isEditMode() ? 'Actualizar regla' : 'Guardar regla') }}
             </button>
             <p class="text-muted small mt-2 mb-0">
               La regla quedará <strong>activa</strong> inmediatamente si así lo configuraste.

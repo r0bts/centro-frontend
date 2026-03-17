@@ -8,7 +8,7 @@
   <div class="container-fluid p-4" style="max-width:1060px; margin:0 auto;">
 
     <!-- ── Estado: cargando ─────────────────────────────── -->
-    <div *ngIf="isLoading"
+    <div *ngIf="isLoading()"
          class="d-flex flex-column align-items-center justify-content-center py-5 mt-4">
       <div class="spinner-border text-primary mb-3"
            style="width:3rem;height:3rem;" role="status">
@@ -18,10 +18,10 @@
     </div>
 
     <!-- ── Estado: error ────────────────────────────────── -->
-    <div *ngIf="!isLoading && errorMsg" class="card shadow-sm mt-4">
+    <div *ngIf="!isLoading() && errorMsg()" class="card shadow-sm mt-4">
       <div class="card-body text-center py-5">
         <i class="bi bi-exclamation-triangle display-4 text-danger d-block mb-3"></i>
-        <h5 class="text-danger">{{ errorMsg }}</h5>
+        <h5 class="text-danger">{{ errorMsg() }}</h5>
         <button class="btn btn-outline-primary mt-3" (click)="onVolver()">
           <i class="bi bi-arrow-left me-1"></i> Volver al listado
         </button>
@@ -29,24 +29,24 @@
     </div>
 
     <!-- ── Contenido principal ──────────────────────────── -->
-    <ng-container *ngIf="!isLoading && !errorMsg && regla">
+    <ng-container *ngIf="!isLoading() && !errorMsg() && regla()">
 
       <!-- Header de página -->
       <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
         <div>
           <h4 class="fw-bold mb-1">
-            <span class="text-muted me-1">#{{ regla!.numero_regla }}</span>
-            {{ regla!.nombre }}
+            <span class="text-muted me-1">#{{ regla()!.numero_regla }}</span>
+            {{ regla()!.nombre }}
           </h4>
           <div class="d-flex flex-wrap gap-2 mt-2">
-            <span [class]="regla!.tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple'">
-              {{ regla!.tipo }}
+            <span [class]="regla()!.tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple'">
+              {{ regla()!.tipo }}
             </span>
-            <span [class]="regla!.accion === 'PERMITIR' ? 'badge bg-success' : 'badge bg-danger'">
-              {{ regla!.accion }}
+            <span [class]="regla()!.accion === 'PERMITIR' ? 'badge bg-success' : 'badge bg-danger'">
+              {{ regla()!.accion }}
             </span>
-            <span [class]="regla!.activa ? 'badge bg-success' : 'badge bg-secondary'">
-              {{ regla!.activa ? 'Activa' : 'Inactiva' }}
+            <span [class]="regla()!.activa ? 'badge bg-success' : 'badge bg-secondary'">
+              {{ regla()!.activa ? 'Activa' : 'Inactiva' }}
             </span>
           </div>
         </div>
@@ -70,49 +70,49 @@
 
             <div class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Número de regla</div>
-              <div class="fw-bold fs-5">#{{ regla!.numero_regla }}</div>
+              <div class="fw-bold fs-5">#{{ regla()!.numero_regla }}</div>
             </div>
 
             <div class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Tipo</div>
-              <span [class]="regla!.tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple'">
-                {{ regla!.tipo }}
+              <span [class]="regla()!.tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple'">
+                {{ regla()!.tipo }}
               </span>
             </div>
 
             <div class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Acción</div>
-              <span [class]="regla!.accion === 'PERMITIR' ? 'badge bg-success' : 'badge bg-danger'">
-                {{ regla!.accion }}
+              <span [class]="regla()!.accion === 'PERMITIR' ? 'badge bg-success' : 'badge bg-danger'">
+                {{ regla()!.accion }}
               </span>
             </div>
 
             <div class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Estado</div>
-              <span [class]="regla!.activa ? 'badge bg-success' : 'badge bg-secondary'">
-                {{ regla!.activa ? 'Activa' : 'Inactiva' }}
+              <span [class]="regla()!.activa ? 'badge bg-success' : 'badge bg-secondary'">
+                {{ regla()!.activa ? 'Activa' : 'Inactiva' }}
               </span>
             </div>
 
             <div class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Vigencia</div>
-              <div *ngIf="!regla!.fecha_inicio && !regla!.fecha_fin"
+              <div *ngIf="!regla()!.fecha_inicio && !regla()!.fecha_fin"
                    class="text-muted fst-italic">Permanente</div>
-              <div *ngIf="regla!.fecha_inicio || regla!.fecha_fin">
-                {{ formatDate(regla!.fecha_inicio) }} → {{ formatDate(regla!.fecha_fin) }}
+              <div *ngIf="regla()!.fecha_inicio || regla()!.fecha_fin">
+                {{ formatDate(regla()!.fecha_inicio) }} → {{ formatDate(regla()!.fecha_fin) }}
               </div>
             </div>
 
             <div class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Creado por</div>
-              <div>{{ regla!.creado_por ?? '—' }}</div>
-              <div class="text-muted small">{{ formatDateTime(regla!.fecha_creacion) }}</div>
+              <div>{{ regla()!.creado_por ?? '—' }}</div>
+              <div class="text-muted small">{{ formatDateTime(regla()!.fecha_creacion) }}</div>
             </div>
 
-            <div *ngIf="regla!.modificado_por" class="col-sm-6 col-md-4">
+            <div *ngIf="regla()!.modificado_por" class="col-sm-6 col-md-4">
               <div class="text-muted small fw-semibold text-uppercase mb-1">Última modificación</div>
-              <div>{{ regla!.modificado_por }}</div>
-              <div class="text-muted small">{{ formatDateTime(regla!.fecha_modificacion) }}</div>
+              <div>{{ regla()!.modificado_por }}</div>
+              <div class="text-muted small">{{ formatDateTime(regla()!.fecha_modificacion) }}</div>
             </div>
 
           </div>
@@ -126,24 +126,24 @@
         </div>
         <div class="card-body">
 
-          <div *ngIf="regla!.mensaje_cumplimiento" class="mb-3">
+          <div *ngIf="regla()!.mensaje_cumplimiento" class="mb-3">
             <div class="text-muted small fw-semibold text-uppercase mb-1">Cumplimiento</div>
             <div class="p-2 bg-light rounded border-start border-success border-3">
-              {{ regla!.mensaje_cumplimiento }}
+              {{ regla()!.mensaje_cumplimiento }}
             </div>
           </div>
 
-          <div *ngIf="regla!.mensaje_acuerdo" class="mb-3">
+          <div *ngIf="regla()!.mensaje_acuerdo" class="mb-3">
             <div class="text-muted small fw-semibold text-uppercase mb-1">Acuerdo</div>
             <div class="p-2 bg-light rounded border-start border-primary border-3">
-              {{ regla!.mensaje_acuerdo }}
+              {{ regla()!.mensaje_acuerdo }}
             </div>
           </div>
 
-          <div *ngIf="regla!.mensaje_desacuerdo">
+          <div *ngIf="regla()!.mensaje_desacuerdo">
             <div class="text-muted small fw-semibold text-uppercase mb-1">Desacuerdo</div>
             <div class="p-2 bg-light rounded border-start border-danger border-3">
-              {{ regla!.mensaje_desacuerdo }}
+              {{ regla()!.mensaje_desacuerdo }}
             </div>
           </div>
 
@@ -154,16 +154,16 @@
       <div class="card shadow-sm mb-4">
         <div class="card-header fw-bold py-2 d-flex align-items-center">
           <i class="bi bi-funnel me-2 text-warning"></i>Condiciones de evaluación
-          <span class="badge bg-secondary ms-2">{{ regla!.condiciones.length }}</span>
+          <span class="badge bg-secondary ms-2">{{ regla()!.condiciones.length }}</span>
         </div>
         <div class="card-body p-0">
 
-          <div *ngIf="regla!.condiciones.length === 0"
+          <div *ngIf="regla()!.condiciones.length === 0"
                class="text-center py-4 text-muted fst-italic">
             Sin condiciones registradas
           </div>
 
-          <div *ngIf="regla!.condiciones.length > 0" class="table-responsive">
+          <div *ngIf="regla()!.condiciones.length > 0" class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
               <thead class="table-light small text-uppercase text-muted">
                 <tr>
@@ -175,7 +175,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let cond of regla!.condiciones; let i = index; let last = last">
+                <tr *ngFor="let cond of regla()!.condiciones; let i = index; let last = last">
                   <td class="ps-3">
                     <span class="badge bg-primary rounded-circle fw-bold">
                       {{ getConditionLetter(i) }}
@@ -205,19 +205,19 @@
       </div>
 
       <!-- ── Card: Alcance (solo tipo PARTICULAR) ──────────── -->
-      <div *ngIf="regla!.tipo === 'PARTICULAR'" class="card shadow-sm mb-4">
+      <div *ngIf="regla()!.tipo === 'PARTICULAR'" class="card shadow-sm mb-4">
         <div class="card-header fw-bold py-2 d-flex align-items-center">
           <i class="bi bi-people me-2 text-primary"></i>Alcance particular
-          <span class="badge bg-secondary ms-2">{{ regla!.entidades.length }}</span>
+          <span class="badge bg-secondary ms-2">{{ regla()!.entidades.length }}</span>
         </div>
         <div class="card-body p-0">
 
-          <div *ngIf="regla!.entidades.length === 0"
+          <div *ngIf="regla()!.entidades.length === 0"
                class="text-center py-4 text-muted fst-italic">
             Sin entidades asignadas
           </div>
 
-          <div *ngIf="regla!.entidades.length > 0" class="table-responsive">
+          <div *ngIf="regla()!.entidades.length > 0" class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
               <thead class="table-light small text-uppercase text-muted">
                 <tr>
@@ -226,7 +226,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let ent of regla!.entidades">
+                <tr *ngFor="let ent of regla()!.entidades">
                   <td class="ps-3">
                     <span [class]="ent.tipo_entidad === 'MEMBRESIA'
                       ? 'badge bg-primary'

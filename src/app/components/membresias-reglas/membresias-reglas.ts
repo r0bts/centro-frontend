@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -80,37 +80,37 @@ export interface Entity {
 export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   // ── Estado del wizard ──
-  currentStep: number = 1;
+  currentStep = signal(1);
 
   // ── Paso 1: Identidad y acción ──
-  numeroRegla: number | null = null;
-  nombre: string = '';
-  tipo: 'GENERAL' | 'PARTICULAR' = 'GENERAL';
-  accion: 'PERMITIR' | 'BLOQUEAR' | null = null;
-  activa: boolean = true;
-  fechaInicio: string = '';
-  fechaFin: string = '';
-  showVigencia: boolean = false;
+  numeroRegla = signal<number | null>(null);
+  nombre = signal('');
+  tipo = signal<'GENERAL' | 'PARTICULAR'>('GENERAL');
+  accion = signal<'PERMITIR' | 'BLOQUEAR' | null>(null);
+  activa = signal(true);
+  fechaInicio = signal('');
+  fechaFin = signal('');
+  showVigencia = signal(false);
 
   // ── Paso 2: Mensajes ──
-  mensajeCumplimiento: string = '';
-  mensajeAcuerdo: string = '';
-  mensajeDesacuerdo: string = '';
+  mensajeCumplimiento = signal('');
+  mensajeAcuerdo = signal('');
+  mensajeDesacuerdo = signal('');
 
   // ── Paso 3: Condiciones ──
-  conditions: Condition[] = [];
+  conditions = signal<Condition[]>([]);
   private condIdCounter: number = 0;
 
   // ── Paso 4: Alcance ──
-  entities: Entity[] = [];
-  newEntityTipo: 'MEMBRESIA' | 'SOCIO' = 'MEMBRESIA';
-  newEntityNumero: string = '';
+  entities = signal<Entity[]>([]);
+  newEntityTipo = signal<'MEMBRESIA' | 'SOCIO'>('MEMBRESIA');
+  newEntityNumero = signal('');
 
   // ── Estado de guardado / modo ──
-  isSaving: boolean = false;
-  isLoadingEdit: boolean = false;
-  isEditMode: boolean = false;
-  editId: number | null = null;
+  isSaving = signal(false);
+  isLoadingEdit = signal(false);
+  isEditMode = signal(false);
+  editId = signal<number | null>(null);
   private destroy$ = new Subject<void>();
 
   // ── Catálogos expuestos al template ──
@@ -118,6 +118,33 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   readonly CMP_LBL = CMP_LBL;
   readonly ALPHA = ALPHA;
   readonly varKeys = Object.keys(VARS);
+
+  // ── Computed (reemplazan los getters) ──
+  validConditions = computed(() =>
+    this.conditions().filter(c => c.variable && c.valor.length > 0)
+  );
+
+  conditionsCount = computed(() => {
+    const valid = this.validConditions().length;
+    const total = this.conditions().length;
+    return valid !== total ? `${valid}/${total}` : `${valid}`;
+  });
+
+  sumNombre = computed(() => {
+    const n = this.nombre().trim();
+    if (!n) return '—';
+    return n.length > 28 ? n.slice(0, 28) + '…' : n;
+  });
+
+  vigenciaText = computed(() => {
+    if (!this.fechaInicio() && !this.fechaFin()) return '';
+    return (this.fechaInicio() || '…') + ' → ' + (this.fechaFin() || 'sin límite');
+  });
+
+  msgCTruncated = computed(() => {
+    const m = this.mensajeCumplimiento().trim();
+    return m.length > 50 ? m.slice(0, 50) + '…' : m;
+  });
 
   constructor(
     private router: Router,
@@ -128,9 +155,9 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
-      this.isEditMode = true;
-      this.editId     = +idParam;
-      this.loadReglaParaEditar(this.editId);
+      this.isEditMode.set(true);
+      this.editId.set(+idParam);
+      this.loadReglaParaEditar(+idParam);
     } else {
       this.addCondition();
     }
@@ -143,51 +170,52 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   // ── Carga datos en modo editar ────────────────────────
   private loadReglaParaEditar(id: number): void {
-    this.isLoadingEdit = true;
+    this.isLoadingEdit.set(true);
     this.reglaService
       .getRegla(id)
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => { this.isLoadingEdit = false; }),
+        finalize(() => { this.isLoadingEdit.set(false); }),
       )
       .subscribe({
         next: (res) => {
           const r: ReglaDetalle = res.data;
 
           // ── Paso 1 ──
-          this.numeroRegla = r.numero_regla;
-          this.nombre      = r.nombre;
-          this.tipo        = r.tipo;
-          this.accion      = r.accion;
-          this.activa      = r.activa;
+          this.numeroRegla.set(r.numero_regla);
+          this.nombre.set(r.nombre);
+          this.tipo.set(r.tipo as 'GENERAL' | 'PARTICULAR');
+          this.accion.set(r.accion as 'PERMITIR' | 'BLOQUEAR');
+          this.activa.set(r.activa);
           if (r.fecha_inicio || r.fecha_fin) {
-            this.showVigencia = true;
-            this.fechaInicio  = r.fecha_inicio ?? '';
-            this.fechaFin     = r.fecha_fin    ?? '';
+            this.showVigencia.set(true);
+            this.fechaInicio.set(r.fecha_inicio ?? '');
+            this.fechaFin.set(r.fecha_fin ?? '');
           }
 
           // ── Paso 2 ──
-          this.mensajeCumplimiento = r.mensaje_cumplimiento ?? '';
-          this.mensajeAcuerdo      = r.mensaje_acuerdo      ?? '';
-          this.mensajeDesacuerdo   = r.mensaje_desacuerdo   ?? '';
+          this.mensajeCumplimiento.set(r.mensaje_cumplimiento ?? '');
+          this.mensajeAcuerdo.set(r.mensaje_acuerdo ?? '');
+          this.mensajeDesacuerdo.set(r.mensaje_desacuerdo ?? '');
 
           // ── Paso 3: reconstruir condiciones ──
-          this.conditions = r.condiciones.map(c => ({
+          const conds = r.condiciones.map(c => ({
             id:         ++this.condIdCounter,
             variable:   c.variable,
             comparador: c.comparador,
-            valor:      c.valor,          // ya es string[]
+            valor:      c.valor,
             logico:     c.operador_logico as 'AND' | 'OR',
             open:       false,
           }));
-          if (this.conditions.length === 0) this.addCondition();
+          this.conditions.set(conds.length > 0 ? conds : []);
+          if (conds.length === 0) this.addCondition();
 
           // ── Paso 4: reconstruir entidades ──
-          this.entities = r.entidades.map((e, i) => ({
+          this.entities.set(r.entidades.map((e, i) => ({
             id:     Date.now() + i,
             tipo:   e.tipo_entidad,
             numero: e.numero_humano,
-          }));
+          })));
         },
         error: (err) => {
           const status = err?.status ?? 0;
@@ -209,9 +237,9 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   }
 
   goTo(n: number): void {
-    if (n > this.currentStep && !this.validateStep(this.currentStep)) return;
-    if (n === 3 && this.conditions.length === 0) this.addCondition();
-    this.currentStep = n;
+    if (n > this.currentStep() && !this.validateStep(this.currentStep())) return;
+    if (n === 3 && this.conditions().length === 0) this.addCondition();
+    this.currentStep.set(n);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -221,28 +249,27 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   validateStep(s: number): boolean {
     if (s === 1) {
-      if (!this.numeroRegla || this.numeroRegla < 1) {
+      if (!this.numeroRegla() || this.numeroRegla()! < 1) {
         this.showToast('⚠ Ingresa el número de regla (mayor a 0)', 'warning');
         return false;
       }
-      if (!this.nombre.trim()) {
+      if (!this.nombre().trim()) {
         this.showToast('⚠ Ingresa el nombre de la regla', 'warning');
         return false;
       }
-      if (!this.accion) {
+      if (!this.accion()) {
         this.showToast('⚠ Selecciona una acción (PERMITIR o BLOQUEAR)', 'warning');
         return false;
       }
     }
     if (s === 3) {
-      const valid = this.validConditions;
-      if (valid.length === 0) {
+      if (this.validConditions().length === 0) {
         this.showToast('⚠ Agrega al menos una condición completa', 'warning');
         return false;
       }
     }
     if (s === 4) {
-      if (this.tipo === 'PARTICULAR' && this.entities.length === 0) {
+      if (this.tipo() === 'PARTICULAR' && this.entities().length === 0) {
         this.showToast('⚠ Agrega al menos una membresía o socio para el tipo PARTICULAR', 'warning');
         return false;
       }
@@ -255,18 +282,18 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════
 
   selectTipo(v: 'GENERAL' | 'PARTICULAR'): void {
-    this.tipo = v;
+    this.tipo.set(v);
   }
 
   selectAccion(v: 'PERMITIR' | 'BLOQUEAR'): void {
-    this.accion = v;
+    this.accion.set(v);
   }
 
   toggleVigencia(): void {
-    this.showVigencia = !this.showVigencia;
-    if (!this.showVigencia) {
-      this.fechaInicio = '';
-      this.fechaFin = '';
+    this.showVigencia.update(v => !v);
+    if (!this.showVigencia()) {
+      this.fechaInicio.set('');
+      this.fechaFin.set('');
     }
   }
 
@@ -275,69 +302,74 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════
 
   addCondition(): void {
-    this.conditions.push({
+    this.conditions.update(cs => [...cs, {
       id: ++this.condIdCounter,
       variable: '',
       comparador: '=',
       valor: [],
       logico: 'AND',
       open: true
-    });
+    }]);
   }
 
   removeCondition(id: number): void {
-    if (this.conditions.length <= 1) return;
-    this.conditions = this.conditions.filter(c => c.id !== id);
+    if (this.conditions().length <= 1) return;
+    this.conditions.update(cs => cs.filter(c => c.id !== id));
   }
 
   toggleCondition(id: number): void {
-    const c = this.conditions.find(x => x.id === id);
-    if (c) c.open = !c.open;
+    this.conditions.update(cs => cs.map(c => c.id === id ? { ...c, open: !c.open } : c));
   }
 
   setVariable(id: number, variable: string): void {
-    const c = this.conditions.find(x => x.id === id);
-    if (!c) return;
-    c.variable = variable;
-    c.valor = [];
-    if (variable && VARS[variable]) {
-      c.comparador = VARS[variable].ops[0];
-    }
+    this.conditions.update(cs => cs.map(c => {
+      if (c.id !== id) return c;
+      return {
+        ...c,
+        variable,
+        valor: [],
+        comparador: variable && VARS[variable] ? VARS[variable].ops[0] : c.comparador,
+      };
+    }));
   }
 
   setComparador(id: number, comparador: string): void {
-    const c = this.conditions.find(x => x.id === id);
-    if (!c) return;
-    const wasMulti = ['IN', 'NOT_IN'].includes(c.comparador);
-    const isMulti  = ['IN', 'NOT_IN'].includes(comparador);
-    c.comparador = comparador;
-    if (wasMulti !== isMulti) c.valor = [];
+    this.conditions.update(cs => cs.map(c => {
+      if (c.id !== id) return c;
+      const wasMulti = ['IN', 'NOT_IN'].includes(c.comparador);
+      const isMulti  = ['IN', 'NOT_IN'].includes(comparador);
+      return { ...c, comparador, valor: wasMulti !== isMulti ? [] : c.valor };
+    }));
   }
 
   setNumericValue(id: number, val: string): void {
-    const c = this.conditions.find(x => x.id === id);
-    if (c) c.valor = val ? [val] : [];
+    this.conditions.update(cs => cs.map(c =>
+      c.id === id ? { ...c, valor: val ? [val] : [] } : c
+    ));
   }
 
   toggleChip(id: number, val: string, multi: boolean): void {
-    const c = this.conditions.find(x => x.id === id);
-    if (!c) return;
-    if (multi) {
-      const i = c.valor.indexOf(val);
-      if (i > -1) c.valor.splice(i, 1);
-      else c.valor.push(val);
-    } else {
-      c.valor = c.valor[0] === val ? [] : [val];
-    }
+    this.conditions.update(cs => cs.map(c => {
+      if (c.id !== id) return c;
+      let valor: string[];
+      if (multi) {
+        const i = c.valor.indexOf(val);
+        valor = i > -1
+          ? [...c.valor.slice(0, i), ...c.valor.slice(i + 1)]
+          : [...c.valor, val];
+      } else {
+        valor = c.valor[0] === val ? [] : [val];
+      }
+      return { ...c, valor };
+    }));
   }
 
   setLogic(id: number, logico: 'AND' | 'OR'): void {
-    const c = this.conditions.find(x => x.id === id);
-    if (c) c.logico = logico;
+    this.conditions.update(cs => cs.map(c => c.id === id ? { ...c, logico } : c));
   }
 
   isChipSelected(id: number, val: string): boolean {
-    const c = this.conditions.find(x => x.id === id);
+    const c = this.conditions().find(x => x.id === id);
     return c ? c.valor.includes(val) : false;
   }
 
@@ -366,56 +398,26 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   // ════════════════════════════════════
 
   addEntity(): void {
-    const num = this.newEntityNumero.trim();
+    const num = this.newEntityNumero().trim();
     if (!num) {
       this.showToast('⚠ Escribe el número de membresía o socio', 'warning');
       return;
     }
-    const exists = this.entities.find(e => e.tipo === this.newEntityTipo && e.numero === num);
+    const exists = this.entities().find(e => e.tipo === this.newEntityTipo() && e.numero === num);
     if (exists) {
       this.showToast('Ya está en la lista', 'warning');
       return;
     }
-    this.entities.push({ id: Date.now(), tipo: this.newEntityTipo, numero: num });
-    this.newEntityNumero = '';
+    this.entities.update(es => [...es, { id: Date.now(), tipo: this.newEntityTipo(), numero: num }]);
+    this.newEntityNumero.set('');
   }
 
   removeEntity(id: number): void {
-    this.entities = this.entities.filter(e => e.id !== id);
+    this.entities.update(es => es.filter(e => e.id !== id));
   }
 
   onEntityKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') this.addEntity();
-  }
-
-  // ════════════════════════════════════
-  // GETTERS — sidebar resumen y revisión
-  // ════════════════════════════════════
-
-  get validConditions(): Condition[] {
-    return this.conditions.filter(c => c.variable && c.valor.length > 0);
-  }
-
-  get conditionsCount(): string {
-    const valid = this.validConditions.length;
-    const total = this.conditions.length;
-    return valid !== total ? `${valid}/${total}` : `${valid}`;
-  }
-
-  get sumNombre(): string {
-    const n = this.nombre.trim();
-    if (!n) return '—';
-    return n.length > 28 ? n.slice(0, 28) + '…' : n;
-  }
-
-  get vigenciaText(): string {
-    if (!this.fechaInicio && !this.fechaFin) return '';
-    return (this.fechaInicio || '…') + ' → ' + (this.fechaFin || 'sin límite');
-  }
-
-  get msgCTruncated(): string {
-    const m = this.mensajeCumplimiento.trim();
-    return m.length > 50 ? m.slice(0, 50) + '…' : m;
   }
 
   // ════════════════════════════════════
@@ -427,55 +429,50 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     if (!this.validateStep(3)) { this.goTo(3); return; }
     if (!this.validateStep(4)) return;
 
-    // ── Armar el payload que espera el backend ──
-    //
-    // GAP corregido #1: la clave es 'entidades' (no 'particulares')
-    // GAP corregido #2: valor se envia como string[] (no CSV)
-    //
     const payload = {
-      numero_regla:          this.numeroRegla!,
-      nombre:                this.nombre.trim(),
-      tipo:                  this.tipo,
-      accion:                this.accion!,
-      activa:                this.activa,
-      mensaje_cumplimiento:  this.mensajeCumplimiento.trim() || null,
-      mensaje_acuerdo:       this.mensajeAcuerdo.trim()      || null,
-      mensaje_desacuerdo:    this.mensajeDesacuerdo.trim()   || null,
-      fecha_inicio:          this.fechaInicio  || null,
-      fecha_fin:             this.fechaFin     || null,
-      condiciones: this.validConditions.map((c, i) => ({
+      numero_regla:          this.numeroRegla()!,
+      nombre:                this.nombre().trim(),
+      tipo:                  this.tipo(),
+      accion:                this.accion()!,
+      activa:                this.activa(),
+      mensaje_cumplimiento:  this.mensajeCumplimiento().trim() || null,
+      mensaje_acuerdo:       this.mensajeAcuerdo().trim()      || null,
+      mensaje_desacuerdo:    this.mensajeDesacuerdo().trim()   || null,
+      fecha_inicio:          this.fechaInicio()  || null,
+      fecha_fin:             this.fechaFin()     || null,
+      condiciones: this.validConditions().map((c, i) => ({
         variable:         c.variable,
         comparador:       c.comparador,
-        valor:            c.valor,          // ← array, el back hace implode(',',...)
+        valor:            c.valor,
         operador_logico:  c.logico,
         orden:            i + 1,
       })),
-      entidades: this.tipo === 'PARTICULAR'  // ← clave correcta para el back
-        ? this.entities.map(e => ({
+      entidades: this.tipo() === 'PARTICULAR'
+        ? this.entities().map(e => ({
             tipo_entidad:  e.tipo,
             numero_humano: e.numero,
           }))
         : [],
     };
 
-    this.isSaving = true;
+    this.isSaving.set(true);
 
-    const obs = this.isEditMode
-      ? this.reglaService.editRegla(this.editId!, payload as any)
+    const obs = this.isEditMode()
+      ? this.reglaService.editRegla(this.editId()!, payload as any)
       : this.reglaService.addRegla(payload as any);
 
     obs
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => { this.isSaving = false; }),
+        finalize(() => { this.isSaving.set(false); }),
       )
       .subscribe({
         next: (res) => {
           Swal.fire({
             icon: 'success',
-            title: this.isEditMode ? '¡Regla actualizada!' : '¡Regla guardada!',
+            title: this.isEditMode() ? '¡Regla actualizada!' : '¡Regla guardada!',
             html: `La regla <strong>#${res.data.numero_regla} — ${res.data.nombre}</strong>
-                   fue ${this.isEditMode ? 'actualizada' : 'creada'} correctamente.`,
+                   fue ${this.isEditMode() ? 'actualizada' : 'creada'} correctamente.`,
             confirmButtonText: 'Ver listado',
             timer: 4000,
             timerProgressBar: true,
@@ -488,17 +485,15 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
           const message = err?.error?.message ?? err?.message ?? 'Error desconocido';
           const field   = err?.error?.error?.field;
 
-          // 400 = número de regla duplicado
           if (status === 400 && field === 'numero_regla') {
             this.showToast(
-              `⚠ El número de regla #${this.numeroRegla} ya existe. Elige otro número.`,
+              `⚠ El número de regla #${this.numeroRegla()} ya existe. Elige otro número.`,
               'warning',
             );
             this.goTo(1);
             return;
           }
 
-          // 422 = errores de validación ORM
           if (status === 422) {
             Swal.fire({
               icon: 'warning',
@@ -509,7 +504,6 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
             return;
           }
 
-          // 500 / red
           Swal.fire({
             icon: 'error',
             title: 'Error al guardar',
@@ -536,16 +530,15 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     });
   }
 
-  // TrackBy para *ngFor
-  trackById(index: number, item: { id: number }): number {
+  trackById(_index: number, item: { id: number }): number {
     return item.id;
   }
 
-  trackByString(index: number, item: string): string {
+  trackByString(_index: number, item: string): string {
     return item;
   }
 
-  trackByKey(index: number, item: string): string {
-    return item;
+  trackByKey(_index: number, key: string): string {
+    return key;
   }
 }

@@ -1,5 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, OnDestroy, signal, afterNextRender, PLATFORM_ID, Inject, ChangeDetectionStrategy } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -21,6 +21,7 @@ const VARS_LABELS: Record<string, string> = {
 @Component({
   selector: 'app-membresias-reglas-ver',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ContentMenu],
   templateUrl: './membresias-reglas-ver.html',
   styleUrls: ['./membresias-reglas-ver.scss'],
@@ -29,20 +30,31 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
 
   activeSection = 'membresias-reglas';
 
-  regla: ReglaDetalle | null = null;
-  isLoading = true;
-  errorMsg: string | null = null;
+  regla = signal<ReglaDetalle | null>(null);
+  isLoading = signal(true);
+  errorMsg = signal<string | null>(null);
 
   readonly ALPHA = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
   readonly VARS_LABELS = VARS_LABELS;
 
   private destroy$ = new Subject<void>();
+  private pendingId = 0;
 
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private reglaService: ReglaService,
-  ) {}
+    @Inject(PLATFORM_ID) private platformId: object,
+  ) {
+    console.log('[VER] constructor — isBrowser:', isPlatformBrowser(this.platformId));
+    // Resolver el id aquí (snapshot está disponible en el constructor)
+    afterNextRender(() => {
+      console.log('[VER] afterNextRender — pendingId:', this.pendingId);
+      if (this.pendingId) {
+        this.loadRegla(this.pendingId);
+      }
+    });
+  }
 
   ngOnInit(): void {
     const id = +(this.route.snapshot.paramMap.get('id') ?? 0);
@@ -50,7 +62,13 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
       this.router.navigate(['/membresias/reglas']);
       return;
     }
-    this.loadRegla(id);
+    if (isPlatformBrowser(this.platformId)) {
+      // Browser directo (sin SSR o RenderMode.Client): cargar inmediatamente
+      this.loadRegla(id);
+    } else {
+      // SSR: diferir al afterNextRender en el browser
+      this.pendingId = id;
+    }
   }
 
   ngOnDestroy(): void {
@@ -61,21 +79,22 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
   // ── Carga ────────────────────────────────────────────────
 
   private loadRegla(id: number): void {
-    this.isLoading = true;
+    console.log('[VER] loadRegla — llamando API con id:', id);
+    this.isLoading.set(true);
     this.reglaService
       .getRegla(id)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (res) => {
-          this.regla     = res.data;
-          this.isLoading = false;
+          this.isLoading.set(false);
+          this.regla.set(res.data);
         },
         error: (err) => {
-          this.isLoading = false;
+          this.isLoading.set(false);
           const status   = err?.status ?? 0;
-          this.errorMsg  = status === 404
+          this.errorMsg.set(status === 404
             ? 'La regla solicitada no existe.'
-            : 'No se pudo cargar la regla. Intenta de nuevo.';
+            : 'No se pudo cargar la regla. Intenta de nuevo.');
         },
       });
   }
@@ -83,8 +102,8 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
   // ── Acciones ─────────────────────────────────────────────
 
   onEditar(): void {
-    if (this.regla) {
-      this.router.navigate(['/membresias/reglas/editar', this.regla.id_regla]);
+    if (this.regla()) {
+      this.router.navigate(['/membresias/reglas/editar', this.regla()!.id_regla]);
     }
   }
 
@@ -118,11 +137,11 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
   }
 
   hasAnyMessage(): boolean {
-    if (!this.regla) return false;
+    if (!this.regla()) return false;
     return !!(
-      this.regla.mensaje_cumplimiento ||
-      this.regla.mensaje_acuerdo      ||
-      this.regla.mensaje_desacuerdo
+      this.regla()!.mensaje_cumplimiento ||
+      this.regla()!.mensaje_acuerdo      ||
+      this.regla()!.mensaje_desacuerdo
     );
   }
 
