@@ -1,11 +1,12 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
 import { ReglaService } from '../../services/regla.service';
+import { ReglaDetalle } from '../../models/regla.model';
 import Swal from 'sweetalert2';
 
 // ── Catálogo de variables evaluables (espejo de cat_variables_regla) ──
@@ -105,8 +106,11 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   newEntityTipo: 'MEMBRESIA' | 'SOCIO' = 'MEMBRESIA';
   newEntityNumero: string = '';
 
-  // ── Estado de guardado ──
+  // ── Estado de guardado / modo ──
   isSaving: boolean = false;
+  isLoadingEdit: boolean = false;
+  isEditMode: boolean = false;
+  editId: number | null = null;
   private destroy$ = new Subject<void>();
 
   // ── Catálogos expuestos al template ──
@@ -117,11 +121,19 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private reglaService: ReglaService,
   ) {}
 
   ngOnInit(): void {
-    this.addCondition();
+    const idParam = this.route.snapshot.paramMap.get('id');
+    if (idParam) {
+      this.isEditMode = true;
+      this.editId     = +idParam;
+      this.loadReglaParaEditar(this.editId);
+    } else {
+      this.addCondition();
+    }
   }
 
   ngOnDestroy(): void {
@@ -129,9 +141,72 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  // ── Carga datos en modo editar ────────────────────────
+  private loadReglaParaEditar(id: number): void {
+    this.isLoadingEdit = true;
+    this.reglaService
+      .getRegla(id)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => { this.isLoadingEdit = false; }),
+      )
+      .subscribe({
+        next: (res) => {
+          const r: ReglaDetalle = res.data;
+
+          // ── Paso 1 ──
+          this.numeroRegla = r.numero_regla;
+          this.nombre      = r.nombre;
+          this.tipo        = r.tipo;
+          this.accion      = r.accion;
+          this.activa      = r.activa;
+          if (r.fecha_inicio || r.fecha_fin) {
+            this.showVigencia = true;
+            this.fechaInicio  = r.fecha_inicio ?? '';
+            this.fechaFin     = r.fecha_fin    ?? '';
+          }
+
+          // ── Paso 2 ──
+          this.mensajeCumplimiento = r.mensaje_cumplimiento ?? '';
+          this.mensajeAcuerdo      = r.mensaje_acuerdo      ?? '';
+          this.mensajeDesacuerdo   = r.mensaje_desacuerdo   ?? '';
+
+          // ── Paso 3: reconstruir condiciones ──
+          this.conditions = r.condiciones.map(c => ({
+            id:         ++this.condIdCounter,
+            variable:   c.variable,
+            comparador: c.comparador,
+            valor:      c.valor,          // ya es string[]
+            logico:     c.operador_logico as 'AND' | 'OR',
+            open:       false,
+          }));
+          if (this.conditions.length === 0) this.addCondition();
+
+          // ── Paso 4: reconstruir entidades ──
+          this.entities = r.entidades.map((e, i) => ({
+            id:     Date.now() + i,
+            tipo:   e.tipo_entidad,
+            numero: e.numero_humano,
+          }));
+        },
+        error: (err) => {
+          const status = err?.status ?? 0;
+          this.showToast(
+            status === 404 ? '⚠ Regla no encontrada' : '⚠ No se pudo cargar la regla',
+            'error',
+          );
+          this.router.navigate(['/membresias/reglas']);
+        },
+      });
+  }
+
   // ════════════════════════════════════
   // NAVEGACIÓN
   // ════════════════════════════════════
+
+  onVolver(): void {
+    this.router.navigate(['/membresias/reglas']);
+  }
 
   goTo(n: number): void {
     if (n > this.currentStep && !this.validateStep(this.currentStep)) return;
@@ -385,8 +460,11 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
     this.isSaving = true;
 
-    this.reglaService
-      .addRegla(payload as any)
+    const obs = this.isEditMode
+      ? this.reglaService.editRegla(this.editId!, payload as any)
+      : this.reglaService.addRegla(payload as any);
+
+    obs
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => { this.isSaving = false; }),
@@ -395,9 +473,9 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
         next: (res) => {
           Swal.fire({
             icon: 'success',
-            title: '¡Regla guardada!',
+            title: this.isEditMode ? '¡Regla actualizada!' : '¡Regla guardada!',
             html: `La regla <strong>#${res.data.numero_regla} — ${res.data.nombre}</strong>
-                   fue creada correctamente.`,
+                   fue ${this.isEditMode ? 'actualizada' : 'creada'} correctamente.`,
             confirmButtonText: 'Ver listado',
             timer: 4000,
             timerProgressBar: true,

@@ -1,0 +1,258 @@
+<div class="container-fluid bg-light min-vh-100">
+
+  <app-content-menu
+    [activeSection]="activeSection"
+    (sectionChange)="onSectionChange($event)">
+  </app-content-menu>
+
+  <div class="container-fluid p-4" style="max-width:1060px; margin:0 auto;">
+
+    <!-- ── Estado: cargando ─────────────────────────────── -->
+    <div *ngIf="isLoading"
+         class="d-flex flex-column align-items-center justify-content-center py-5 mt-4">
+      <div class="spinner-border text-primary mb-3"
+           style="width:3rem;height:3rem;" role="status">
+        <span class="visually-hidden">Cargando…</span>
+      </div>
+      <p class="text-muted fw-semibold">Cargando regla…</p>
+    </div>
+
+    <!-- ── Estado: error ────────────────────────────────── -->
+    <div *ngIf="!isLoading && errorMsg" class="card shadow-sm mt-4">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-exclamation-triangle display-4 text-danger d-block mb-3"></i>
+        <h5 class="text-danger">{{ errorMsg }}</h5>
+        <button class="btn btn-outline-primary mt-3" (click)="onVolver()">
+          <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Contenido principal ──────────────────────────── -->
+    <ng-container *ngIf="!isLoading && !errorMsg && regla">
+
+      <!-- Header de página -->
+      <div class="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+        <div>
+          <h4 class="fw-bold mb-1">
+            <span class="text-muted me-1">#{{ regla!.numero_regla }}</span>
+            {{ regla!.nombre }}
+          </h4>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <span [class]="regla!.tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple'">
+              {{ regla!.tipo }}
+            </span>
+            <span [class]="regla!.accion === 'PERMITIR' ? 'badge bg-success' : 'badge bg-danger'">
+              {{ regla!.accion }}
+            </span>
+            <span [class]="regla!.activa ? 'badge bg-success' : 'badge bg-secondary'">
+              {{ regla!.activa ? 'Activa' : 'Inactiva' }}
+            </span>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" (click)="onVolver()">
+            <i class="bi bi-arrow-left me-1"></i> Volver
+          </button>
+          <button class="btn btn-primary" (click)="onEditar()">
+            <i class="bi bi-pencil-square me-1"></i> Editar
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Card: Datos generales ────────────────────────── -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold py-2">
+          <i class="bi bi-info-circle me-2 text-primary"></i>Datos generales
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+
+            <div class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Número de regla</div>
+              <div class="fw-bold fs-5">#{{ regla!.numero_regla }}</div>
+            </div>
+
+            <div class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Tipo</div>
+              <span [class]="regla!.tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple'">
+                {{ regla!.tipo }}
+              </span>
+            </div>
+
+            <div class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Acción</div>
+              <span [class]="regla!.accion === 'PERMITIR' ? 'badge bg-success' : 'badge bg-danger'">
+                {{ regla!.accion }}
+              </span>
+            </div>
+
+            <div class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Estado</div>
+              <span [class]="regla!.activa ? 'badge bg-success' : 'badge bg-secondary'">
+                {{ regla!.activa ? 'Activa' : 'Inactiva' }}
+              </span>
+            </div>
+
+            <div class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Vigencia</div>
+              <div *ngIf="!regla!.fecha_inicio && !regla!.fecha_fin"
+                   class="text-muted fst-italic">Permanente</div>
+              <div *ngIf="regla!.fecha_inicio || regla!.fecha_fin">
+                {{ formatDate(regla!.fecha_inicio) }} → {{ formatDate(regla!.fecha_fin) }}
+              </div>
+            </div>
+
+            <div class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Creado por</div>
+              <div>{{ regla!.creado_por ?? '—' }}</div>
+              <div class="text-muted small">{{ formatDateTime(regla!.fecha_creacion) }}</div>
+            </div>
+
+            <div *ngIf="regla!.modificado_por" class="col-sm-6 col-md-4">
+              <div class="text-muted small fw-semibold text-uppercase mb-1">Última modificación</div>
+              <div>{{ regla!.modificado_por }}</div>
+              <div class="text-muted small">{{ formatDateTime(regla!.fecha_modificacion) }}</div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Card: Mensajes (solo si hay alguno) ──────────── -->
+      <div *ngIf="hasAnyMessage()" class="card shadow-sm mb-4">
+        <div class="card-header fw-bold py-2">
+          <i class="bi bi-chat-text me-2 text-info"></i>Mensajes configurados
+        </div>
+        <div class="card-body">
+
+          <div *ngIf="regla!.mensaje_cumplimiento" class="mb-3">
+            <div class="text-muted small fw-semibold text-uppercase mb-1">Cumplimiento</div>
+            <div class="p-2 bg-light rounded border-start border-success border-3">
+              {{ regla!.mensaje_cumplimiento }}
+            </div>
+          </div>
+
+          <div *ngIf="regla!.mensaje_acuerdo" class="mb-3">
+            <div class="text-muted small fw-semibold text-uppercase mb-1">Acuerdo</div>
+            <div class="p-2 bg-light rounded border-start border-primary border-3">
+              {{ regla!.mensaje_acuerdo }}
+            </div>
+          </div>
+
+          <div *ngIf="regla!.mensaje_desacuerdo">
+            <div class="text-muted small fw-semibold text-uppercase mb-1">Desacuerdo</div>
+            <div class="p-2 bg-light rounded border-start border-danger border-3">
+              {{ regla!.mensaje_desacuerdo }}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Card: Condiciones ─────────────────────────────── -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold py-2 d-flex align-items-center">
+          <i class="bi bi-funnel me-2 text-warning"></i>Condiciones de evaluación
+          <span class="badge bg-secondary ms-2">{{ regla!.condiciones.length }}</span>
+        </div>
+        <div class="card-body p-0">
+
+          <div *ngIf="regla!.condiciones.length === 0"
+               class="text-center py-4 text-muted fst-italic">
+            Sin condiciones registradas
+          </div>
+
+          <div *ngIf="regla!.condiciones.length > 0" class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light small text-uppercase text-muted">
+                <tr>
+                  <th class="ps-3" style="width:50px">#</th>
+                  <th>Variable</th>
+                  <th style="width:110px">Operador</th>
+                  <th>Valor(es)</th>
+                  <th style="width:90px">Conector</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let cond of regla!.condiciones; let i = index; let last = last">
+                  <td class="ps-3">
+                    <span class="badge bg-primary rounded-circle fw-bold">
+                      {{ getConditionLetter(i) }}
+                    </span>
+                  </td>
+                  <td class="fw-semibold">{{ getVarLabel(cond.variable) }}</td>
+                  <td><code class="fs-6">{{ cond.comparador }}</code></td>
+                  <td>
+                    <span *ngFor="let v of cond.valor"
+                          class="badge bg-warning text-dark me-1">{{ v }}</span>
+                  </td>
+                  <td>
+                    <span *ngIf="!last"
+                          [class]="cond.operador_logico === 'AND'
+                            ? 'badge bg-primary'
+                            : 'badge bg-warning text-dark'">
+                      {{ cond.operador_logico }}
+                    </span>
+                    <span *ngIf="last" class="text-muted small">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Card: Alcance (solo tipo PARTICULAR) ──────────── -->
+      <div *ngIf="regla!.tipo === 'PARTICULAR'" class="card shadow-sm mb-4">
+        <div class="card-header fw-bold py-2 d-flex align-items-center">
+          <i class="bi bi-people me-2 text-primary"></i>Alcance particular
+          <span class="badge bg-secondary ms-2">{{ regla!.entidades.length }}</span>
+        </div>
+        <div class="card-body p-0">
+
+          <div *ngIf="regla!.entidades.length === 0"
+               class="text-center py-4 text-muted fst-italic">
+            Sin entidades asignadas
+          </div>
+
+          <div *ngIf="regla!.entidades.length > 0" class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light small text-uppercase text-muted">
+                <tr>
+                  <th class="ps-3">Tipo</th>
+                  <th>Número</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let ent of regla!.entidades">
+                  <td class="ps-3">
+                    <span [class]="ent.tipo_entidad === 'MEMBRESIA'
+                      ? 'badge bg-primary'
+                      : 'badge bg-info text-dark'">
+                      {{ ent.tipo_entidad === 'MEMBRESIA' ? 'Membresía' : 'Socio' }}
+                    </span>
+                  </td>
+                  <td class="fw-semibold">{{ ent.numero_humano }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Footer: acciones repetidas -->
+      <div class="d-flex gap-2 justify-content-end pb-4">
+        <button class="btn btn-outline-secondary" (click)="onVolver()">
+          <i class="bi bi-arrow-left me-1"></i> Volver al listado
+        </button>
+        <button class="btn btn-primary" (click)="onEditar()">
+          <i class="bi bi-pencil-square me-1"></i> Editar regla
+        </button>
+      </div>
+
+    </ng-container>
+  </div>
+</div>

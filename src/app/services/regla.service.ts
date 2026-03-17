@@ -12,6 +12,7 @@ import {
   ApiResponse,
   AddReglaPayload,
   AddReglaResponse,
+  ReglaDetalleResponse,
 } from '../models/regla.model';
 
 /**
@@ -113,6 +114,25 @@ export class ReglaService {
    */
   addRegla(payload: AddReglaPayload): Observable<AddReglaResponse> {
     return this.http.post<AddReglaResponse>(this.BASE, payload);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GET /api/reglas-negocio/{id}
+  // ─────────────────────────────────────────────────────────────────────────
+  /** Full rule detail: conditions + entities. Returns 404 if not found. */
+  getRegla(id: number): Observable<ReglaDetalleResponse> {
+    return this.http.get<ReglaDetalleResponse>(`${this.BASE}/${id}`);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PUT /api/reglas-negocio/{id}
+  // ─────────────────────────────────────────────────────────────────────────
+  /**
+   * Update an existing rule, replacing all conditions and entities.
+   * Same response shape as addRegla (200 on success).
+   */
+  editRegla(id: number, payload: AddReglaPayload): Observable<AddReglaResponse> {
+    return this.http.put<AddReglaResponse>(`${this.BASE}/${id}`, payload);
   }
 
   // ─────────────────────────────────────────────────────────────────────────

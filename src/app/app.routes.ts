@@ -114,6 +114,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'membresias/reglas/editar/:id',
+    loadComponent: () => import('./components/membresias-reglas/membresias-reglas').then(m => m.MembresiasReglasComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'membresias/reglas/:id',
+    loadComponent: () => import('./components/membresias-reglas-ver/membresias-reglas-ver').then(m => m.MembresiasReglasVerComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'unauthorized',
     loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
   },

@@ -144,6 +144,57 @@ export interface AddReglaResponse {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/reglas-negocio/{id}  (full rule detail)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** One condition row as returned by GET /api/reglas-negocio/{id} */
+export interface ReglaCondicionDetalle {
+  id_condicion: number;
+  variable: string;
+  comparador: string;
+  /** Already an array — backend splits the stored CSV on read */
+  valor: string[];
+  operador_logico: 'AND' | 'OR';
+  orden: number;
+}
+
+/** One entity row (only present when tipo = PARTICULAR) */
+export interface ReglaEntidadDetalle {
+  id: number;
+  tipo_entidad: 'MEMBRESIA' | 'SOCIO';
+  id_entidad: number | null;
+  numero_humano: string;
+}
+
+/** Full rule detail including conditions and entities */
+export interface ReglaDetalle {
+  id_regla: number;
+  numero_regla: number;
+  nombre: string;
+  tipo: 'GENERAL' | 'PARTICULAR';
+  accion: 'PERMITIR' | 'BLOQUEAR';
+  activa: boolean;
+  mensaje_cumplimiento: string | null;
+  mensaje_acuerdo: string | null;
+  mensaje_desacuerdo: string | null;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  creado_por: string | null;
+  fecha_creacion: string | null;
+  modificado_por: string | null;
+  fecha_modificacion: string | null;
+  condiciones: ReglaCondicionDetalle[];
+  entidades: ReglaEntidadDetalle[];
+}
+
+/** Response envelope from GET /api/reglas-negocio/{id} */
+export interface ReglaDetalleResponse {
+  success: boolean;
+  message: string;
+  data: ReglaDetalle;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Generic success/error envelope
 // ─────────────────────────────────────────────────────────────────────────────
 export interface ApiResponse {
