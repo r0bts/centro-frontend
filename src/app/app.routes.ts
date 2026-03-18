@@ -123,6 +123,68 @@ export const routes: Routes = [
     loadComponent: () => import('./components/membresias-reglas-ver/membresias-reglas-ver').then(m => m.MembresiasReglasVerComponent),
     canActivate: [authGuard]
   },
+  // =====================================================================
+  // DEPORTIVO — Módulos 6-13
+  // Shell con rutas hijas lazy-loaded para cada sección.
+  // =====================================================================
+  {
+    path: 'deportivo',
+    redirectTo: '/deportivo/dashboard',
+    pathMatch: 'full'
+  },
+  {
+    path: 'deportivo',
+    loadComponent: () =>
+      import('./components/deportivo/shell/deportivo-shell').then(m => m.DeportivoShellComponent),
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./components/deportivo/dashboard/deportivo-dashboard').then(m => m.DeportivoDashboardComponent)
+      },
+      {
+        path: 'actividades',
+        loadComponent: () =>
+          import('./components/deportivo/actividades/deportivo-actividades').then(m => m.DeportivoActividadesComponent)
+      },
+      {
+        path: 'torneos',
+        loadComponent: () =>
+          import('./components/deportivo/torneos/deportivo-torneos').then(m => m.DeportivoTorneosComponent)
+      },
+      {
+        path: 'finanzas',
+        loadComponent: () =>
+          import('./components/deportivo/finanzas/deportivo-finanzas').then(m => m.DeportivoFinanzasComponent)
+      },
+      {
+        path: 'encuestas',
+        loadComponent: () =>
+          import('./components/deportivo/encuestas/deportivo-encuestas').then(m => m.DeportivoEncuestasComponent)
+      },
+      {
+        path: 'comunicados',
+        loadComponent: () =>
+          import('./components/deportivo/comunicados/deportivo-comunicados').then(m => m.DeportivoComunicadosComponent)
+      },
+      {
+        path: 'usuarios',
+        loadComponent: () =>
+          import('./components/deportivo/usuarios/deportivo-usuarios').then(m => m.DeportivoUsuariosComponent)
+      },
+      {
+        path: 'sistema',
+        loadComponent: () =>
+          import('./components/deportivo/sistema/deportivo-sistema').then(m => m.DeportivoSistemaComponent)
+      },
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      }
+    ]
+  },
   {
     path: 'unauthorized',
     loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
