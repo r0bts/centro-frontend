@@ -96,6 +96,10 @@ export class ActividadWizardComponent implements OnInit {
   color           = '#6366f1';
   tipo            = 'deporte_equipo';
   modo_mensajeria: 'bidireccional' | 'solo_respuesta' | 'solo_lectura' = 'bidireccional';
+  tiene_costo     = false;
+  fecha_inicio    = '';
+  fecha_fin       = '';
+  monto: number | null = null;
 
   // ── Paso 2: Grupos ──────────────────────────────────────────────────────────
   grupos = signal<WizardGrupo[]>([]);
@@ -146,12 +150,18 @@ export class ActividadWizardComponent implements OnInit {
     this.color           = act.color ?? '#6366f1';
     this.tipo            = act.tipo ?? 'deporte_equipo';
     this.modo_mensajeria = act.modo_mensajeria ?? 'bidireccional';
+    this.tiene_costo     = act.tiene_costo ?? false;
+    this.fecha_inicio    = act.fecha_inicio ?? '';
+    this.fecha_fin       = act.fecha_fin    ?? '';
+    this.monto           = act.monto        ?? null;
 
     const grupos: WizardGrupo[] = (act.grupos_categorias ?? []).map(g => ({
       nombre:      g.nombre,
       descripcion: g.descripcion ?? '',
       edad_min:    g.edad_min ?? null,
       edad_max:    g.edad_max ?? null,
+      tiene_cupo:  g.tiene_cupo ?? false,
+      cupo_maximo: g.cupo_maximo ?? null,
       equipos: (g.equipos ?? []).map(e => ({
         nombre:   e.nombre,
         color:    e.color ?? '#6366f1',
@@ -203,7 +213,7 @@ export class ActividadWizardComponent implements OnInit {
     if (!nombre) return;
     this.grupos.update(list => [
       ...list,
-      { nombre, descripcion: '', edad_min: null, edad_max: null, equipos: [], horarios: [] },
+      { nombre, descripcion: '', edad_min: null, edad_max: null, tiene_cupo: false, cupo_maximo: null, equipos: [], horarios: [] },
     ]);
     this.nuevoGrupoNombre = '';
     this.activeGrupoIndex.set(this.grupos().length - 1);
@@ -229,6 +239,23 @@ export class ActividadWizardComponent implements OnInit {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, equipos: [...g.equipos] }));
       copy[grupoIdx].equipos.splice(equipoIdx, 1);
+      return copy;
+    });
+  }
+
+  toggleGrupoCupo(grupoIdx: number, value: boolean): void {
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g }));
+      copy[grupoIdx].tiene_cupo  = value;
+      if (!value) copy[grupoIdx].cupo_maximo = null;
+      return copy;
+    });
+  }
+
+  setGrupoCupoMaximo(grupoIdx: number, value: number | null): void {
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g }));
+      copy[grupoIdx].cupo_maximo = value;
       return copy;
     });
   }
@@ -301,6 +328,10 @@ export class ActividadWizardComponent implements OnInit {
           color:           this.color,
           tipo:            this.tipo,
           modo_mensajeria: this.modo_mensajeria,
+          tiene_costo:     this.tiene_costo,
+          fecha_inicio:    this.tiene_costo ? (this.fecha_inicio || null) : null,
+          fecha_fin:       this.tiene_costo ? (this.fecha_fin    || null) : null,
+          monto:           this.tiene_costo ? (this.monto        ?? null) : null,
         }));
         actividadId = res.data.id;
 
@@ -330,6 +361,10 @@ export class ActividadWizardComponent implements OnInit {
           color:           this.color,
           tipo:            this.tipo,
           modo_mensajeria: this.modo_mensajeria,
+          tiene_costo:     this.tiene_costo,
+          fecha_inicio:    this.tiene_costo ? (this.fecha_inicio || undefined) : undefined,
+          fecha_fin:       this.tiene_costo ? (this.fecha_fin    || undefined) : undefined,
+          monto:           this.tiene_costo ? (this.monto        ?? undefined) : undefined,
           is_active:       true,
           created_by:      userId,
         }));
@@ -345,6 +380,8 @@ export class ActividadWizardComponent implements OnInit {
           descripcion:  g.descripcion || undefined,
           edad_min:     g.edad_min ?? undefined,
           edad_max:     g.edad_max ?? undefined,
+          tiene_cupo:   g.tiene_cupo,
+          cupo_maximo:  g.tiene_cupo ? (g.cupo_maximo ?? undefined) : undefined,
           orden:        gi,
           is_active:    true,
         }));

@@ -95,6 +95,9 @@
               <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
             }
             <span class="badge bg-primary-subtle text-primary">{{ labelMensajeria(act.modo_mensajeria) }}</span>
+            @if (act.tiene_costo) {
+              <span class="badge bg-warning-subtle text-warning">💰 Con costo</span>
+            }
           </div>
 
           <!-- Acciones -->

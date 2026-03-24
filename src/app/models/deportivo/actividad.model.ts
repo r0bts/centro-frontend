@@ -19,6 +19,10 @@ export interface Actividad {
   color?: string | null;           // hex #RRGGBB, varchar(7)
   tipo?: string | null;            // deporte_equipo | deporte_individual | arte | otro
   modo_mensajeria: 'bidireccional' | 'solo_respuesta' | 'solo_lectura';
+  tiene_costo: boolean;
+  fecha_inicio?: string | null;    // DATE YYYY-MM-DD — solo si tiene_costo
+  fecha_fin?: string | null;       // DATE YYYY-MM-DD — solo si tiene_costo
+  monto?: number | null;           // importe a cobrar, solo si tiene_costo
   is_active: boolean;
   created_by?: number;
   created_at?: string;
@@ -36,6 +40,10 @@ export interface GrupoCategoria {
   descripcion?: string | null;
   edad_min?: number | null;        // tinyint(3)
   edad_max?: number | null;        // tinyint(3)
+  tiene_cupo: boolean;
+  cupo_maximo?: number | null;     // null = sin límite
+  cupo_ocupado?: number;           // lugares ya tomados
+  cupo_disponible?: number | null; // calculado en backend: cupo_maximo - cupo_ocupado
   orden: number;
   is_active: boolean;
   created_at?: string;
@@ -116,6 +124,10 @@ export interface CreateActividadRequest {
   color?: string;
   tipo?: string;
   modo_mensajeria: 'bidireccional' | 'solo_respuesta' | 'solo_lectura';
+  tiene_costo: boolean;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  monto?: number;
   is_active: boolean;
   created_by: number;
 }
@@ -127,6 +139,10 @@ export interface UpdateActividadRequest {
   color?: string;
   tipo?: string;
   modo_mensajeria?: 'bidireccional' | 'solo_respuesta' | 'solo_lectura';
+  tiene_costo?: boolean;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  monto?: number | null;
   is_active?: boolean;
 }
 
@@ -136,6 +152,8 @@ export interface CreateGrupoRequest {
   descripcion?: string;
   edad_min?: number;
   edad_max?: number;
+  tiene_cupo?: boolean;
+  cupo_maximo?: number;
   orden?: number;
   is_active?: boolean;
 }
@@ -239,6 +257,8 @@ export interface WizardGrupo {
   descripcion: string;
   edad_min: number | null;
   edad_max: number | null;
+  tiene_cupo: boolean;
+  cupo_maximo: number | null;
   equipos: WizardEquipo[];
   horarios: WizardHorario[];
 }

@@ -133,6 +133,44 @@
               }
             </div>
           </div>
+
+          <!-- Cobro -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Cobro</label>
+            <label class="mensajeria-option" [class.selected]="tiene_costo">
+              <div>
+                <div class="fw-semibold">¿Esta actividad tiene costo?</div>
+                <small class="text-muted">Actívalo si la actividad requiere pago de inscripción o mensualidad</small>
+              </div>
+              <div class="form-check form-switch ms-auto mb-0">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       [(ngModel)]="tiene_costo" style="width:2.5rem;height:1.25rem;cursor:pointer">
+              </div>
+            </label>
+
+            @if (tiene_costo) {
+              <div class="row g-2 mt-2">
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Fecha inicio</label>
+                  <input type="date" class="form-control form-control-sm"
+                         [(ngModel)]="fecha_inicio">
+                </div>
+                <div class="col-6">
+                  <label class="form-label small fw-semibold">Fecha fin</label>
+                  <input type="date" class="form-control form-control-sm"
+                         [(ngModel)]="fecha_fin" [min]="fecha_inicio">
+                </div>
+                <div class="col-12">
+                  <label class="form-label small fw-semibold">Monto a cobrar</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text">$</span>
+                    <input type="number" class="form-control" placeholder="0.00"
+                           min="0" step="0.01" [(ngModel)]="monto">
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
         </div>
       }
 
@@ -191,6 +229,31 @@
                       <input type="number" class="form-control form-control-sm" min="0" max="99"
                              [(ngModel)]="grupos()[gi].edad_max">
                     </div>
+                  </div>
+
+                  <!-- Cupo del grupo -->
+                  <div class="mb-3">
+                    <label class="mensajeria-option" [class.selected]="grupos()[gi].tiene_cupo">
+                      <div>
+                        <div class="fw-semibold small">Limitar cupo del grupo</div>
+                        <small class="text-muted">Establece un máximo de lugares disponibles</small>
+                      </div>
+                      <div class="form-check form-switch ms-auto mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch"
+                               [ngModel]="grupos()[gi].tiene_cupo"
+                               (ngModelChange)="toggleGrupoCupo(gi, $event)"
+                               style="width:2.5rem;height:1.25rem;cursor:pointer">
+                      </div>
+                    </label>
+                    @if (grupos()[gi].tiene_cupo) {
+                      <div class="mt-2 d-flex align-items-center gap-2">
+                        <label class="form-label small mb-0 text-nowrap">Lugares disponibles <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control form-control-sm" style="max-width:110px"
+                               min="1" max="9999" placeholder="Ej: 20"
+                               [ngModel]="grupos()[gi].cupo_maximo"
+                               (ngModelChange)="setGrupoCupoMaximo(gi, $event)">
+                      </div>
+                    }
                   </div>
 
                   <!-- Equipos -->
@@ -378,6 +441,28 @@
               <span>{{ labelMensajeria(modo_mensajeria) }}</span>
             </div>
             <div class="summary-row">
+              <span class="summary-label"><i class="bi bi-cash-coin me-2"></i>Cobro</span>
+              <span>
+                @if (tiene_costo) {
+                  <span class="badge bg-warning-subtle text-warning fw-semibold">Con costo</span>
+                } @else {
+                  <span class="text-muted">Sin costo</span>
+                }
+              </span>
+            </div>
+            @if (tiene_costo && monto) {
+              <div class="summary-row">
+                <span class="summary-label"><i class="bi bi-currency-dollar me-2"></i>Monto</span>
+                <span class="fw-semibold">${{ monto | number:'1.2-2' }}</span>
+              </div>
+            }
+            @if (tiene_costo && (fecha_inicio || fecha_fin)) {
+              <div class="summary-row">
+                <span class="summary-label"><i class="bi bi-calendar-range me-2"></i>Vigencia</span>
+                <span>{{ fecha_inicio | date:'dd/MM/yyyy' }} – {{ fecha_fin | date:'dd/MM/yyyy' }}</span>
+              </div>
+            }
+            <div class="summary-row">
               <span class="summary-label"><i class="bi bi-people me-2"></i>Grupos</span>
               <span>{{ grupos().length }}</span>
             </div>
@@ -401,7 +486,12 @@
                   @if (g.edad_min || g.edad_max) {
                     <small class="text-muted ms-2">({{ g.edad_min ?? '?' }}–{{ g.edad_max ?? '?' }} años)</small>
                   }
-                  <span class="ms-auto text-muted small">{{ g.equipos.length }} equipos · {{ g.horarios.length }} días</span>
+                  <span class="ms-auto text-muted small">
+                    {{ g.equipos.length }} equipos · {{ g.horarios.length }} días
+                    @if (g.tiene_cupo && g.cupo_maximo) {
+                      · Cupo: <strong>{{ g.cupo_maximo }}</strong> lugares
+                    }
+                  </span>
                 </div>
               }
             </div>
