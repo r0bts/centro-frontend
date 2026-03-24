@@ -1,0 +1,166 @@
+<div class="deportivo-actividades">
+  <!-- ── Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">Actividades</h4>
+      <small class="text-muted">Gestión de actividades, grupos y equipos del club</small>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
+      <i class="bi bi-plus-lg"></i>
+      <span>Nueva actividad</span>
+    </button>
+  </div>
+
+  <!-- ── Error ── -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="clearError()"></button>
+    </div>
+  }
+
+  <!-- ── Toast ── -->
+  @if (toast()) {
+    <div class="toast-wrapper">
+      <div class="toast show align-items-center text-bg-success border-0" role="alert">
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill"></i>
+            {{ toast() }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="clearToast()"></button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Loading skeleton ── -->
+  @if (loading()) {
+    <div class="activities-grid">
+      @for (sk of [1,2,3,4,5,6]; track sk) {
+        <div class="activity-card skeleton">
+          <div class="sk-icon"></div>
+          <div class="sk-line long"></div>
+          <div class="sk-line short"></div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Grid de actividades ── -->
+  @if (!loading()) {
+    <div class="activities-grid">
+      <!-- Tarjeta "Nueva actividad" -->
+      <div class="activity-card add-card" (click)="openWizard()" role="button" tabindex="0"
+           (keydown.enter)="openWizard()">
+        <div class="add-icon">
+          <i class="bi bi-plus-lg"></i>
+        </div>
+        <span class="add-label">Nueva actividad</span>
+      </div>
+
+      <!-- Tarjetas de actividades -->
+      @for (act of actividades(); track act.id) {
+        <div class="activity-card" [class.inactive]="!act.is_active">
+
+          <!-- Ícono / color -->
+          <div class="activity-icon-wrap" [style.background]="act.color || '#6366f1'">
+            <span class="activity-emoji">{{ act.icono || '🏆' }}</span>
+          </div>
+
+          <!-- Info -->
+          <div class="activity-info">
+            <h6 class="activity-name">{{ act.nombre }}</h6>
+            <p class="activity-desc text-muted small">{{ act.descripcion || 'Sin descripción' }}</p>
+          </div>
+
+          <!-- Meta -->
+          <div class="activity-meta">
+            <span class="meta-chip">
+              <i class="bi bi-people"></i>
+              {{ (act.grupos_categorias?.length ?? 0) }} grupos
+            </span>
+            <span class="meta-chip">
+              <i class="bi bi-shield-check"></i>
+              {{ act.tipo || '—' }}
+            </span>
+          </div>
+
+          <!-- Badge activo/inactivo -->
+          <div class="activity-badges">
+            @if (act.is_active) {
+              <span class="badge bg-success-subtle text-success">Activa</span>
+            } @else {
+              <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
+            }
+            <span class="badge bg-primary-subtle text-primary">{{ labelMensajeria(act.modo_mensajeria) }}</span>
+          </div>
+
+          <!-- Acciones -->
+          <div class="card-actions">
+            <button class="card-action-btn card-action-btn--edit"
+                    title="Editar"
+                    (click)="editActividad(act)">
+              <span>Editar</span>
+            </button>
+            <button class="card-action-btn card-action-btn--toggle"
+                    [title]="act.is_active ? 'Desactivar' : 'Activar'"
+                    (click)="toggleActive(act)">
+              <span>{{ act.is_active ? 'Desactivar' : 'Activar' }}</span>
+            </button>
+            <button class="card-action-btn card-action-btn--delete"
+                    title="Eliminar"
+                    (click)="confirmDelete(act)">
+              <span>Eliminar</span>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- Estado vacío -->
+      @if (actividades().length === 0) {
+        <div class="empty-state col-span-full">
+          <i class="bi bi-trophy display-4 text-muted d-block mb-3"></i>
+          <h5 class="text-muted">No hay actividades registradas</h5>
+          <p class="text-muted small">Crea la primera actividad usando el botón "Nueva actividad".</p>
+          <button class="btn btn-primary" (click)="openWizard()">
+            <i class="bi bi-plus-lg me-2"></i>Crear actividad
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Confirmación de eliminación ── -->
+  @if (deleteTarget()) {
+    <div class="modal-backdrop-custom" (click)="cancelDelete()">
+      <div class="confirm-dialog" (click)="$event.stopPropagation()">
+        <div class="confirm-icon text-danger">
+          <i class="bi bi-trash-fill"></i>
+        </div>
+        <h5>¿Eliminar actividad?</h5>
+        <p class="text-muted small">
+          Se eliminará <strong>{{ deleteTarget()!.nombre }}</strong> y todos sus grupos, equipos y criterios.
+          Esta acción no se puede deshacer.
+        </p>
+        <div class="d-flex gap-2 justify-content-center">
+          <button class="btn btn-outline-secondary" (click)="cancelDelete()">Cancelar</button>
+          <button class="btn btn-danger" [disabled]="deleting()" (click)="executeDelete()">
+            @if (deleting()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Wizard ── -->
+  @if (wizardOpen()) {
+    <app-actividad-wizard
+      [editActividad]="wizardEditTarget()"
+      (saved)="onWizardSaved($event)"
+      (cancelled)="onWizardCancelled()">
+    </app-actividad-wizard>
+  }
+</div>

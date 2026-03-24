@@ -1,0 +1,445 @@
+<!-- Overlay -->
+<div class="wizard-overlay" (click)="cancel()">
+  <div class="wizard-container" (click)="$event.stopPropagation()">
+
+    <!-- ── Header del wizard ──────────────────────────────────────────────── -->
+    <div class="wizard-header">
+      <div class="wizard-title">
+        <div class="wizard-icon-wrap" [style.background]="color">
+          <span>{{ icono }}</span>
+        </div>
+        <div>
+          <h5 class="mb-0">{{ isEditing() ? 'Editar actividad' : 'Nueva actividad' }}</h5>
+          <small class="text-muted">{{ nombre || 'Sin nombre' }}</small>
+        </div>
+      </div>
+      <button class="btn-close" (click)="cancel()"></button>
+    </div>
+
+    <!-- ── Progress ───────────────────────────────────────────────────────── -->
+    <div class="wizard-progress-bar">
+      <div class="progress-fill" [style.width.%]="progressPct()"></div>
+    </div>
+
+    <!-- ── Steps indicator ────────────────────────────────────────────────── -->
+    <div class="wizard-steps">
+      @for (step of steps; track step.id) {
+        <div class="step-item"
+             [class.active]="currentStep() === step.id"
+             [class.done]="currentStep() > step.id"
+             (click)="goTo(step.id)"
+             role="button">
+          <div class="step-bubble">
+            @if (currentStep() > step.id) {
+              <i class="bi bi-check-lg"></i>
+            } @else {
+              <i class="bi" [class]="step.icon"></i>
+            }
+          </div>
+          <span class="step-label d-none d-md-inline">{{ step.label }}</span>
+        </div>
+      }
+    </div>
+
+    <!-- ── Error ──────────────────────────────────────────────────────────── -->
+    @if (error()) {
+      <div class="alert alert-danger alert-sm mx-4 mt-3 mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        {{ error() }}
+      </div>
+    }
+
+    <!-- ── Contenido del paso ─────────────────────────────────────────────── -->
+    <div class="wizard-body">
+      <!-- Cargando datos de edición -->
+      @if (loadingDetail()) {
+        <div class="d-flex justify-content-center align-items-center py-5">
+          <div class="spinner-border text-primary me-2" role="status"></div>
+          <span class="text-muted">Cargando datos…</span>
+        </div>
+      } @else {
+      <!-- ════ PASO 1: Identidad ════ -->
+      @if (currentStep() === 1) {
+        <div class="step-content">
+          <h6 class="step-section-title">Información básica</h6>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" placeholder="Ej: Fútbol Sub-15"
+                   [(ngModel)]="nombre" maxlength="100">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea class="form-control" rows="2" placeholder="Describe brevemente la actividad"
+                      [(ngModel)]="descripcion"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Tipo</label>
+            <div class="tipo-grid">
+              @for (t of tipos; track t) {
+                <button type="button" class="tipo-btn"
+                        [class.selected]="tipo === t"
+                        (click)="tipo = t">
+                  {{ labelTipo(t) }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Ícono</label>
+            <div class="emoji-grid">
+              @for (e of emojis; track e) {
+                <button type="button" class="emoji-btn"
+                        [class.selected]="icono === e"
+                        (click)="icono = e">{{ e }}</button>
+              }
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Color</label>
+            <div class="color-grid">
+              @for (c of colores; track c) {
+                <button type="button" class="color-swatch"
+                        [style.background]="c"
+                        [class.selected]="color === c"
+                        (click)="color = c">
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Modo de mensajería</label>
+            <div class="d-flex flex-column gap-2">
+              @for (opt of [
+                {val:'bidireccional', label:'Bidireccional', desc:'Entrenadores y alumnos pueden enviar y responder mensajes'},
+                {val:'solo_respuesta', label:'Solo respuesta', desc:'Los alumnos solo pueden responder mensajes del entrenador'},
+                {val:'solo_lectura', label:'Solo lectura', desc:'Los alumnos solo pueden leer, no pueden responder'}
+              ]; track opt.val) {
+                <label class="mensajeria-option" [class.selected]="modo_mensajeria === opt.val">
+                  <input type="radio" [(ngModel)]="modo_mensajeria" [value]="opt.val" class="visually-hidden">
+                  <div>
+                    <div class="fw-semibold">{{ opt.label }}</div>
+                    <small class="text-muted">{{ opt.desc }}</small>
+                  </div>
+                  @if (modo_mensajeria === opt.val) {
+                    <i class="bi bi-check-circle-fill text-primary ms-auto"></i>
+                  }
+                </label>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ════ PASO 2: Grupos ════ -->
+      @if (currentStep() === 2) {
+        <div class="step-content">
+          <h6 class="step-section-title">Grupos y categorías</h6>
+          <p class="text-muted small mb-3">Crea grupos por categoría o rango de edad. Podrás agregar equipos dentro de cada grupo.</p>
+
+          <!-- Agregar grupo -->
+          <div class="input-add-row mb-3">
+            <input type="text" class="form-control" placeholder="Nombre del grupo (Ej: Sub-12)"
+                   [(ngModel)]="nuevoGrupoNombre"
+                   (keydown.enter)="addGrupo()">
+            <button class="btn btn-primary" (click)="addGrupo()">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+
+          @if (grupos().length === 0) {
+            <div class="empty-hint">
+              <i class="bi bi-people text-muted d-block mb-2" style="font-size:2rem"></i>
+              <span>Agrega al menos un grupo para continuar</span>
+            </div>
+          }
+
+          <!-- Lista de grupos -->
+          @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
+            <div class="grupo-card" [class.active]="activeGrupoIndex() === gi">
+              <div class="grupo-header" (click)="activeGrupoIndex.set(gi)">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-people-fill text-primary"></i>
+                  <span class="fw-semibold">{{ g.nombre }}</span>
+                  <span class="badge bg-light text-secondary">{{ g.equipos.length }} equipos</span>
+                </div>
+                <button class="btn btn-sm btn-link text-danger p-0" (click)="removeGrupo(gi); $event.stopPropagation()">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+
+              @if (activeGrupoIndex() === gi) {
+                <div class="grupo-body">
+                  <div class="row g-2 mb-3">
+                    <div class="col-6">
+                      <label class="form-label small">Descripción</label>
+                      <input type="text" class="form-control form-control-sm"
+                             placeholder="Opcional" [(ngModel)]="grupos()[gi].descripcion">
+                    </div>
+                    <div class="col-3">
+                      <label class="form-label small">Edad mín.</label>
+                      <input type="number" class="form-control form-control-sm" min="0" max="99"
+                             [(ngModel)]="grupos()[gi].edad_min">
+                    </div>
+                    <div class="col-3">
+                      <label class="form-label small">Edad máx.</label>
+                      <input type="number" class="form-control form-control-sm" min="0" max="99"
+                             [(ngModel)]="grupos()[gi].edad_max">
+                    </div>
+                  </div>
+
+                  <!-- Equipos -->
+                  <label class="form-label small fw-semibold">Equipos</label>
+                  @for (eq of g.equipos; track trackByIdx($index, eq); let ei = $index) {
+                    <div class="equipo-row">
+                      <div class="equipo-color" [style.background]="eq.color"></div>
+                      <span>{{ eq.nombre }}</span>
+                      <button class="btn btn-sm btn-link text-danger ms-auto p-0"
+                              (click)="removeEquipo(gi, ei)">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </div>
+                  }
+
+                  <div class="input-add-row mt-2" #equipoInput>
+                    <input type="text" class="form-control form-control-sm"
+                           placeholder="Nombre del equipo"
+                           #newEquipoName
+                           (keydown.enter)="addEquipoToGrupo(gi, newEquipoName.value); newEquipoName.value=''">
+                    <button class="btn btn-sm btn-outline-primary"
+                            (click)="addEquipoToGrupo(gi, newEquipoName.value); newEquipoName.value=''">
+                      <i class="bi bi-plus-lg"></i>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ════ PASO 3: Horarios ════ -->
+      @if (currentStep() === 3) {
+        <div class="step-content">
+          <h6 class="step-section-title">Horarios de entrenamiento</h6>
+          <p class="text-muted small mb-3">Configura los días y horarios de cada grupo.</p>
+
+          @if (grupos().length === 0) {
+            <div class="empty-hint">
+              <i class="bi bi-clock text-muted d-block mb-2" style="font-size:2rem"></i>
+              <span>No hay grupos definidos. Vuelve al paso anterior.</span>
+            </div>
+          }
+
+          <!-- Tabs por grupo -->
+          @if (grupos().length > 0) {
+            <div class="grupo-tabs mb-3">
+              @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
+                <button type="button" class="grupo-tab"
+                        [class.active]="activeGrupoIndex() === gi"
+                        (click)="activeGrupoIndex.set(gi)">
+                  {{ g.nombre }}
+                </button>
+              }
+            </div>
+
+            @let gIdx = activeGrupoIndex();
+            @let gActual = grupos()[gIdx];
+            @if (gActual) {
+              <div class="horario-panel">
+                <label class="form-label fw-semibold small">Días</label>
+                <div class="dias-chips mb-3">
+                  @for (d of dias; track d.num) {
+                    <button type="button" class="dia-chip"
+                            [class.selected]="isDiaSelected(gIdx, d.num)"
+                            (click)="toggleDia(gIdx, d.num)">
+                      {{ d.label }}
+                    </button>
+                  }
+                </div>
+
+                @if (gActual.horarios.length > 0 && gActual.equipos.length === 0) {
+                  <div class="alert alert-info alert-sm d-flex align-items-center gap-2 py-2 mb-3">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <span class="small">Este grupo no tiene equipos. Se creará un equipo <strong>General</strong> automáticamente para guardar los horarios.</span>
+                  </div>
+                }
+
+                @if (gActual.horarios.length === 0) {
+                  <p class="text-muted small">Selecciona días para configurar horarios.</p>
+                }
+
+                @for (h of gActual.horarios; track h.dia_semana) {
+                  <div class="horario-row">
+                    <span class="dia-badge">{{ labelDia(h.dia_semana) }}</span>
+                    <div class="row g-2 flex-grow-1">
+                      <div class="col-3">
+                        <input type="time" class="form-control form-control-sm"
+                               [value]="h.hora_inicio"
+                               (change)="updateHorarioField(gIdx, h.dia_semana, 'hora_inicio', $any($event.target).value)">
+                      </div>
+                      <div class="col-3">
+                        <input type="time" class="form-control form-control-sm"
+                               [value]="h.hora_fin"
+                               (change)="updateHorarioField(gIdx, h.dia_semana, 'hora_fin', $any($event.target).value)">
+                      </div>
+                      <div class="col-6">
+                        <input type="text" class="form-control form-control-sm"
+                               placeholder="Lugar (opcional)"
+                               [value]="h.lugar"
+                               (input)="updateHorarioField(gIdx, h.dia_semana, 'lugar', $any($event.target).value)">
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- ════ PASO 4: Evaluación ════ -->
+      @if (currentStep() === 4) {
+        <div class="step-content">
+          <h6 class="step-section-title">Criterios de evaluación</h6>
+          <p class="text-muted small mb-3">Define los aspectos que se evaluarán en esta actividad.</p>
+
+          <!-- Agregar criterio -->
+          <div class="input-add-row mb-3">
+            <input type="text" class="form-control" placeholder="Ej: Técnica, Actitud, Puntualidad..."
+                   [(ngModel)]="nuevoCriterioNombre"
+                   (keydown.enter)="addCriterio()">
+            <button class="btn btn-primary" (click)="addCriterio()">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+
+          @if (criterios().length === 0) {
+            <div class="empty-hint">
+              <i class="bi bi-star text-muted d-block mb-2" style="font-size:2rem"></i>
+              <span>Agrega criterios de evaluación (opcional)</span>
+            </div>
+          }
+
+          @for (c of criterios(); track trackByIdx($index, c); let ci = $index) {
+            <div class="criterio-row">
+              <div class="drag-handle"><i class="bi bi-grip-vertical text-muted"></i></div>
+              <div class="flex-grow-1">
+                <input type="text" class="form-control form-control-sm mb-1"
+                       [(ngModel)]="criterios()[ci].nombre">
+                <div class="d-flex gap-2 align-items-center">
+                  <small class="text-muted">Escala:</small>
+                  <input type="number" class="form-control form-control-sm scale-input"
+                         min="1" max="10" [(ngModel)]="criterios()[ci].escala_min">
+                  <span class="text-muted">–</span>
+                  <input type="number" class="form-control form-control-sm scale-input"
+                         min="1" max="10" [(ngModel)]="criterios()[ci].escala_max">
+                </div>
+              </div>
+              <button class="btn btn-sm btn-link text-danger p-0 ms-2"
+                      (click)="removeCriterio(ci)">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ════ PASO 5: Resumen ════ -->
+      @if (currentStep() === 5) {
+        <div class="step-content">
+          <h6 class="step-section-title">Resumen</h6>
+          <p class="text-muted small mb-3">Revisa los datos antes de {{ isEditing() ? 'guardar los cambios' : 'publicar la actividad' }}.</p>
+
+          <!-- Preview card -->
+          <div class="preview-card mb-4">
+            <div class="preview-icon" [style.background]="color">
+              <span>{{ icono }}</span>
+            </div>
+            <div>
+              <h5 class="mb-0">{{ nombre || '—' }}</h5>
+              <small class="text-muted">{{ descripcion || 'Sin descripción' }}</small>
+            </div>
+          </div>
+
+          <!-- Resumen lista -->
+          <div class="summary-list">
+            <div class="summary-row">
+              <span class="summary-label"><i class="bi bi-tag me-2"></i>Tipo</span>
+              <span>{{ labelTipo(tipo) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label"><i class="bi bi-chat me-2"></i>Mensajería</span>
+              <span>{{ labelMensajeria(modo_mensajeria) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label"><i class="bi bi-people me-2"></i>Grupos</span>
+              <span>{{ grupos().length }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label"><i class="bi bi-shield-check me-2"></i>Equipos</span>
+              <span>{{ totalEquipos() }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label"><i class="bi bi-star me-2"></i>Criterios de evaluación</span>
+              <span>{{ criterios().length }}</span>
+            </div>
+          </div>
+
+          @if (grupos().length > 0) {
+            <div class="mt-3">
+              <h6 class="small fw-semibold text-muted mb-2">GRUPOS</h6>
+              @for (g of grupos(); track trackByIdx($index, g)) {
+                <div class="summary-grupo">
+                  <i class="bi bi-people-fill text-primary me-2"></i>
+                  <strong>{{ g.nombre }}</strong>
+                  @if (g.edad_min || g.edad_max) {
+                    <small class="text-muted ms-2">({{ g.edad_min ?? '?' }}–{{ g.edad_max ?? '?' }} años)</small>
+                  }
+                  <span class="ms-auto text-muted small">{{ g.equipos.length }} equipos · {{ g.horarios.length }} días</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      } <!-- end @else loadingDetail -->
+    </div><!-- /wizard-body -->
+
+    <!-- ── Footer con navegación ─────────────────────────────────────────── -->
+    <div class="wizard-footer">
+      <button class="btn btn-outline-secondary" (click)="cancel()">
+        Cancelar
+      </button>
+      <div class="d-flex gap-2">
+        @if (currentStep() > 1) {
+          <button class="btn btn-outline-primary" (click)="prev()">
+            <i class="bi bi-chevron-left me-1"></i>Anterior
+          </button>
+        }
+        @if (currentStep() < steps.length) {
+          <button class="btn btn-primary" (click)="next()">
+            Siguiente<i class="bi bi-chevron-right ms-1"></i>
+          </button>
+        }
+        @if (currentStep() === steps.length) {
+          <button class="btn btn-success" [disabled]="saving()" (click)="publish()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-2"></span>
+            } @else {
+              <i class="bi bi-rocket-takeoff me-2"></i>
+            }
+            {{ isEditing() ? 'Guardar cambios' : 'Publicar actividad' }}
+          </button>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>
