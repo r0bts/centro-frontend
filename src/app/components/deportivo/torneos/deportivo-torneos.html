@@ -1,0 +1,164 @@
+<div class="torneos-page">
+  <!-- ── Toast de éxito ───────────────────────────────────────────────── -->
+  @if (successMsg()) {
+    <div class="alert alert-success d-flex align-items-center gap-2 mb-3 py-2">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMsg() }}</span>
+    </div>
+  }
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
+  <div class="torneos-header">
+    <div class="torneos-header__info">
+      <h1 class="torneos-header__title">
+        <i class="bi bi-trophy me-2"></i>Torneos
+      </h1>
+      <p class="torneos-header__subtitle">Gestión de competencias y calendario de partidos</p>
+    </div>
+    <button class="btn btn-primary btn-sm" (click)="openWizard()">
+      <i class="bi bi-plus-lg me-1"></i>Nuevo Torneo
+    </button>
+  </div>
+
+  <!-- ── Filtros ─────────────────────────────────────────────────────────── -->
+  <div class="torneos-filtros">
+    <!-- Chips de formato -->
+    <div class="filtros-grupo">
+      <span class="filtros-label">Formato:</span>
+      @for (fmt of formatos; track fmt) {
+        <button
+          class="filtro-chip"
+          [class.active]="filtroFormato() === fmt"
+          [style.--chip-color]="formatoMeta[fmt].color"
+          (click)="setFiltroFormato(fmt)">
+          <i class="bi me-1" [class]="formatoMeta[fmt].icon"></i>
+          {{ formatoMeta[fmt].label }}
+        </button>
+      }
+    </div>
+    <!-- Estado -->
+    <div class="filtros-grupo">
+      <span class="filtros-label">Estado:</span>
+      <button class="filtro-chip" [class.active]="filtroActivo() === true" (click)="setFiltroActivo(true)">
+        <i class="bi bi-check-circle me-1"></i>Activos
+      </button>
+      <button class="filtro-chip" [class.active]="filtroActivo() === false" (click)="setFiltroActivo(false)">
+        <i class="bi bi-pause-circle me-1"></i>Inactivos
+      </button>
+    </div>
+    <!-- Contador -->
+    <span class="filtros-count">{{ torneosFiltrados().length }} torneo(s)</span>
+  </div>
+
+  <!-- ── Error ────────────────────────────────────────────────────────────── -->
+  @if (error()) {
+    <div class="alert alert-danger alert-dismissible mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ error() }}
+      <button type="button" class="btn-close" (click)="loadTorneos()"></button>
+    </div>
+  }
+
+  <!-- ── Loading ──────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="torneos-loading">
+      <div class="spinner-border text-primary" role="status"></div>
+      <span class="ms-2 text-muted">Cargando torneos...</span>
+    </div>
+  }
+
+  <!-- ── Grid de tarjetas ─────────────────────────────────────────────────── -->
+  @if (!loading()) {
+    @if (torneosFiltrados().length === 0) {
+      <div class="torneos-empty">
+        <i class="bi bi-trophy display-4 text-muted"></i>
+        <p class="mt-3 text-muted">No hay torneos que coincidan con los filtros.</p>
+        <button class="btn btn-outline-primary btn-sm mt-2" (click)="openWizard()">
+          <i class="bi bi-plus-lg me-1"></i>Crear primer torneo
+        </button>
+      </div>
+    } @else {
+      <div class="torneos-grid">
+        @for (t of torneosFiltrados(); track t.id; let i = $index) {
+          <div class="torneo-card" [style.--fmt-color]="formatoMeta[t.formato].color">
+
+            <!-- Badge formato + estado -->
+            <div class="torneo-card__badges">
+              <span class="badge" [ngClass]="formatoMeta[t.formato].badgeClass">
+                <i class="bi me-1" [class]="formatoMeta[t.formato].icon"></i>
+                {{ formatoMeta[t.formato].label }}
+              </span>
+              <span class="badge" [ngClass]="t.is_active ? 'bg-success' : 'bg-secondary'">
+                {{ t.is_active ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+
+            <!-- Nombre -->
+            <h5 class="torneo-card__nombre">{{ t.nombre }}</h5>
+
+            <!-- Actividad -->
+            @if (t.actividad) {
+              <p class="torneo-card__actividad">
+                <i class="bi bi-grid-3x3-gap me-1"></i>{{ t.actividad.nombre }}
+              </p>
+            }
+
+            <!-- Sede -->
+            @if (t.sede) {
+              <p class="torneo-card__sede">
+                <i class="bi bi-geo-alt me-1"></i>{{ t.sede }}
+              </p>
+            }
+
+            <!-- Fechas -->
+            <div class="torneo-card__fechas">
+              <span><i class="bi bi-calendar-event me-1"></i>{{ formatFecha(t.fecha_inicio) }}</span>
+              @if (t.fecha_fin) {
+                <span class="mx-1">→</span>
+                <span>{{ formatFecha(t.fecha_fin) }}</span>
+              }
+            </div>
+
+            <!-- Acciones -->
+            <div class="torneo-card__actions">
+              <button class="card-action-btn card-action-btn--view" title="Ver detalle" (click)="openDetalle(t)">
+                <i class="bi bi-eye me-1"></i>Ver
+              </button>
+              <button class="card-action-btn card-action-btn--edit" title="Editar" (click)="editTorneo(t)">
+                <i class="bi bi-pencil me-1"></i>Editar
+              </button>
+              <button class="card-action-btn card-action-btn--toggle"
+                [title]="t.is_active ? 'Desactivar' : 'Activar'"
+                (click)="toggleActive(t)">
+                <i class="bi me-1" [class]="t.is_active ? 'bi-pause-circle' : 'bi-play-circle'"></i>
+                {{ t.is_active ? 'Desactivar' : 'Activar' }}
+              </button>
+              <button class="card-action-btn card-action-btn--delete" title="Eliminar" (click)="confirmDelete(t)">
+                <i class="bi bi-trash me-1"></i>Eliminar
+              </button>
+            </div>
+
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- ── Wizard ───────────────────────────────────────────────── -->
+  @if (showWizard()) {
+    <app-torneo-wizard
+      [editTorneo]="editando()"
+      (saved)="onWizardSaved($event)"
+      (cancelled)="onWizardCancelled()"
+    />
+  }
+
+  <!-- ── Detalle ──────────────────────────────────────────────────────────── -->
+  @if (showDetalle() && torneoActivo()) {
+    <app-torneo-detalle
+      [torneo]="torneoActivo()!"
+      [formData]="formData()"
+      (closed)="closeDetalle()"
+      (reloaded)="loadTorneos()"
+    />
+  }
+
+</div>

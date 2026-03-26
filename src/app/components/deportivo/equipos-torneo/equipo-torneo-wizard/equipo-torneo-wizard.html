@@ -1,0 +1,215 @@
+<div class="etw-overlay">
+  <div class="etw-container">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="etw-header">
+      <div class="etw-header__title">
+        <i class="bi bi-people-fill me-2"></i>
+        {{ isEditing() ? 'Editar Equipo' : 'Nuevo Equipo de Torneo' }}
+      </div>
+      <button class="etw-header__close" (click)="cancel()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- ── Stepper ──────────────────────────────────────────────────────────── -->
+    <div class="etw-stepper">
+      <div class="etw-stepper__bar">
+        <div class="etw-stepper__progress" [style.width.%]="progressPct()"></div>
+      </div>
+      <div class="etw-stepper__steps">
+        @for (step of steps; track step.id) {
+          <button
+            class="etw-step"
+            [class.active]="currentStep() === step.id"
+            [class.done]="currentStep() > step.id"
+            (click)="goTo(step.id)"
+            [disabled]="step.id > currentStep() + 1"
+          >
+            <span class="etw-step__dot">
+              @if (currentStep() > step.id) {
+                <i class="bi bi-check"></i>
+              } @else {
+                {{ step.id }}
+              }
+            </span>
+            <span class="etw-step__label">{{ step.label }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+    <div class="etw-body">
+
+      <!-- Error global -->
+      @if (error()) {
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-3 py-2">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <!-- ── PASO 1: Información ───────────────────────────────────────────── -->
+      @if (currentStep() === 1) {
+        <div class="etw-step-content">
+          <h6 class="etw-step-title">Información del equipo</h6>
+
+          <!-- Nombre -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Nombre <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="nombre"
+              name="nombre"
+              placeholder="Ej. Águilas FC"
+              maxlength="150"
+            />
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea
+              class="form-control"
+              [(ngModel)]="descripcion"
+              name="descripcion"
+              rows="2"
+              maxlength="500"
+              placeholder="Descripción breve del equipo (opcional)"
+            ></textarea>
+          </div>
+
+          <!-- Color del equipo -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Color del equipo</label>
+            <div class="etw-color-picker">
+              <!-- Sugerencias rápidas -->
+              <div class="etw-color-picker__swatches">
+                @for (c of coloresSugeridos; track c) {
+                  <button
+                    type="button"
+                    class="etw-color-swatch"
+                    [style.background]="c"
+                    [class.selected]="color === c"
+                    (click)="selectColor(c)"
+                    [title]="c"
+                  ></button>
+                }
+              </div>
+              <!-- Input nativo -->
+              <div class="etw-color-picker__custom">
+                <input
+                  type="color"
+                  class="etw-color-input"
+                  [(ngModel)]="color"
+                  name="color"
+                  title="Seleccionar color personalizado"
+                />
+                <span class="etw-color-hex">{{ color }}</span>
+              </div>
+            </div>
+            <!-- Preview -->
+            <div class="etw-color-preview" [style.border-left-color]="color">
+              <span class="etw-color-preview__text">Vista previa del equipo</span>
+            </div>
+          </div>
+
+          <!-- Estado -->
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="etw-is-active"
+                [(ngModel)]="is_active"
+                name="is_active"
+              />
+              <label class="form-check-label" for="etw-is-active">
+                Equipo activo
+              </label>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- ── PASO 2: Resumen ───────────────────────────────────────────────── -->
+      @if (currentStep() === 2) {
+        <div class="etw-step-content">
+          <h6 class="etw-step-title">Resumen</h6>
+
+          <div class="etw-resumen">
+            <div class="etw-resumen__card" [style.border-left-color]="color">
+              <!-- Color swatch -->
+              <div class="etw-resumen__color" [style.background]="color"></div>
+
+              <!-- Info -->
+              <div class="etw-resumen__info">
+                <div class="etw-resumen__row">
+                  <span class="etw-resumen__label">Nombre</span>
+                  <span class="etw-resumen__value fw-semibold">{{ nombre }}</span>
+                </div>
+                @if (descripcion) {
+                  <div class="etw-resumen__row">
+                    <span class="etw-resumen__label">Descripción</span>
+                    <span class="etw-resumen__value text-muted small">{{ descripcion }}</span>
+                  </div>
+                }
+                <div class="etw-resumen__row">
+                  <span class="etw-resumen__label">Estado</span>
+                  <span class="badge" [ngClass]="is_active ? 'bg-success' : 'bg-secondary'">
+                    {{ is_active ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          @if (!isEditing()) {
+            <p class="text-muted small mt-3 mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Una vez creado el equipo podrás agregar integrantes desde el detalle.
+            </p>
+          }
+        </div>
+      }
+
+    </div>
+
+    <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+    <div class="etw-footer">
+      <button class="btn btn-outline-secondary btn-sm" (click)="cancel()">
+        Cancelar
+      </button>
+      <div class="etw-footer__nav">
+        @if (currentStep() > 1) {
+          <button class="btn btn-outline-secondary btn-sm" (click)="prev()">
+            <i class="bi bi-chevron-left me-1"></i>Atrás
+          </button>
+        }
+        @if (currentStep() < steps.length) {
+          <button class="btn btn-primary btn-sm" (click)="next()">
+            Siguiente<i class="bi bi-chevron-right ms-1"></i>
+          </button>
+        } @else {
+          <button
+            class="btn btn-success btn-sm"
+            (click)="submit()"
+            [disabled]="saving()"
+          >
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>Guardando...
+            } @else {
+              <i class="bi bi-check-lg me-1"></i>
+              {{ isEditing() ? 'Guardar cambios' : 'Crear equipo' }}
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>

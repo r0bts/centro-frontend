@@ -1,0 +1,330 @@
+<div class="td-overlay">
+  <div class="td-container">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="td-header" [style.--fmt-color]="meta().color">
+      <div class="td-header__left">
+        <span class="badge td-header__badge" [ngClass]="meta().badgeClass">
+          <i class="bi me-1" [ngClass]="meta().icon"></i>{{ meta().label }}
+        </span>
+        <h2 class="td-header__nombre">{{ torneo.nombre }}</h2>
+        @if (torneo.actividad?.nombre) {
+          <span class="td-header__actividad">{{ torneo.actividad!.nombre }}</span>
+        }
+        @if (torneo.sede) {
+          <span class="td-header__sede"><i class="bi bi-geo-alt me-1"></i>{{ torneo.sede }}</span>
+        }
+      </div>
+      <button class="td-header__close" (click)="close()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- ── Toast ────────────────────────────────────────────────────────────── -->
+    @if (successMsg()) {
+      <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-0 rounded-0 border-0 border-bottom">
+        <i class="bi bi-check-circle-fill"></i>{{ successMsg() }}
+      </div>
+    }
+    @if (error()) {
+      <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-0 rounded-0 border-0 border-bottom">
+        <i class="bi bi-exclamation-triangle-fill"></i>{{ error() }}
+      </div>
+    }
+
+    <!-- ── Tabs ─────────────────────────────────────────────────────────────── -->
+    <div class="td-tabs">
+      <button class="td-tab" [class.active]="tab() === 'participantes'" (click)="setTab('participantes')">
+        <i class="bi bi-people me-1"></i>Participantes
+        <span class="td-tab__count">{{ inscripciones().length }}</span>
+      </button>
+      <button class="td-tab" [class.active]="tab() === 'jornadas'" (click)="setTab('jornadas')">
+        <i class="bi bi-calendar-week me-1"></i>Jornadas
+        <span class="td-tab__count">{{ jornadas().length }}</span>
+      </button>
+      <button class="td-tab" [class.active]="tab() === 'posiciones'" (click)="setTab('posiciones')">
+        <i class="bi bi-bar-chart me-1"></i>Posiciones
+      </button>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+    <div class="td-body">
+
+      <!-- ════════════════ TAB PARTICIPANTES ════════════════ -->
+      @if (tab() === 'participantes') {
+
+        <!-- Add inscripción -->
+        <div class="td-section td-add-insc">
+          @if (!equipoSeleccionado) {
+            <!-- Campo de búsqueda -->
+            <div class="td-picker">
+              <div class="td-picker__field">
+                <i class="bi bi-search td-picker__field-icon"></i>
+                <input
+                  type="text"
+                  class="form-control form-control-sm td-picker__field-input"
+                  [value]="busquedaEquipo"
+                  (input)="onBusquedaEquipo($event)"
+                  placeholder="Buscar equipo para inscribir..."
+                />
+                @if (busquedaEquipo) {
+                  <button class="td-picker__field-clear" (click)="clearEquipo()" title="Limpiar">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                }
+              </div>
+
+              @if (busquedaEquipo && equiposDisponibles().length > 0) {
+                <div class="td-picker__dropdown">
+                  @for (eq of equiposDisponibles(); track eq.id) {
+                    <button class="td-picker__dropdown-item" (click)="selectEquipo(eq)">
+                      <span class="td-picker__dropdown-dot" [style.background]="eq.color ?? '#6c757d'"></span>
+                      {{ eq.nombre }}
+                    </button>
+                  }
+                </div>
+              }
+
+              @if (busquedaEquipo && equiposDisponibles().length === 0) {
+                <div class="td-picker__dropdown">
+                  <span class="td-picker__dropdown-item text-muted" style="pointer-events:none">
+                    <i class="bi bi-search me-1"></i>Sin resultados
+                  </span>
+                </div>
+              }
+            </div>
+
+          } @else {
+            <!-- Chip equipo seleccionado + botón inscribir -->
+            <div class="d-flex align-items-center gap-2 w-100">
+              <div class="td-picker__selected">
+                <span class="td-picker__selected-dot" [style.background]="equipoSeleccionado.color ?? '#6c757d'"></span>
+                <span class="td-picker__selected-name">{{ equipoSeleccionado.nombre }}</span>
+              </div>
+              <button class="btn btn-outline-secondary btn-sm" (click)="clearEquipo()" title="Cambiar">
+                <i class="bi bi-arrow-left-short"></i>
+              </button>
+              <button
+                class="btn btn-primary btn-sm"
+                (click)="addInscripcion()"
+                [disabled]="addingInsc()"
+              >
+                @if (addingInsc()) {
+                  <span class="spinner-border spinner-border-sm me-1"></span>
+                } @else {
+                  <i class="bi bi-plus-lg me-1"></i>
+                }
+                Inscribir
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Lista de inscritos -->
+        @if (loadingInsc()) {
+          <div class="td-loading"><span class="spinner-border spinner-border-sm"></span></div>
+        } @else if (inscripciones().length === 0) {
+          <div class="td-empty">
+            <i class="bi bi-people display-6 text-muted"></i>
+            <p class="mt-2 text-muted">Sin participantes inscritos</p>
+          </div>
+        } @else {
+          <div class="td-list">
+            @for (insc of inscripcionesOrdenadas(); track insc.id; let idx = $index) {
+              <div class="insc-item">
+                @if (torneo.formato === 'escalera') {
+                  <span class="insc-item__pos">{{ insc.posicion_escalera ?? idx + 1 }}</span>
+                } @else {
+                  <span class="insc-item__pos text-muted">{{ idx + 1 }}</span>
+                }
+                <span class="insc-item__nombre">
+                  @if (colorInscripcion(insc)) {
+                    <span class="insc-item__dot" [style.background]="colorInscripcion(insc)!"></span>
+                  }
+                  {{ nombreInscripcion(insc) }}
+                </span>
+                <span class="insc-item__pts text-muted small">
+                  {{ insc.puntos_totales }} pts · {{ insc.partidos_jugados }} PJ
+                </span>
+
+                @if (torneo.formato === 'escalera') {
+                  <div class="insc-item__move">
+                    <button class="btn btn-outline-secondary btn-xs" title="Subir" (click)="moverPosicion(insc, 'up')">
+                      <i class="bi bi-chevron-up"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-xs" title="Bajar" (click)="moverPosicion(insc, 'down')">
+                      <i class="bi bi-chevron-down"></i>
+                    </button>
+                  </div>
+                }
+
+                <button class="btn btn-outline-danger btn-xs ms-auto" title="Quitar" (click)="removeInscripcion(insc)">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- ════════════════ TAB JORNADAS ════════════════ -->
+      @if (tab() === 'jornadas') {
+
+        <!-- Acción generar -->
+        <div class="td-section d-flex align-items-center gap-2">
+          <button
+            class="btn btn-outline-primary btn-sm"
+            (click)="generarJornadas()"
+            [disabled]="generando() || inscripciones().length < 2"
+            title="{{ inscripciones().length < 2 ? 'Necesitas al menos 2 participantes' : '' }}"
+          >
+            @if (generando()) {
+              <span class="spinner-border spinner-border-sm me-1"></span> Generando...
+            } @else {
+              <i class="bi bi-magic me-1"></i> Generar jornadas
+            }
+          </button>
+          @if (inscripciones().length < 2) {
+            <small class="text-muted">Necesitas al menos 2 participantes</small>
+          }
+        </div>
+
+        @if (loadingJorn()) {
+          <div class="td-loading"><span class="spinner-border spinner-border-sm"></span></div>
+        } @else if (jornadas().length === 0) {
+          <div class="td-empty">
+            <i class="bi bi-calendar-x display-6 text-muted"></i>
+            <p class="mt-2 text-muted">Sin jornadas generadas</p>
+          </div>
+        } @else {
+
+          <!-- Formulario edición inline -->
+          @if (editJornada(); as j) {
+            <div class="td-section edit-jornada-form">
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <strong class="small">Editar Jornada {{ j.numero }}</strong>
+                <button class="btn-close btn-sm" (click)="cancelEditJornada()"></button>
+              </div>
+              <div class="row g-2">
+                <div class="col-12">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="editNombre" placeholder="Nombre o fase (ej. Semifinal)" name="edit_nombre" />
+                </div>
+                <div class="col-6">
+                  <label class="form-label form-label-sm mb-1">Inicio</label>
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="editFechaInicio" name="edit_fi" />
+                </div>
+                <div class="col-6">
+                  <label class="form-label form-label-sm mb-1">Fin</label>
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="editFechaFin" name="edit_ff" />
+                </div>
+              </div>
+              <div class="d-flex gap-2 mt-2">
+                <button class="btn btn-primary btn-sm" (click)="saveJornada()" [disabled]="savingJornada()">
+                  @if (savingJornada()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                  Guardar
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" (click)="cancelEditJornada()">Cancelar</button>
+              </div>
+            </div>
+          }
+
+          <!-- Lista de jornadas -->
+          <div class="td-list">
+            @for (j of jornadas(); track j.id) {
+              <div class="jorn-item">
+                <div class="jorn-item__left">
+                  <span class="jorn-item__num">J{{ j.numero }}</span>
+                  <div>
+                    <div class="jorn-item__nombre">{{ j.nombre || ('Jornada ' + j.numero) }}</div>
+                    <div class="jorn-item__fechas text-muted small">
+                      {{ formatFecha(j.fecha_inicio) }} → {{ formatFecha(j.fecha_fin) }}
+                      @if (j.num_partidos) { · {{ j.num_partidos }} partidos }
+                    </div>
+                  </div>
+                </div>
+                <div class="jorn-item__right">
+                  <span class="badge" [ngClass]="estadoJornadaClass(j.estado)">{{ j.estado }}</span>
+                  <button class="btn btn-outline-secondary btn-xs" title="Editar" (click)="openEditJornada(j)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  @if (j.estado === 'pendiente') {
+                    <button class="btn btn-outline-warning btn-xs" title="Iniciar" (click)="cambiarEstadoJornada(j, 'en_curso')">
+                      <i class="bi bi-play-fill"></i>
+                    </button>
+                  }
+                  @if (j.estado === 'en_curso') {
+                    <button class="btn btn-outline-success btn-xs" title="Finalizar" (click)="cambiarEstadoJornada(j, 'finalizada')">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- ════════════════ TAB POSICIONES ════════════════ -->
+      @if (tab() === 'posiciones') {
+
+        @if (loadingInsc()) {
+          <div class="td-loading"><span class="spinner-border spinner-border-sm"></span></div>
+        } @else if (inscripciones().length === 0) {
+          <div class="td-empty">
+            <i class="bi bi-bar-chart display-6 text-muted"></i>
+            <p class="mt-2 text-muted">Sin datos de posiciones</p>
+          </div>
+        } @else {
+          <div class="td-section p-0">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="text-center">#</th>
+                  <th>
+                    @if (torneo.formato === 'escalera') { Posición }
+                    @else { Equipo }
+                  </th>
+                  <th class="text-center">PJ</th>
+                  <th class="text-center">G</th>
+                  <th class="text-center">E</th>
+                  <th class="text-center">P</th>
+                  <th class="text-center">GF</th>
+                  <th class="text-center">GC</th>
+                  <th class="text-center fw-bold">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (insc of inscripcionesOrdenadas(); track insc.id; let idx = $index) {
+                  <tr [class.table-success]="idx === 0" [class.table-warning]="idx === 1">
+                    <td class="text-center fw-bold">{{ idx + 1 }}</td>
+                    <td>{{ nombreInscripcion(insc) }}</td>
+                    <td class="text-center">{{ insc.partidos_jugados }}</td>
+                    <td class="text-center text-success">{{ insc.partidos_ganados }}</td>
+                    <td class="text-center">{{ insc.partidos_empatados }}</td>
+                    <td class="text-center text-danger">{{ insc.partidos_perdidos }}</td>
+                    <td class="text-center">{{ insc.goles_favor }}</td>
+                    <td class="text-center">{{ insc.goles_contra }}</td>
+                    <td class="text-center fw-bold">{{ insc.puntos_totales }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+    </div><!-- /td-body -->
+
+    <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+    <div class="td-footer">
+      <span class="text-muted small">
+        @if (torneo.fecha_inicio || torneo.fecha_fin) {
+          <i class="bi bi-calendar me-1"></i>
+          {{ formatFechaLarga(torneo.fecha_inicio) }} → {{ formatFechaLarga(torneo.fecha_fin) }}
+        }
+      </span>
+      <button class="btn btn-outline-secondary btn-sm" (click)="close()">Cerrar</button>
+    </div>
+
+  </div>
+</div>

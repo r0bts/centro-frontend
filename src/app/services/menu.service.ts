@@ -118,8 +118,9 @@ export class MenuService {
       if (item.children) {
         // Es un padre, revisar hijos
         for (const child of item.children) {
-          child.active = currentRoute.startsWith(child.route || '');
-          
+          const r = child.route || '';
+          child.active = currentRoute === r || currentRoute.startsWith(r + '/');
+
           // Si un hijo está activo, marcar el padre como activo pero NO expandirlo automáticamente
           if (child.active) {
             item.active = true;
@@ -127,7 +128,7 @@ export class MenuService {
         }
       } else if (item.route) {
         // Es un item simple
-        item.active = currentRoute.startsWith(item.route);
+        item.active = currentRoute === item.route || currentRoute.startsWith(item.route + '/');
       }
     }
   }

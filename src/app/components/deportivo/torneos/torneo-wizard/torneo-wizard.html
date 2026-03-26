@@ -1,0 +1,269 @@
+<div class="tw-overlay">
+  <div class="tw-container">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="tw-header">
+      <div class="tw-header__title">
+        <i class="bi bi-trophy me-2"></i>
+        {{ isEditing() ? 'Editar Torneo' : 'Nuevo Torneo' }}
+      </div>
+      <button class="tw-header__close" (click)="cancel()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- ── Stepper ──────────────────────────────────────────────────────────── -->
+    <div class="tw-stepper">
+      <div class="tw-stepper__bar">
+        <div class="tw-stepper__progress" [style.width.%]="progressPct()"></div>
+      </div>
+      <div class="tw-stepper__steps">
+        @for (step of steps; track step.id) {
+          <button
+            class="tw-step"
+            [class.active]="currentStep() === step.id"
+            [class.done]="currentStep() > step.id"
+            (click)="goTo(step.id)"
+            [disabled]="step.id > currentStep() + 1"
+          >
+            <span class="tw-step__dot">
+              @if (currentStep() > step.id) {
+                <i class="bi bi-check"></i>
+              } @else {
+                {{ step.id }}
+              }
+            </span>
+            <span class="tw-step__label">{{ step.label }}</span>
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+    <div class="tw-body">
+
+      <!-- Error global -->
+      @if (error()) {
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-3 py-2">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span>{{ error() }}</span>
+        </div>
+      }
+
+      <!-- ── PASO 1: Información ───────────────────────────────────────────── -->
+      @if (currentStep() === 1) {
+        <div class="tw-step-content">
+          <h6 class="tw-step-title">Información del torneo</h6>
+
+          <!-- Nombre -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">
+              Nombre <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="nombre"
+              name="nombre"
+              placeholder="Ej. Torneo Primavera 2025"
+              maxlength="120"
+            />
+          </div>
+
+          <!-- Descripción -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea
+              class="form-control"
+              [(ngModel)]="descripcion"
+              name="descripcion"
+              rows="2"
+              placeholder="Descripción opcional del torneo..."
+              maxlength="500"
+            ></textarea>
+          </div>
+
+          <!-- Sede -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Sede</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="sede"
+              name="sede"
+              placeholder="Ej. Cancha Principal"
+              maxlength="200"
+            />
+          </div>
+
+          <!-- Fechas -->
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Fecha inicio</label>
+              <input
+                type="date"
+                class="form-control"
+                [(ngModel)]="fecha_inicio"
+                name="fecha_inicio"
+              />
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Fecha fin</label>
+              <input
+                type="date"
+                class="form-control"
+                [(ngModel)]="fecha_fin"
+                name="fecha_fin"
+              />
+            </div>
+          </div>
+
+          <!-- Estado -->
+          <div class="form-check form-switch">
+            <input
+              class="form-check-input"
+              type="checkbox"
+              [(ngModel)]="is_active"
+              name="is_active"
+              id="torneo_is_active"
+            />
+            <label class="form-check-label" for="torneo_is_active">
+              Torneo activo desde el inicio
+            </label>
+          </div>
+        </div>
+      }
+
+      <!-- ── PASO 2: Formato ───────────────────────────────────────────────── -->
+      @if (currentStep() === 2) {
+        <div class="tw-step-content">
+          <h6 class="tw-step-title">¿Qué formato tiene este torneo?</h6>
+          <p class="tw-step-hint">Selecciona el tipo de competencia. Esto determina cómo se generan las jornadas y el ranking.</p>
+
+          <div class="formato-grid">
+            @for (meta of formatosMeta; track meta.key) {
+              <button
+                class="formato-card"
+                [class.selected]="formato === meta.key"
+                [style.--fmt-color]="meta.color"
+                (click)="selectFormato(meta.key)"
+                type="button"
+              >
+                <div class="formato-card__icon">
+                  <i class="bi" [ngClass]="meta.icon" [style.color]="meta.color"></i>
+                </div>
+                <div class="formato-card__label">{{ meta.label }}</div>
+                <div class="formato-card__desc">{{ meta.descripcion }}</div>
+                @if (formato === meta.key) {
+                  <div class="formato-card__check">
+                    <i class="bi bi-check-circle-fill" [style.color]="meta.color"></i>
+                  </div>
+                }
+              </button>
+            }
+          </div>
+        </div>
+      }
+
+      <!-- ── PASO 3: Resumen ───────────────────────────────────────────────── -->
+      @if (currentStep() === 3) {
+        <div class="tw-step-content">
+          <h6 class="tw-step-title">Resumen del torneo</h6>
+          <p class="tw-step-hint">Revisa la información antes de guardar.</p>
+
+          <div class="resumen-card">
+            <!-- Nombre + actividad -->
+            <div class="resumen-row">
+              <span class="resumen-label"><i class="bi bi-trophy me-1"></i>Torneo</span>
+              <span class="resumen-value fw-bold">{{ nombre }}</span>
+            </div>
+
+            <!-- Formato -->
+            @if (selectedFormatoMeta(); as meta) {
+              <div class="resumen-row">
+                <span class="resumen-label"><i class="bi" [ngClass]="meta.icon"></i> Formato</span>
+                <span class="resumen-value">
+                  <span class="badge" [ngClass]="meta.badgeClass">{{ meta.label }}</span>
+                  <small class="ms-2 text-muted">{{ meta.descripcion }}</small>
+                </span>
+              </div>
+            }
+
+            <!-- Sede -->
+            <div class="resumen-row">
+              <span class="resumen-label"><i class="bi bi-geo-alt me-1"></i>Sede</span>
+              <span class="resumen-value">{{ sede || '—' }}</span>
+            </div>
+
+            <!-- Fechas -->
+            <div class="resumen-row">
+              <span class="resumen-label"><i class="bi bi-calendar me-1"></i>Fechas</span>
+              <span class="resumen-value">
+                @if (fecha_inicio || fecha_fin) {
+                  {{ fecha_inicio || '?' }} → {{ fecha_fin || '?' }}
+                } @else {
+                  <span class="text-muted">No definidas</span>
+                }
+              </span>
+            </div>
+
+            <!-- Descripción -->
+            @if (descripcion) {
+              <div class="resumen-row align-items-start">
+                <span class="resumen-label"><i class="bi bi-text-paragraph me-1"></i>Descripción</span>
+                <span class="resumen-value text-muted">{{ descripcion }}</span>
+              </div>
+            }
+
+            <!-- Estado -->
+            <div class="resumen-row">
+              <span class="resumen-label"><i class="bi bi-toggle-on me-1"></i>Estado</span>
+              <span class="resumen-value">
+                <span class="badge" [ngClass]="is_active ? 'bg-success' : 'bg-secondary'">
+                  {{ is_active ? 'Activo' : 'Inactivo' }}
+                </span>
+              </span>
+            </div>
+          </div>
+
+          @if (isEditing()) {
+            <p class="text-muted small mt-2 mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Los participantes y jornadas existentes no se modificarán.
+            </p>
+          }
+        </div>
+      }
+
+    </div><!-- /tw-body -->
+
+    <!-- ── Footer ────────────────────────────────────────────────────────────── -->
+    <div class="tw-footer">
+      <button class="btn btn-outline-secondary btn-sm" (click)="cancel()" [disabled]="saving()">
+        Cancelar
+      </button>
+      <div class="d-flex gap-2">
+        @if (currentStep() > 1) {
+          <button class="btn btn-outline-secondary btn-sm" (click)="prev()" [disabled]="saving()">
+            <i class="bi bi-chevron-left me-1"></i> Anterior
+          </button>
+        }
+        @if (currentStep() < steps.length) {
+          <button class="btn btn-primary btn-sm" (click)="next()">
+            Siguiente <i class="bi bi-chevron-right ms-1"></i>
+          </button>
+        } @else {
+          <button class="btn btn-success btn-sm" (click)="submit()" [disabled]="saving()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1"></span> Guardando...
+            } @else {
+              <i class="bi bi-check-lg me-1"></i>
+              {{ isEditing() ? 'Guardar cambios' : 'Crear torneo' }}
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>

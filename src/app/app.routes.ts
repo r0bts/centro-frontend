@@ -150,8 +150,18 @@ export const routes: Routes = [
       },
       {
         path: 'torneos',
-        loadComponent: () =>
-          import('./components/deportivo/torneos/deportivo-torneos').then(m => m.DeportivoTorneosComponent)
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./components/deportivo/torneos/deportivo-torneos').then(m => m.DeportivoTorneosComponent)
+          },
+          {
+            path: 'equipos',
+            loadComponent: () =>
+              import('./components/deportivo/equipos-torneo/deportivo-equipos-torneo').then(m => m.DeportivoEquiposTorneoComponent)
+          }
+        ]
       },
       {
         path: 'finanzas',

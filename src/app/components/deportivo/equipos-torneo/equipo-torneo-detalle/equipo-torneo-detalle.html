@@ -1,0 +1,318 @@
+<div class="etd-overlay">
+  <div class="etd-container">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <div class="etd-header" [style.--eq-color]="equipo.color || '#0d6efd'">
+      <div class="etd-header__left">
+        <div class="etd-header__color-dot" [style.background]="equipo.color || '#0d6efd'"></div>
+        <div>
+          <h2 class="etd-header__nombre">{{ equipo.nombre }}</h2>
+          <div class="etd-header__meta">
+            <span class="badge" [ngClass]="equipo.is_active ? 'bg-success' : 'bg-secondary'">
+              {{ equipo.is_active ? 'Activo' : 'Inactivo' }}
+            </span>
+            <span class="etd-header__count">
+              <i class="bi bi-person-fill me-1"></i>
+              {{ integrantes().length }}
+              {{ integrantes().length === 1 ? 'integrante' : 'integrantes' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <button class="etd-header__close" (click)="close()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- ── Toasts ────────────────────────────────────────────────────────────── -->
+    @if (successMsg()) {
+      <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-0 rounded-0 border-0 border-bottom">
+        <i class="bi bi-check-circle-fill"></i>{{ successMsg() }}
+      </div>
+    }
+    @if (error()) {
+      <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-0 rounded-0 border-0 border-bottom">
+        <i class="bi bi-exclamation-triangle-fill"></i>{{ error() }}
+      </div>
+    }
+
+    <!-- ── Tabs ──────────────────────────────────────────────────────────────── -->
+    <div class="etd-tabs">
+      <button class="etd-tab" [class.active]="tab() === 'integrantes'" (click)="setTab('integrantes')">
+        <i class="bi bi-person-lines-fill me-1"></i>Integrantes
+        <span class="etd-tab__count">{{ integrantes().length }}</span>
+      </button>
+      <button class="etd-tab" [class.active]="tab() === 'info'" (click)="setTab('info')">
+        <i class="bi bi-info-circle me-1"></i>Información
+      </button>
+    </div>
+
+    <!-- ── Body ─────────────────────────────────────────────────────────────── -->
+    <div class="etd-body">
+
+      <!-- ════════════════ TAB INTEGRANTES ════════════════ -->
+      @if (tab() === 'integrantes') {
+
+        <!-- Buscador de socios -->
+        <div class="etd-section etd-add-int">
+          <p class="etd-section__title">
+            <i class="bi bi-person-plus me-1"></i>Agregar integrante
+          </p>
+
+          <!-- Búsqueda -->
+          <div class="etd-search-wrapper">
+            <div class="etd-search-field">
+              <i class="bi bi-search etd-search-field__icon"></i>
+              <input
+                type="text"
+                class="form-control form-control-sm etd-search-field__input"
+                placeholder="Buscar socio por nombre, ID o email..."
+                [value]="busquedaSocio"
+                (input)="onBusquedaSocio($event)"
+                [disabled]="!!selectedSocio"
+              />
+              @if (searching()) {
+                <span class="spinner-border spinner-border-sm etd-search-field__spinner"></span>
+              }
+              @if (selectedSocio) {
+                <button type="button" class="etd-search-field__clear" (click)="clearSocio()" title="Limpiar">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              }
+            </div>
+
+            <!-- Dropdown de resultados -->
+            @if (socios().length > 0 && !selectedSocio) {
+              <div class="etd-search-dropdown">
+                @for (s of socios(); track s.id) {
+                  <button type="button" class="etd-search-dropdown__item" (click)="selectSocio(s)">
+                    <div class="etd-socio-item">
+                      <span class="etd-socio-item__nombre">{{ s.nombre }}</span>
+                      <span class="etd-socio-item__meta">
+                        {{ s.membership_id }} · {{ s.email }}
+                      </span>
+                    </div>
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Detalle del socio seleccionado + campos extra -->
+          @if (selectedSocio) {
+            <div class="etd-socio-selected">
+              <div class="etd-socio-selected__name">
+                <i class="bi bi-person-check-fill text-success me-1"></i>
+                <strong>{{ selectedSocio.nombre }}</strong>
+                <span class="text-muted small ms-2">{{ selectedSocio.membership_id }}</span>
+              </div>
+
+              <div class="etd-socio-selected__fields">
+                <div>
+                  <label class="form-label form-label-sm mb-1">No. Jersey</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="newJersey"
+                    placeholder="Ej. 10"
+                    maxlength="10"
+                  />
+                </div>
+                <div>
+                  <label class="form-label form-label-sm mb-1">Posición</label>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="newPosicion"
+                    placeholder="Ej. Delantero"
+                    maxlength="50"
+                  />
+                </div>
+                <div class="d-flex align-items-end gap-2">
+                  <div class="form-check mb-1">
+                    <input
+                      type="checkbox"
+                      class="form-check-input"
+                      id="etd-new-capitan"
+                      [(ngModel)]="newCapitan"
+                    />
+                    <label class="form-check-label" for="etd-new-capitan">Capitán</label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mt-2">
+                <button
+                  class="btn btn-primary btn-sm"
+                  (click)="addIntegrante()"
+                  [disabled]="addingInt()"
+                >
+                  @if (addingInt()) {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                  } @else {
+                    <i class="bi bi-plus-lg me-1"></i>
+                  }
+                  Agregar
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" (click)="clearSocio()">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <hr class="my-0">
+
+        <!-- Lista de integrantes -->
+        @if (loadingInts()) {
+          <div class="etd-loading"><span class="spinner-border spinner-border-sm"></span></div>
+        } @else if (integrantes().length === 0) {
+          <div class="etd-empty">
+            <i class="bi bi-person-x display-6 text-muted"></i>
+            <p class="mt-2 text-muted">Sin integrantes en el equipo</p>
+            <p class="small text-muted">Usa el buscador para agregar socios con membresía activa.</p>
+          </div>
+        } @else {
+          <div class="etd-list">
+            @for (int of integrantes(); track int.id; let idx = $index) {
+              <div class="etd-int-item" [class.etd-int-item--editing]="editingInt()?.id === int.id">
+
+                <!-- Modo vista -->
+                @if (editingInt()?.id !== int.id) {
+                  <span class="etd-int-item__num text-muted">{{ idx + 1 }}</span>
+                  <div class="etd-int-item__info">
+                    <span class="etd-int-item__nombre">
+                      {{ int.socio?.nombre ?? 'Socio #' + int.socio_id }}
+                      @if (int.es_capitan) {
+                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem">
+                          <i class="bi bi-star-fill me-1"></i>Capitán
+                        </span>
+                      }
+                    </span>
+                    <span class="etd-int-item__meta">
+                      @if (int.numero_jersey) { <span>#{{ int.numero_jersey }}</span> }
+                      @if (int.numero_jersey && int.posicion) { <span class="mx-1">·</span> }
+                      @if (int.posicion) { <span>{{ int.posicion }}</span> }
+                    </span>
+                  </div>
+                  <div class="etd-int-item__actions">
+                    <button class="etd-int-btn" title="Editar" (click)="startEditInt(int)">
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="etd-int-btn etd-int-btn--danger" title="Quitar" (click)="removeIntegrante(int)">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  </div>
+                }
+
+                <!-- Modo edición -->
+                @if (editingInt()?.id === int.id) {
+                  <div class="etd-int-edit">
+                    <p class="etd-int-edit__name">
+                      <i class="bi bi-pencil me-1 text-primary"></i>
+                      Editando: <strong>{{ int.socio?.nombre }}</strong>
+                    </p>
+                    <div class="etd-int-edit__fields">
+                      <div>
+                        <label class="form-label form-label-sm mb-1">No. Jersey</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-sm"
+                          [(ngModel)]="editJersey"
+                          maxlength="10"
+                        />
+                      </div>
+                      <div>
+                        <label class="form-label form-label-sm mb-1">Posición</label>
+                        <input
+                          type="text"
+                          class="form-control form-control-sm"
+                          [(ngModel)]="editPosicion"
+                          maxlength="50"
+                        />
+                      </div>
+                      <div class="d-flex align-items-end">
+                        <div class="form-check">
+                          <input
+                            type="checkbox"
+                            class="form-check-input"
+                            [id]="'etd-edit-cap-' + int.id"
+                            [(ngModel)]="editCapitan"
+                          />
+                          <label class="form-check-label" [for]="'etd-edit-cap-' + int.id">
+                            Capitán
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                      <button
+                        class="btn btn-primary btn-sm"
+                        (click)="saveEditInt()"
+                        [disabled]="savingInt()"
+                      >
+                        @if (savingInt()) {
+                          <span class="spinner-border spinner-border-sm me-1"></span>
+                        } @else {
+                          <i class="bi bi-check-lg me-1"></i>
+                        }
+                        Guardar
+                      </button>
+                      <button class="btn btn-outline-secondary btn-sm" (click)="cancelEditInt()">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                }
+
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- ════════════════ TAB INFO ════════════════ -->
+      @if (tab() === 'info') {
+        <div class="etd-section">
+          <div class="etd-info-card" [style.border-left-color]="equipo.color || '#0d6efd'">
+            <div class="etd-info-row">
+              <span class="etd-info-label">Nombre</span>
+              <span class="etd-info-value fw-semibold">{{ equipo.nombre }}</span>
+            </div>
+            @if (equipo.descripcion) {
+              <div class="etd-info-row">
+                <span class="etd-info-label">Descripción</span>
+                <span class="etd-info-value text-muted">{{ equipo.descripcion }}</span>
+              </div>
+            }
+            <div class="etd-info-row">
+              <span class="etd-info-label">Estado</span>
+              <span class="badge" [ngClass]="equipo.is_active ? 'bg-success' : 'bg-secondary'">
+                {{ equipo.is_active ? 'Activo' : 'Inactivo' }}
+              </span>
+            </div>
+            <div class="etd-info-row">
+              <span class="etd-info-label">Color</span>
+              <div class="d-flex align-items-center gap-2">
+                <span class="etd-color-dot" [style.background]="equipo.color || '#0d6efd'"></span>
+                <code class="small">{{ equipo.color || '#0d6efd' }}</code>
+              </div>
+            </div>
+            <div class="etd-info-row">
+              <span class="etd-info-label">Integrantes</span>
+              <span class="etd-info-value">{{ equipo.num_integrantes }}</span>
+            </div>
+            @if (equipo.created_at) {
+              <div class="etd-info-row">
+                <span class="etd-info-label">Creado</span>
+                <span class="etd-info-value text-muted small">{{ equipo.created_at | date:'dd/MM/yyyy HH:mm' }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,349 @@
+<div class="et-page">
+
+  <!-- ── Toast de éxito ─────────────────────────────────────────────────────── -->
+  @if (successMsg()) {
+    <div class="alert alert-success d-flex align-items-center gap-2 mb-3 py-2">
+      <i class="bi bi-check-circle-fill"></i>
+      <span>{{ successMsg() }}</span>
+    </div>
+  }
+
+  <!-- ── Header ────────────────────────────────────────────────────────────── -->
+  <div class="et-header">
+    <div class="et-header__info">
+      <h1 class="et-header__title">
+        <i class="bi bi-people-fill me-2"></i>Equipos de Torneo
+      </h1>
+      <p class="et-header__subtitle">Gestión de equipos e integrantes para competencias</p>
+    </div>
+    <button class="btn btn-primary btn-sm" (click)="openWizard()">
+      <i class="bi bi-plus-lg me-1"></i>Nuevo Equipo
+    </button>
+  </div>
+
+  <!-- ── Filtros ────────────────────────────────────────────────────────────── -->
+  <div class="et-filtros">
+    <!-- Búsqueda -->
+    <div class="et-filtros__search">
+      <i class="bi bi-search et-filtros__search-icon"></i>
+      <input
+        type="text"
+        class="et-filtros__search-input"
+        placeholder="Buscar equipo..."
+        [value]="busqueda()"
+        (input)="onBusqueda($event)"
+      />
+    </div>
+
+    <!-- Estado -->
+    <div class="filtros-grupo">
+      <span class="filtros-label">Estado:</span>
+      <button class="filtro-chip" [class.active]="filtroActivo() === true"
+        [style.--chip-color]="'#198754'"
+        (click)="setFiltroActivo(true)">
+        <i class="bi bi-check-circle me-1"></i>Activos
+      </button>
+      <button class="filtro-chip" [class.active]="filtroActivo() === false"
+        [style.--chip-color]="'#6c757d'"
+        (click)="setFiltroActivo(false)">
+        <i class="bi bi-pause-circle me-1"></i>Inactivos
+      </button>
+    </div>
+
+    <!-- Contador -->
+    <span class="filtros-count">{{ equiposFiltrados().length }} equipo(s)</span>
+  </div>
+
+  <!-- ── Error ──────────────────────────────────────────────────────────────── -->
+  @if (error()) {
+    <div class="alert alert-danger alert-dismissible mb-3" role="alert">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ error() }}
+      <button type="button" class="btn-close" (click)="loadEquipos()"></button>
+    </div>
+  }
+
+  <!-- ── Loading ────────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="et-loading">
+      <div class="spinner-border text-primary" role="status"></div>
+      <span class="ms-2 text-muted">Cargando equipos...</span>
+    </div>
+  }
+
+  <!-- ── Grid de tarjetas ────────────────────────────────────────────────────── -->
+  @if (!loading()) {
+    @if (equiposFiltrados().length === 0) {
+      <div class="et-empty">
+        <i class="bi bi-people display-4 text-muted"></i>
+        <p class="mt-3 text-muted">No hay equipos que coincidan con los filtros.</p>
+        <button class="btn btn-outline-primary btn-sm mt-2" (click)="openWizard()">
+          <i class="bi bi-plus-lg me-1"></i>Crear primer equipo
+        </button>
+      </div>
+    } @else {
+      <div class="et-grid">
+        @for (eq of equiposFiltrados(); track eq.id) {
+          <div class="et-card" [style.--eq-color]="eq.color || '#0d6efd'">
+
+            <!-- Barra de color lateral -->
+            <div class="et-card__stripe"></div>
+
+            <!-- Contenido -->
+            <div class="et-card__body">
+
+              <!-- Badge estado -->
+              <div class="et-card__badges">
+                <span class="badge" [ngClass]="eq.is_active ? 'bg-success' : 'bg-secondary'">
+                  {{ eq.is_active ? 'Activo' : 'Inactivo' }}
+                </span>
+                @if (eq.num_torneos > 0) {
+                  <span class="badge bg-primary">
+                    <i class="bi bi-trophy-fill me-1"></i>{{ eq.num_torneos }} torneo(s)
+                  </span>
+                }
+              </div>
+
+              <!-- Nombre -->
+              <h5 class="et-card__nombre">{{ eq.nombre }}</h5>
+
+              <!-- Descripción -->
+              @if (eq.descripcion) {
+                <p class="et-card__desc">{{ eq.descripcion }}</p>
+              }
+
+              <!-- Integrantes -->
+              <div class="et-card__meta">
+                <span class="et-card__meta-item">
+                  <i class="bi bi-person-fill me-1"></i>
+                  {{ eq.num_integrantes }}
+                  {{ eq.num_integrantes === 1 ? 'integrante' : 'integrantes' }}
+                </span>
+              </div>
+
+              <!-- Acciones -->
+              <div class="et-card__actions">
+                <button class="card-action-btn card-action-btn--view"
+                  title="Ver detalle" (click)="openDetalle(eq)">
+                  <i class="bi bi-eye me-1"></i>Ver
+                </button>
+                <button class="card-action-btn card-action-btn--edit"
+                  title="Editar" (click)="editEquipo(eq)">
+                  <i class="bi bi-pencil me-1"></i>Editar
+                </button>
+                <button class="card-action-btn"
+                  style="--btn-color:#0d6efd"
+                  title="Inscribir a torneo" (click)="openInscribir(eq)">
+                  <i class="bi bi-trophy me-1"></i>Torneos
+                </button>
+                <button class="card-action-btn card-action-btn--toggle"
+                  [title]="eq.is_active ? 'Desactivar' : 'Activar'"
+                  (click)="toggleActive(eq)">
+                  <i class="bi" [ngClass]="eq.is_active ? 'bi-toggle-on' : 'bi-toggle-off'"></i>
+                </button>
+                <button class="card-action-btn card-action-btn--delete"
+                  title="Eliminar" (click)="confirmDelete(eq)">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>
+
+<!-- ── Wizard ────────────────────────────────────────────────────────────────── -->
+@if (showWizard()) {
+  <app-equipo-torneo-wizard
+    [editEquipo]="editando()"
+    (saved)="onWizardSaved($event)"
+    (cancelled)="onWizardCancelled()"
+  ></app-equipo-torneo-wizard>
+}
+
+<!-- ── Detalle ────────────────────────────────────────────────────────────────── -->
+@if (showDetalle() && equipoActivo()) {
+  <app-equipo-torneo-detalle
+    [equipo]="equipoActivo()!"
+    (closed)="closeDetalle()"
+    (reloaded)="onDetalleReloaded()"
+  ></app-equipo-torneo-detalle>
+}
+<!-- ── Modal Confirmación Eliminar ──────────────────────────────────────────────────────── -->
+@if (deleteTarget()) {
+  <div class="ed-overlay" (click.self)="cancelDelete()">
+    <div class="ed-dialog">
+      <div class="ed-dialog__icon">
+        <i class="bi bi-trash3-fill"></i>
+      </div>
+      <h5 class="ed-dialog__title">¿Eliminar equipo?</h5>
+      <p class="ed-dialog__body">
+        Se eliminará <strong>{{ deleteTarget()!.nombre }}</strong> de forma permanente.
+        Esta acción no se puede deshacer.
+      </p>
+      <div class="ed-dialog__actions">
+        <button class="btn btn-outline-secondary btn-sm"
+          (click)="cancelDelete()" [disabled]="deleting()">
+          Cancelar
+        </button>
+        <button class="btn btn-danger btn-sm"
+          (click)="executeDelete()" [disabled]="deleting()">
+          @if (deleting()) {
+            <span class="spinner-border spinner-border-sm me-1"></span>
+          }
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Modal Inscripción a Torneo ─────────────────────────────────────────────────────── -->
+@if (showInscribir() && equipoParaInscribir()) {
+  <div class="ei-overlay" (click.self)="closeInscribir()">
+    <div class="ei-panel" [style.--eq-color]="equipoParaInscribir()!.color ?? '#0d6efd'">
+
+      <!-- Header -->
+      <div class="ei-header">
+        <div class="ei-header__left">
+          <div class="ei-header__color-dot" [style.background]="equipoParaInscribir()!.color ?? '#0d6efd'"></div>
+          <span>Torneos — {{ equipoParaInscribir()!.nombre }}</span>
+        </div>
+        <button class="ei-header__close" (click)="closeInscribir()" title="Cerrar">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- Toasts -->
+      @if (inscribiendoOk()) {
+        <div class="alert alert-success d-flex align-items-center gap-2 py-2 mb-0 rounded-0 border-0">
+          <i class="bi bi-check-circle-fill"></i>{{ inscribiendoOk() }}
+        </div>
+      }
+      @if (inscribiendoError()) {
+        <div class="alert alert-danger d-flex align-items-center gap-2 py-2 mb-0 rounded-0 border-0">
+          <i class="bi bi-exclamation-triangle-fill"></i>{{ inscribiendoError() }}
+        </div>
+      }
+
+      <div class="ei-body">
+
+        <!-- Confirmación inline de desinscribir -->
+        @if (desinscribirTarget()) {
+          <div class="ei-confirm" (click)="$event.stopPropagation()">
+            <div class="ei-confirm__icon">
+              <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+            </div>
+            <p class="ei-confirm__text">
+              ¿Desinscribir al equipo de
+              <strong>{{ desinscribirTarget()!.torneo?.nombre ?? 'este torneo' }}</strong>?
+            </p>
+            <div class="ei-confirm__actions">
+              <button class="btn btn-outline-secondary btn-sm"
+                (click)="cancelDesinscribir()" [disabled]="desinscribiendo()">
+                Cancelar
+              </button>
+              <button class="btn btn-danger btn-sm"
+                (click)="executeDesinscribir()" [disabled]="desinscribiendo()">
+                @if (desinscribiendo()) {
+                  <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                Sí, desinscribir
+              </button>
+            </div>
+          </div>
+        }
+
+        <!-- Inscribir en nuevo torneo -->
+        <div class="ei-section">
+          <h6 class="ei-section__title">
+            <i class="bi bi-plus-circle me-1"></i>Inscribir en torneo
+          </h6>
+
+          @if (torneosDisponibles().length === 0 && !loadingTorneos()) {
+            <p class="text-muted small mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              El equipo ya está inscrito en todos los torneos activos.
+            </p>
+          } @else {
+            <div class="d-flex gap-2 align-items-center">
+              <select
+                class="form-select form-select-sm flex-grow-1"
+                [(ngModel)]="torneoIdSeleccionado"
+                name="torneoId"
+              >
+                <option [ngValue]="null" disabled>— Selecciona un torneo —</option>
+                @for (t of torneosDisponibles(); track t.id) {
+                  <option [ngValue]="t.id">
+                    {{ t.nombre }}
+                    ({{ formatoMeta[t.formato].label }})
+                  </option>
+                }
+              </select>
+              <button
+                class="btn btn-primary btn-sm"
+                (click)="doInscribir()"
+                [disabled]="!torneoIdSeleccionado || inscribiendo()">
+                @if (inscribiendo()) {
+                  <span class="spinner-border spinner-border-sm"></span>
+                } @else {
+                  <i class="bi bi-plus-lg"></i>
+                }
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Torneos actuales -->
+        <div class="ei-section">
+          <h6 class="ei-section__title">
+            <i class="bi bi-list-ul me-1"></i>Torneos inscritos
+            @if (!loadingTorneos()) {
+              <span class="badge bg-secondary ms-1">{{ torneosDelEquipo().length }}</span>
+            }
+          </h6>
+
+          @if (loadingTorneos()) {
+            <div class="text-center py-3">
+              <span class="spinner-border spinner-border-sm text-primary"></span>
+            </div>
+          } @else if (torneosDelEquipo().length === 0) {
+            <p class="text-muted small mb-0">
+              <i class="bi bi-trophy me-1"></i>Sin inscripciones aún.
+            </p>
+          } @else {
+            <div class="ei-torneos-list">
+              @for (insc of torneosDelEquipo(); track insc.inscripcion_id) {
+                <div class="ei-torneo-row">
+                  <div class="ei-torneo-row__info">
+                    <span class="ei-torneo-row__nombre">{{ insc.torneo?.nombre ?? '#'+insc.torneo_id }}</span>
+                    @if (insc.torneo) {
+                      <span class="badge ms-2"
+                        [ngClass]="formatoMeta[insc.torneo.formato].badgeClass">
+                        {{ formatoMeta[insc.torneo.formato].label }}
+                      </span>
+                      <span class="badge ms-1" [ngClass]="insc.torneo.is_active ? 'bg-success' : 'bg-secondary'">
+                        {{ insc.torneo.is_active ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    }
+                    @if (insc.puntos_totales > 0) {
+                      <small class="text-muted ms-2">{{ insc.puntos_totales }} pts</small>
+                    }
+                  </div>
+                  <button
+                    class="btn btn-outline-danger btn-sm"
+                    title="Desinscribir"
+                    (click)="desinscribirDeTorneo(insc)">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+}
