@@ -3,13 +3,255 @@
   <app-content-menu></app-content-menu>
 
   <!-- Membresías Buscar Content -->
-  <div class="py-5 text-center">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <i class="bi bi-search display-1 text-muted mb-4 d-block"></i>
-        <h2 class="fw-bold text-muted">Membresías</h2>
-        <p class="text-muted">Este módulo se encuentra en desarrollo. Próximamente disponible.</p>
+  <div class="page-wrap">
+
+    <!-- ── BARRA DE BÚSQUEDA ─────────────────────────────────────────── -->
+    <div class="search-bar">
+      <div class="search-wrap">
+        <input
+          id="q"
+          type="text"
+          placeholder="Número de membresía o nombre del titular…"
+          [(ngModel)]="query"
+          (ngModelChange)="onQueryChange()"
+          (keyup.enter)="buscar()"
+          autocomplete="off"
+        />
       </div>
+      <button class="btn-search" (click)="buscar()">
+        Buscar
+      </button>
+      <button
+        class="btn-sync"
+        (click)="sincronizar()"
+        [disabled]="sincronizando"
+      >
+        {{ sincronizando ? 'Sincronizando…' : 'Sincronizar' }}
+      </button>
     </div>
+
+    <!-- ── ESTADO: inicial ───────────────────────────────────────────── -->
+    @if (estado === 'initial') {
+      <div class="search-state">
+        <p>Escribe el <strong>número de membresía</strong> o el <strong>nombre del titular</strong> y presiona Buscar.</p>
+      </div>
+    }
+
+    <!-- ── ESTADO: cargando ──────────────────────────────────────────── -->
+    @if (estado === 'loading') {
+      <div class="search-state">
+        <p>Buscando membresía…</p>
+      </div>
+    }
+
+    <!-- ── ESTADO: sin resultados ────────────────────────────────────── -->
+    @if (estado === 'empty') {
+      <div class="search-state">
+        <p>No se encontró ninguna membresía con ese criterio.</p>
+        <p style="font-size:12px">Verifica el número o nombre, o intenta <strong>Sincronizar</strong> para actualizar datos desde NetSuite.</p>
+      </div>
+    }
+
+    <!-- ── ESTADO: resultados ────────────────────────────────────────── -->
+    @if (estado === 'results' && membresia) {
+
+      <!-- CARD: datos de la membresía -->
+      <div class="card">
+        <div class="card-title">Membresía {{ membresia.numeroHumano }}</div>
+        <div class="mem-fields">
+          <div class="mem-field">
+            <div class="mem-field-label">Titular</div>
+            <div class="mem-field-value">{{ membresia.nombreTitular }}</div>
+          </div>
+          <div class="mem-field">
+            <div class="mem-field-label">Patrimonio</div>
+            <div class="mem-field-value" [class.placeholder]="!membresia.patrimonio">
+              {{ membresia.patrimonio || '—' }}
+            </div>
+          </div>
+          <div class="mem-field">
+            <div class="mem-field-label">Estado</div>
+            <div class="mem-field-value">
+              <span class="badge" [ngClass]="badgeEstadoClass(membresia.estado)">
+                {{ membresia.estado }}
+              </span>
+            </div>
+          </div>
+          <div class="mem-field">
+            <div class="mem-field-label">Frecuencia de Pago</div>
+            <div class="mem-field-value" [class.placeholder]="!membresia.frecuenciaPago">
+              {{ membresia.frecuenciaPago || '—' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD: mensajes de la regla (solo si hay mensajes) -->
+      @if (hasMensajes) {
+        <div class="card">
+          <div class="card-title">Mensajes — {{ mensaje?.reglaNombre || 'Regla aplicada' }}</div>
+          <div class="msg-grid">
+            <div class="msg-cell">
+              <div class="msg-cell-label">Mensaje:</div>
+              <div class="msg-cell-text" [class.placeholder]="!mensaje?.cumplimiento">
+                {{ mensaje?.cumplimiento || '—' }}
+              </div>
+            </div>
+            <div class="msg-cell">
+              <div class="msg-cell-label">Socio de acuerdo con el mensaje:</div>
+              <div class="msg-cell-text" [class.placeholder]="!mensaje?.acuerdo">
+                {{ mensaje?.acuerdo || '—' }}
+              </div>
+            </div>
+            <div class="msg-cell">
+              <div class="msg-cell-label">Socio en desacuerdo con el mensaje:</div>
+              <div class="msg-cell-text" [class.placeholder]="!mensaje?.desacuerdo">
+                {{ mensaje?.desacuerdo || '—' }}
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- CARD: tabla de beneficiarios -->
+      <div class="card">
+        <div class="card-title">Socios / Beneficiarios</div>
+        <div class="beneficiarios-wrap">
+          <table class="ben-table">
+            <thead>
+              <tr>
+                <th class="td-expand"></th>
+                <th>Nº Socio</th>
+                <th class="sortable" (click)="sortBy('nombreCompleto')">
+                  Nombre
+                  <span class="sort-arrows">{{ sortCol === 'nombreCompleto' ? (sortAsc ? 'asc' : 'desc') : '' }}</span>
+                </th>
+                <th class="sortable" (click)="sortBy('edad')">
+                  Edad
+                  <span class="sort-arrows">{{ sortCol === 'edad' ? (sortAsc ? 'asc' : 'desc') : '' }}</span>
+                </th>
+                <th class="sortable" (click)="sortBy('parentesco')">
+                  Parentesco
+                  <span class="sort-arrows">{{ sortCol === 'parentesco' ? (sortAsc ? 'asc' : 'desc') : '' }}</span>
+                </th>
+                <th>Condición Adm.</th>
+                <th>Acceso</th>
+              </tr>
+            </thead>
+            <tbody>
+
+              @if (socios.length === 0) {
+                <tr>
+                  <td colspan="7" class="ben-empty">
+                    No hay integrantes registrados en esta membresía.
+                  </td>
+                </tr>
+              }
+
+              @for (s of socios; track s.numeroHumano) {
+                <!-- Fila principal del socio -->
+                <tr
+                  class="row-main"
+                  [class.expanded]="isExpanded(s.numeroHumano)"
+                >
+                  <td class="td-expand">
+                    <button
+                      class="btn-expand"
+                      [class.open]="isExpanded(s.numeroHumano)"
+                      (click)="toggleDetalle(s.numeroHumano)"
+                      title="Ver detalle"
+                    >
+                      {{ isExpanded(s.numeroHumano) ? '-' : '+' }}
+                    </button>
+                  </td>
+                  <td><span class="socio-num">{{ s.numeroHumano }}</span></td>
+                  <td><span class="socio-nombre">{{ s.nombreCompleto }}</span></td>
+                  <td class="socio-edad">{{ s.edad ?? '—' }}</td>
+                  <td class="socio-par">{{ s.parentesco }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="badgeCondClass(s.condicionAdministrativa)">
+                      {{ s.condicionAdministrativa }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="acceso-bio">
+                      {{ s.acceso.cumple ? 'Acceso' : 'Sin acceso' }}
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Fila de detalle expandida -->
+                @if (isExpanded(s.numeroHumano)) {
+                  <tr class="row-detail">
+                    <td colspan="7">
+                      <div class="detail-inner">
+
+                        <!-- Regla que aplicó -->
+                        <div class="detail-cell">
+                          <div class="detail-label">Regla aplicada</div>
+                          @if (s.acceso.reglaNombre) {
+                            <div class="detail-rule-name">{{ s.acceso.reglaNombre }}</div>
+                            <div class="detail-rule-sub">Motor de Reglas</div>
+                          } @else {
+                            <div class="detail-text" style="font-style:italic;color:#6b7280">Sin regla asignada</div>
+                          }
+                        </div>
+
+                        <!-- Mensaje de la regla -->
+                        <div class="detail-cell">
+                          <div class="detail-label">Mensaje</div>
+                          <div class="detail-text">
+                            {{ s.acceso.reglaMensaje || '—' }}
+                          </div>
+                        </div>
+
+                        <!-- Ícono biométrico -->
+                        <div class="bio-icon-wrap">
+                          <div class="bio-icon">
+                            {{ s.acceso.cumple ? 'OK' : 'X' }}
+                          </div>
+                          <div class="bio-label" [ngClass]="s.acceso.cumple ? 'ok' : 'fail'">
+                            {{ s.acceso.cumple ? 'ACCESO OK' : 'BLOQUEADO' }}
+                          </div>
+                        </div>
+
+                        <!-- Foto -->
+                        <div class="photo-wrap">
+                          <div class="photo-box">
+                            @if (s.fotoUrl) {
+                              <img [src]="s.fotoUrl" [alt]="s.nombreCompleto" />
+                            } @else {
+                              Sin foto
+                            }
+                          </div>
+                        </div>
+
+                      </div>
+                    </td>
+                  </tr>
+                }
+              }
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    }
+    <!-- /estado results -->
+
   </div>
+  <!-- /page-wrap -->
+
 </div>
+
+<!-- ── TOAST ──────────────────────────────────────────────────────── -->
+@if (toastVisible) {
+  <div
+    class="toast show"
+    [style.background]="toastColor"
+  >
+    {{ toastMsg }}
+  </div>
+}
+

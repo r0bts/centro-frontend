@@ -1,3 +1,444 @@
+// ── Variables ──────────────────────────────────────────────────────────────
+$card-bg:      #ffffff;
+$card-border:  #e5e7eb;
+$card-border2: #d1d5db;
+$text:         #111827;
+$text-2:       #374151;
+$text-3:       #6b7280;
+$blue:         #2563eb;
+$blue-bg:      #eff6ff;
+$blue-light:   #dbeafe;
+$green:        #16a34a;
+$red:          #dc2626;
+$amber:        #d97706;
+$purple:       #7c3aed;
+$r:            6px;
+$r-lg:         10px;
+
 .container-fluid {
   min-height: 100vh;
+  background: #f3f4f6;
+}
+
+// ── Área de contenido ──────────────────────────────────────────────────────
+.page-wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 60px;
+}
+
+// ── Barra de búsqueda ──────────────────────────────────────────────────────
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-wrap {
+  flex: 1;
+  position: relative;
+
+  input {
+    width: 100%;
+    border: 1.5px solid $card-border2;
+    border-radius: $r;
+    padding: 10px 14px 10px 40px;
+    font-family: inherit;
+    font-size: 14px;
+    color: $text;
+    background: #fff;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+
+    &:focus {
+      border-color: $blue;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    &::placeholder { color: $text-3; }
+  }
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: $text-3;
+  font-size: 15px;
+  pointer-events: none;
+}
+
+.btn-search,
+.btn-sync {
+  background: $blue;
+  border: none;
+  color: #fff;
+  border-radius: $r;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.18s;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) { opacity: 0.85; }
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+// ── Estado de búsqueda ─────────────────────────────────────────────────────
+.search-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: $text-3;
+  font-size: 14px;
+  line-height: 1.7;
+
+  .big-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    display: block;
+  }
+}
+
+// ── Card blanca base ───────────────────────────────────────────────────────
+.card {
+  background: $card-bg;
+  border: 1px solid $card-border;
+  border-radius: $r-lg;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: $text;
+  padding: 14px 20px;
+  border-bottom: 1px solid $card-border;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+// ── Campos de membresía ────────────────────────────────────────────────────
+.mem-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 0;
+
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.mem-field {
+  padding: 14px 20px;
+  border-right: 1px solid $card-border;
+
+  &:last-child { border-right: none; }
+}
+
+.mem-field-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: $text-3;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+}
+
+.mem-field-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text;
+  min-height: 20px;
+
+  &.placeholder { color: $text-3; font-weight: 400; }
+}
+
+// ── Mensajes ───────────────────────────────────────────────────────────────
+.msg-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 0;
+
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.msg-cell {
+  padding: 14px 20px;
+  border-right: 1px solid $card-border;
+
+  &:last-child { border-right: none; }
+}
+
+.msg-cell-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: $text-3;
+  margin-bottom: 6px;
+}
+
+.msg-cell-text {
+  font-size: 13px;
+  color: $text-2;
+  line-height: 1.6;
+  min-height: 20px;
+
+  &.placeholder { color: $text-3; font-style: italic; }
+}
+
+// ── Tabla de beneficiarios ─────────────────────────────────────────────────
+.beneficiarios-wrap { overflow-x: auto; }
+
+table.ben-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  thead tr {
+    border-bottom: 2px solid $card-border;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: $text-3;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    text-align: left;
+    white-space: nowrap;
+    background: #fff;
+
+    &.sortable {
+      cursor: pointer;
+      user-select: none;
+      &:hover { color: $blue; }
+    }
+  }
+
+  tbody tr.row-main {
+    border-bottom: 1px solid $card-border;
+    transition: background 0.12s;
+
+    &:hover { background: #f9fafb; }
+    &.expanded { background: $blue-bg; border-bottom: none; }
+  }
+
+  td {
+    padding: 11px 14px;
+    vertical-align: middle;
+  }
+}
+
+.sort-arrows {
+  margin-left: 4px;
+  opacity: 0.5;
+  font-size: 10px;
+}
+
+// Celda del chevron
+.td-expand {
+  width: 36px;
+  text-align: center;
+}
+
+.btn-expand {
+  background: transparent;
+  border: 1.5px solid $card-border2;
+  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: $text-3;
+  transition: 0.15s;
+  font-size: 12px;
+
+  &:hover {
+    border-color: $blue;
+    color: $blue;
+    background: $blue-bg;
+  }
+
+  &.open {
+    border-color: $blue;
+    background: $blue-bg;
+    color: $blue;
+  }
+}
+
+// Celdas de datos
+.socio-num   { font-size: 12px; font-weight: 700; color: $text-3; font-variant-numeric: tabular-nums; }
+.socio-nombre { font-weight: 500; color: $text; }
+.socio-edad  { color: $text-2; text-align: center; }
+.socio-par   { color: $text-2; }
+.acceso-bio  { font-size: 12px; color: $text-2; }
+
+// ── Badges ─────────────────────────────────────────────────────────────────
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+
+  &.activo     { background: $blue-light; color: $blue; }
+  &.baja       { background: #fee2e2;     color: $red; }
+  &.suspendido { background: #fffbeb;     color: $amber; }
+  &.acuerdo    { background: #f5f3ff;     color: $purple; }
+}
+
+// ── Fila de detalle expandida ──────────────────────────────────────────────
+tr.row-detail { background: $blue-bg; }
+tr.row-detail td { padding: 0; }
+
+.detail-inner {
+  display: grid;
+  grid-template-columns: 1fr 1fr 80px 90px;
+  gap: 0;
+  border-bottom: 2px solid $blue-light;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr 1fr;
+
+    .bio-icon-wrap,
+    .photo-wrap { display: none; }
+  }
+}
+
+.detail-cell {
+  padding: 14px 18px;
+  border-right: 1px solid $blue-light;
+
+  &:last-child { border-right: none; }
+}
+
+.detail-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: $blue;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 5px;
+}
+
+.detail-text {
+  font-size: 13px;
+  color: $text-2;
+  line-height: 1.6;
+}
+
+.detail-rule-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: $text;
+  margin-bottom: 3px;
+}
+
+.detail-rule-sub { font-size: 12px; color: $text-3; }
+
+.bio-icon-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 10px;
+  border-right: 1px solid $blue-light;
+  gap: 4px;
+}
+
+.bio-icon { font-size: 30px; line-height: 1; }
+
+.bio-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+
+  &.ok   { color: $green; }
+  &.fail { color: $red; }
+}
+
+.photo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.photo-box {
+  width: 68px;
+  height: 68px;
+  border-radius: $r;
+  overflow: hidden;
+  background: $blue-light;
+  border: 2px solid $blue-light;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: $blue;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+// ── Empty state beneficiarios ──────────────────────────────────────────────
+.ben-empty {
+  text-align: center;
+  padding: 32px 20px;
+  font-size: 13px;
+  color: $text-3;
+}
+
+// ── Animaciones ────────────────────────────────────────────────────────────
+.spin {
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  color: #fff;
+  border-radius: $r-lg;
+  padding: 12px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  display: none;
+
+  &.show {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    animation: tIn 0.25s ease;
+  }
+}
+
+@keyframes tIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
