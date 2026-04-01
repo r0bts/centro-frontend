@@ -4,19 +4,8 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
-import { ReglaService } from '../../services/regla.service';
+import { ReglaService, VarDef } from '../../services/regla.service';
 import { ReglaDetalle } from '../../models/regla.model';
-
-/** Labels legibles para cada variable evaluable */
-const VARS_LABELS: Record<string, string> = {
-  CONDICION_ADMINISTRATIVA: 'Condición administrativa',
-  CONDICION_PATRIMONIAL:    'Condición patrimonial',
-  EDAD:                     'Edad del socio',
-  MONTO:                    'Monto de deuda',
-  ESTADO_MEMBRESIA:         'Estado de la membresía',
-  GENERO:                   'Género del socio',
-  TIPO_SOCIO:               'Tipo de socio',
-};
 
 @Component({
   selector: 'app-membresias-reglas-ver',
@@ -33,9 +22,10 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
   regla = signal<ReglaDetalle | null>(null);
   isLoading = signal(true);
   errorMsg = signal<string | null>(null);
+  /** clave → label legible, cargado dinámicamente desde el API */
+  varsMap = signal<Record<string, string>>({});
 
   readonly ALPHA = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-  readonly VARS_LABELS = VARS_LABELS;
 
   private destroy$ = new Subject<void>();
   private pendingId = 0;
@@ -65,6 +55,7 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
     if (isPlatformBrowser(this.platformId)) {
       // Browser directo (sin SSR o RenderMode.Client): cargar inmediatamente
       this.loadRegla(id);
+      this.loadVariables();
     } else {
       // SSR: diferir al afterNextRender en el browser
       this.pendingId = id;
@@ -128,8 +119,23 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
          + `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
+  private loadVariables(): void {
+    this.reglaService.getVariables()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (map) => {
+          const labels: Record<string, string> = {};
+          for (const [clave, def] of Object.entries(map)) {
+            labels[clave] = (def as VarDef).label;
+          }
+          this.varsMap.set(labels);
+        },
+        error: () => { /* silently ignore — fallback al clave raw */ },
+      });
+  }
+
   getVarLabel(variable: string): string {
-    return VARS_LABELS[variable] ?? variable;
+    return this.varsMap()[variable] ?? variable;
   }
 
   getConditionLetter(index: number): string {

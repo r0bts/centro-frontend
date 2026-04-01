@@ -5,45 +5,9 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
-import { ReglaService } from '../../services/regla.service';
+import { ReglaService, VarDef, VarValor } from '../../services/regla.service';
 import { ReglaDetalle } from '../../models/regla.model';
 import Swal from 'sweetalert2';
-
-// ── Catálogo de variables evaluables (espejo de cat_variables_regla) ──
-const VARS: Record<string, { label: string; icon: string; tipo: 'CATALOGO' | 'NUMERO'; ops: string[]; vals?: string[]; unit?: string; prefix?: string }> = {
-  CONDICION_ADMINISTRATIVA: {
-    label: 'Condición administrativa', icon: '📋', tipo: 'CATALOGO',
-    ops: ['=', '!=', 'IN', 'NOT_IN'],
-    vals: ['ACTIVO', 'SUSPENDIDO', 'BAJA', 'ACUERDO_PAGO']
-  },
-  CONDICION_PATRIMONIAL: {
-    label: 'Condición patrimonial', icon: '💰', tipo: 'CATALOGO',
-    ops: ['=', '!=', 'IN', 'NOT_IN'],
-    vals: ['AL_CORRIENTE', 'CON_DEUDA', 'MOROSO']
-  },
-  EDAD: {
-    label: 'Edad del socio', icon: '🎂', tipo: 'NUMERO',
-    ops: ['=', '!=', '<', '<=', '>', '>='], unit: 'años'
-  },
-  MONTO: {
-    label: 'Monto de deuda', icon: '💳', tipo: 'NUMERO',
-    ops: ['=', '!=', '<', '<=', '>', '>='], prefix: '$'
-  },
-  ESTADO_MEMBRESIA: {
-    label: 'Estado de la membresía', icon: '🏷️', tipo: 'CATALOGO',
-    ops: ['=', '!=', 'IN', 'NOT_IN'],
-    vals: ['ACTIVO', 'SUSPENDIDO', 'CANCELADO', 'AUSENTE']
-  },
-  GENERO: {
-    label: 'Género del socio', icon: '👤', tipo: 'CATALOGO',
-    ops: ['=', '!='], vals: ['MASCULINO', 'FEMENINO']
-  },
-  TIPO_SOCIO: {
-    label: 'Tipo de socio', icon: '🏅', tipo: 'CATALOGO',
-    ops: ['=', '!=', 'IN', 'NOT_IN'],
-    vals: ['TITULAR', 'DEPENDIENTE', 'MENOR', 'INVITADO']
-  }
-};
 
 const CMP_LBL: Record<string, string> = {
   '=': 'igual a', '!=': 'diferente a',
@@ -110,15 +74,21 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   // ── Estado de guardado / modo ──
   isSaving = signal(false);
   isLoadingEdit = signal(false);
+  isLoadingVars = signal(false);
   isEditMode = signal(false);
   editId = signal<number | null>(null);
   private destroy$ = new Subject<void>();
 
+  // ── Catálogo dinámico de variables ──
+  varsMap = signal<Record<string, VarDef>>({});
+  varsLoaded = signal(false);
+
   // ── Catálogos expuestos al template ──
-  readonly VARS = VARS;
   readonly CMP_LBL = CMP_LBL;
   readonly ALPHA = ALPHA;
-  readonly varKeys = Object.keys(VARS);
+
+  // ── Computed: claves de variables disponibles ──
+  varKeys = computed(() => Object.keys(this.varsMap()));
 
   // ── Computed (reemplazan los getters) ──
   validConditions = computed(() =>
@@ -154,14 +124,41 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    const idParam = this.route.snapshot.paramMap.get('id');
-    if (idParam) {
-      this.isEditMode.set(true);
-      this.editId.set(+idParam);
-      this.loadReglaParaEditar(+idParam);
-    } else {
-      this.addCondition();
-    }
+    this.loadVariables();
+  }
+
+  private loadVariables(): void {
+    this.isLoadingVars.set(true);
+    this.reglaService.getVariables()
+      .pipe(takeUntil(this.destroy$), finalize(() => this.isLoadingVars.set(false)))
+      .subscribe({
+        next: (map) => {
+          this.varsMap.set(map);
+          this.varsLoaded.set(true);
+          // Ahora que las variables están disponibles, inicializar modo
+          const idParam = this.route.snapshot.paramMap.get('id');
+          if (idParam) {
+            this.isEditMode.set(true);
+            this.editId.set(+idParam);
+            this.loadReglaParaEditar(+idParam);
+          } else {
+            this.addCondition();
+          }
+        },
+        error: () => {
+          this.showToast('⚠ No se pudieron cargar las variables del motor de reglas', 'error');
+          // Fallback: continuar de todos modos
+          this.varsLoaded.set(true);
+          const idParam = this.route.snapshot.paramMap.get('id');
+          if (idParam) {
+            this.isEditMode.set(true);
+            this.editId.set(+idParam);
+            this.loadReglaParaEditar(+idParam);
+          } else {
+            this.addCondition();
+          }
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -323,13 +320,14 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   }
 
   setVariable(id: number, variable: string): void {
+    const vars = this.varsMap();
     this.conditions.update(cs => cs.map(c => {
       if (c.id !== id) return c;
       return {
         ...c,
         variable,
         valor: [],
-        comparador: variable && VARS[variable] ? VARS[variable].ops[0] : c.comparador,
+        comparador: variable && vars[variable] ? vars[variable].ops[0] : c.comparador,
       };
     }));
   }
@@ -378,16 +376,27 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     return ['IN', 'NOT_IN'].includes(comparador);
   }
 
-  getConditionVarInfo(variable: string) {
-    return variable ? VARS[variable] : null;
+  getConditionVarInfo(variable: string): VarDef | null {
+    return variable ? (this.varsMap()[variable] ?? null) : null;
   }
 
   getConditionOps(variable: string): string[] {
-    return variable && VARS[variable] ? VARS[variable].ops : Object.keys(CMP_LBL);
+    const v = variable ? this.varsMap()[variable] : null;
+    return v ? v.ops : Object.keys(CMP_LBL);
   }
 
-  getConditionVals(variable: string): string[] {
-    return variable && VARS[variable]?.vals ? VARS[variable].vals! : [];
+  getConditionVals(variable: string): VarValor[] {
+    const v = variable ? this.varsMap()[variable] : null;
+    return v?.vals ?? [];
+  }
+
+  /** Devuelve el label legible para una lista de valores normalizados (usado en preview) */
+  getDisplayLabels(variable: string, valores: string[]): string {
+    const v = variable ? this.varsMap()[variable] : null;
+    if (!v || v.tipo === 'NUMERO') return valores.join(', ');
+    return valores
+      .map(norm => v.vals.find(x => x.normalized === norm)?.raw ?? norm)
+      .join(', ');
   }
 
   getConditionLetter(index: number): string {
@@ -541,5 +550,9 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   trackByKey(_index: number, key: string): string {
     return key;
+  }
+
+  trackByNormalized(_index: number, item: VarValor): string {
+    return item.normalized;
   }
 }

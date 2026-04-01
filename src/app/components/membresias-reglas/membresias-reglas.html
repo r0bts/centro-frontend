@@ -374,12 +374,14 @@
                             [class.bi-chevron-down]="!cond.open"></i>
                           <span class="cond-letter">{{ getConditionLetter(i) }}</span>
                           <span class="fw-semibold text-primary" *ngIf="!cond.variable">Nueva condición</span>
-                          <span class="fw-semibold text-primary" *ngIf="cond.variable">
-                            {{ VARS[cond.variable].icon }} {{ VARS[cond.variable].label }}
-                            <span class="text-muted fw-normal small" *ngIf="cond.valor.length > 0">
-                              — {{ CMP_LBL[cond.comparador] }} {{ cond.valor.join(', ') }}
+                          <ng-container *ngIf="cond.variable && getConditionVarInfo(cond.variable) as varInfo">
+                            <span class="fw-semibold text-primary">
+                              {{ varInfo.icon }} {{ varInfo.label }}
+                              <span class="text-muted fw-normal small" *ngIf="cond.valor.length > 0">
+                                — {{ CMP_LBL[cond.comparador] }} {{ getDisplayLabels(cond.variable, cond.valor) }}
+                              </span>
                             </span>
-                          </span>
+                          </ng-container>
                         </div>
                         <button *ngIf="conditions().length > 1" type="button"
                           class="btn btn-link text-danger p-0 ms-2"
@@ -397,12 +399,15 @@
                         <!-- Variable -->
                         <div class="col-md-4">
                           <label class="form-label fw-bold small text-uppercase text-muted mb-1">Variable</label>
-                          <select class="form-select form-select-sm"
+                          <div *ngIf="isLoadingVars()" class="text-muted small py-1">
+                            <span class="spinner-border spinner-border-sm me-1"></span> Cargando variables…
+                          </div>
+                          <select *ngIf="!isLoadingVars()" class="form-select form-select-sm"
                             [ngModel]="cond.variable"
                             (ngModelChange)="setVariable(cond.id, $event)">
                             <option value="">— Variable —</option>
-                            <option *ngFor="let key of varKeys; trackBy: trackByKey" [value]="key">
-                              {{ VARS[key].icon }} {{ VARS[key].label }}
+                            <option *ngFor="let key of varKeys(); trackBy: trackByKey" [value]="key">
+                              {{ varsMap()[key].icon }} {{ varsMap()[key].label }}
                             </option>
                           </select>
                         </div>
@@ -429,32 +434,33 @@
                             disabled placeholder="Elige una variable primero">
 
                           <!-- Numérico -->
-                          <div *ngIf="cond.variable && VARS[cond.variable].tipo === 'NUMERO'" class="input-group input-group-sm">
-                            <span *ngIf="VARS[cond.variable].prefix" class="input-group-text">
-                              {{ VARS[cond.variable].prefix }}
-                            </span>
-                            <input type="number"
-                              class="form-control form-control-sm"
-                              [value]="cond.valor[0] || ''"
-                              (input)="setNumericValue(cond.id, $any($event.target).value)"
-                              placeholder="0">
-                            <span *ngIf="VARS[cond.variable].unit" class="input-group-text">
-                              {{ VARS[cond.variable].unit }}
-                            </span>
-                          </div>
+                          <ng-container *ngIf="cond.variable && getConditionVarInfo(cond.variable) as varInfo">
+                            <div *ngIf="varInfo.tipo === 'NUMERO'" class="input-group input-group-sm">
+                              <span *ngIf="varInfo.prefix" class="input-group-text">{{ varInfo.prefix }}</span>
+                              <input type="number"
+                                class="form-control form-control-sm"
+                                [value]="cond.valor[0] || ''"
+                                (input)="setNumericValue(cond.id, $any($event.target).value)"
+                                placeholder="0">
+                              <span *ngIf="varInfo.unit" class="input-group-text">{{ varInfo.unit }}</span>
+                            </div>
 
-                          <!-- Catálogo: chips -->
-                          <div *ngIf="cond.variable && VARS[cond.variable].tipo === 'CATALOGO'" class="chips-wrap">
-                            <span
-                              *ngFor="let val of getConditionVals(cond.variable); trackBy: trackByString"
-                              class="chip"
-                              [class.chip-on]="isChipSelected(cond.id, val)"
-                              (click)="toggleChip(cond.id, val, isMultiComparador(cond.comparador))">
-                              {{ val }}
-                            </span>
-                          </div>
-                          <div *ngIf="cond.variable && VARS[cond.variable].tipo === 'CATALOGO' && isMultiComparador(cond.comparador) && cond.valor.length === 0"
-                            class="form-text">Puedes seleccionar varios</div>
+                            <!-- Catálogo: chips con label legible -->
+                            <div *ngIf="varInfo.tipo === 'CATALOGO'" class="chips-wrap">
+                              <span
+                                *ngFor="let val of getConditionVals(cond.variable); trackBy: trackByNormalized"
+                                class="chip"
+                                [class.chip-on]="isChipSelected(cond.id, val.normalized)"
+                                (click)="toggleChip(cond.id, val.normalized, isMultiComparador(cond.comparador))">
+                                {{ val.raw }}
+                              </span>
+                              <div *ngIf="getConditionVals(cond.variable).length === 0" class="text-muted small fst-italic">
+                                (sin valores disponibles)
+                              </div>
+                            </div>
+                            <div *ngIf="varInfo.tipo === 'CATALOGO' && isMultiComparador(cond.comparador) && cond.valor.length === 0"
+                              class="form-text">Puedes seleccionar varios</div>
+                          </ng-container>
                         </div>
 
                       </div>
@@ -622,9 +628,11 @@
                   <div *ngFor="let c of validConditions(); let i = index; trackBy: trackById"
                     class="rev-cond-item">
                     <span class="rev-cond-letter">{{ getConditionLetter(i) }}</span>
-                    <span class="text-primary fw-semibold">{{ VARS[c.variable].icon }} {{ VARS[c.variable].label }}</span>
+                    <ng-container *ngIf="getConditionVarInfo(c.variable) as vi">
+                      <span class="text-primary fw-semibold">{{ vi.icon }} {{ vi.label }}</span>
+                    </ng-container>
                     <span class="text-muted small">{{ CMP_LBL[c.comparador] }}</span>
-                    <span class="text-warning fw-semibold">{{ c.valor.join(', ') }}</span>
+                    <span class="text-warning fw-semibold">{{ getDisplayLabels(c.variable, c.valor) }}</span>
                     <span *ngIf="i < validConditions().length - 1"
                       class="cond-logic-badge"
                       [class.badge-and]="c.logico === 'AND'"
@@ -836,9 +844,11 @@
             <div *ngIf="validConditions().length === 0" class="text-muted small fst-italic">Ninguna aún</div>
             <div *ngFor="let c of validConditions(); let i = index; trackBy: trackById" class="small py-1">
               <span class="text-primary fw-semibold">{{ getConditionLetter(i) }}:</span>
-              <span class="text-primary"> {{ VARS[c.variable].label }}</span>
+              <ng-container *ngIf="getConditionVarInfo(c.variable) as vi">
+                <span class="text-primary"> {{ vi.label }}</span>
+              </ng-container>
               <span class="text-muted"> {{ c.comparador }}</span>
-              <span class="text-warning fw-semibold"> {{ c.valor.join(', ') }}</span>
+              <span class="text-warning fw-semibold"> {{ getDisplayLabels(c.variable, c.valor) }}</span>
               <span *ngIf="i < validConditions().length - 1" class="fw-bold"
                 [class.text-primary]="c.logico === 'AND'"
                 [class.text-warning]="c.logico === 'OR'">
