@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'evaluacion_batch';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -116,6 +116,26 @@ export class NetsuiteSyncComponent implements OnInit {
       type: 'cuotas_membresia',
       isLoading: false,
       recordCount: 0
+    },
+    socios: {
+      type: 'socios',
+      isLoading: false,
+      recordCount: 0
+    },
+    membresias: {
+      type: 'membresias',
+      isLoading: false,
+      recordCount: 0
+    },
+    detalle_membresias: {
+      type: 'detalle_membresias',
+      isLoading: false,
+      recordCount: 0
+    },
+    evaluacion_batch: {
+      type: 'evaluacion_batch',
+      isLoading: false,
+      recordCount: 0
     }
   };
 
@@ -202,6 +222,94 @@ export class NetsuiteSyncComponent implements OnInit {
     this.performSync('cuotas_membresia', 'Cuotas Membresía', () => this.netsuiteSyncService.syncCuotasMembresia());
   }
 
+  syncSocios(): void {
+    this.performSync('socios', 'Socios (Miembros)', () => this.netsuiteSyncService.syncSocios());
+  }
+
+  syncMembresias(): void {
+    this.performSync('membresias', 'Membresías', () => this.netsuiteSyncService.syncMembresias());
+  }
+
+  syncDetalleMembresias(): void {
+    this.performSync('detalle_membresias', 'Detalle Membresías', () => this.netsuiteSyncService.syncDetalleMembresias());
+  }
+
+  runEvaluacionBatch(): void {
+    const type = 'evaluacion_batch';
+    console.log('🔄 Iniciando evaluación masiva de reglas...');
+
+    this.syncStatus[type].isLoading = true;
+
+    Swal.fire({
+      title: 'Evaluando reglas',
+      html: 'Pasando todos los socios activos por el motor de reglas...<br><small class="text-muted">Esto puede tomar varios minutos</small>',
+      allowOutsideClick: false,
+      didOpen: () => { Swal.showLoading(); }
+    });
+
+    this.netsuiteSyncService.runEvaluacionBatch().subscribe({
+      next: (response: any) => {
+        console.log('✅ Evaluación masiva completada:', response);
+        this.syncStatus[type].isLoading = false;
+        this.syncStatus[type].lastSync  = new Date();
+        this.syncStatus[type].recordCount = response.data?.procesados || 0;
+
+        const d = response.data || {};
+        const breakdown = d.breakdown_por_regla || {};
+        const breakdownRows = Object.entries(breakdown)
+          .map(([regla, count]) => `<tr><td class="text-muted small">${regla}</td><td class="text-end"><strong>${count}</strong></td></tr>`)
+          .join('');
+
+        Swal.fire({
+          icon: d.bloqueados > 0 ? 'warning' : 'success',
+          title: 'Evaluación masiva completada',
+          html: `
+            <div class="text-start">
+              <table class="table table-sm table-borderless">
+                <tbody>
+                  <tr><td class="text-muted">Total socios activos:</td><td class="text-end"><strong>${d.total_socios_activos ?? 0}</strong></td></tr>
+                  <tr><td class="text-muted">Procesados:</td><td class="text-end"><strong>${d.procesados ?? 0}</strong></td></tr>
+                  <tr><td class="text-muted">Permitidos:</td><td class="text-end"><strong class="text-success">${d.permitidos ?? 0}</strong></td></tr>
+                  <tr><td class="text-muted">Bloqueados:</td><td class="text-end"><strong class="text-danger">${d.bloqueados ?? 0}</strong></td></tr>
+                  <tr><td class="text-muted">Errores:</td><td class="text-end"><strong>${d.errores ?? 0}</strong></td></tr>
+                  <tr><td class="text-muted">Duración:</td><td class="text-end"><strong>${d.duration_seconds ?? 0}s</strong></td></tr>
+                </tbody>
+              </table>
+              ${breakdownRows ? `<p class="mb-1 fw-bold small">Bloqueos por regla:</p><table class="table table-sm table-borderless">${breakdownRows}</table>` : ''}
+            </div>
+          `,
+          confirmButtonText: 'Aceptar',
+          width: '500px'
+        });
+      },
+      error: (error: any) => {
+        console.error('❌ Error en evaluación masiva:', error);
+        this.syncStatus[type].isLoading = false;
+
+        let errorMessage = 'Error al ejecutar la evaluación masiva';
+        let errorDetails = '';
+
+        if (error.status === 403) {
+          errorMessage = error.error?.message || 'No tienes permiso para ejecutar la evaluación masiva';
+          if (error.error?.error?.required_permissions) {
+            const perms = error.error.error.required_permissions;
+            errorDetails = `<strong>Permisos requeridos:</strong><br>`;
+            perms.forEach((p: any) => { errorDetails += `• ${p.module} → ${p.submodule} → ${p.permission}<br>`; });
+          }
+        } else if (error.error?.message) {
+          errorMessage = error.error.message;
+        }
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Error en evaluación masiva',
+          html: `<div class="text-start"><p class="mb-3">${errorMessage}</p>${errorDetails ? `<div class="alert alert-light mb-3"><small>${errorDetails}</small></div>` : ''}</div>`,
+          confirmButtonText: 'Aceptar'
+        });
+      }
+    });
+  }
+
   syncAll(): void {
     console.log('🔄 Iniciando sincronización completa de todos los recursos...');
     
@@ -228,6 +336,9 @@ export class NetsuiteSyncComponent implements OnInit {
             <li>Género</li>
             <li>Estado Membresía</li>
             <li>Cuotas Membresía</li>
+            <li>Socios (Miembros)</li>
+            <li>Membresías</li>
+            <li>Detalle Membresías</li>
           </ul>
           <p class="mb-0 text-muted small">⏱️ Este proceso puede tomar entre 2-5 minutos</p>
         </div>
@@ -336,6 +447,15 @@ export class NetsuiteSyncComponent implements OnInit {
               if (results.cuotas_membresia?.data) {
                 this.syncStatus['cuotas_membresia'].recordCount = results.cuotas_membresia.data.synced || 0;
               }
+              if (results.socios?.data) {
+                this.syncStatus['socios'].recordCount = results.socios.data.synced || 0;
+              }
+              if (results.membresia?.data) {
+                this.syncStatus['membresias'].recordCount = results.membresia.data.synced || 0;
+              }
+              if (results.detalle_membresia?.data) {
+                this.syncStatus['detalle_membresias'].recordCount = results.detalle_membresia.data.synced || 0;
+              }
             }
 
             // Mostrar resultado
@@ -352,7 +472,7 @@ export class NetsuiteSyncComponent implements OnInit {
                     <tbody>
                       <tr>
                         <td class="text-muted">Total de recursos:</td>
-                        <td class="text-end"><strong>${summary.total_resources || 19}</strong></td>
+                        <td class="text-end"><strong>${summary.total_resources || 22}</strong></td>
                       </tr>
                       <tr>
                         <td class="text-muted">Sincronizados:</td>

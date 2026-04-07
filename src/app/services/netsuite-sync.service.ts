@@ -279,6 +279,62 @@ export class NetsuiteSyncService {
   }
 
   /**
+   * Sincroniza socios (miembros del club) desde NetSuite
+   * POST /api/socios/sync
+   * Permiso: configuracion > netsuite_sync > sync_socios
+   * Depende de: payment_frequencies, genero, acceso_clubes, condicion_patrimonial
+   */
+  syncSocios(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/socios/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza membresías desde NetSuite
+   * POST /api/membresias/sync
+   * Permiso: configuracion > netsuite_sync > sync_membresias
+   * Depende de: socios, estado_membresia, condicion_patrimonial, payment_frequencies
+   */
+  syncMembresias(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/membresias/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza detalle de membresías desde NetSuite
+   * POST /api/detalle-membresias/sync
+   * Permiso: configuracion > netsuite_sync > sync_detalle_membresias
+   * Depende de: socios, membresias
+   */
+  syncDetalleMembresias(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/detalle-membresias/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Ejecuta evaluación masiva de reglas sobre todos los socios activos
+   * POST /api/evaluacion/batch
+   * Permiso: configuracion > netsuite_sync > evaluar_batch
+   * Depende de: socios, membresias, detalle_membresias sincronizados
+   */
+  runEvaluacionBatch(): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/evaluacion/batch`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
    * Sincroniza todos los recursos desde NetSuite
    * POST /api/netsuite/sync-all
    * Sincroniza: usuarios, categorías, subcategorías, departamentos, áreas, 
