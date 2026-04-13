@@ -1,0 +1,276 @@
+.sc-levels {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.page-header h4 {
+  font-size: 1.35rem;
+}
+
+/* ── Summary cards ── */
+.summary-row {
+  gap: 1rem;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.6rem;
+  min-width: 100px;
+  text-align: center;
+}
+
+.summary-num {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.summary-lbl {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.2rem;
+  opacity: 0.8;
+}
+
+.pending-card {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.assigned-card {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.total-card {
+  background: #e9ecef;
+  color: #495057;
+}
+
+/* ── Levels grid ── */
+.levels-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+/* ── Level card ── */
+.level-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: box-shadow 0.15s;
+}
+
+.level-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.level-card.is-pending {
+  border-left: 3px solid #f59e0b;
+}
+
+/* Participant avatar */
+.participant-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+/* Participant info */
+.participant-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #212529;
+}
+
+.participant-meta {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.course-badge {
+  background: #e7f3ff;
+  color: #0d6efd;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.type-badge {
+  background: #f0f0f0;
+  color: #6c757d;
+  padding: 0.1rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.72rem;
+}
+
+/* Level info */
+.level-info {
+  padding: 0.5rem 0;
+}
+
+.level-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.level-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: #6c757d;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.15rem;
+}
+
+.level-roman {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #adb5bd;
+  line-height: 1;
+}
+
+.level-roman.suggested {
+  color: #f59e0b;
+}
+
+.level-roman.assigned {
+  color: #059669;
+}
+
+.level-roman.empty {
+  color: #ced4da;
+}
+
+.level-age {
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-top: 0.1rem;
+}
+
+/* Notes */
+.level-notes {
+  font-size: 0.8rem;
+  font-style: italic;
+  background: #f8f9fa;
+  padding: 0.4rem 0.6rem;
+  border-radius: 0.4rem;
+}
+
+/* Assign button */
+.assign-btn {
+  align-self: flex-start;
+  font-size: 0.8rem;
+}
+
+/* ── Level selector ── */
+.level-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.level-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 0.3rem;
+  border: 1.5px solid #dee2e6;
+  border-radius: 0.5rem;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.level-btn .roman {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #495057;
+  line-height: 1;
+}
+
+.level-btn .age {
+  font-size: 0.65rem;
+  color: #6c757d;
+  margin-top: 0.1rem;
+}
+
+.level-btn.active {
+  border-color: #0d6efd;
+  background: #e7f3ff;
+}
+
+.level-btn.active .roman {
+  color: #0d6efd;
+}
+
+.level-btn:hover:not(.active) {
+  border-color: #adb5bd;
+  background: #f8f9fa;
+}
+
+/* ── Modal ── */
+.modal-backdrop {
+  opacity: 0.5;
+}
+
+.modal-content {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+  padding-bottom: 0.25rem;
+}
+
+.modal-footer {
+  padding-top: 0.25rem;
+}
+
+/* ── Toast ── */
+.toast-wrapper {
+  pointer-events: none;
+}
+
+.toast-wrapper .toast {
+  pointer-events: all;
+  border-radius: 0.5rem;
+  min-width: 260px;
+}
+
+/* ── Nav tabs ── */
+.nav-tabs .nav-link {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.nav-tabs .nav-link.active {
+  color: #0d6efd;
+  font-weight: 600;
+}

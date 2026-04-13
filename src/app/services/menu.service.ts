@@ -49,6 +49,7 @@ export class MenuService {
     const excludedRoutes = [
       '/requisicion/confirmacion',
       '/reportes/historial',      // Temporalmente oculto - en desarrollo
+      '/summer-course/activities', // Se accede desde botón en tarjeta de curso
       //'/requisicion/frecuentes'   // Temporalmente oculto - en desarrollo
     ];
 

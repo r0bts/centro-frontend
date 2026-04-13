@@ -1,0 +1,222 @@
+<div class="sc-instructors">
+
+  <!-- ── Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <span class="me-2">👨‍🏫</span>Instructores
+      </h4>
+      <small class="text-muted">Instructores de natación para los cursos de verano</small>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openCreate()">
+      <i class="bi bi-plus-lg"></i>Nuevo instructor
+    </button>
+  </div>
+
+  <!-- ── Error ── -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+      <button class="btn-close ms-auto" (click)="clearError()"></button>
+    </div>
+  }
+
+  <!-- ── Toast ── -->
+  @if (toast()) {
+    <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+      <div class="toast show align-items-center border-0"
+           [class]="toastType() === 'success' ? 'text-bg-success' : 'text-bg-danger'">
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center gap-2">
+            <i [class]="toastType() === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
+            {{ toast() }}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Credentials toast (one-time) ── -->
+  @if (createdCredentials()) {
+    <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
+      <i class="bi bi-key-fill fs-5 mt-1"></i>
+      <div>
+        <strong>Credenciales del nuevo instructor</strong>
+        <p class="mb-1 small">Guarda estas credenciales, no se volverán a mostrar.</p>
+        <code class="d-block">Usuario: {{ createdCredentials()!.username }}</code>
+        <code class="d-block">Contraseña: {{ createdCredentials()!.password }}</code>
+      </div>
+      <button class="btn-close ms-auto" (click)="createdCredentials.set(null)"></button>
+    </div>
+  }
+
+  <!-- ── Loading ── -->
+  @if (loading()) {
+    <div class="instructors-grid">
+      @for (n of [1,2,3]; track n) {
+        <div class="instructor-card skeleton-card">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line w75"></div>
+            <div class="skeleton-line w50"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Instructors grid ── -->
+  @if (!loading()) {
+    @if (instructors().length === 0) {
+      <div class="empty-state text-center py-5 text-muted">
+        <i class="bi bi-person-badge fs-1 d-block mb-2 opacity-25"></i>
+        <p>No hay instructores registrados.</p>
+        <button class="btn btn-primary btn-sm" (click)="openCreate()">
+          <i class="bi bi-plus-lg me-1"></i>Crear primer instructor
+        </button>
+      </div>
+    }
+
+    <div class="instructors-grid">
+      @for (inst of instructors(); track inst.id) {
+        <div class="instructor-card">
+          <div class="card-header-row">
+            <div class="instructor-avatar">{{ initials(inst) }}</div>
+            <div class="instructor-actions">
+              <button class="btn btn-sm btn-outline-secondary" (click)="openEdit(inst)" title="Editar">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(inst)" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="instructor-name">{{ fullName(inst) }}</div>
+
+          @if (inst.specialty) {
+            <div class="instructor-specialty">
+              <i class="bi bi-award me-1 text-warning"></i>{{ inst.specialty }}
+            </div>
+          }
+
+          @if (inst.email) {
+            <div class="instructor-email">
+              <i class="bi bi-envelope me-1 text-muted"></i>
+              <a [href]="'mailto:' + inst.email" class="text-muted">{{ inst.email }}</a>
+            </div>
+          }
+
+          <div class="instructor-id text-muted small mt-auto pt-2">
+            ID: {{ inst.id }}
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Create / Edit Modal ── -->
+  @if (formOpen()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title">
+              <i class="bi bi-person-badge me-2"></i>
+              {{ isEdit ? 'Editar instructor' : 'Nuevo instructor' }}
+            </h5>
+            <button class="btn-close" (click)="cancelForm()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control"
+                       [value]="formFirstName()"
+                       (input)="formFirstName.set($any($event.target).value)"
+                       placeholder="Juan">
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Apellido <span class="text-danger">*</span></label>
+                <input type="text" class="form-control"
+                       [value]="formLastName()"
+                       (input)="formLastName.set($any($event.target).value)"
+                       placeholder="García">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control"
+                       [value]="formEmail()"
+                       (input)="formEmail.set($any($event.target).value)"
+                       placeholder="instructor@centro.com">
+              </div>
+
+              <div class="col-12">
+                <label class="form-label fw-semibold">Especialidad</label>
+                <input type="text" class="form-control"
+                       [value]="formSpecialty()"
+                       (input)="formSpecialty.set($any($event.target).value)"
+                       placeholder="Natación, Waterpolo…">
+              </div>
+
+              @if (!isEdit) {
+                <div class="col-12">
+                  <div class="alert alert-info py-2 small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    El sistema generará automáticamente usuario y contraseña para el instructor.
+                    Las credenciales se mostrarán una vez creado el registro.
+                  </div>
+                </div>
+              }
+
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelForm()" [disabled]="formSaving()">
+              Cancelar
+            </button>
+            <button class="btn btn-primary d-flex align-items-center gap-2"
+                    (click)="saveInstructor()" [disabled]="formSaving()">
+              @if (formSaving()) { <span class="spinner-border spinner-border-sm"></span> }
+              {{ isEdit ? 'Guardar cambios' : 'Crear instructor' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Delete Confirm ── -->
+  @if (deleteTarget()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title text-danger">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>Eliminar instructor
+            </h5>
+          </div>
+          <div class="modal-body">
+            <p>¿Eliminar a <strong>{{ fullName(deleteTarget()!) }}</strong>?</p>
+            <p class="text-muted small">Esta acción no se puede deshacer.</p>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelDelete()">Cancelar</button>
+            <button class="btn btn-danger d-flex align-items-center gap-2"
+                    (click)="executeDelete()" [disabled]="deleting()">
+              @if (deleting()) { <span class="spinner-border spinner-border-sm"></span> }
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

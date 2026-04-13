@@ -1,0 +1,311 @@
+<div class="sc-enrollments">
+
+  <!-- ── Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <span class="me-2">📋</span>Inscripciones
+      </h4>
+      <small class="text-muted">Gestión de inscripciones a cursos de verano</small>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openForm()">
+      <i class="bi bi-plus-lg"></i>Nueva inscripción
+    </button>
+  </div>
+
+  <!-- ── Filters ── -->
+  <div class="filters-bar d-flex align-items-center gap-2 flex-wrap mb-3">
+    <select class="form-select form-select-sm w-auto"
+            [value]="filterCourse()"
+            (change)="filterCourse.set(+$any($event.target).value)">
+      <option value="0">Todos los cursos</option>
+      @for (c of courses(); track c.id) {
+        <option [value]="c.id">{{ c.name }}</option>
+      }
+    </select>
+
+    <select class="form-select form-select-sm w-auto"
+            [value]="filterStatus()"
+            (change)="filterStatus.set($any($event.target).value)">
+      <option value="">Todos los estados</option>
+      @for (s of paymentStatuses; track s.value) {
+        <option [value]="s.value">{{ s.label }}</option>
+      }
+    </select>
+
+    <span class="text-muted small ms-auto">
+      {{ filteredEnrollments().length }} inscripciones
+    </span>
+  </div>
+
+  <!-- ── Error ── -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+      <button class="btn-close ms-auto" (click)="clearError()"></button>
+    </div>
+  }
+
+  <!-- ── Toast ── -->
+  @if (toast()) {
+    <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+      <div class="toast show align-items-center border-0"
+           [class]="toastType() === 'success' ? 'text-bg-success' : 'text-bg-danger'">
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center gap-2">
+            <i [class]="toastType() === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
+            {{ toast() }}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Loading ── -->
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary"></div>
+    </div>
+  }
+
+  <!-- ── Table ── -->
+  @if (!loading()) {
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Participante</th>
+            <th>Curso</th>
+            <th>Tipo</th>
+            <th>Nivel sugerido</th>
+            <th>Nivel asignado</th>
+            <th>Estado pago</th>
+            <th>Fecha</th>
+            <th class="text-end">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (filteredEnrollments().length === 0) {
+            <tr>
+              <td colspan="9" class="text-center text-muted py-4">
+                <i class="bi bi-inbox fs-4 d-block mb-2 opacity-25"></i>
+                No hay inscripciones
+              </td>
+            </tr>
+          }
+          @for (e of filteredEnrollments(); track e.id) {
+            <tr>
+              <td class="text-muted small">{{ e.id }}</td>
+              <td>
+                <div class="fw-semibold small">{{ participantName(e) }}</div>
+              </td>
+              <td class="small">{{ courseName(e) }}</td>
+              <td>
+                <span class="badge bg-secondary-subtle text-secondary small">
+                  {{ e.participant_type }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="level-badge" [class.empty]="!e.suggested_level">
+                  {{ levelRoman(e.suggested_level) }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span class="level-badge assigned" [class.empty]="!e.assigned_level">
+                  {{ levelRoman(e.assigned_level) }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [class]="'bg-' + paymentBadge(e.payment_status) + '-subtle text-' + paymentBadge(e.payment_status)">
+                  {{ paymentLabel(e.payment_status) }}
+                </span>
+              </td>
+              <td class="text-muted small">{{ e.enrollment_date | date:'dd/MM/yy' }}</td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  <button class="btn btn-sm btn-outline-primary"
+                          (click)="openAssignLevel(e)"
+                          title="Asignar nivel">
+                    <i class="bi bi-mortarboard"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger"
+                          (click)="confirmDelete(e)"
+                          title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ── Form Modal ── -->
+  @if (formOpen()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Nueva inscripción</h5>
+            <button class="btn-close" (click)="cancelForm()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-3">
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+                <input type="text" class="form-control"
+                       [value]="formParticipantFirstName()"
+                       (input)="formParticipantFirstName.set($any($event.target).value)">
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Apellido <span class="text-danger">*</span></label>
+                <input type="text" class="form-control"
+                       [value]="formParticipantLastName()"
+                       (input)="formParticipantLastName.set($any($event.target).value)">
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Fecha de nacimiento</label>
+                <input type="date" class="form-control"
+                       [value]="formParticipantBirth()"
+                       (change)="formParticipantBirth.set($any($event.target).value)">
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Curso</label>
+                <select class="form-select"
+                        [value]="formCourseId()"
+                        (change)="formCourseId.set(+$any($event.target).value)">
+                  @for (c of courses(); track c.id) {
+                    <option [value]="c.id">{{ c.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Tipo de participante</label>
+                <select class="form-select"
+                        [value]="formType()"
+                        (change)="formType.set($any($event.target).value)">
+                  @for (t of participantTypes; track t.value) {
+                    <option [value]="t.value">{{ t.label }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Nivel sugerido</label>
+                <select class="form-select"
+                        [value]="formSuggestedLvl() ?? ''"
+                        (change)="formSuggestedLvl.set($any($event.target).value ? +$any($event.target).value : null)">
+                  <option value="">Sin nivel</option>
+                  @for (n of levelList; track n) {
+                    <option [value]="n">{{ levelLabels[n].roman }} — {{ levelLabels[n].age }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="col-sm-6">
+                <label class="form-label fw-semibold">Fecha de inscripción</label>
+                <input type="date" class="form-control"
+                       [value]="formEnrollDate()"
+                       (change)="formEnrollDate.set($any($event.target).value)">
+              </div>
+
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelForm()" [disabled]="formSaving()">
+              Cancelar
+            </button>
+            <button class="btn btn-primary d-flex align-items-center gap-2"
+                    (click)="saveEnrollment()" [disabled]="formSaving()">
+              @if (formSaving()) { <span class="spinner-border spinner-border-sm"></span> }
+              Inscribir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Assign Level Modal ── -->
+  @if (levelTarget()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title"><i class="bi bi-mortarboard me-2"></i>Asignar nivel</h5>
+            <button class="btn-close" (click)="cancelAssignLevel()"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-3">
+              Participante: <strong>{{ participantName(levelTarget()!) }}</strong>
+            </p>
+
+            <label class="form-label fw-semibold">Nivel asignado</label>
+            <select class="form-select mb-3"
+                    [value]="assignedLevel()"
+                    (change)="assignedLevel.set(+$any($event.target).value)">
+              @for (n of levelList; track n) {
+                <option [value]="n">{{ levelLabels[n].roman }} — {{ levelLabels[n].age }}</option>
+              }
+            </select>
+
+            <label class="form-label fw-semibold">Notas de evaluación</label>
+            <textarea class="form-control" rows="3"
+                      placeholder="Observaciones del evaluador..."
+                      [value]="levelNotes()"
+                      (input)="levelNotes.set($any($event.target).value)"></textarea>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelAssignLevel()" [disabled]="levelSaving()">
+              Cancelar
+            </button>
+            <button class="btn btn-success d-flex align-items-center gap-2"
+                    (click)="saveLevel()" [disabled]="levelSaving()">
+              @if (levelSaving()) { <span class="spinner-border spinner-border-sm"></span> }
+              Asignar nivel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Delete Confirm ── -->
+  @if (deleteTarget()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title text-danger">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i>Eliminar inscripción
+            </h5>
+          </div>
+          <div class="modal-body">
+            <p>¿Eliminar la inscripción de <strong>{{ participantName(deleteTarget()!) }}</strong>?</p>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelDelete()">Cancelar</button>
+            <button class="btn btn-danger d-flex align-items-center gap-2"
+                    (click)="executeDelete()" [disabled]="deleting()">
+              @if (deleting()) { <span class="spinner-border spinner-border-sm"></span> }
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

@@ -1,0 +1,114 @@
+<div class="modal-backdrop fade show"></div>
+
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content detail-modal">
+
+      <div class="modal-header border-0 pb-1">
+        @let act = activity;
+        <h6 class="modal-title d-flex align-items-center gap-2">
+          @if (act) {
+            <span [style.background]="act.bg"
+                  [style.color]="act.color"
+                  class="act-badge">
+              {{ act.emoji }} {{ act.label }}
+            </span>
+          } @else {
+            <span class="act-badge">📌 {{ entry.name }}</span>
+          }
+        </h6>
+        <button class="btn-close" (click)="cancel()"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="row g-3">
+
+          <!-- Info column -->
+          <div class="col-md-5">
+            <div class="detail-rows">
+              <div class="detail-row">
+                <i class="bi bi-mortarboard"></i>
+                <span class="label">Nivel</span>
+                <span class="value">{{ levelLabel }} ({{ levelAge }})</span>
+              </div>
+              <div class="detail-row">
+                <i class="bi bi-clock"></i>
+                <span class="label">Bloque</span>
+                <span class="value">{{ slotLabel }} · {{ slotTime }}</span>
+              </div>
+              <div class="detail-row">
+                <i class="bi bi-calendar3"></i>
+                <span class="label">Día</span>
+                <span class="value">{{ dayLabel }}</span>
+              </div>
+              @if (currentInstructor) {
+                <div class="detail-row">
+                  <i class="bi bi-person-badge"></i>
+                  <span class="label">Instructor</span>
+                  <span class="value">
+                    {{ currentInstructor.first_name }} {{ currentInstructor.last_name }}
+                  </span>
+                </div>
+              } @else {
+                <div class="detail-row text-muted">
+                  <i class="bi bi-person-slash"></i>
+                  <span class="label">Instructor</span>
+                  <span class="value">Sin asignar</span>
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Instructor selector column -->
+          <div class="col-md-7">
+            <p class="fw-semibold small mb-2">
+              <i class="bi bi-arrow-repeat me-1"></i>Cambiar instructor:
+            </p>
+
+            @if (instructors.length === 0) {
+              <p class="text-muted small">No hay instructores registrados.</p>
+            } @else {
+              <div class="instructor-grid">
+                @for (inst of instructors; track inst.id) {
+                  <div class="instructor-card"
+                       [class.selected]="selectedInstructorId() === inst.id"
+                       (click)="selectInstructor(inst.id)">
+                    <div class="inst-avatar" [style.background]="avatarBg(inst.id)">
+                      {{ initials(inst) }}
+                    </div>
+                    <div class="inst-info">
+                      <div class="inst-name">{{ inst.first_name }} {{ inst.last_name }}</div>
+                      <div class="inst-spec text-muted">{{ inst.specialty ?? 'Instructor' }}</div>
+                    </div>
+                    @if (selectedInstructorId() === inst.id) {
+                      <i class="bi bi-check-circle-fill text-primary ms-auto"></i>
+                    }
+                  </div>
+                }
+              </div>
+              <button class="btn btn-link text-muted btn-sm ps-0 mt-1"
+                      (click)="selectedInstructorId.set(null)">
+                <i class="bi bi-person-x me-1"></i>Quitar instructor
+              </button>
+            }
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer border-0 pt-0 justify-content-between">
+        <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                (click)="remove()">
+          <i class="bi bi-trash"></i>Eliminar
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm" (click)="cancel()">Cancelar</button>
+          <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" (click)="save()">
+            <i class="bi bi-floppy"></i>Guardar
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

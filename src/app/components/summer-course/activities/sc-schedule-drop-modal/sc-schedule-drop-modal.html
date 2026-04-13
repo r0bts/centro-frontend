@@ -1,0 +1,66 @@
+<div class="modal-backdrop fade show"></div>
+
+<div class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content drop-modal">
+
+      <div class="modal-header border-0 pb-1">
+        <h6 class="modal-title d-flex align-items-center gap-2">
+          <span [style.background]="activity.bg"
+                [style.color]="activity.color"
+                class="act-badge">
+            {{ activity.emoji }} {{ activity.label }}
+          </span>
+        </h6>
+        <button class="btn-close" (click)="cancel()"></button>
+      </div>
+
+      <div class="px-4 pb-1">
+        <p class="text-muted small mb-0">
+          <strong>Nivel {{ levelLabel }}</strong> ({{ levelAge }}) ·
+          {{ slotLabel }} {{ slotTime }} · {{ dayLabel }}
+        </p>
+      </div>
+
+      <div class="modal-body">
+        <p class="fw-semibold small mb-2">Selecciona un instructor:</p>
+
+        @if (instructors.length === 0) {
+          <p class="text-muted small">No hay instructores registrados.</p>
+        } @else {
+          <div class="instructor-grid">
+            @for (inst of instructors; track inst.id) {
+              <div class="instructor-card"
+                   [class.selected]="selectedInstructorId() === inst.id"
+                   (click)="selectInstructor(inst.id)">
+                <div class="inst-avatar" [style.background]="avatarBg(inst.id)">
+                  {{ initials(inst) }}
+                </div>
+                <div class="inst-info">
+                  <div class="inst-name">{{ inst.first_name }} {{ inst.last_name }}</div>
+                  <div class="inst-spec text-muted">{{ inst.specialty ?? 'Instructor' }}</div>
+                </div>
+                @if (selectedInstructorId() === inst.id) {
+                  <i class="bi bi-check-circle-fill text-primary ms-auto"></i>
+                }
+              </div>
+            }
+          </div>
+        }
+
+        <button class="btn btn-link text-muted btn-sm ps-0 mt-2"
+                (click)="selectedInstructorId.set(null)">
+          <i class="bi bi-person me-1"></i>Dejar sin instructor por ahora
+        </button>
+      </div>
+
+      <div class="modal-footer border-0 pt-0">
+        <button class="btn btn-outline-secondary btn-sm" (click)="cancel()">Cancelar</button>
+        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" (click)="confirm()">
+          <i class="bi bi-plus-lg"></i>Agregar
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

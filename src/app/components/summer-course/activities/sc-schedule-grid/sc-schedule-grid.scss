@@ -1,0 +1,188 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.schedule-grid-container {
+  overflow: auto;
+  height: 100%;
+  padding: 0.5rem;
+}
+
+.schedule-table {
+  border-collapse: collapse;
+  min-width: 800px;
+  width: 100%;
+  font-size: 0.78rem;
+
+  th, td {
+    border: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+
+  thead th {
+    background: #f8fafc;
+    text-align: center;
+    padding: 0.5rem 0.25rem;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .col-slot {
+    width: 90px;
+    min-width: 90px;
+  }
+
+  .col-level {
+    min-width: 110px;
+  }
+}
+
+.level-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+
+  .level-roman {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #1e293b;
+  }
+
+  .level-age {
+    font-size: 0.68rem;
+    color: #94a3b8;
+  }
+}
+.slot-label {
+  background: #f8fafc;
+  vertical-align: middle !important;
+  text-align: center;
+  padding: 0.4rem 0.25rem;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+
+  .slot-label-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .slot-name {
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: #374151;
+  }
+
+  .slot-time {
+    font-size: 0.68rem;
+    color: #9ca3af;
+  }
+}
+
+// ── Schedule cell ────────────────────────────────────────────────────────────
+.schedule-cell {
+  padding: 4px;
+  min-height: 54px;
+  vertical-align: top;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f0fdf4;
+  }
+
+  &.drag-over {
+    background: #dcfce7;
+    border: 2px dashed #16a34a;
+    border-radius: 4px;
+  }
+}
+
+.drop-hint {
+  font-size: 0.7rem;
+  color: #86efac;
+  text-align: center;
+  padding: 4px;
+}
+
+// ── Activity chip in cell ────────────────────────────────────────────────────
+.activity-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 5px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  margin-bottom: 3px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 500;
+  transition: transform 0.1s, box-shadow 0.1s;
+
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  }
+
+  .chip-emoji {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .chip-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70px;
+  }
+
+  .chip-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+}
+
+// ── Fixed rows ────────────────────────────────────────────────────────────────
+.row-fixed td {
+  vertical-align: middle !important;
+  padding: 0.4rem 0.75rem;
+}
+
+.fixed-cell {
+  vertical-align: middle !important;
+}
+
+.fixed-label {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.row-reception td {
+  background: linear-gradient(90deg, #0f172a, #0c4a6e);
+  color: #e0f2fe;
+  border-color: #0369a1;
+}
+
+.row-snack td {
+  background: #fefce8;
+  color: #713f12;
+  border-color: #fde047;
+}
+
+.row-exit td {
+  background: #fff1f2;
+  color: #9f1239;
+  border-color: #fda4af;
+}

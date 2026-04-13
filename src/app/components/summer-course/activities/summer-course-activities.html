@@ -1,0 +1,212 @@
+<div class="sc-activities d-flex h-100">
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       PALETTE PANEL (izquierdo)
+  ══════════════════════════════════════════════════════════════════════ -->
+  <app-sc-schedule-palette
+    [activities]="SC_ACTIVITIES"
+    [categories]="SC_CATEGORIES"
+    (activityDragStart)="onActivityDragStart($event)">
+  </app-sc-schedule-palette>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       MAIN AREA (derecha)
+  ══════════════════════════════════════════════════════════════════════ -->
+  <div class="sc-main flex-grow-1 d-flex flex-column overflow-hidden">
+
+    <!-- ── Controls Bar ── -->
+    <div class="controls-bar px-3 py-2 d-flex align-items-center gap-2 flex-wrap">
+
+      <!-- Back button (when arrived from course card) -->
+      @if (fromCourse()) {
+        <button class="btn btn-outline-secondary btn-sm me-1" (click)="goBack()">
+          <i class="bi bi-arrow-left me-1"></i>Volver
+        </button>
+        <span class="fw-semibold text-muted small me-1">{{ currentCourseName() }}</span>
+        <div class="vr d-none d-md-block mx-1"></div>
+      }
+
+      <!-- Course selector (only when NOT arrived from course card) -->
+      @if (!fromCourse()) {
+        <select class="form-select form-select-sm w-auto"
+                [value]="currentCourseId()"
+                (change)="onCourseChange(+$any($event.target).value)">
+          @for (c of courses(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      }
+
+      <!-- Week navigation -->
+      <button class="btn btn-outline-secondary btn-sm"
+              (click)="prevWeek()"
+              [disabled]="currentWeekIdx() === 0">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+
+      <span class="week-label fw-semibold text-nowrap">
+        @if (currentWeek()) {
+          {{ currentWeek()!.label }}
+          <small class="text-muted ms-1">
+            {{ currentWeek()!.start_date | date:'dd MMM' }} – {{ currentWeek()!.end_date | date:'dd MMM yyyy' }}
+          </small>
+        } @else {
+          Sin semana
+        }
+      </span>
+
+      <button class="btn btn-outline-secondary btn-sm"
+              (click)="nextWeek()"
+              [disabled]="currentWeekIdx() >= currentWeeks().length - 1">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+
+      <div class="vr d-none d-md-block mx-1"></div>
+
+      <!-- Day tabs -->
+      <div class="day-tabs d-flex gap-1">
+        @for (day of SC_DAYS; track day.idx) {
+          <button class="btn btn-sm"
+                  [class.btn-primary]="currentDayIdx() === day.idx"
+                  [class.btn-outline-secondary]="currentDayIdx() !== day.idx"
+                  (click)="setDay(day.idx)">
+            {{ day.label.slice(0, 3) }}
+          </button>
+        }
+      </div>
+
+      <div class="vr d-none d-md-block mx-1"></div>
+
+      <!-- Actions -->
+      <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+              (click)="copyDayToAllWeek()" title="Copiar este día a todos los días de la semana">
+        <i class="bi bi-clipboard-plus"></i>
+        <span class="d-none d-lg-inline">Copiar día</span>
+      </button>
+
+      <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+              (click)="clearDay()" title="Limpiar todas las actividades del día">
+        <i class="bi bi-trash"></i>
+        <span class="d-none d-lg-inline">Limpiar</span>
+      </button>
+
+      <button class="btn btn-success btn-sm ms-auto d-flex align-items-center gap-2"
+              (click)="save()" [disabled]="saving() || !currentWeek()">
+        @if (saving()) {
+          <span class="spinner-border spinner-border-sm"></span>
+        } @else {
+          <i class="bi bi-floppy"></i>
+        }
+        Guardar
+      </button>
+    </div>
+
+    <!-- ── Error ── -->
+    @if (error()) {
+      <div class="alert alert-danger mx-3 my-2 py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ error() }}</span>
+        <button class="btn-close ms-auto" (click)="clearError()"></button>
+      </div>
+    }
+
+    <!-- ── Stats Bar ── -->
+    <div class="stats-bar px-3 py-2 d-flex align-items-center gap-3 flex-wrap">
+      <span class="stat-pill">
+        <i class="bi bi-calendar3 me-1"></i>
+        {{ SC_DAYS[currentDayIdx()].label }}
+      </span>
+      <span class="stat-pill">
+        <i class="bi bi-grid-3x3 me-1"></i>
+        {{ dayStats().activitiesCount }} actividades
+      </span>
+      <span class="stat-pill" [class.text-success]="dayStats().configured === dayStats().total">
+        <i class="bi bi-check-circle me-1"></i>
+        {{ dayStats().configured }}/{{ dayStats().total }} celdas
+      </span>
+      @if (dayStats().configured === dayStats().total && dayStats().total > 0) {
+        <span class="stat-pill text-success fw-semibold">
+          <i class="bi bi-trophy-fill me-1"></i>Horario completo
+        </span>
+      }
+
+      <!-- Legend -->
+      <div class="legend d-flex gap-3 ms-auto">
+        @for (cat of SC_CATEGORIES; track cat.id) {
+          <span class="legend-item" [style.color]="cat.color">
+            {{ cat.emoji }} {{ cat.label }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <!-- ── Grid ── -->
+    @if (loading()) {
+      <div class="d-flex align-items-center justify-content-center flex-grow-1">
+        <div class="spinner-border text-primary" role="status"></div>
+      </div>
+    } @else {
+      <div class="schedule-grid-wrapper flex-grow-1 overflow-auto">
+        <app-sc-schedule-grid
+          [scheduleState]="scheduleState()"
+          [currentDayIdx]="currentDayIdx()"
+          [slots]="SC_SLOTS"
+          [levels]="SC_LEVELS"
+          [instructors]="instructors()"
+          [activityMap]="SC_ACTIVITY_MAP"
+          (drop)="onDrop($event)"
+          (chipClick)="onChipClick($event)">
+        </app-sc-schedule-grid>
+      </div>
+    }
+
+  </div>
+
+</div>
+
+<!-- ── Toast ── -->
+@if (toast()) {
+  <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1200">
+    <div class="toast show align-items-center border-0"
+         [class]="toastType() === 'success' ? 'text-bg-success' : 'text-bg-danger'"
+         role="alert">
+      <div class="d-flex">
+        <div class="toast-body d-flex align-items-center gap-2">
+          <i [class]="toastType() === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
+          {{ toast() }}
+        </div>
+        <button class="btn-close btn-close-white me-2 m-auto"></button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Drop Modal ── -->
+@if (pendingDrop()) {
+  <app-sc-schedule-drop-modal
+    [activity]="pendingDrop()!.activity"
+    [target]="pendingDrop()!.target"
+    [instructors]="instructors()"
+    [levels]="SC_LEVELS"
+    [slots]="SC_SLOTS"
+    [days]="SC_DAYS"
+    (confirmed)="onDropModalConfirm($event)"
+    (cancelled)="onDropModalCancel()">
+  </app-sc-schedule-drop-modal>
+}
+
+<!-- ── Detail Modal ── -->
+@if (detailTarget()) {
+  <app-sc-schedule-detail-modal
+    [entry]="detailTarget()!.entry"
+    [target]="detailTarget()!.target"
+    [instructors]="instructors()"
+    [levels]="SC_LEVELS"
+    [slots]="SC_SLOTS"
+    [days]="SC_DAYS"
+    [activityMap]="SC_ACTIVITY_MAP"
+    (saved)="onDetailSave($event)"
+    (removed)="onDetailRemove()"
+    (cancelled)="onDetailCancel()">
+  </app-sc-schedule-detail-modal>
+}

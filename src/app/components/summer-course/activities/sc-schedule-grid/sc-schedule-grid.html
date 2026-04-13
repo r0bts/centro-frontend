@@ -1,0 +1,109 @@
+<div class="schedule-grid-container">
+  <table class="schedule-table">
+    <thead>
+      <tr>
+        <th class="col-slot">Bloque</th>
+        @for (lvl of levels; track lvl.n) {
+          <th class="col-level">
+            <div class="level-header">
+              <span class="level-roman">{{ lvl.roman }}</span>
+              <span class="level-age">{{ lvl.age }}</span>
+            </div>
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody>
+      <!-- ── Fila fija: Recepción ── -->
+      <tr class="row-fixed row-reception">
+        <td class="slot-label">
+          <div class="slot-label-inner">
+            <span class="slot-name">Recepción</span>
+            <span class="slot-time">8:30 – 9:00</span>
+          </div>
+        </td>
+        <td colspan="8" class="fixed-cell">
+          <span class="fixed-label">🏨 Recepción y bienvenida</span>
+        </td>
+      </tr>
+
+      <!-- ── Bloques editables ── -->
+      @for (slot of slots; track slot.id) {
+        <tr class="row-slot">
+          <td class="slot-label">
+            <div class="slot-label-inner">
+              <span class="slot-name">{{ slot.label }}</span>
+              <span class="slot-time">{{ slot.display }}</span>
+            </div>
+          </td>
+
+          @for (lvl of levels; track lvl.n) {
+            <td class="schedule-cell"
+                [class.drag-over]="isDragOver(slot.id, lvl.n)"
+                (dragover)="onDragOver($event, slot.id, lvl.n)"
+                (dragleave)="onDragLeave()"
+                (drop)="onDrop($event, slot.id, lvl.n)">
+
+              @for (entry of getEntries(slot.id, lvl.n); track $index) {
+                @let act = getActivity(entry.activityId);
+                <div class="activity-chip"
+                     [style.background]="act?.bg ?? '#f1f5f9'"
+                     [style.color]="act?.color ?? '#475569'"
+                     [style.border-color]="act?.color ?? '#94a3b8'"
+                     (click)="onChipClick(entry, slot.id, lvl.n, $index)"
+                     title="{{ entry.name }} — clic para editar">
+                  <span class="chip-emoji">{{ act?.emoji ?? '📌' }}</span>
+                  <span class="chip-name">{{ entry.name }}</span>
+                  @let inst = getInstructor(entry.instructorId);
+                  @if (inst) {
+                    <span class="chip-avatar"
+                          [style.background]="instructorBgColor(inst.id)"
+                          [title]="inst.first_name + ' ' + inst.last_name">
+                      {{ instructorInitials(inst) }}
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Drop hint when empty and drag over -->
+              @if (isDragOver(slot.id, lvl.n) && getEntries(slot.id, lvl.n).length === 0) {
+                <div class="drop-hint">Soltar aquí</div>
+              }
+
+            </td>
+          }
+        </tr>
+
+        <!-- Refrigerio separator after b2 -->
+        @if (slot.id === 'b2') {
+          <tr class="row-fixed row-snack">
+            <td class="slot-label">
+              <div class="slot-label-inner">
+                <span class="slot-name">Refrigerio</span>
+                <span class="slot-time">11:20 – 11:40</span>
+              </div>
+            </td>
+            <td colspan="8" class="fixed-cell">
+              <span class="fixed-label">🍎 Refrigerio</span>
+            </td>
+          </tr>
+        }
+      }
+
+      <!-- ── Fila fija: Salida ── -->
+      <tr class="row-fixed row-exit">
+        <td class="slot-label">
+          <div class="slot-label-inner">
+            <span class="slot-name">Salida</span>
+            <span class="slot-time">14:00</span>
+          </div>
+        </td>
+        <td colspan="8" class="fixed-cell">
+          <span class="fixed-label">🚌 Salida</span>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>

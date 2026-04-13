@@ -1,0 +1,77 @@
+.wizard-stepper {
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+
+    .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #e9ecef;
+      color: #6c757d;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .step-label {
+      font-size: 0.8rem;
+      color: #6c757d;
+    }
+
+    &.active {
+      .step-circle {
+        background: var(--bs-primary);
+        color: #fff;
+      }
+      .step-label { color: var(--bs-primary); font-weight: 600; }
+    }
+
+    &.done {
+      .step-circle {
+        background: #198754;
+        color: #fff;
+      }
+      .step-label { color: #198754; }
+    }
+  }
+
+  .step-line {
+    height: 2px;
+    background: #e9ecef;
+    border-radius: 2px;
+
+    &.done { background: #198754; }
+  }
+}
+
+.weeks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .week-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+  }
+}
+
+.costs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+
+  .cost-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
+  }
+}

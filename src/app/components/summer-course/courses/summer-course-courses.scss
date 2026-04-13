@@ -1,0 +1,81 @@
+.sc-courses {
+  padding: 1.5rem;
+}
+
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+// ── Tarjeta base ─────────────────────────────────────────────────────────
+.course-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  transition: box-shadow 0.2s, transform 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+  }
+
+  // ── Tarjeta "Nuevo curso" ──────────────────────────────────────────────
+  &.add-card {
+    border: 2px dashed #dee2e6;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #adb5bd;
+    background: transparent;
+
+    &:hover {
+      border-color: var(--bs-primary);
+      color: var(--bs-primary);
+      background: rgba(var(--bs-primary-rgb), 0.04);
+    }
+
+    .add-icon {
+      font-size: 2rem;
+      line-height: 1;
+    }
+    .add-label {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+  }
+}
+
+// ── Meta chips
+.meta-chip {
+  font-size: 0.75rem;
+  color: #6c757d;
+  white-space: nowrap;
+}
+
+// ── Skeleton ─────────────────────────────────────────────────────────────
+.skeleton {
+  pointer-events: none;
+
+  .sk-line {
+    height: 14px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+
+    &.long   { width: 80%; }
+    &.medium { width: 55%; }
+    &.short  { width: 40%; }
+  }
+}
+
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -1,0 +1,190 @@
+<ng-container>
+<div class="sc-courses">
+  <!-- ── Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <span class="me-2">☀️</span>Cursos de Verano
+      </h4>
+      <small class="text-muted">Gestión de cursos, semanas y tarifas</small>
+    </div>
+    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
+      <i class="bi bi-plus-lg"></i>
+      <span>Nuevo curso</span>
+    </button>
+  </div>
+
+  <!-- ── Error ── -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+      <button type="button" class="btn-close ms-auto" (click)="clearError()"></button>
+    </div>
+  }
+
+  <!-- ── Toast ── -->
+  @if (toast()) {
+    <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+      <div class="toast show align-items-center border-0"
+           [class]="toastType() === 'success' ? 'text-bg-success' : 'text-bg-danger'"
+           role="alert">
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center gap-2">
+            <i [class]="toastType() === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
+            {{ toast() }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="clearToast()"></button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Loading skeleton ── -->
+  @if (loading()) {
+    <div class="courses-grid">
+      @for (sk of [1,2,3]; track sk) {
+        <div class="course-card skeleton">
+          <div class="sk-line long mb-2"></div>
+          <div class="sk-line short mb-4"></div>
+          <div class="sk-line medium"></div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Grid de cursos ── -->
+  @if (!loading()) {
+    <div class="courses-grid">
+
+      <!-- Tarjeta "Nuevo curso" -->
+      <div class="course-card add-card" (click)="openWizard()" role="button" tabindex="0"
+           (keydown.enter)="openWizard()">
+        <div class="add-icon">
+          <i class="bi bi-plus-lg"></i>
+        </div>
+        <span class="add-label">Nuevo curso</span>
+      </div>
+
+      <!-- Tarjetas de cursos -->
+      @for (course of courses(); track course.id) {
+        <div class="course-card">
+
+          <!-- Estado badge -->
+          <div class="course-status mb-2">
+            <span class="badge" [class]="getStatusBadgeClass(course.status)">
+              {{ getStatusLabel(course.status) }}
+            </span>
+          </div>
+
+          <!-- Nombre -->
+          <h5 class="course-name mb-1">{{ course.name }}</h5>
+
+          <!-- Fechas -->
+          <p class="course-dates text-muted small mb-2">
+            <i class="bi bi-calendar3 me-1"></i>
+            {{ course.start_date | date:'dd MMM yyyy' }} →
+            {{ course.end_date   | date:'dd MMM yyyy' }}
+          </p>
+
+          <!-- Descripción -->
+          @if (course.description) {
+            <p class="course-desc text-muted small mb-3">{{ course.description }}</p>
+          }
+
+          <!-- Métricas -->
+          <div class="course-meta d-flex gap-3 mb-3">
+            <span class="meta-chip">
+              <i class="bi bi-calendar-week me-1"></i>
+              {{ course.sc_weeks?.length ?? 0 }} semanas
+            </span>
+            <span class="meta-chip">
+              <i class="bi bi-people me-1"></i>
+              {{ course.enrollment_count ?? 0 }} inscripciones
+            </span>
+            @if (course.max_spots) {
+              <span class="meta-chip">
+                <i class="bi bi-person-check me-1"></i>
+                {{ course.max_spots }} cupos
+              </span>
+            }
+          </div>
+
+          <!-- Acciones -->
+          <div class="course-actions d-flex gap-2 mt-auto">
+            <button class="btn btn-sm btn-primary flex-grow-1"
+                    (click)="openActivities(course.id)">
+              <i class="bi bi-calendar3-week me-1"></i>Horario
+            </button>
+            <button class="btn btn-sm btn-outline-primary"
+                    (click)="editCourse(course)">
+              <i class="bi bi-pencil me-1"></i>Editar
+            </button>
+            <button class="btn btn-sm btn-outline-danger"
+                    (click)="confirmDelete(course)">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+
+        </div>
+      }
+
+      <!-- Estado vacío -->
+      @if (courses().length === 0) {
+        <div class="empty-state col-span-all">
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-sun fs-1 d-block mb-3 opacity-25"></i>
+            <h6>No hay cursos registrados</h6>
+            <p class="small">Crea el primer curso de verano con el botón <strong>+ Nuevo curso</strong>.</p>
+          </div>
+        </div>
+      }
+
+    </div>
+  }
+
+  <!-- ── Modal confirmación de eliminación ── -->
+  @if (deleteTarget()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title">
+              <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+              Eliminar curso
+            </h5>
+          </div>
+          <div class="modal-body">
+            <p class="mb-1">¿Estás seguro de que deseas eliminar el curso:</p>
+            <p class="fw-bold">{{ deleteTarget()!.name }}</p>
+            <p class="text-muted small">Esta acción no se puede deshacer.</p>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelDelete()" [disabled]="deleting()">
+              Cancelar
+            </button>
+            <button class="btn btn-danger d-flex align-items-center gap-2"
+                    (click)="executeDelete()" [disabled]="deleting()">
+              @if (deleting()) {
+                <span class="spinner-border spinner-border-sm"></span>
+              }
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Wizard ── -->
+  @if (wizardOpen()) {
+    <app-course-wizard
+      [editCourse]="wizardEditTarget()"
+      (saved)="onWizardSaved($event)"
+      (cancelled)="onWizardCancelled()">
+    </app-course-wizard>
+  }
+
+</div>
+</ng-container>

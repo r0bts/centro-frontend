@@ -1,0 +1,44 @@
+<div class="palette-panel">
+
+  <div class="palette-header">
+    <i class="bi bi-grid-3x3-gap me-1"></i>
+    Actividades
+  </div>
+
+  <div class="palette-body">
+    @for (cat of categories; track cat.id) {
+      <div class="cat-section">
+
+        <!-- Category header -->
+        <button class="cat-header w-100 d-flex align-items-center gap-2"
+                (click)="toggleCat(cat.id)"
+                [style.color]="cat.color">
+          <span>{{ cat.emoji }}</span>
+          <span class="flex-grow-1 text-start">{{ cat.label }}</span>
+          <i class="bi" [class.bi-chevron-down]="openCats().has(cat.id)"
+                        [class.bi-chevron-right]="!openCats().has(cat.id)"></i>
+        </button>
+
+        <!-- Activity chips -->
+        @if (openCats().has(cat.id)) {
+          <div class="cat-chips">
+            @for (act of activitiesForCat(cat.id); track act.id) {
+              <div class="activity-chip"
+                   draggable="true"
+                   (dragstart)="onDragStart($event, act)"
+                   [style.background]="act.bg"
+                   [style.color]="act.color"
+                   [style.border-color]="act.color"
+                   title="Arrastra al horario">
+                <span class="chip-emoji">{{ act.emoji }}</span>
+                <span class="chip-label">{{ act.label }}</span>
+              </div>
+            }
+          </div>
+        }
+
+      </div>
+    }
+  </div>
+
+</div>

@@ -1,0 +1,98 @@
+.sc-enrollments {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+.page-header h4 {
+  font-size: 1.35rem;
+}
+
+/* ── Filters ── */
+.filters-bar {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+}
+
+/* ── Table ── */
+.table {
+  font-size: 0.875rem;
+
+  th {
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    color: #6c757d;
+    text-transform: uppercase;
+  }
+
+  tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+}
+
+/* ── Level Badge ── */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.2rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #e9ecef;
+  color: #495057;
+  letter-spacing: 0.02em;
+}
+
+.level-badge.assigned {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.level-badge.empty {
+  background: transparent;
+  color: #adb5bd;
+  font-weight: 400;
+}
+
+/* ── Modal ── */
+.modal-backdrop {
+  opacity: 0.5;
+}
+
+.modal-content {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+  padding-bottom: 0.25rem;
+}
+
+.modal-footer {
+  padding-top: 0.25rem;
+}
+
+/* ── Toast ── */
+.toast-wrapper {
+  pointer-events: none;
+
+  .toast {
+    pointer-events: all;
+    border-radius: 0.5rem;
+    min-width: 260px;
+  }
+}
+
+/* ── Form row ── */
+.form-label {
+  font-size: 0.85rem;
+  margin-bottom: 0.3rem;
+}

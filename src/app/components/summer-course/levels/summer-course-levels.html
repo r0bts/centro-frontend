@@ -1,0 +1,208 @@
+<div class="sc-levels">
+
+  <!-- ── Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="mb-0 fw-bold">
+        <span class="me-2">🎓</span>Asignación de niveles
+      </h4>
+      <small class="text-muted">Evalúa y asigna el nivel natación a cada participante</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <select class="form-select form-select-sm w-auto"
+              [value]="filterCourse()"
+              (change)="filterCourse.set(+$any($event.target).value)">
+        <option value="0">Todos los cursos</option>
+        @for (c of courses(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  <!-- ── Error ── -->
+  @if (error()) {
+    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <span>{{ error() }}</span>
+      <button class="btn-close ms-auto" (click)="clearError()"></button>
+    </div>
+  }
+
+  <!-- ── Toast ── -->
+  @if (toast()) {
+    <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1100">
+      <div class="toast show align-items-center border-0"
+           [class]="toastType() === 'success' ? 'text-bg-success' : 'text-bg-danger'">
+        <div class="d-flex">
+          <div class="toast-body d-flex align-items-center gap-2">
+            <i [class]="toastType() === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
+            {{ toast() }}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ── Summary cards ── -->
+  <div class="summary-row d-flex gap-3 flex-wrap mb-4">
+    <div class="summary-card pending-card">
+      <div class="summary-num">{{ pendingList().length }}</div>
+      <div class="summary-lbl">Pendientes</div>
+    </div>
+    <div class="summary-card assigned-card">
+      <div class="summary-num">{{ assignedList().length }}</div>
+      <div class="summary-lbl">Asignados</div>
+    </div>
+    <div class="summary-card total-card">
+      <div class="summary-num">{{ enrollments().length }}</div>
+      <div class="summary-lbl">Total</div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab() === 'pending'"
+              (click)="activeTab.set('pending')">
+        Pendientes
+        @if (pendingList().length > 0) {
+          <span class="badge text-bg-warning ms-1">{{ pendingList().length }}</span>
+        }
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" [class.active]="activeTab() === 'assigned'"
+              (click)="activeTab.set('assigned')">
+        Asignados
+        @if (assignedList().length > 0) {
+          <span class="badge text-bg-success ms-1">{{ assignedList().length }}</span>
+        }
+      </button>
+    </li>
+  </ul>
+
+  <!-- ── Loading ── -->
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary"></div>
+    </div>
+  }
+
+  <!-- ── Level Cards Grid ── -->
+  @if (!loading()) {
+    @if (currentList().length === 0) {
+      <div class="empty-state text-center py-5 text-muted">
+        <i class="bi bi-mortarboard fs-1 d-block mb-2 opacity-25"></i>
+        @if (activeTab() === 'pending') {
+          <p>No hay inscripciones pendientes de nivel.</p>
+        } @else {
+          <p>No hay inscripciones con nivel asignado.</p>
+        }
+      </div>
+    }
+
+    <div class="levels-grid">
+      @for (e of currentList(); track e.id) {
+        <div class="level-card" [class.is-pending]="!e.assigned_level">
+          <!-- Avatar -->
+          <div class="participant-avatar">
+            {{ initials(e) }}
+          </div>
+
+          <!-- Info -->
+          <div class="participant-info">
+            <div class="participant-name">{{ participantName(e) }}</div>
+            <div class="participant-meta">
+              <span class="course-badge">{{ courseName(e) }}</span>
+              <span class="type-badge">{{ e.participant_type }}</span>
+            </div>
+          </div>
+
+          <!-- Levels -->
+          <div class="level-info d-flex gap-2 align-items-center">
+            <div class="level-col">
+              <div class="level-label">Sugerido</div>
+              <div class="level-roman suggested">{{ levelRoman(e.suggested_level) }}</div>
+              <div class="level-age">{{ levelAge(e.suggested_level) }}</div>
+            </div>
+            <i class="bi bi-arrow-right text-muted"></i>
+            <div class="level-col">
+              <div class="level-label">Asignado</div>
+              <div class="level-roman" [class.assigned]="!!e.assigned_level" [class.empty]="!e.assigned_level">
+                {{ levelRoman(e.assigned_level) }}
+              </div>
+              <div class="level-age">{{ levelAge(e.assigned_level) }}</div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          @if (e.level_notes) {
+            <div class="level-notes text-muted small">
+              <i class="bi bi-chat-text me-1"></i>{{ e.level_notes }}
+            </div>
+          }
+
+          <!-- Action -->
+          <button class="btn btn-sm btn-outline-primary assign-btn"
+                  (click)="openAssignLevel(e)">
+            <i class="bi bi-mortarboard me-1"></i>
+            {{ e.assigned_level ? 'Cambiar nivel' : 'Asignar nivel' }}
+          </button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- ── Assign Level Modal ── -->
+  @if (levelTarget()) {
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header border-0">
+            <h5 class="modal-title"><i class="bi bi-mortarboard me-2"></i>Asignar nivel</h5>
+            <button class="btn-close" (click)="cancelAssignLevel()"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted mb-3">
+              Participante: <strong>{{ participantName(levelTarget()!) }}</strong><br>
+              @if (levelTarget()!.suggested_level) {
+                Nivel sugerido: <strong>{{ levelRoman(levelTarget()!.suggested_level) }} — {{ levelAge(levelTarget()!.suggested_level) }}</strong>
+              }
+            </p>
+
+            <label class="form-label fw-semibold">Nivel asignado</label>
+            <div class="level-selector mb-3">
+              @for (n of levelList; track n) {
+                <button class="level-btn"
+                        [class.active]="assignedLevel() === n"
+                        (click)="assignedLevel.set(n)">
+                  <span class="roman">{{ levelLabels[n].roman }}</span>
+                  <span class="age">{{ levelLabels[n].age }}</span>
+                </button>
+              }
+            </div>
+
+            <label class="form-label fw-semibold">Notas de evaluación</label>
+            <textarea class="form-control" rows="3"
+                      placeholder="Observaciones del evaluador..."
+                      [value]="levelNotes()"
+                      (input)="levelNotes.set($any($event.target).value)"></textarea>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-outline-secondary" (click)="cancelAssignLevel()" [disabled]="levelSaving()">
+              Cancelar
+            </button>
+            <button class="btn btn-success d-flex align-items-center gap-2"
+                    (click)="saveLevel()" [disabled]="levelSaving()">
+              @if (levelSaving()) { <span class="spinner-border spinner-border-sm"></span> }
+              Asignar nivel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>

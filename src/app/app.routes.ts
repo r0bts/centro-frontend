@@ -195,6 +195,53 @@ export const routes: Routes = [
       }
     ]
   },
+  // =====================================================================
+  // SUMMER COURSE — Module 15 (submodules 51-55)
+  // Shell con lazy-loaded child routes para cada sección.
+  // =====================================================================
+  {
+    path: 'summer-course',
+    redirectTo: '/summer-course/courses',
+    pathMatch: 'full'
+  },
+  {
+    path: 'summer-course',
+    loadComponent: () =>
+      import('./components/summer-course/shell/summer-course-shell').then(m => m.SummerCourseShellComponent),
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'courses',
+        loadComponent: () =>
+          import('./components/summer-course/courses/summer-course-courses').then(m => m.SummerCourseCoursesComponent)
+      },
+      {
+        path: 'activities',
+        loadComponent: () =>
+          import('./components/summer-course/activities/summer-course-activities').then(m => m.SummerCourseActivitiesComponent)
+      },
+      {
+        path: 'enrollments',
+        loadComponent: () =>
+          import('./components/summer-course/enrollments/summer-course-enrollments').then(m => m.SummerCourseEnrollmentsComponent)
+      },
+      {
+        path: 'levels',
+        loadComponent: () =>
+          import('./components/summer-course/levels/summer-course-levels').then(m => m.SummerCourseLevelsComponent)
+      },
+      {
+        path: 'instructors',
+        loadComponent: () =>
+          import('./components/summer-course/instructors/summer-course-instructors').then(m => m.SummerCourseInstructorsComponent)
+      },
+      {
+        path: '',
+        redirectTo: 'courses',
+        pathMatch: 'full'
+      }
+    ]
+  },
   {
     path: 'unauthorized',
     loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
