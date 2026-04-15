@@ -1,0 +1,168 @@
+<!-- ══════════════════════════════════════════════════════
+  Editor de Plano de Área — cuadrícula tipo Excel
+  Col 0: solo posición de Instructor (fila central)
+  Col 1+: lugares de participantes (click para toggle)
+══════════════════════════════════════════════════════ -->
+
+<div class="card layout-editor">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2">
+      <button class="btn btn-sm btn-outline-secondary" (click)="onClose()" title="Volver a la lista">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      <div>
+        <h5 class="card-title mb-0">
+          <i class="bi bi-grid-3x3-gap me-2"></i>Editor de Plano
+        </h5>
+        <small class="text-muted fw-semibold">{{ area?.name }}</small>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2">
+      <!-- Eliminar (solo si ya existe) -->
+      <button
+        *ngIf="layoutId()"
+        class="btn btn-sm btn-outline-danger"
+        (click)="deleteLayout()"
+        [disabled]="saving()">
+        <i class="bi bi-trash me-1"></i>Eliminar plano
+      </button>
+      <!-- Guardar -->
+      <button
+        class="btn btn-sm btn-primary"
+        (click)="saveLayout()"
+        [disabled]="saving() || loading()">
+        <span *ngIf="saving()" class="spinner-border spinner-border-sm me-1"></span>
+        <i *ngIf="!saving()" class="bi bi-save me-1"></i>
+        {{ saving() ? 'Guardando...' : 'Guardar plano' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+
+    <!-- Loading -->
+    <div *ngIf="loading()" class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary"></div>
+      <span class="ms-3 text-muted">Cargando plano...</span>
+    </div>
+
+    <div *ngIf="!loading()">
+
+      <!-- ── Configuración superior ──────────────────────── -->
+      <div class="row g-3 mb-4 align-items-end">
+        <div class="col-sm-4">
+          <label class="form-label small fw-semibold">Nombre del plano</label>
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            [value]="nombre()"
+            (input)="nombre.set($any($event.target).value)">
+        </div>
+        <div class="col-sm-2">
+          <label class="form-label small fw-semibold">Filas</label>
+          <input
+            type="number" min="1" max="50"
+            class="form-control form-control-sm"
+            [value]="filas()"
+            (change)="filas.set(+$any($event.target).value); onDimensionChange()">
+        </div>
+        <div class="col-sm-2">
+          <label class="form-label small fw-semibold">Columnas</label>
+          <input
+            type="number" min="2" max="30"
+            class="form-control form-control-sm"
+            [value]="columnas()"
+            (change)="columnas.set(+$any($event.target).value); onDimensionChange()">
+        </div>
+        <div class="col-sm-4">
+          <!-- Leyenda rápida -->
+          <div class="d-flex flex-wrap gap-2 legend-bar">
+            <span class="legend-item">
+              <span class="cell-swatch cell-instructor-swatch"></span>
+              <span class="small">Instructor</span>
+            </span>
+            <span class="legend-item">
+              <span class="cell-swatch cell-lugar-swatch"></span>
+              <span class="small">Lugar</span>
+            </span>
+            <span class="legend-item">
+              <span class="cell-swatch cell-vacio-swatch"></span>
+              <span class="small">Sin lugar</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Cuadrícula ─────────────────────────────────── -->
+      <div class="grid-wrapper">
+        <div class="grid-scroll">
+          <table class="layout-grid">
+            <!-- Cabecera de columnas -->
+            <thead>
+              <tr>
+                <th class="col-header col0-header" title="Columna del instructor">
+                  <i class="bi bi-person-fill"></i>
+                </th>
+                <th *ngFor="let ci of colRange.slice(1)" class="col-header">
+                  Col {{ ci }}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of grid(); let fi = index">
+                <!-- Fila index label -->
+                <ng-container *ngFor="let cell of row; let ci = index">
+                  <td
+                    [class]="'grid-cell ' + cellClass(cell)"
+                    [class.clickable]="ci !== 0"
+                    (click)="onCellClick(cell)"
+                    [title]="cell.etiqueta || ('Fila ' + fi + ' Col ' + ci)">
+
+                    <!-- Col 0: solo mostrar ícono en la fila del instructor -->
+                    <ng-container *ngIf="ci === 0">
+                      <ng-container *ngIf="cell.tipo === 'instructor'">
+                        <i class="bi bi-person-video2 instructor-icon"></i>
+                        <div class="cell-label">{{ cell.etiqueta }}</div>
+                      </ng-container>
+                    </ng-container>
+
+                    <!-- Col 1+: mostrar etiqueta -->
+                    <ng-container *ngIf="ci !== 0">
+                      <ng-container *ngIf="cell.tipo === 'lugar'">
+                        <i class="bi bi-person-fill seat-icon"></i>
+                        <div class="cell-label">{{ cell.etiqueta }}</div>
+                      </ng-container>
+                      <!-- celdas vacio: completamente en blanco, sin ícono -->
+                    </ng-container>
+                  </td>
+                </ng-container>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── Resumen ─────────────────────────────────────── -->
+      <div class="d-flex justify-content-between align-items-center mt-3 px-1 small text-muted">
+        <span>
+          <i class="bi bi-grid me-1"></i>
+          {{ filas() }} filas × {{ columnas() }} columnas = {{ filas() * columnas() }} celdas
+        </span>
+        <span class="fw-semibold text-primary">
+          <i class="bi bi-person-fill me-1"></i>{{ lugaresActivos }} lugares
+        </span>
+      </div>
+
+      <!-- Instrucciones -->
+      <div class="alert alert-light border mt-3 small">
+        <i class="bi bi-info-circle me-1 text-primary"></i>
+        <strong>Col 0 (primera columna):</strong> posición fija del instructor/entrenador (no interactuable).
+        <strong class="ms-2">Click en celdas</strong> para agregar o quitar lugares.
+      </div>
+
+    </div>
+  </div>
+</div>

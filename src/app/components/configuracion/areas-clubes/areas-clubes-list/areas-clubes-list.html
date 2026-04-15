@@ -1,0 +1,117 @@
+<div class="card">
+  <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+    <h5 class="card-title mb-0">
+      <i class="bi bi-geo-alt me-2"></i>Áreas y Clubes
+    </h5>
+    <div class="d-flex gap-2">
+      <!-- Buscador -->
+      <div class="input-group input-group-sm" style="min-width:220px">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Buscar área..."
+          [value]="search()"
+          (input)="search.set($any($event.target).value)">
+      </div>
+      <!-- Reload -->
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadAreas()" [disabled]="loading()">
+        <i class="bi bi-arrow-clockwise" [class.spin]="loading()"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+
+    <!-- Loading -->
+    <div *ngIf="loading()" class="d-flex justify-content-center align-items-center py-5">
+      <div class="spinner-border text-primary me-3"></div>
+      <span class="text-muted">Cargando áreas...</span>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="!loading() && error()" class="alert alert-danger m-3">
+      <i class="bi bi-exclamation-triangle me-2"></i>{{ error() }}
+    </div>
+
+    <!-- Tabla -->
+    <div *ngIf="!loading() && !error()" class="table-responsive">
+      <table class="table table-hover table-sm align-middle mb-0">
+        <thead class="table-light sticky-top">
+          <tr>
+            <th class="ps-3" style="min-width:200px">Área</th>
+            <!-- Columna por cada club -->
+            <th
+              *ngFor="let club of clubes()"
+              class="text-center"
+              style="min-width:110px">
+              <span class="badge bg-primary rounded-pill">{{ club.name }}</span>
+            </th>
+            <th class="text-center" style="min-width:120px">Plano</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let area of filteredAreas; trackBy: trackByArea"
+            [class.table-active]="isSaving(area.id)">
+
+            <!-- Nombre del área -->
+            <td class="ps-3 fw-semibold">{{ area.name }}</td>
+
+            <!-- Toggle por club -->
+            <td
+              *ngFor="let club of clubes()"
+              class="text-center">
+              <button
+                class="btn btn-sm btn-ghost-toggle p-1"
+                [disabled]="isSaving(area.id)"
+                (click)="toggleClub(area, club.id)"
+                [title]="hasClub(area, club.id) ? 'Quitar de ' + club.name : 'Agregar a ' + club.name">
+                <span *ngIf="isSaving(area.id)" class="spinner-border spinner-border-sm text-secondary"></span>
+                <i
+                  *ngIf="!isSaving(area.id)"
+                  [class]="'bi fs-5 ' + clubIcon(area, club.id) + ' ' + clubColor(area, club.id)">
+                </i>
+              </button>
+            </td>
+
+            <!-- Plano / Layout -->
+            <td class="text-center">
+              <button
+                class="btn btn-sm"
+                [class.btn-outline-primary]="!area.has_layout"
+                [class.btn-primary]="area.has_layout"
+                (click)="onOpenEditor(area)"
+                [title]="area.has_layout ? 'Editar plano' : 'Crear plano'">
+                <i class="bi" [class.bi-grid-3x3-gap]="!area.has_layout" [class.bi-grid-3x3-gap-fill]="area.has_layout"></i>
+                <span class="ms-1 d-none d-md-inline">
+                  {{ area.has_layout ? 'Editar' : 'Crear' }}
+                </span>
+              </button>
+              <div *ngIf="area.has_layout && area.layout" class="small text-muted mt-1">
+                {{ area.layout.filas }}×{{ area.layout.columnas }}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Sin resultados -->
+          <tr *ngIf="filteredAreas.length === 0">
+            <td [attr.colspan]="clubes().length + 2" class="text-center text-muted py-4">
+              <i class="bi bi-inbox fs-4 d-block mb-2"></i>
+              No se encontraron áreas
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Footer contador -->
+    <div *ngIf="!loading() && !error()" class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light small text-muted">
+      <span>{{ filteredAreas.length }} de {{ areas().length }} áreas</span>
+      <span>
+        <i class="bi bi-check-circle-fill text-success me-1"></i> = asignado &nbsp;
+        <i class="bi bi-circle text-secondary me-1"></i> = sin asignar
+      </span>
+    </div>
+  </div>
+</div>

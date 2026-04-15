@@ -1,0 +1,15 @@
+<!-- Lista -->
+<ng-container *ngIf="!editingArea()">
+  <app-areas-clubes-list
+    (openEditor)="openEditor($event)">
+  </app-areas-clubes-list>
+</ng-container>
+
+<!-- Editor de plano -->
+<ng-container *ngIf="editingArea()">
+  <app-area-layout-editor
+    [area]="editingArea()!"
+    (close)="closeEditor()"
+    (saved)="onLayoutSaved($event)">
+  </app-area-layout-editor>
+</ng-container>

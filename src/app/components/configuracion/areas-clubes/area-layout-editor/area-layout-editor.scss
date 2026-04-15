@@ -1,0 +1,146 @@
+// ── Variables de color ──────────────────────────────────
+$color-instructor: #0d6efd;
+$color-lugar:      #198754;
+$color-vacio:      #dee2e6;
+$color-col0-bg:    #f0f4ff;
+
+.layout-editor {
+  .legend-bar {
+    align-items: center;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .cell-swatch {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      border: 1px solid rgba(0,0,0,.15);
+    }
+    .cell-instructor-swatch { background: $color-instructor; }
+    .cell-lugar-swatch      { background: #d1e7dd; border-color: $color-lugar; }
+    .cell-vacio-swatch      { background: $color-vacio; }
+  }
+}
+
+// ── Grid wrapper con scroll horizontal ──────────────────
+.grid-wrapper {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.grid-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
+}
+
+// ── Tabla de cuadrícula ──────────────────────────────────
+.layout-grid {
+  border-collapse: collapse;
+  table-layout: fixed;
+
+  thead th.col-header {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 4px 8px;
+    text-align: center;
+    font-size: 0.7rem;
+    color: #6c757d;
+    white-space: nowrap;
+    min-width: 70px;
+
+    &.col0-header {
+      width: 90px;
+      background: lighten($color-instructor, 40%);
+      color: $color-instructor;
+      font-size: 1rem;
+    }
+  }
+}
+
+// ── Celda base ───────────────────────────────────────────
+.grid-cell {
+  width: 70px;
+  height: 60px;
+  border: 1px solid #dee2e6;
+  text-align: center;
+  vertical-align: middle;
+  padding: 2px;
+  transition: background 0.15s, transform 0.1s;
+  position: relative;
+
+  &.clickable {
+    cursor: pointer;
+
+    &:hover {
+      filter: brightness(0.92);
+      transform: scale(1.04);
+      z-index: 1;
+    }
+  }
+
+  .cell-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    line-height: 1;
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+// ── Tipos de celda ───────────────────────────────────────
+.cell-instructor {
+  background: $color-instructor;
+  color: #fff;
+  border-color: #0a58ca;
+
+  .instructor-icon {
+    font-size: 1.4rem;
+    display: block;
+  }
+}
+
+.cell-col0 {
+  background: $color-col0-bg;
+  cursor: default !important;
+
+  &:hover {
+    transform: none !important;
+    filter: none !important;
+  }
+}
+
+.cell-lugar {
+  background: #d1e7dd;
+  color: $color-lugar;
+  border-color: #a3cfbb;
+
+  .seat-icon {
+    font-size: 1.1rem;
+    display: block;
+  }
+}
+
+.cell-vacio {
+  background: #f8f9fa;
+
+  // Hint visual: muestra un + tenue al hacer hover para indicar que se puede agregar un lugar
+  &:hover::after {
+    content: '+';
+    font-size: 1.2rem;
+    color: #adb5bd;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+}

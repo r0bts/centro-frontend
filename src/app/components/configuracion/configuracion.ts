@@ -16,6 +16,7 @@ import { RoleService } from '../../services/role.service';
 import { CategoriesListComponent } from './categorias/categories-list/categories-list';
 import { CategoryService, Category } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
+import { AreasClubesComponent } from './areas-clubes/areas-clubes';
 import Swal from 'sweetalert2';
 
 interface ConfigSection {
@@ -44,7 +45,7 @@ interface SystemConfig {
   selector: 'app-configuracion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent, AreasClubesComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
@@ -108,6 +109,13 @@ export class ConfiguracionComponent implements OnInit {
       icon: 'bi-cloud-arrow-up',
       description: 'Configuración de integración con NetSuite',
       active: false
+    },
+    {
+      id: 'areas_clubes',
+      title: 'Áreas de Clubes',
+      icon: 'bi-geo-alt',
+      description: 'Asignación de áreas a clubes y planos de lugares',
+      active: false
     }
   ]);
 
@@ -166,6 +174,8 @@ export class ConfiguracionComponent implements OnInit {
       targetSection = 'categories';
     } else if (urlPath.includes('/configuracion/netsuite')) {
       targetSection = 'netsuite';
+    } else if (urlPath.includes('/configuracion/areas_clubes')) {
+      targetSection = 'areas_clubes';
     } else if (urlPath.includes('/configuracion/general')) {
       targetSection = 'general';
     }
@@ -265,7 +275,8 @@ export class ConfiguracionComponent implements OnInit {
       'roles': 'roles_permisos',
       'products': 'productos',
       'categories': 'categorias',
-      'netsuite': 'netsuite_sync'
+      'netsuite': 'netsuite_sync',
+      'areas_clubes': 'areas_clubes'
     };
     
     return mapping[sectionId] || null;
