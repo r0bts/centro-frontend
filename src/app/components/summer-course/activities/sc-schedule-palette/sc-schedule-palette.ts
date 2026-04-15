@@ -19,12 +19,12 @@ import { ScActivityType, ScActivityCategory, SC_CATEGORIES } from '../sc-schedul
 })
 export class ScSchedulePaletteComponent {
   @Input() activities: ScActivityType[] = [];
-  @Input() categories = SC_CATEGORIES;
+  @Input() categories: Array<{ id: string; label: string; emoji: string; color: string }> = SC_CATEGORIES as any;
   @Output() activityDragStart = new EventEmitter<ScActivityType>();
 
-  openCats = signal<Set<ScActivityCategory>>(new Set(['aquatic', 'sports', 'martial', 'cultural']));
+  openCats = signal<Set<string>>(new Set(['aquatic', 'sports', 'martial', 'cultural']));
 
-  toggleCat(cat: ScActivityCategory): void {
+  toggleCat(cat: string): void {
     this.openCats.update(s => {
       const ns = new Set(s);
       ns.has(cat) ? ns.delete(cat) : ns.add(cat);
@@ -32,8 +32,8 @@ export class ScSchedulePaletteComponent {
     });
   }
 
-  activitiesForCat(cat: ScActivityCategory): ScActivityType[] {
-    return this.activities.filter(a => a.cat === cat);
+  activitiesForCat(cat: string): ScActivityType[] {
+    return this.activities.filter(a => (a.cat as string) === cat);
   }
 
   onDragStart(event: DragEvent, act: ScActivityType): void {

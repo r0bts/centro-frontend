@@ -4,8 +4,8 @@
        PALETTE PANEL (izquierdo)
   ══════════════════════════════════════════════════════════════════════ -->
   <app-sc-schedule-palette
-    [activities]="SC_ACTIVITIES"
-    [categories]="SC_CATEGORIES"
+    [activities]="SC_ACTIVITIES()"
+    [categories]="SC_CATEGORIES()"
     (activityDragStart)="onActivityDragStart($event)">
   </app-sc-schedule-palette>
 
@@ -132,7 +132,7 @@
 
       <!-- Legend -->
       <div class="legend d-flex gap-3 ms-auto">
-        @for (cat of SC_CATEGORIES; track cat.id) {
+        @for (cat of SC_CATEGORIES(); track cat.id) {
           <span class="legend-item" [style.color]="cat.color">
             {{ cat.emoji }} {{ cat.label }}
           </span>
@@ -151,9 +151,9 @@
           [scheduleState]="scheduleState()"
           [currentDayIdx]="currentDayIdx()"
           [slots]="SC_SLOTS"
-          [levels]="SC_LEVELS"
+          [levels]="SC_LEVELS()"
           [instructors]="instructors()"
-          [activityMap]="SC_ACTIVITY_MAP"
+          [activityMap]="SC_ACTIVITY_MAP()"
           (drop)="onDrop($event)"
           (chipClick)="onChipClick($event)">
         </app-sc-schedule-grid>
@@ -187,7 +187,7 @@
     [activity]="pendingDrop()!.activity"
     [target]="pendingDrop()!.target"
     [instructors]="instructors()"
-    [levels]="SC_LEVELS"
+    [levels]="SC_LEVELS()"
     [slots]="SC_SLOTS"
     [days]="SC_DAYS"
     (confirmed)="onDropModalConfirm($event)"
@@ -201,10 +201,10 @@
     [entry]="detailTarget()!.entry"
     [target]="detailTarget()!.target"
     [instructors]="instructors()"
-    [levels]="SC_LEVELS"
+    [levels]="SC_LEVELS()"
     [slots]="SC_SLOTS"
     [days]="SC_DAYS"
-    [activityMap]="SC_ACTIVITY_MAP"
+    [activityMap]="SC_ACTIVITY_MAP()"
     (saved)="onDetailSave($event)"
     (removed)="onDetailRemove()"
     (cancelled)="onDetailCancel()">

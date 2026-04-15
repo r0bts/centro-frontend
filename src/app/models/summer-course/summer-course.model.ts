@@ -258,7 +258,39 @@ export interface UpdateScCourseRequest {
 }
 
 // ── Activities ──────────────────────────────────────────────────────
+export interface ScCatalogLevel {
+  id: number;
+  level_number: number;
+  roman: string;
+  age_label: string;
+  sort_order: number;
+}
 
+export interface ScCatalogActivityType {
+  id: string;             // 'natacion', 'futbol', etc.
+  label: string;
+  emoji: string;
+  category_id: string;    // 'aquatic', 'sports', etc.
+  cat: string;            // alias for category_id (used by palette/grid)
+  color: string;
+  bg: string;
+}
+
+export interface ScCatalogCategory {
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+}
+
+export interface ScCatalogResponse {
+  success: boolean;
+  data: {
+    levels: ScCatalogLevel[];
+    activity_types: ScCatalogActivityType[];
+    categories: ScCatalogCategory[];
+  };
+}
 export interface ScActivityFormDataResponse {
   success: boolean;
   data: {

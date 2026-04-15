@@ -23,7 +23,7 @@ export class ScScheduleGridComponent {
   @Input() scheduleState: ScheduleState = [];
   @Input() currentDayIdx = 0;
   @Input() slots = SC_SLOTS;
-  @Input() levels = SC_LEVELS;
+  @Input() levels: Array<{ n: number; roman: string; age: string }> = SC_LEVELS as any;
   @Input() instructors: ScInstructor[] = [];
   @Input() activityMap: Record<string, ScActivityType> = {};
 

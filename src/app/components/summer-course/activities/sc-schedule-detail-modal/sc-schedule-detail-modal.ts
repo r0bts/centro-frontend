@@ -24,7 +24,7 @@ export class ScScheduleDetailModalComponent implements OnInit {
   @Input() entry!: CellEntry;
   @Input() target!: DetailTarget;
   @Input() instructors: ScInstructor[] = [];
-  @Input() levels = SC_LEVELS;
+  @Input() levels: Array<{ n: number; roman: string; age: string }> = SC_LEVELS as any;
   @Input() slots  = SC_SLOTS;
   @Input() days   = SC_DAYS;
   @Input() activityMap: Record<string, ScActivityType> = {};

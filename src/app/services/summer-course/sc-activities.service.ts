@@ -8,14 +8,20 @@ import {
   ScActivityResponse,
   ScScheduleResponse,
   ScScheduleSavePayload,
+  ScCatalogResponse,
   CreateScActivityRequest,
 } from '../../models/summer-course/summer-course.model';
 
 @Injectable({ providedIn: 'root' })
 export class ScActivitiesService {
-  private readonly base = `${environment.apiUrl}/summer-course/activities`;
+  private readonly base     = `${environment.apiUrl}/summer-course/activities`;
+  private readonly catalogBase = `${environment.apiUrl}/summer-course/catalog`;
 
   constructor(private http: HttpClient) {}
+
+  getCatalog(): Observable<ScCatalogResponse> {
+    return this.http.get<ScCatalogResponse>(`${this.catalogBase}/`);
+  }
 
   getFormData(): Observable<ScActivityFormDataResponse> {
     return this.http.get<ScActivityFormDataResponse>(`${this.base}/form-data`);

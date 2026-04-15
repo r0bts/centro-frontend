@@ -9,6 +9,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { ScActivitiesService } from '../../../services/summer-course/sc-activities.service';
 import {
   ScCourse,
@@ -21,10 +22,9 @@ import {
 import {
   SC_DAYS,
   SC_SLOTS,
-  SC_LEVELS,
-  SC_ACTIVITIES,
-  SC_CATEGORIES,
-  SC_ACTIVITY_MAP,
+  SC_LEVELS as SC_LEVELS_CONST,
+  SC_ACTIVITIES as SC_ACTIVITIES_CONST,
+  SC_CATEGORIES as SC_CATEGORIES_CONST,
   SC_SLOT_MAP,
   ScActivityType,
 } from './sc-schedule.constants';
@@ -77,14 +77,19 @@ export class SummerCourseActivitiesComponent implements OnInit {
   // fromCourse = true means arrived via button from courses page (hide course selector)
   fromCourse = signal(false);
 
-  // ── Constants ──────────────────────────────────────────────────────────────
-  readonly SC_DAYS       = SC_DAYS;
-  readonly SC_SLOTS      = SC_SLOTS;
-  readonly SC_LEVELS     = SC_LEVELS;
-  readonly SC_ACTIVITIES = SC_ACTIVITIES;
-  readonly SC_CATEGORIES = SC_CATEGORIES;
-  readonly SC_ACTIVITY_MAP = SC_ACTIVITY_MAP;
-  readonly SC_SLOT_MAP   = SC_SLOT_MAP;
+  // ── Static constants (slots, days) ────────────────────────────────────────────
+  readonly SC_DAYS     = SC_DAYS;
+  readonly SC_SLOTS    = SC_SLOTS;
+  readonly SC_SLOT_MAP = SC_SLOT_MAP;
+
+  // ── Dynamic catalog signals (populated from DB via getCatalog(), fallback = constants) ──
+  // Shape kept identical to what the child components (@Input) expect.
+  SC_LEVELS     = signal<Array<{ n: number; roman: string; age: string }>>(SC_LEVELS_CONST as any);
+  SC_ACTIVITIES = signal<ScActivityType[]>(SC_ACTIVITIES_CONST);
+  SC_CATEGORIES = signal<Array<{ id: string; label: string; emoji: string; color: string }>>(SC_CATEGORIES_CONST as any);
+  SC_ACTIVITY_MAP = computed<Record<string, ScActivityType>>(() =>
+    Object.fromEntries(this.SC_ACTIVITIES().map(a => [a.id, a]))
+  );
 
   // ── State ──────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -118,7 +123,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     let total = 0;
     let configured = 0;
     for (const slotId of SC_SLOTS.map(s => s.id)) {
-      for (const lvl of SC_LEVELS.map(l => l.n)) {
+      for (const lvl of this.SC_LEVELS().map(l => l.n)) {
         const hasEntry = (day[slotId]?.[lvl]?.length ?? 0) > 0;
         total++;
         if (hasEntry) configured++;
@@ -139,11 +144,36 @@ export class SummerCourseActivitiesComponent implements OnInit {
 
   private loadInitialData(): void {
     this.loading.set(true);
-    // Use form-data which includes courses+weeks+instructors in one call
-    this.activitiesSvc.getFormData().subscribe({
-      next: res => {
-        // Map form-data courses (have weeks[] as {id,label}) to ScCourse-compatible objects
-        const courses: ScCourse[] = (res.data.courses ?? []).map((c: any) => ({
+    // Load catalog (levels + activity types) AND form-data (courses + instructors) in parallel
+    forkJoin({
+      catalog:  this.activitiesSvc.getCatalog(),
+      formData: this.activitiesSvc.getFormData(),
+    }).subscribe({
+      next: ({ catalog, formData }) => {
+        // — Update dynamic catalog signals —
+        if (catalog.data.levels?.length) {
+          this.SC_LEVELS.set(
+            catalog.data.levels.map(l => ({ n: l.level_number, roman: l.roman, age: l.age_label }))
+          );
+        }
+        if (catalog.data.activity_types?.length) {
+          this.SC_ACTIVITIES.set(
+            catalog.data.activity_types.map(a => ({
+              id:    a.id,
+              label: a.label,
+              emoji: a.emoji,
+              cat:   a.cat as any,
+              color: a.color,
+              bg:    a.bg,
+            }))
+          );
+        }
+        if (catalog.data.categories?.length) {
+          this.SC_CATEGORIES.set(catalog.data.categories);
+        }
+
+        // — Map form-data courses to ScCourse-compatible objects —
+        const courses: ScCourse[] = (formData.data.courses ?? []).map((c: any) => ({
           id: c.id,
           name: c.name,
           start_date: '',
@@ -161,7 +191,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
           })),
         }));
         this.courses.set(courses);
-        this.instructors.set(res.data.instructors ?? []);
+        this.instructors.set(formData.data.instructors ?? []);
 
         // Use query-param course or first course
         const preselect = this.fromCourse() ? this.currentCourseId() : 0;
@@ -179,7 +209,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
         }
       },
       error: () => {
-        this.error.set('Error al cargar los datos.');
+        this.error.set('Error al cargar los datos del catálogo.');
         this.loading.set(false);
       },
     });
@@ -341,7 +371,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     const day: Record<string, Record<number, CellEntry[]>> = {};
     for (const slot of SC_SLOTS) {
       day[slot.id] = {};
-      for (const lvl of SC_LEVELS) {
+      for (const lvl of this.SC_LEVELS()) {
         day[slot.id][lvl.n] = [];
       }
     }
@@ -409,7 +439,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
       schedule[String(dayIdx)] = {};
       for (const slotId of SC_SLOTS.map(s => s.id)) {
         schedule[String(dayIdx)][slotId] = {};
-        for (const lvl of SC_LEVELS.map(l => l.n)) {
+        for (const lvl of this.SC_LEVELS().map(l => l.n)) {
           const entries = dayData?.[slotId]?.[lvl] ?? [];
           if (entries.length) {
             schedule[String(dayIdx)][slotId][String(lvl)] = entries.map(e => ({
@@ -431,7 +461,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
   /** Try to map activity name back to catalog id */
   private nameToActivityId(name: string): string {
     const n = name.toLowerCase().replace(/\s+/g, '_');
-    const found = SC_ACTIVITIES.find(a => a.label.toLowerCase().replace(/\s+/g, '_') === n || a.id === n);
+    const found = this.SC_ACTIVITIES().find((a: ScActivityType) => a.label.toLowerCase().replace(/\s+/g, '_') === n || a.id === n);
     return found?.id ?? n;
   }
 
