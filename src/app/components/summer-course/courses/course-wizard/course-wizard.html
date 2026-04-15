@@ -1,222 +1,237 @@
-<!-- Backdrop -->
-<div class="modal-backdrop fade show"></div>
+<!-- Overlay -->
+<div class="cw-overlay">
+  <div class="cw-container">
 
-<!-- Modal -->
-<div class="modal fade show d-block" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content course-wizard">
-
-      <!-- ── Header ── -->
-      <div class="modal-header border-0 pb-0">
-        <h5 class="modal-title">
-          <span class="me-2">☀️</span>
-          {{ isEdit ? 'Editar curso' : 'Nuevo curso de verano' }}
-        </h5>
-        <button type="button" class="btn-close" (click)="cancel()"></button>
+    <!-- ── Header ── -->
+    <div class="cw-header">
+      <div class="cw-header__title">
+        <span class="me-2">☀️</span>
+        {{ isEdit ? 'Editar curso' : 'Nuevo curso de verano' }}
       </div>
+      <button type="button" class="cw-header__close" (click)="cancel()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
 
-      <!-- ── Stepper ── -->
-      <div class="wizard-stepper px-4 pt-3 pb-2">
-        <div class="d-flex align-items-center gap-2">
-          @for (s of [1, 2, 3]; track s) {
-            <div class="step-item" [class.active]="step() === s" [class.done]="step() > s">
-              <div class="step-circle">
-                @if (step() > s) {
-                  <i class="bi bi-check-lg"></i>
-                } @else {
-                  {{ s }}
-                }
-              </div>
-              <span class="step-label d-none d-sm-inline">
-                @switch (s) {
-                  @case (1) { Datos }
-                  @case (2) { Semanas }
-                  @case (3) { Tarifas }
-                }
-              </span>
-            </div>
-            @if (s < 3) {
-              <div class="step-line flex-grow-1" [class.done]="step() > s"></div>
-            }
-          }
-        </div>
+    <!-- ── Stepper ── -->
+    <div class="cw-stepper">
+      <div class="cw-stepper__bar">
+        <div class="cw-stepper__progress" [style.width.%]="((step() - 1) / 2) * 100"></div>
       </div>
+      <div class="cw-stepper__steps">
+        @for (s of [1, 2, 3]; track s) {
+          <button
+            class="cw-step"
+            [class.active]="step() === s"
+            [class.done]="step() > s"
+            type="button"
+            [disabled]="s > step()"
+            (click)="s < step() ? step.set($any(s)) : null"
+          >
+            <span class="cw-step__dot">
+              @if (step() > s) {
+                <i class="bi bi-check"></i>
+              } @else {
+                {{ s }}
+              }
+            </span>
+            <span class="cw-step__label">
+              @switch (s) {
+                @case (1) { Datos }
+                @case (2) { Semanas }
+                @case (3) { Tarifas }
+              }
+            </span>
+          </button>
+        }
+      </div>
+    </div>
 
-      <!-- ── Error ── -->
-      @if (error()) {
-        <div class="alert alert-danger mx-4 my-2 py-2 d-flex align-items-center gap-2">
-          <i class="bi bi-exclamation-triangle-fill"></i>
-          <span>{{ error() }}</span>
-        </div>
-      }
+    <!-- ── Error ── -->
+    @if (error()) {
+      <div class="alert alert-danger mx-4 my-2 py-2 d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ error() }}</span>
+      </div>
+    }
 
-      <!-- ── STEP 1: Datos del curso ── -->
-      @if (step() === 1) {
-        <div class="modal-body">
-          <div class="row g-3">
+    <!-- ── STEP 1: Datos del curso ── -->
+    @if (step() === 1) {
+      <div class="cw-body">
+        <div class="row g-3">
 
-            <div class="col-12">
-              <label class="form-label fw-semibold">Nombre del curso <span class="text-danger">*</span></label>
-              <input type="text" class="form-control"
-                     placeholder="Ej. Curso de Verano 2026"
-                     [value]="name()"
-                     (input)="name.set($any($event.target).value)">
-            </div>
-
-            <div class="col-sm-6">
-              <label class="form-label fw-semibold">Fecha inicio <span class="text-danger">*</span></label>
-              <input type="date" class="form-control"
-                     [value]="start_date()"
-                     (change)="start_date.set($any($event.target).value)">
-            </div>
-
-            <div class="col-sm-6">
-              <label class="form-label fw-semibold">Fecha fin <span class="text-danger">*</span></label>
-              <input type="date" class="form-control"
-                     [value]="end_date()"
-                     (change)="end_date.set($any($event.target).value)">
-            </div>
-
-            <div class="col-sm-6">
-              <label class="form-label fw-semibold">Estado</label>
-              <select class="form-select"
-                      [value]="status()"
-                      (change)="status.set($any($event.target).value)">
-                @for (s of statusLabels; track s.value) {
-                  <option [value]="s.value">{{ s.label }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="col-12">
-              <label class="form-label fw-semibold">Descripción</label>
-              <textarea class="form-control" rows="3"
-                        placeholder="Descripción opcional del curso..."
-                        [value]="description()"
-                        (input)="description.set($any($event.target).value)"></textarea>
-            </div>
-
+          <div class="col-12">
+            <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
+            <select class="form-select" [ngModel]="acceso_club_id()" (ngModelChange)="acceso_club_id.set($event)" [disabled]="isEdit">
+              <option [ngValue]="null" disabled>Selecciona una sede</option>
+              @for (c of accesoClubesList(); track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
           </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Nombre del curso <span class="text-danger">*</span></label>
+            <input type="text" class="form-control"
+                   placeholder="Ej. Curso de Verano 2026"
+                   [value]="name()"
+                   (input)="name.set($any($event.target).value)">
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Fecha inicio <span class="text-danger">*</span></label>
+            <input type="date" class="form-control"
+                   [value]="start_date()"
+                   (change)="start_date.set($any($event.target).value)">
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Fecha fin <span class="text-danger">*</span></label>
+            <input type="date" class="form-control"
+                   [value]="end_date()"
+                   (change)="end_date.set($any($event.target).value)">
+          </div>
+
+          <div class="col-sm-6">
+            <label class="form-label fw-semibold">Estado</label>
+            <select class="form-select"
+                    (change)="status.set($any($event.target).value)">
+              @for (s of statusLabels; track s.value) {
+                <option [value]="s.value" [selected]="status() === s.value">{{ s.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label fw-semibold">Descripción</label>
+            <textarea class="form-control" rows="3"
+                      placeholder="Descripción opcional del curso..."
+                      [value]="description()"
+                      (input)="description.set($any($event.target).value)"></textarea>
+          </div>
+
         </div>
-      }
+      </div>
+    }
 
-      <!-- ── STEP 2: Semanas ── -->
-      @if (step() === 2) {
-        <div class="modal-body">
+    <!-- ── STEP 2: Semanas ── -->
+    @if (step() === 2) {
+      <div class="cw-body">
 
-          @if (!isEdit) {
-            <div class="mb-4">
-              <label class="form-label fw-semibold">Número de semanas a generar</label>
-              <div class="d-flex align-items-center gap-3">
-                <input type="range" class="form-range" min="1" max="8" step="1"
-                       [value]="weeks_count()"
-                       (input)="onWeeksCountChange(+$any($event.target).value)">
-                <span class="badge bg-primary fs-6 px-3">{{ weeks_count() }}</span>
-              </div>
-              <div class="form-text">Las semanas se generan automáticamente de lunes a viernes.</div>
+        @if (!isEdit) {
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Número de semanas a generar</label>
+            <div class="d-flex align-items-center gap-3">
+              <input type="range" class="form-range" min="1" max="8" step="1"
+                     [value]="weeks_count()"
+                     (input)="onWeeksCountChange(+$any($event.target).value)">
+              <span class="badge bg-primary fs-6 px-3">{{ weeks_count() }}</span>
             </div>
-          }
+            <div class="form-text">Las semanas se generan automáticamente de lunes a viernes.</div>
+          </div>
+        }
 
-          <!-- Preview de semanas -->
-          <div class="weeks-preview">
-            <h6 class="fw-semibold mb-3">
-              <i class="bi bi-calendar-week me-2"></i>
-              @if (isEdit) {
-                Semanas del curso
-              } @else {
-                Vista previa de {{ weeks_count() }} semana{{ weeks_count() === 1 ? '' : 's' }}
-              }
-            </h6>
-
+        <!-- Preview de semanas -->
+        <div class="weeks-preview">
+          <h6 class="fw-semibold mb-3">
+            <i class="bi bi-calendar-week me-2"></i>
             @if (isEdit) {
-              @if (loadingWeeks()) {
-                <div class="d-flex align-items-center gap-2 text-muted py-3">
-                  <span class="spinner-border spinner-border-sm"></span>
-                  Cargando semanas...
-                </div>
-              } @else if (editWeeks().length) {
-                <div class="weeks-list">
-                  @for (week of editWeeks(); track week.id) {
-                    <div class="week-item">
-                      <span class="week-num badge bg-primary-subtle text-primary me-2">{{ week.label }}</span>
-                      <span class="text-muted small">
-                        {{ week.start_date | date:'EEE dd MMM' }} →
-                        {{ week.end_date   | date:'EEE dd MMM yyyy' }}
-                      </span>
-                    </div>
-                  }
-                </div>
-              } @else {
-                <div class="text-muted small py-2">
-                  <i class="bi bi-info-circle me-1"></i>
-                  Este curso aún no tiene semanas registradas.
-                </div>
-              }
-            } @else if (!isEdit) {
+              Semanas del curso
+            } @else {
+              Vista previa de {{ weeks_count() }} semana{{ weeks_count() === 1 ? '' : 's' }}
+            }
+          </h6>
+
+          @if (isEdit) {
+            @if (loadingWeeks()) {
+              <div class="d-flex align-items-center gap-2 text-muted py-3">
+                <span class="spinner-border spinner-border-sm"></span>
+                Cargando semanas...
+              </div>
+            } @else if (editWeeks().length) {
               <div class="weeks-list">
-                @for (w of previewWeeks(); track $index) {
+                @for (week of editWeeks(); track week.id) {
                   <div class="week-item">
-                    <span class="week-num badge bg-primary-subtle text-primary me-2">{{ w.label }}</span>
+                    <span class="week-num badge bg-primary-subtle text-primary me-2">{{ week.label }}</span>
                     <span class="text-muted small">
-                      {{ w.start | date:'EEE dd MMM' }} →
-                      {{ w.end   | date:'EEE dd MMM yyyy' }}
+                      {{ week.start_date | date:'EEE dd MMM' }} →
+                      {{ week.end_date   | date:'EEE dd MMM yyyy' }}
                     </span>
                   </div>
                 }
               </div>
-            }
-          </div>
-
-        </div>
-      }
-
-      <!-- ── STEP 3: Tarifas ── -->
-      @if (step() === 3) {
-        <div class="modal-body">
-          <p class="text-muted small mb-4">
-            Define la tarifa <strong>por semana</strong> para cada tipo de participante.
-          </p>
-
-          <div class="costs-grid">
-            @for (cost of costs(); track cost.participant_type) {
-              <div class="cost-card">
-                <label class="form-label fw-semibold">{{ cost.label }}</label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input type="number" class="form-control text-end" min="0" step="100"
-                         [value]="cost.cost_per_week"
-                         (input)="updateCost(cost.participant_type, +$any($event.target).value)">
-                  <span class="input-group-text text-muted">/semana</span>
-                </div>
+            } @else {
+              <div class="text-muted small py-2">
+                <i class="bi bi-info-circle me-1"></i>
+                Este curso aún no tiene semanas registradas.
               </div>
             }
-          </div>
-
-          <div class="alert alert-info mt-4 d-flex gap-2 align-items-center">
-            <i class="bi bi-info-circle-fill"></i>
-            <span>Las tarifas se pueden modificar después desde la edición del curso.</span>
-          </div>
+          } @else if (!isEdit) {
+            <div class="weeks-list">
+              @for (w of previewWeeks(); track $index) {
+                <div class="week-item">
+                  <span class="week-num badge bg-primary-subtle text-primary me-2">{{ w.label }}</span>
+                  <span class="text-muted small">
+                    {{ w.start | date:'EEE dd MMM' }} →
+                    {{ w.end   | date:'EEE dd MMM yyyy' }}
+                  </span>
+                </div>
+              }
+            </div>
+          }
         </div>
-      }
 
-      <!-- ── Footer ── -->
-      <div class="modal-footer border-0 pt-0">
-        <button class="btn btn-outline-secondary" (click)="cancel()" [disabled]="saving()">
-          Cancelar
-        </button>
+      </div>
+    }
 
+    <!-- ── STEP 3: Tarifas ── -->
+    @if (step() === 3) {
+      <div class="cw-body">
+        <p class="text-muted small mb-4">
+          Define la tarifa <strong>por semana</strong> para cada tipo de participante.
+        </p>
+
+        <div class="costs-grid">
+          @for (cost of costs(); track cost.participant_type) {
+            <div class="cost-card">
+              <label class="form-label fw-semibold">{{ cost.label }}</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control text-end" min="0" step="100"
+                       [value]="cost.cost_per_week"
+                       (input)="updateCost(cost.participant_type, +$any($event.target).value)">
+                <span class="input-group-text text-muted">/semana</span>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="alert alert-info mt-4 d-flex gap-2 align-items-center">
+          <i class="bi bi-info-circle-fill"></i>
+          <span>Las tarifas se pueden modificar después desde la edición del curso.</span>
+        </div>
+      </div>
+    }
+
+    <!-- ── Footer ── -->
+    <div class="cw-footer">
+      <button class="btn btn-outline-secondary btn-sm" (click)="cancel()" [disabled]="saving()">
+        Cancelar
+      </button>
+
+      <div class="d-flex gap-2">
         @if (step() > 1) {
-          <button class="btn btn-outline-secondary" (click)="prevStep()" [disabled]="saving()">
+          <button class="btn btn-outline-secondary btn-sm" (click)="prevStep()" [disabled]="saving()">
             <i class="bi bi-arrow-left me-1"></i>Anterior
           </button>
         }
 
         @if (step() < 3) {
-          <button class="btn btn-primary" (click)="nextStep()">
+          <button class="btn btn-primary btn-sm" (click)="nextStep()">
             Siguiente<i class="bi bi-arrow-right ms-1"></i>
           </button>
         } @else {
-          <button class="btn btn-success d-flex align-items-center gap-2"
+          <button class="btn btn-success btn-sm d-flex align-items-center gap-2"
                   (click)="save()" [disabled]="saving()">
             @if (saving()) {
               <span class="spinner-border spinner-border-sm"></span>
@@ -227,7 +242,7 @@
           </button>
         }
       </div>
-
     </div>
+
   </div>
 </div>

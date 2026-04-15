@@ -1,55 +1,148 @@
-.wizard-stepper {
-  .step-item {
+// ── Overlay + Container ───────────────────────────────────────────────────────
+.cw-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.50);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1060;
+  padding: 1rem;
+}
+
+.cw-container {
+  background: var(--bs-body-bg, #fff);
+  border-radius: 0.75rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: min(640px, 100%);
+  max-height: calc(100dvh - 3rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.cw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+  flex-shrink: 0;
+
+  &__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--bs-heading-color, #212529);
     display: flex;
     align-items: center;
-    gap: 0.4rem;
-    flex-shrink: 0;
-
-    .step-circle {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background: #e9ecef;
-      color: #6c757d;
-      transition: background 0.2s, color 0.2s;
-    }
-
-    .step-label {
-      font-size: 0.8rem;
-      color: #6c757d;
-    }
-
-    &.active {
-      .step-circle {
-        background: var(--bs-primary);
-        color: #fff;
-      }
-      .step-label { color: var(--bs-primary); font-weight: 600; }
-    }
-
-    &.done {
-      .step-circle {
-        background: #198754;
-        color: #fff;
-      }
-      .step-label { color: #198754; }
-    }
   }
 
-  .step-line {
-    height: 2px;
-    background: #e9ecef;
-    border-radius: 2px;
+  &__close {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: var(--bs-secondary-color, #6c757d);
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+    transition: background 0.15s, color 0.15s;
 
-    &.done { background: #198754; }
+    &:hover {
+      background: var(--bs-tertiary-bg, #f8f9fa);
+      color: var(--bs-body-color, #212529);
+    }
   }
 }
 
+// ── Stepper ───────────────────────────────────────────────────────────────────
+.cw-stepper {
+  padding: 0.75rem 1.25rem 0;
+  flex-shrink: 0;
+
+  &__bar {
+    height: 3px;
+    background: var(--bs-border-color, #dee2e6);
+    border-radius: 2px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+  }
+
+  &__progress {
+    height: 100%;
+    background: var(--bs-primary, #0d6efd);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  &__steps {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.25rem;
+  }
+}
+
+.cw-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 0.25rem 0.5rem;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.45; cursor: default; }
+
+  &__dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-border-color, #dee2e6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: var(--bs-body-bg, #fff);
+    color: var(--bs-secondary-color, #6c757d);
+    transition: all 0.2s ease;
+  }
+
+  &__label {
+    font-size: 0.7rem;
+    color: var(--bs-secondary-color, #6c757d);
+    white-space: nowrap;
+  }
+
+  &.active {
+    .cw-step__dot {
+      border-color: var(--bs-primary, #0d6efd);
+      background: var(--bs-primary, #0d6efd);
+      color: #fff;
+    }
+    .cw-step__label { color: var(--bs-primary, #0d6efd); font-weight: 600; }
+  }
+
+  &.done {
+    .cw-step__dot {
+      border-color: #198754;
+      background: #198754;
+      color: #fff;
+    }
+  }
+}
+
+// ── Body ──────────────────────────────────────────────────────────────────────
+.cw-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+
+// ── Weeks ─────────────────────────────────────────────────────────────────────
 .weeks-list {
   display: flex;
   flex-direction: column;
@@ -64,6 +157,7 @@
   }
 }
 
+// ── Costs grid ────────────────────────────────────────────────────────────────
 .costs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -74,4 +168,14 @@
     border-radius: 10px;
     padding: 1rem;
   }
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+.cw-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--bs-border-color, #dee2e6);
+  flex-shrink: 0;
 }

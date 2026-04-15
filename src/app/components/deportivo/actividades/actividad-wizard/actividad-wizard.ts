@@ -90,6 +90,7 @@ export class ActividadWizardComponent implements OnInit {
   loadingDetail     = signal(false);
 
   // ── Paso 1: Identidad ───────────────────────────────────────────────────────
+  club_id: number | null = null;
   nombre          = '';
   descripcion     = '';
   icono           = '⚽';
@@ -144,6 +145,7 @@ export class ActividadWizardComponent implements OnInit {
   }
 
   private patchFromEdit(act: Actividad): void {
+    this.club_id         = act.club_id;
     this.nombre          = act.nombre;
     this.descripcion     = act.descripcion ?? '';
     this.icono           = act.icono ?? '⚽';
@@ -199,6 +201,10 @@ export class ActividadWizardComponent implements OnInit {
 
   private validateCurrentStep(): boolean {
     if (this.currentStep() === 1) {
+      if (!this.club_id) {
+        this.error.set('Debes seleccionar un club o sede.');
+        return false;
+      }
       if (!this.nombre.trim()) {
         this.error.set('El nombre de la actividad es obligatorio.');
         return false;
@@ -265,12 +271,41 @@ export class ActividadWizardComponent implements OnInit {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
       const horarios = copy[grupoIdx].horarios;
-      const existing = horarios.findIndex(h => h.dia_semana === dia);
-      if (existing >= 0) {
-        horarios.splice(existing, 1);
+      const existing = horarios.some(h => h.dia_semana === dia);
+      if (existing) {
+        copy[grupoIdx].horarios = horarios.filter(h => h.dia_semana !== dia);
       } else {
         horarios.push({ dia_semana: dia, hora_inicio: '08:00', hora_fin: '09:00', lugar: '' });
+        copy[grupoIdx].horarios.sort((a,b) => a.dia_semana - b.dia_semana);
       }
+      return copy;
+    });
+  }
+
+  addHorarioOnly(grupoIdx: number, dia: number): void {
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
+      copy[grupoIdx].horarios.push({
+        dia_semana: dia,
+        hora_inicio: '08:00',
+        hora_fin: '09:00',
+        lugar: ''
+      });
+      copy[grupoIdx].horarios.sort((a,b) => a.dia_semana - b.dia_semana);
+      return copy;
+    });
+  }
+
+  getHorariosByDia(grupoIdx: number, dia: number) {
+    return this.grupos()[grupoIdx]?.horarios
+      .map((item, index) => ({ item, originalIndex: index }))
+      .filter(x => x.item.dia_semana === dia) ?? [];
+  }
+
+  removeHorario(grupoIdx: number, index: number): void {
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
+      copy[grupoIdx].horarios.splice(index, 1);
       return copy;
     });
   }
@@ -283,10 +318,10 @@ export class ActividadWizardComponent implements OnInit {
     return this.grupos()[grupoIdx]?.horarios.find(h => h.dia_semana === dia);
   }
 
-  updateHorarioField(grupoIdx: number, dia: number, field: 'hora_inicio' | 'hora_fin' | 'lugar', value: string): void {
+  updateHorarioField(grupoIdx: number, index: number, field: 'hora_inicio' | 'hora_fin' | 'lugar', value: string): void {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, horarios: g.horarios.map(h => ({ ...h })) }));
-      const h = copy[grupoIdx].horarios.find(h => h.dia_semana === dia);
+      const h = copy[grupoIdx].horarios[index];
       if (h) (h as any)[field] = value;
       return copy;
     });
@@ -354,7 +389,7 @@ export class ActividadWizardComponent implements OnInit {
       } else {
         // POST actividad nueva
         const res = await firstValueFrom(this.svc.create({
-          club_id:         1,
+          club_id:         this.club_id!,
           nombre:          this.nombre.trim(),
           descripcion:     this.descripcion.trim() || undefined,
           icono:           this.icono,
@@ -469,6 +504,11 @@ export class ActividadWizardComponent implements OnInit {
 
   labelDia(n: number): string {
     return DIAS.find(d => d.num === n)?.label ?? `${n}`;
+  }
+
+  getDiaNombre(n: number): string {
+    const nombres = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+    return nombres[n - 1] ?? '';
   }
 
   totalEquipos(): number {

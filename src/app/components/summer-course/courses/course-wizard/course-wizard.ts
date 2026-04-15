@@ -2,12 +2,15 @@ import {
   Component,
   ChangeDetectionStrategy,
   OnInit,
+  OnDestroy,
   Input,
   Output,
   EventEmitter,
   signal,
   inject,
+  ChangeDetectorRef,
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScCoursesService } from '../../../../services/summer-course/sc-courses.service';
@@ -35,8 +38,9 @@ interface CostDraft {
   templateUrl: './course-wizard.html',
   styleUrl: './course-wizard.scss',
 })
-export class CourseWizardComponent implements OnInit {
+export class CourseWizardComponent implements OnInit, OnDestroy {
   private svc = inject(ScCoursesService);
+  private cdr = inject(ChangeDetectorRef);
 
   @Input() editCourse: ScCourse | null = null;
   @Output() saved     = new EventEmitter<string>();
@@ -47,11 +51,11 @@ export class CourseWizardComponent implements OnInit {
   saving      = signal(false);
   error       = signal<string | null>(null);
 
-  // ── Step 1: Datos del curso ───────────────────────────────────────────────
   name        = signal('');
   start_date  = signal('');
   end_date    = signal('');
   status      = signal<ScCourse['status']>('setup');
+  acceso_club_id = signal<number | null>(null);
   description = signal('');
 
   // ── Step 2: Semanas ───────────────────────────────────────────────────────
@@ -59,6 +63,8 @@ export class CourseWizardComponent implements OnInit {
   previewWeeks  = signal<{ label: string; start: string; end: string }[]>([]);
   editWeeks     = signal<ScWeek[]>([]);
   loadingWeeks  = signal(false);
+
+  accesoClubesList = signal<{id: number, name: string}[]>([]);
 
   // ── Step 3: Costos ────────────────────────────────────────────────────────
   costs = signal<CostDraft[]>([
@@ -74,13 +80,29 @@ export class CourseWizardComponent implements OnInit {
   get isEdit(): boolean { return !!this.editCourse; }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
+  ngOnDestroy(): void {
+    document.body.style.overflow = '';
+  }
+
   ngOnInit(): void {
+    document.body.style.overflow = 'hidden';
+
+    this.svc.getFormData().subscribe({
+      next: res => {
+        if (res.data?.acceso_clubes) {
+          this.accesoClubesList.set(res.data.acceso_clubes);
+        }
+      },
+      error: () => {}
+    });
+
     if (this.editCourse) {
       const c = this.editCourse;
       this.name.set(c.name);
       this.start_date.set(c.start_date);
       this.end_date.set(c.end_date);
       this.status.set(c.status);
+      this.acceso_club_id.set(c.acceso_club_id ?? null);
       this.description.set(c.description ?? '');
       // Map costs if available
       if (c.sc_costs?.length) {
@@ -136,6 +158,10 @@ export class CourseWizardComponent implements OnInit {
 
   // ── Validation ───────────────────────────────────────────────────────────
   validateStep1(): boolean {
+    if (!this.acceso_club_id()) {
+      this.error.set('Selecciona un Club o Sede.');
+      return false;
+    }
     if (!this.name().trim()) {
       this.error.set('El nombre del curso es requerido.');
       return false;
@@ -154,7 +180,15 @@ export class CourseWizardComponent implements OnInit {
 
   // ── Weeks preview ────────────────────────────────────────────────────────
   buildWeeksPreview(): void {
+    if (!this.start_date()) {
+      this.previewWeeks.set([]);
+      return;
+    }
     const start = new Date(this.start_date() + 'T00:00:00');
+    if (isNaN(start.getTime())) {
+      this.previewWeeks.set([]);
+      return;
+    }
     const weeks: { label: string; start: string; end: string }[] = [];
     const n = this.weeks_count();
     for (let i = 0; i < n; i++) {
@@ -192,7 +226,8 @@ export class CourseWizardComponent implements OnInit {
       name:        this.name().trim(),
       start_date:  this.start_date(),
       end_date:    this.end_date(),
-      status:      this.status(),
+      status:      this.status() || 'setup',
+      acceso_club_id: this.acceso_club_id(),
       description: this.description().trim() || null,
       weeks_count: this.isEdit ? undefined : this.weeks_count(),
       costs: this.costs().map(c => ({
@@ -210,9 +245,25 @@ export class CourseWizardComponent implements OnInit {
         this.saving.set(false);
         this.saved.emit(this.isEdit ? 'Curso actualizado correctamente.' : 'Curso creado correctamente.');
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.error.set('Error al guardar el curso. Intenta nuevamente.');
+        // Show detailed server error if available
+        let msg = 'Error al guardar el curso. Intenta nuevamente.';
+        if (err?.error?.message) {
+          msg = err.error.message;
+          if (err.error?.error?.validation) {
+            const validationErrors = Object.values(err.error.error.validation)
+              .map((v: any) => Object.values(v).join(', '))
+              .join(' | ');
+            msg += ': ' + validationErrors;
+          }
+        } else if (err?.status === 403) {
+          msg = 'No tienes permisos para crear cursos.';
+        } else if (err?.status === 0) {
+          msg = 'No se pudo conectar al servidor. Verifica tu conexión.';
+        }
+        this.error.set(msg);
+        this.cdr.markForCheck();
       },
     });
   }

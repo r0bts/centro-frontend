@@ -64,6 +64,19 @@
           <h6 class="step-section-title">Información básica</h6>
 
           <div class="mb-3">
+            <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
+            <select class="form-select" [(ngModel)]="club_id" [disabled]="isEditing()">
+              <option [ngValue]="null" disabled>Selecciona una sede</option>
+              @for (c of formData()?.acceso_clubes; track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
+            @if (isEditing()) {
+              <small class="text-muted d-block mt-1">La sede no se puede cambiar una vez creada la actividad.</small>
+            }
+          </div>
+
+          <div class="mb-3">
             <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
             <input type="text" class="form-control" placeholder="Ej: Fútbol Sub-15"
                    [(ngModel)]="nombre" maxlength="100">
@@ -337,29 +350,59 @@
                   <p class="text-muted small">Selecciona días para configurar horarios.</p>
                 }
 
-                @for (h of gActual.horarios; track h.dia_semana) {
-                  <div class="horario-row">
-                    <span class="dia-badge">{{ labelDia(h.dia_semana) }}</span>
-                    <div class="row g-2 flex-grow-1">
-                      <div class="col-3">
-                        <input type="time" class="form-control form-control-sm"
-                               [value]="h.hora_inicio"
-                               (change)="updateHorarioField(gIdx, h.dia_semana, 'hora_inicio', $any($event.target).value)">
+                <div class="row g-3">
+                  @for (d of dias; track d.num) {
+                    @if (isDiaSelected(gIdx, d.num)) {
+                      <div class="col-12">
+                        <div class="dia-horario-card p-3 border rounded shadow-sm bg-white">
+                          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="badge bg-primary fs-6">{{ d.label }}</span>
+                              <span class="fw-semibold text-secondary">{{ getDiaNombre(d.num) }}</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
+                                    (click)="addHorarioOnly(gIdx, d.num)">
+                              <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
+                            </button>
+                          </div>
+
+                          <div class="d-flex flex-column gap-2">
+                            @for (h of getHorariosByDia(gIdx, d.num); track h.originalIndex) {
+                              <div class="row g-2 align-items-center p-2 rounded bg-light border border-light-subtle">
+                                <div class="col-12 col-md-3">
+                                  <label class="form-label small text-muted mb-1 d-block">Inicio</label>
+                                  <input type="time" class="form-control form-control-sm"
+                                         [value]="h.item.hora_inicio"
+                                         (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_inicio', $any($event.target).value)">
+                                </div>
+                                <div class="col-12 col-md-3">
+                                  <label class="form-label small text-muted mb-1 d-block">Fin</label>
+                                  <input type="time" class="form-control form-control-sm"
+                                         [value]="h.item.hora_fin"
+                                         (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
+                                </div>
+                                <div class="col-12 col-md-5">
+                                  <label class="form-label small text-muted mb-1 d-block">Lugar (opcional)</label>
+                                  <input type="text" class="form-control form-control-sm"
+                                         placeholder="Cancha 1, Salón B..."
+                                         [value]="h.item.lugar"
+                                         (input)="updateHorarioField(gIdx, h.originalIndex, 'lugar', $any($event.target).value)">
+                                </div>
+                                <div class="col-12 col-md-1 d-flex justify-content-end align-items-end h-100 pb-1">
+                                  <button class="btn btn-sm text-danger border-0 p-1"
+                                          title="Eliminar horario"
+                                          (click)="removeHorario(gIdx, h.originalIndex)">
+                                    <i class="bi bi-trash fs-5"></i>
+                                  </button>
+                                </div>
+                              </div>
+                            }
+                          </div>
+                        </div>
                       </div>
-                      <div class="col-3">
-                        <input type="time" class="form-control form-control-sm"
-                               [value]="h.hora_fin"
-                               (change)="updateHorarioField(gIdx, h.dia_semana, 'hora_fin', $any($event.target).value)">
-                      </div>
-                      <div class="col-6">
-                        <input type="text" class="form-control form-control-sm"
-                               placeholder="Lugar (opcional)"
-                               [value]="h.lugar"
-                               (input)="updateHorarioField(gIdx, h.dia_semana, 'lugar', $any($event.target).value)">
-                      </div>
-                    </div>
-                  </div>
-                }
+                    }
+                  }
+                </div>
               </div>
             }
           }

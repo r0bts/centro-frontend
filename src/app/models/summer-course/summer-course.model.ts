@@ -17,6 +17,7 @@ export interface ScCourse {
   start_date: string;           // DATE YYYY-MM-DD
   end_date: string;             // DATE YYYY-MM-DD
   status: 'setup' | 'active' | 'closed';
+  acceso_club_id?: number | null;
   max_spots: number | null;
   description?: string | null;
   created_by?: number;
@@ -219,7 +220,10 @@ export const SC_LEVEL_LABELS: Record<number, { roman: string; age: string }> = {
 
 export interface ScCourseFormDataResponse {
   success: boolean;
-  data: { statuses: string[] };
+  data: { 
+    statuses: string[];
+    acceso_clubes: { id: number; name: string }[];
+  };
 }
 
 export interface ScCourseListResponse {
@@ -237,6 +241,7 @@ export interface CreateScCourseRequest {
   start_date: string;
   end_date: string;
   status?: ScCourse['status'];
+  acceso_club_id?: number | null;
   description?: string | null;
   weeks_count?: number;         // auto-generate N semanas
   costs?: Array<{ participant_type: ScCost['participant_type']; cost_per_week: number }>;
@@ -247,6 +252,7 @@ export interface UpdateScCourseRequest {
   start_date?: string;
   end_date?: string;
   status?: ScCourse['status'];
+  acceso_club_id?: number | null;
   description?: string | null;
   costs?: Array<{ participant_type: ScCost['participant_type']; cost_per_week: number }>;
 }

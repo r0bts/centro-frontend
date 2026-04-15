@@ -108,7 +108,7 @@ export interface CriterioEvaluacion {
 // =====================================================================
 
 export interface ActividadFormData {
-  clubes: { id: number; nombre: string }[];
+  acceso_clubes: { id: number; name: string }[];
   tipos: string[];
 }
 
