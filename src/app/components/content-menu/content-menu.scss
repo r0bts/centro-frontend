@@ -1,220 +1,349 @@
+/* ═══════════════════════════════════════════════
+   TOP NAV — Centro Libanés
+   Pill-style sticky navbar con hamburguesa mobile
+═══════════════════════════════════════════════ */
 
-.nav-link {
-  transition: all 0.3s ease;
-  border-radius: var(--border-global);
-  color: var(--primary-gradient-end);
-  font-weight: 500;
-  cursor: pointer;
-  margin: 0 2px; // Espaciado entre nav-links
-  padding: 0.75rem 1rem; // Padding consistente
-  text-align: center; // Centrar contenido de cada link
-  white-space: nowrap; // Evitar que el texto se corte
-  
-  &:hover {
-    background-color: var(--primary-dark); /* primary-700 con opacidad */
-    color           : var(--neutral-100);
-    transform       : translateY(-1px);
-  }
-  
-  &.active {
-    background-color: var(--primary-color);
-    color: var(--neutral-50);
-    box-shadow: 0 2px 8px rgba(64, 110, 186, 0.3);
-    
-    &:hover {
-      background-color: var(--primary-dark);
-      color           : var(--neutral-100);
-    }
-  }
-  
-  // Estilos específicos para el botón de logout
-  &.text-danger {
-    color: var(--danger-color) !important;
-    
-    &:hover {
-      background-color: rgba(218, 62, 62, 0.1); /* danger-color con opacidad */
-      color: var(--danger-color) !important;
-    }
-    
-    &:focus {
-      box-shadow: 0 0 0 0.2rem rgba(218, 62, 62, 0.25);
-    }
-  }
-  
-  i {
-    font-size: 1.1em;
-  }
-  
-  @media (max-width: 768px) {
-    padding: 0.5rem 0.75rem;
-    margin: 0 1px; // Reducir margen en móviles
-  }
+// ── Wrapper sticky ──
+.topnav-wrapper {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  padding: 10px 16px 0;
+  background: transparent;
+  // Dar espacio al contenido debajo
+  & + * { padding-top: 8px; }
 }
 
-// Estilos para dropdown
-.dropdown {
-  position: relative;
-  
-  .dropdown-toggle {
-    &::after {
-      margin-left: 0.5rem;
-      transition: transform 0.3s ease;
-    }
-    
-    &[aria-expanded="true"]::after {
-      transform: rotate(180deg);
-    }
-  }
-  
-  .dropdown-menu {
-    position: absolute;
-    top: 100%;
-    left: 50%; // Centrar el dropdown
-    transform: translateX(-50%); // Centrar usando transform
-    z-index: 1000;
-    min-width: 200px;
-    padding: 0.5rem 0;
-    margin: 0.25rem 0 0;
-    font-size: 0.875rem;
-    color: var(--neutral-700);
-    text-align: left;
-    background-color: var(--neutral-50);
-    background-clip: padding-box;
-    border: 1px solid var(--neutral-200);
-    border-radius: var(--border-global);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    
-    &.show {
-      display: block;
-    }
-    
-    .dropdown-item {
-      display: block;
-      width: 100%;
-      padding: 0.5rem 1rem;
-      clear: both;
-      font-weight: 400;
-      color: var(--neutral-700);
-      text-decoration: none;
-      white-space: nowrap;
-      background-color: transparent;
-      border: 0;
-      border-radius: 0;
-      transition: all 0.15s ease-in-out;
-      
-      &:hover,
-      &:focus {
-        color: var(--neutral-900);
-        background-color: var(--neutral-100);
-      }
-      
-      &.active {
-        color: var(--neutral-50);
-        background-color: var(--primary-color);
-        
-        &:hover,
-        &:focus {
-          color: var(--neutral-50);
-          background-color: var(--primary-dark);
-        }
-      }
-      
-      i {
-        width: 1rem;
-        text-align: center;
-      }
-    }
-  }
-}
-
-.nav-pills {
-  .nav-item {
-    flex: 0 1 auto; // Cambiado de flex: 1 a flex: 0 1 auto para mejor adaptación
-    max-width: none; // Removido el max-width fijo
-    min-width: 120px; // Ancho mínimo para cada item
-  }
-}
-
-.nav{
-  background: var(--neutral-100);
-  border-radius: var(--border-global);
-  justify-content: center; // Centrar los items del menú
-  max-width: fit-content; // Ajustar al contenido
-  margin: 0 auto; // Centrar el contenedor del menú
-  padding: 0.5rem; // Añadir padding interno
-}
-
-// Mejorar la distribución del espacio en el contenedor
-.container {
+// ── Barra pill ──
+.topnav-bar {
+  background: var(--topnav-bg, #efefef);
+  border-radius: 999px;
+  padding: 5px 8px;
   display: flex;
-  justify-content: center; // Centrar el nav dentro del container
   align-items: center;
+  justify-content: flex-start;
+  box-shadow: var(--topnav-shadow, 0 4px 24px rgba(0,0,0,0.09));
+  gap: 6px;
+  height: var(--topnav-height, 68px);
 }
 
-@media (max-width: 576px) {
-  .py-3 {
-    padding-top: 1rem !important;
-    padding-bottom: 1rem !important;
+// ── Marca / Logo ──
+.topnav-brand {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  flex-shrink: 0;
+}
+.topnav-logo {
+  height: 36px;
+  object-fit: contain;
+}
+
+// ── Hamburguesa (oculto en desktop) ──
+.topnav-toggler {
+  display: none;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--neutral-800, #373737);
+  padding: 6px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  line-height: 1;
+  transition: background 0.15s;
+  margin-left: auto;
+
+  &:hover { background: var(--topnav-hover-bg, rgba(0,0,0,0.06)); }
+}
+
+// ── Collapse: flex en desktop, oculto en mobile ──
+.topnav-collapse {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: 6px;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+// ── Lista de items ──
+.topnav-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex-wrap: nowrap;
+}
+
+.topnav-item {
+  position: relative;
+}
+
+// ── Link base ──
+.topnav-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 15px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--neutral-700, #5b5b5b);
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  transition: background 0.18s, color 0.18s;
+  user-select: none;
+
+  &:hover {
+    background: var(--topnav-hover-bg, rgba(0,0,0,0.06));
+    color: var(--neutral-900, #141414);
   }
-  
-  .nav-pills {
-    .nav-item {
-      min-width: 60px; // Reducir ancho mínimo en móviles
-      margin: 0 2px; // Añadir pequeño margen entre items
-    }
+
+  &.active {
+    background: var(--topnav-pill-active, #1e1e2e);
+    color: #fff;
+    font-weight: 600;
+
+    .topnav-chevron { color: #fff; }
   }
-  
-  .nav {
-    max-width: 100%; // Usar todo el ancho disponible en móvil
-    margin: 0; // Sin margen automático en móvil
-    padding: 0.25rem; // Reducir padding en móvil
-    flex-wrap: wrap; // Permitir que los items se envuelvan si es necesario
+}
+
+// ── Chevron de dropdown ──
+.topnav-chevron {
+  font-size: 10px;
+  transition: transform 0.2s;
+  color: var(--neutral-500, #8a8a8a);
+}
+.topnav-item-dd.open .topnav-chevron {
+  transform: rotate(180deg);
+}
+
+// ── Item con dropdown ──
+.topnav-item-dd {
+  position: relative;
+}
+
+// ── Dropdown flotante ──
+.topnav-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  padding: 6px;
+  min-width: 200px;
+  z-index: 300;
+  display: none;
+  animation: navFadeDown 0.15s ease;
+
+  &.show { display: block; }
+
+  // Dropdown alineado a la derecha (engranaje)
+  &--right {
+    left: auto;
+    right: 0;
+    transform: none;
   }
-  
-  .container {
-    padding: 0 0.5rem; // Reducir padding del container en móvil
+}
+
+@keyframes navFadeDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.topnav-dropdown--right {
+  &.show { animation: navFadeDownRight 0.15s ease; }
+}
+@keyframes navFadeDownRight {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Header del dropdown ──
+.topnav-dd-header {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--neutral-400, #a1a1a1);
+  padding: 4px 12px 8px;
+}
+
+// ── Item del dropdown ──
+.topnav-dd-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--neutral-700, #5b5b5b);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+
+  i { font-size: 13px; color: var(--neutral-400, #a1a1a1); transition: color 0.15s; }
+
+  &:hover {
+    background: var(--neutral-100, #e8e8e8);
+    color: var(--neutral-900, #141414);
+    i { color: var(--primary-color, #406eba); }
   }
-  
-  .dropdown-menu {
-    position: relative;
-    display: block;
-    float: none;
+
+  &.active {
+    background: #eef2ff;
+    color: var(--primary-color, #406eba);
+    font-weight: 600;
+    i { color: var(--primary-color, #406eba); }
+  }
+}
+
+// ── Separador vertical ──
+.topnav-sep {
+  width: 1px;
+  height: 22px;
+  background: rgba(0,0,0,0.12);
+  flex-shrink: 0;
+}
+
+// ── Acciones (gear + avatar + logout) ──
+.topnav-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+// ── Botón de acción circular ──
+.topnav-action-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--neutral-600, #727272);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+
+  &:hover { background: var(--topnav-hover-bg, rgba(0,0,0,0.06)); color: var(--neutral-900, #141414); }
+
+  &.active {
+    background: var(--topnav-hover-bg, rgba(0,0,0,0.08));
+    color: var(--neutral-900, #141414);
+  }
+
+  // Logout en rojo
+  &--logout {
+    color: var(--danger-color, #da3e3e);
+    &:hover { background: rgba(218,62,62,0.08); color: var(--danger-color, #da3e3e); }
+  }
+}
+
+// ── Engranaje wrapper (para posicionar el dropdown) ──
+.topnav-gear-wrapper {
+  position: relative;
+}
+
+// ── Avatar ──
+.topnav-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #406eba), var(--primary-dark, #1d3d79));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin: 0 4px;
+}
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE ≤ 768px — Hamburguesa
+═══════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .topnav-wrapper { padding: 8px 10px 0; }
+
+  .topnav-bar {
+    border-radius: 24px;
+    flex-wrap: wrap;
+    height: auto;
+    padding: 8px 10px;
+  }
+
+  .topnav-toggler { display: flex; }
+
+  .topnav-collapse {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
     width: 100%;
-    margin: 0;
-    border: none;
-    border-radius: 0;
+    margin-left: 0;
+    gap: 2px;
+    padding: 8px 0 4px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    margin-top: 6px;
+
+    &.open { display: flex; }
+  }
+
+  .topnav-list {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 2px;
+  }
+
+  .topnav-item,
+  .topnav-item-dd { width: 100%; }
+
+  .topnav-link {
+    border-radius: 14px;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  // Dropdown inline en mobile
+  .topnav-dropdown {
+    position: static;
+    transform: none;
     box-shadow: none;
-    background-color: var(--neutral-200);
-    
-    .dropdown-item {
-      padding: 0.25rem 1rem;
-      font-size: 0.8rem;
-    }
-  }
-}
+    background: rgba(0,0,0,0.04);
+    border-radius: 12px;
+    padding: 4px;
+    animation: none;
+    margin-top: 2px;
 
-// Estilos para tablets
-@media (min-width: 577px) and (max-width: 768px) {
-  .nav-pills {
-    .nav-item {
-      min-width: 100px; // Ancho medio para tablets
+    &--right {
+      position: static;
+      transform: none;
     }
   }
-  
-  .nav {
-    max-width: 90%; // Usar la mayoría del ancho en tablets
-  }
-}
 
-// Estilos para desktop
-@media (min-width: 769px) {
-  .nav-pills {
-    .nav-item {
-      min-width: 120px; // Ancho completo para desktop
-    }
+  .topnav-sep { display: none; }
+
+  .topnav-actions {
+    padding: 6px 4px 2px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    width: 100%;
+    justify-content: flex-end;
+    gap: 6px;
   }
-  
-  .nav {
-    max-width: fit-content; // Ajustar al contenido en desktop
-  }
+
+  .topnav-gear-wrapper { position: relative; }
 }

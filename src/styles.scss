@@ -38,6 +38,14 @@
   --bs-dark: #141414;
 
   --border-global: 20px;
+
+  /* ── Top Nav ── */
+  --topnav-height:      68px;
+  --topnav-bg:          #efefef;
+  --topnav-pill-active: #1e1e2e;
+  --topnav-hover-bg:    rgba(0,0,0,0.06);
+  --topnav-shadow:      0 4px 24px rgba(0,0,0,0.09);
+  --page-padding-top:   80px; /* nav height + margen */
 }
 
 /* ---------------------------- Estilos globales ---------------------------- */

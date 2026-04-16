@@ -7,7 +7,7 @@
     </app-content-menu>
 
     <!-- Main Content -->
-    <div class="p-4" style="height: calc(100vh - 120px); overflow: hidden;">
+    <div class="p-4" style="height: calc(100vh - var(--topnav-height, 68px) - 12px); overflow: hidden;">
       <div class="row g-4 h-100">
         <!-- Panel izquierdo - Selección de productos -->
         <div [class]="isResumeCollapsed ? 'col-11' : 'col-lg-7'" class="transition-all">

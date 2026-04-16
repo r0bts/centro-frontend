@@ -1,56 +1,96 @@
-<div class="mb-5 pt-3">
-  <div class="container">
-    <div class="d-flex align-items-center justify-content-center mb-3">
-      <img src="/assets/images/LOGO_CL.png" alt="Logo CL" class="me-3" style="height: 40px;">
-      <ul class="nav nav-pills nav-custom d-flex justify-content-center mb-0">
-      <li class="nav-item" *ngFor="let item of menuItems()">
-        <!-- Items con submenu -->
-        <div *ngIf="item.children && item.children.length > 0; else simpleItem" class="dropdown">
-          <a 
-            class="nav-link dropdown-toggle" 
-            [class.active]="isActive(item.id) || hasActiveChild(item)"
-            (click)="toggleSubmenu(item, $event)"
-            type="button">
-            <i [class]="'bi ' + item.icon + ' me-2'"></i>
-            <span>{{ item.label }}</span>
-          </a>
-          <!-- Submenu -->
-          <ul class="dropdown-menu" [class.show]="item.isExpanded">
-            <li *ngFor="let child of item.children">
-              <a 
-                class="dropdown-item" 
-                [class.active]="isActive(child.id)"
-                (click)="onSectionClick(child.id, $event)">
-                <i [class]="'bi ' + child.icon + ' me-2'"></i>
+<div class="topnav-wrapper">
+  <nav class="topnav-bar">
+
+    <!-- Marca -->
+    <div class="topnav-brand">
+      <img src="/assets/images/LOGO_CL.png" alt="Logo CL" class="topnav-logo">
+    </div>
+
+    <!-- Botón hamburguesa (mobile) -->
+    <button class="topnav-toggler" (click)="toggleMobileMenu()" [attr.aria-expanded]="isMobileMenuOpen()">
+      <i [class]="isMobileMenuOpen() ? 'bi bi-x-lg' : 'bi bi-list'"></i>
+    </button>
+
+    <!-- Collapse -->
+    <div class="topnav-collapse" [class.open]="isMobileMenuOpen()">
+
+      <!-- Items de navegación -->
+      <ul class="topnav-list">
+
+        <li class="topnav-item" *ngFor="let item of menuItems()">
+
+          <!-- Item con hijos → dropdown -->
+          <div *ngIf="item.children && item.children.length > 0; else simpleNavItem"
+               class="topnav-item-dd"
+               [class.open]="item.isExpanded">
+            <a class="topnav-link"
+               [class.active]="isActive(item.id) || hasActiveChild(item)"
+               (click)="toggleSubmenu(item, $event)">
+              {{ item.label }}
+              <i class="bi bi-chevron-down topnav-chevron"></i>
+            </a>
+            <div class="topnav-dropdown" [class.show]="item.isExpanded">
+              <a *ngFor="let child of item.children"
+                 class="topnav-dd-item"
+                 [class.active]="isActive(child.id)"
+                 (click)="onSectionClick(child.id, $event)">
                 {{ child.label }}
               </a>
-            </li>
-          </ul>
-        </div>
-        
-        <!-- Items simples sin submenu -->
-        <ng-template #simpleItem>
-          <a 
-            class="nav-link" 
-            [class.active]="isActive(item.id)"
-            (click)="onSectionClick(item.id, $event)">
-            <i [class]="'bi ' + item.icon + ' me-2'"></i>
-            <span>{{ item.label }}</span>
-          </a>
-        </ng-template>
-      </li>
-      
-      <li class="nav-item">
-        <a 
-          class="nav-link" 
-          (click)="onLogout()"
-          title="Cerrar Sesión"
-          type="button">
-          <i class="bi bi-box-arrow-right me-2"></i>
-          <span>Salir</span>
-        </a>
-      </li>
+            </div>
+          </div>
+
+          <!-- Item simple -->
+          <ng-template #simpleNavItem>
+            <a class="topnav-link"
+               [class.active]="isActive(item.id)"
+               (click)="onSectionClick(item.id, $event)">
+              {{ item.label }}
+            </a>
+          </ng-template>
+
+        </li>
       </ul>
-    </div>
-  </div>
+
+      <!-- Separador -->
+      <div class="topnav-sep"></div>
+
+      <!-- Acciones -->
+      <div class="topnav-actions">
+
+        <!-- Engranaje Configuración -->
+        <div class="topnav-gear-wrapper" [class.open]="isGearOpen()">
+          <button class="topnav-action-btn"
+                  [class.active]="isGearOpen() || isGearActive()"
+                  title="Configuración"
+                  (click)="toggleGear($event)">
+            <i class="bi bi-gear-fill"></i>
+          </button>
+          <div class="topnav-dropdown topnav-dropdown--right" [class.show]="isGearOpen()">
+            <div class="topnav-dd-header">Configuración</div>
+            <a *ngFor="let child of gearItems()"
+               class="topnav-dd-item"
+               [class.active]="isActive(child.id)"
+               (click)="onSectionClick(child.id, $event)">
+              <i [class]="'bi ' + child.icon"></i>
+              {{ child.label }}
+            </a>
+          </div>
+        </div>
+
+        <!-- Avatar / Perfil -->
+        <div class="topnav-avatar" title="Perfil">
+          {{ userInitial() }}
+        </div>
+
+        <!-- Logout -->
+        <button class="topnav-action-btn topnav-action-btn--logout"
+                title="Cerrar sesión"
+                (click)="onLogout()">
+          <i class="bi bi-box-arrow-right"></i>
+        </button>
+
+      </div>
+    </div><!-- /collapse -->
+
+  </nav>
 </div>
