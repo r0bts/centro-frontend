@@ -3,6 +3,24 @@
   transition: all 0.3s ease-in-out;
 }
 
+// ── Layout principal del módulo ──
+.req-main-content {
+  padding: 1rem;
+
+  // Desktop: scroll propio dentro del área de contenido
+  @media (min-width: 992px) {
+    height: calc(100vh - var(--topnav-height, 68px) - 22px);
+    overflow-y: auto;
+  }
+}
+
+// ── Cards: altura completa solo en desktop ──
+.req-card {
+  @media (min-width: 992px) {
+    height: 100%;
+  }
+}
+
 /* Scrollbar personalizado para el panel de resumen */
 .overflow-auto::-webkit-scrollbar {
   width: 6px;
