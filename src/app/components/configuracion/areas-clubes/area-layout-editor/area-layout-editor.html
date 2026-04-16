@@ -53,7 +53,28 @@
 
       <!-- ── Configuración superior ──────────────────────── -->
       <div class="row g-3 mb-4 align-items-end">
-        <div class="col-sm-4">
+
+        <!-- Selector de club -->
+        <div class="col-sm-3">
+          <label class="form-label small fw-semibold">
+            <i class="bi bi-building me-1"></i>Club
+          </label>
+          <select
+            class="form-select form-select-sm"
+            [ngModel]="selectedClubId()"
+            (ngModelChange)="onClubChange($event)"
+            [disabled]="saving()">
+            <option [ngValue]="0" disabled>Selecciona un club...</option>
+            <option *ngFor="let club of areaClubs" [ngValue]="club.id">
+              {{ club.name }}
+            </option>
+          </select>
+          <div *ngIf="areaClubs.length === 0" class="form-text text-warning">
+            <i class="bi bi-exclamation-triangle me-1"></i>Sin clubs asignados al área
+          </div>
+        </div>
+
+        <div class="col-sm-3">
           <label class="form-label small fw-semibold">Nombre del plano</label>
           <input
             type="text"

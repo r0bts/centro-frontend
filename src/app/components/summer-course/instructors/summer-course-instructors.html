@@ -1,27 +1,5 @@
 <div class="sc-instructors">
 
-  <!-- ── Header ── -->
-  <div class="page-header d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <h4 class="mb-0 fw-bold">
-        <span class="me-2">👨‍🏫</span>Instructores
-      </h4>
-      <small class="text-muted">Instructores de natación para los cursos de verano</small>
-    </div>
-    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openCreate()">
-      <i class="bi bi-plus-lg"></i>Nuevo instructor
-    </button>
-  </div>
-
-  <!-- ── Error ── -->
-  @if (error()) {
-    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>{{ error() }}</span>
-      <button class="btn-close ms-auto" (click)="clearError()"></button>
-    </div>
-  }
-
   <!-- ── Toast ── -->
   @if (toast()) {
     <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1100">
@@ -37,7 +15,7 @@
     </div>
   }
 
-  <!-- ── Credentials toast (one-time) ── -->
+  <!-- ── Credentials (one-time) ── -->
   @if (createdCredentials()) {
     <div class="alert alert-info d-flex align-items-start gap-2 mb-3">
       <i class="bi bi-key-fill fs-5 mt-1"></i>
@@ -51,70 +29,124 @@
     </div>
   }
 
-  <!-- ── Loading ── -->
-  @if (loading()) {
-    <div class="instructors-grid">
-      @for (n of [1,2,3]; track n) {
-        <div class="instructor-card skeleton-card">
-          <div class="skeleton-avatar"></div>
-          <div class="skeleton-lines">
-            <div class="skeleton-line w75"></div>
-            <div class="skeleton-line w50"></div>
-          </div>
+  <!-- ── Card principal ── -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-person-badge me-2"></i>Instructores
+      </h5>
+      <div class="d-flex gap-2">
+        <div class="input-group input-group-sm" style="min-width:220px">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Buscar instructor..."
+            [value]="search()"
+            (input)="search.set($any($event.target).value)">
         </div>
-      }
-    </div>
-  }
-
-  <!-- ── Instructors grid ── -->
-  @if (!loading()) {
-    @if (instructors().length === 0) {
-      <div class="empty-state text-center py-5 text-muted">
-        <i class="bi bi-person-badge fs-1 d-block mb-2 opacity-25"></i>
-        <p>No hay instructores registrados.</p>
-        <button class="btn btn-primary btn-sm" (click)="openCreate()">
-          <i class="bi bi-plus-lg me-1"></i>Crear primer instructor
+        <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" (click)="openCreate()">
+          <i class="bi bi-plus-lg"></i>Nuevo instructor
         </button>
+      </div>
+    </div>
+
+    @if (error()) {
+      <div class="alert alert-danger m-3 d-flex align-items-center gap-2 py-2 mb-0">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <span>{{ error() }}</span>
+        <button class="btn-close ms-auto" (click)="clearError()"></button>
       </div>
     }
 
-    <div class="instructors-grid">
-      @for (inst of instructors(); track inst.id) {
-        <div class="instructor-card">
-          <div class="card-header-row">
-            <div class="instructor-avatar">{{ initials(inst) }}</div>
-            <div class="instructor-actions">
-              <button class="btn btn-sm btn-outline-secondary" (click)="openEdit(inst)" title="Editar">
-                <i class="bi bi-pencil"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(inst)" title="Eliminar">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </div>
+    <div class="card-body p-0">
 
-          <div class="instructor-name">{{ fullName(inst) }}</div>
-
-          @if (inst.specialty) {
-            <div class="instructor-specialty">
-              <i class="bi bi-award me-1 text-warning"></i>{{ inst.specialty }}
-            </div>
-          }
-
-          @if (inst.email) {
-            <div class="instructor-email">
-              <i class="bi bi-envelope me-1 text-muted"></i>
-              <a [href]="'mailto:' + inst.email" class="text-muted">{{ inst.email }}</a>
-            </div>
-          }
-
-          <div class="instructor-id text-muted small mt-auto pt-2">
-            ID: {{ inst.id }}
-          </div>
+      @if (loading()) {
+        <div class="d-flex justify-content-center align-items-center py-5">
+          <div class="spinner-border text-primary me-3"></div>
+          <span class="text-muted">Cargando instructores...</span>
         </div>
       }
+
+      @if (!loading()) {
+        <div class="table-responsive">
+          <table class="table table-hover table-sm align-middle mb-0">
+            <thead class="table-light sticky-top">
+              <tr>
+                <th class="ps-3" style="width:48px"></th>
+                <th style="min-width:180px">Nombre</th>
+                <th style="min-width:160px">Especialidad</th>
+                <th style="min-width:200px">Email</th>
+                <th class="text-center" style="width:110px">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (inst of filteredInstructors; track inst.id) {
+                <tr>
+                  <td class="ps-3">
+                    <div class="instructor-avatar-sm">{{ initials(inst) }}</div>
+                  </td>
+                  <td class="fw-semibold">{{ fullName(inst) }}</td>
+                  <td>
+                    @if (inst.specialty) {
+                      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                        <i class="bi bi-award me-1"></i>{{ inst.specialty }}
+                      </span>
+                    } @else {
+                      <span class="text-muted small">—</span>
+                    }
+                  </td>
+                  <td>
+                    @if (inst.email) {
+                      <a [href]="'mailto:' + inst.email" class="text-muted small">
+                        <i class="bi bi-envelope me-1"></i>{{ inst.email }}
+                      </a>
+                    } @else {
+                      <span class="text-muted small">—</span>
+                    }
+                  </td>
+                  <td class="text-center">
+                    <div class="d-flex justify-content-center gap-1">
+                      <button class="btn btn-sm btn-outline-secondary" (click)="openEdit(inst)" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(inst)" title="Eliminar">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+
+              @if (filteredInstructors.length === 0) {
+                <tr>
+                  <td colspan="5" class="text-center text-muted py-5">
+                    @if (search()) {
+                      <i class="bi bi-search fs-4 d-block mb-2 opacity-50"></i>
+                      No hay resultados para "<strong>{{ search() }}</strong>"
+                    } @else {
+                      <i class="bi bi-person-badge fs-4 d-block mb-2 opacity-25"></i>
+                      No hay instructores registrados.
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top bg-light small text-muted">
+          <span>{{ filteredInstructors.length }} de {{ instructors().length }} instructores</span>
+          @if (search()) {
+            <button class="btn btn-sm btn-link p-0 text-muted" (click)="search.set('')">
+              <i class="bi bi-x-circle me-1"></i>Limpiar búsqueda
+            </button>
+          }
+        </div>
+      }
+
     </div>
-  }
+  </div>
 
   <!-- ── Create / Edit Modal ── -->
   @if (formOpen()) {
@@ -131,7 +163,6 @@
           </div>
           <div class="modal-body">
             <div class="row g-3">
-
               <div class="col-sm-6">
                 <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
                 <input type="text" class="form-control"
@@ -139,7 +170,6 @@
                        (input)="formFirstName.set($any($event.target).value)"
                        placeholder="Juan">
               </div>
-
               <div class="col-sm-6">
                 <label class="form-label fw-semibold">Apellido <span class="text-danger">*</span></label>
                 <input type="text" class="form-control"
@@ -147,7 +177,6 @@
                        (input)="formLastName.set($any($event.target).value)"
                        placeholder="García">
               </div>
-
               <div class="col-12">
                 <label class="form-label fw-semibold">Email</label>
                 <input type="email" class="form-control"
@@ -155,7 +184,6 @@
                        (input)="formEmail.set($any($event.target).value)"
                        placeholder="instructor@centro.com">
               </div>
-
               <div class="col-12">
                 <label class="form-label fw-semibold">Especialidad</label>
                 <input type="text" class="form-control"
@@ -163,23 +191,19 @@
                        (input)="formSpecialty.set($any($event.target).value)"
                        placeholder="Natación, Waterpolo…">
               </div>
-
               @if (!isEdit) {
                 <div class="col-12">
                   <div class="alert alert-info py-2 small mb-0">
                     <i class="bi bi-info-circle me-1"></i>
-                    El sistema generará automáticamente usuario y contraseña para el instructor.
+                    El sistema generará automáticamente usuario y contraseña.
                     Las credenciales se mostrarán una vez creado el registro.
                   </div>
                 </div>
               }
-
             </div>
           </div>
           <div class="modal-footer border-0">
-            <button class="btn btn-outline-secondary" (click)="cancelForm()" [disabled]="formSaving()">
-              Cancelar
-            </button>
+            <button class="btn btn-outline-secondary" (click)="cancelForm()" [disabled]="formSaving()">Cancelar</button>
             <button class="btn btn-primary d-flex align-items-center gap-2"
                     (click)="saveInstructor()" [disabled]="formSaving()">
               @if (formSaving()) { <span class="spinner-border spinner-border-sm"></span> }

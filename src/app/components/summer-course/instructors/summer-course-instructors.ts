@@ -35,6 +35,20 @@ export class SummerCourseInstructorsComponent implements OnInit {
   deleting      = signal(false);
   formSaving    = signal(false);
 
+  // Filtro
+  search        = signal('');
+
+  get filteredInstructors(): ScInstructor[] {
+    const q = this.search().toLowerCase().trim();
+    if (!q) return this.instructors();
+    return this.instructors().filter(i =>
+      i.first_name.toLowerCase().includes(q) ||
+      i.last_name.toLowerCase().includes(q)  ||
+      (i.specialty ?? '').toLowerCase().includes(q) ||
+      (i.email ?? '').toLowerCase().includes(q)
+    );
+  }
+
   // Form fields
   formFirstName  = signal('');
   formLastName   = signal('');

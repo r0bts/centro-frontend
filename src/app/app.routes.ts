@@ -236,16 +236,17 @@ export const routes: Routes = [
           import('./components/summer-course/levels/summer-course-levels').then(m => m.SummerCourseLevelsComponent)
       },
       {
-        path: 'instructors',
-        loadComponent: () =>
-          import('./components/summer-course/instructors/summer-course-instructors').then(m => m.SummerCourseInstructorsComponent)
-      },
-      {
         path: '',
         redirectTo: 'courses',
         pathMatch: 'full'
       }
     ]
+  },
+  {
+    path: 'configuracion/instructores',
+    loadComponent: () =>
+      import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
   },
   {
     path: 'unauthorized',

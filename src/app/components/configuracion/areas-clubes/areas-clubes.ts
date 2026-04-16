@@ -2,7 +2,7 @@ import { Component, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AreasClubesListComponent } from './areas-clubes-list/areas-clubes-list';
 import { AreaLayoutEditorComponent } from './area-layout-editor/area-layout-editor';
-import { AreaConClubes } from '../../../services/area-club.service';
+import { AreaConClubes, Club } from '../../../services/area-club.service';
 
 @Component({
   selector: 'app-areas-clubes',
@@ -14,10 +14,14 @@ import { AreaConClubes } from '../../../services/area-club.service';
 })
 export class AreasClubesComponent {
   /** null = mostrar lista | AreaConClubes = mostrar editor */
-  editingArea = signal<AreaConClubes | null>(null);
+  editingArea   = signal<AreaConClubes | null>(null);
+  editingClubes = signal<Club[]>([]);
+  editingClubId = signal<number>(0);
 
-  openEditor(area: AreaConClubes): void {
-    this.editingArea.set(area);
+  openEditor(ev: { area: AreaConClubes; clubId: number; clubes: Club[] }): void {
+    this.editingClubes.set(ev.clubes);
+    this.editingClubId.set(ev.clubId);
+    this.editingArea.set(ev.area);
   }
 
   closeEditor(): void {
@@ -25,7 +29,6 @@ export class AreasClubesComponent {
   }
 
   onLayoutSaved(updatedArea: AreaConClubes): void {
-    // El área se actualizó, volvemos a la lista
     this.editingArea.set(null);
   }
 }

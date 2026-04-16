@@ -17,6 +17,7 @@ import { CategoriesListComponent } from './categorias/categories-list/categories
 import { CategoryService, Category } from '../../services/category.service';
 import { AuthService } from '../../services/auth.service';
 import { AreasClubesComponent } from './areas-clubes/areas-clubes';
+import { SummerCourseInstructorsComponent } from '../summer-course/instructors/summer-course-instructors';
 import Swal from 'sweetalert2';
 
 interface ConfigSection {
@@ -45,7 +46,7 @@ interface SystemConfig {
   selector: 'app-configuracion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent, AreasClubesComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent, AreasClubesComponent, SummerCourseInstructorsComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
@@ -116,6 +117,13 @@ export class ConfiguracionComponent implements OnInit {
       icon: 'bi-geo-alt',
       description: 'Asignación de áreas a clubes y planos de lugares',
       active: false
+    },
+    {
+      id: 'instructores',
+      title: 'Instructores',
+      icon: 'bi-person-badge-fill',
+      description: 'Gestión de instructores del Curso de Verano',
+      active: false
     }
   ]);
 
@@ -176,6 +184,8 @@ export class ConfiguracionComponent implements OnInit {
       targetSection = 'netsuite';
     } else if (urlPath.includes('/configuracion/areas_clubes')) {
       targetSection = 'areas_clubes';
+    } else if (urlPath.includes('/configuracion/instructores')) {
+      targetSection = 'instructores';
     } else if (urlPath.includes('/configuracion/general')) {
       targetSection = 'general';
     }
@@ -276,7 +286,8 @@ export class ConfiguracionComponent implements OnInit {
       'products': 'productos',
       'categories': 'categorias',
       'netsuite': 'netsuite_sync',
-      'areas_clubes': 'areas_clubes'
+      'areas_clubes': 'areas_clubes',
+      'instructores': 'instructores'
     };
     
     return mapping[sectionId] || null;

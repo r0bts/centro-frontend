@@ -15,15 +15,23 @@ export interface AreaLayout {
   nombre: string;
   filas: number;
   columnas: number;
+  acceso_club_id: number;
   is_active: boolean;
+}
+
+export interface LayoutPorClub {
+  acceso_club_id: number;
+  has_layout: boolean;
+  layout_id?: number | null;
+  filas?: number | null;
+  columnas?: number | null;
 }
 
 export interface AreaConClubes {
   id: number;
   name: string;
   clubes: ClubAsignado[];
-  has_layout: boolean;
-  layout: AreaLayout | null;
+  layouts_por_club: LayoutPorClub[];
 }
 
 export interface Club {
@@ -82,6 +90,7 @@ export interface LayoutResponse {
 
 export interface SaveLayoutRequest {
   area_id: number;
+  acceso_club_id: number;
   nombre: string;
   filas: number;
   columnas: number;
@@ -139,11 +148,12 @@ export class AreaClubService {
   }
 
   /**
-   * GET /api/area-layouts/{areaId}
-   * Obtiene el plano de un área (layout + posiciones)
+   * GET /api/area-layouts/{areaId}?club_id=X
+   * Obtiene el plano de un área para un club específico
    */
-  getLayout(areaId: number): Observable<LayoutResponse> {
-    return this.http.get<LayoutResponse>(`${this.layoutUrl}/${areaId}`);
+  getLayout(areaId: number, clubId: number = 0): Observable<LayoutResponse> {
+    const params = clubId > 0 ? `?club_id=${clubId}` : '';
+    return this.http.get<LayoutResponse>(`${this.layoutUrl}/${areaId}${params}`);
   }
 
   /**

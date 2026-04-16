@@ -11,12 +11,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { ActividadService } from '../../../../services/deportivo/actividad.service';
 import { AuthService } from '../../../../services/auth.service';
 import {
   Actividad,
   ActividadFormData,
+  AreaMapeada,
   WizardGrupo,
   WizardCriterio,
 } from '../../../../models/deportivo/actividad.model';
@@ -121,27 +122,28 @@ export class ActividadWizardComponent implements OnInit {
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
     document.body.style.overflow = 'hidden';
+    this.loadingDetail.set(true);
 
-    this.svc.getFormData().subscribe({
-      next: res => this.formData.set(res.data),
-      error: () => {/* no-critical */},
+    const formData$ = this.svc.getFormData();
+    const detail$   = this.editActividad
+      ? this.svc.getById(this.editActividad.id)
+      : of(null);
+
+    forkJoin([formData$, detail$]).subscribe({
+      next: ([fdRes, detailRes]) => {
+        this.formData.set(fdRes.data);
+        if (detailRes) {
+          this.originalActividad.set(detailRes.data);
+          this.patchFromEdit(detailRes.data);
+        }
+        this.loadingDetail.set(false);
+      },
+      error: () => {
+        // Fallback parcial: al menos intentar parchear con datos básicos
+        if (this.editActividad) this.patchFromEdit(this.editActividad);
+        this.loadingDetail.set(false);
+      },
     });
-
-    if (this.editActividad) {
-      this.loadingDetail.set(true);
-      this.svc.getById(this.editActividad.id).subscribe({
-        next: res => {
-          this.originalActividad.set(res.data);
-          this.patchFromEdit(res.data);
-          this.loadingDetail.set(false);
-        },
-        error: () => {
-          // Fallback: patch con los datos básicos disponibles
-          this.patchFromEdit(this.editActividad!);
-          this.loadingDetail.set(false);
-        },
-      });
-    }
   }
 
   private patchFromEdit(act: Actividad): void {
@@ -158,23 +160,21 @@ export class ActividadWizardComponent implements OnInit {
     this.monto           = act.monto        ?? null;
 
     const grupos: WizardGrupo[] = (act.grupos_categorias ?? []).map(g => ({
-      nombre:      g.nombre,
-      descripcion: g.descripcion ?? '',
-      edad_min:    g.edad_min ?? null,
-      edad_max:    g.edad_max ?? null,
-      tiene_cupo:  g.tiene_cupo ?? false,
-      cupo_maximo: g.cupo_maximo ?? null,
-      equipos: (g.equipos ?? []).map(e => ({
-        nombre:   e.nombre,
-        color:    e.color ?? '#6366f1',
-        coach_id: e.coach_id ?? null,
-      })),
-      // Los horarios se toman del primer equipo (todos comparten el mismo calendario)
+      nombre:        g.nombre,
+      descripcion:   g.descripcion ?? '',
+      edad_min:      g.edad_min ?? null,
+      edad_max:      g.edad_max ?? null,
+      tiene_cupo:    g.tiene_cupo ?? false,
+      cupo_maximo:   g.cupo_maximo ?? null,
+      instructor_id: g.equipos?.[0]?.coach_id ?? null,
+      equipos: [],  // no se muestran en el wizard; se reconstruyen al guardar
+      // Los horarios se toman del primer equipo
       horarios: (g.equipos?.[0]?.horarios ?? []).map(h => ({
         dia_semana:  h.dia_semana,
         hora_inicio: (h.hora_inicio ?? '08:00:00').substring(0, 5),
         hora_fin:    (h.hora_fin ?? '09:00:00').substring(0, 5),
-        lugar:       h.lugar ?? '',
+        lugar:       h.lugar ?? null,
+        area_id:     h.area_id ?? null,
       })),
     }));
     this.grupos.set(grupos);
@@ -219,7 +219,7 @@ export class ActividadWizardComponent implements OnInit {
     if (!nombre) return;
     this.grupos.update(list => [
       ...list,
-      { nombre, descripcion: '', edad_min: null, edad_max: null, tiene_cupo: false, cupo_maximo: null, equipos: [], horarios: [] },
+      { nombre, descripcion: '', edad_min: null, edad_max: null, tiene_cupo: false, cupo_maximo: null, instructor_id: null, equipos: [], horarios: [] },
     ]);
     this.nuevoGrupoNombre = '';
     this.activeGrupoIndex.set(this.grupos().length - 1);
@@ -230,23 +230,6 @@ export class ActividadWizardComponent implements OnInit {
     if (this.activeGrupoIndex() >= this.grupos().length) {
       this.activeGrupoIndex.set(Math.max(0, this.grupos().length - 1));
     }
-  }
-
-  addEquipoToGrupo(grupoIdx: number, nombre: string): void {
-    if (!nombre.trim()) return;
-    this.grupos.update(list => {
-      const copy = list.map(g => ({ ...g, equipos: [...g.equipos] }));
-      copy[grupoIdx].equipos.push({ nombre: nombre.trim(), color: '#6366f1', coach_id: null });
-      return copy;
-    });
-  }
-
-  removeEquipo(grupoIdx: number, equipoIdx: number): void {
-    this.grupos.update(list => {
-      const copy = list.map(g => ({ ...g, equipos: [...g.equipos] }));
-      copy[grupoIdx].equipos.splice(equipoIdx, 1);
-      return copy;
-    });
   }
 
   toggleGrupoCupo(grupoIdx: number, value: boolean): void {
@@ -266,6 +249,14 @@ export class ActividadWizardComponent implements OnInit {
     });
   }
 
+  setGrupoInstructor(grupoIdx: number, value: number | null): void {
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g }));
+      copy[grupoIdx].instructor_id = value;
+      return copy;
+    });
+  }
+
   // ── Paso 3: Horarios ─────────────────────────────────────────────────────────
   toggleDia(grupoIdx: number, dia: number): void {
     this.grupos.update(list => {
@@ -275,7 +266,7 @@ export class ActividadWizardComponent implements OnInit {
       if (existing) {
         copy[grupoIdx].horarios = horarios.filter(h => h.dia_semana !== dia);
       } else {
-        horarios.push({ dia_semana: dia, hora_inicio: '08:00', hora_fin: '09:00', lugar: '' });
+        horarios.push({ dia_semana: dia, hora_inicio: '08:00', hora_fin: '09:00', lugar: null, area_id: null });
         copy[grupoIdx].horarios.sort((a,b) => a.dia_semana - b.dia_semana);
       }
       return copy;
@@ -289,7 +280,8 @@ export class ActividadWizardComponent implements OnInit {
         dia_semana: dia,
         hora_inicio: '08:00',
         hora_fin: '09:00',
-        lugar: ''
+        lugar: null,
+        area_id: null
       });
       copy[grupoIdx].horarios.sort((a,b) => a.dia_semana - b.dia_semana);
       return copy;
@@ -318,13 +310,27 @@ export class ActividadWizardComponent implements OnInit {
     return this.grupos()[grupoIdx]?.horarios.find(h => h.dia_semana === dia);
   }
 
-  updateHorarioField(grupoIdx: number, index: number, field: 'hora_inicio' | 'hora_fin' | 'lugar', value: string): void {
+  updateHorarioField(grupoIdx: number, index: number, field: 'hora_inicio' | 'hora_fin' | 'lugar' | 'area_id', value: string | number | null): void {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, horarios: g.horarios.map(h => ({ ...h })) }));
       const h = copy[grupoIdx].horarios[index];
       if (h) (h as any)[field] = value;
       return copy;
     });
+  }
+
+  /** Filtra las áreas mapeadas por el club seleccionado en Paso 1 */
+  getAreasByClub(): AreaMapeada[] {
+    if (!this.club_id || !this.formData()) return [];
+    return (this.formData()!.areas_mapeadas ?? []).filter(
+      a => Number(a.acceso_club_id) === Number(this.club_id)
+    );
+  }
+
+  /** Nombre del área dado su id */
+  getAreaName(areaId: number | null): string {
+    if (!areaId) return '—';
+    return this.formData()?.areas_mapeadas?.find(a => Number(a.area_id) === Number(areaId))?.area_name ?? `Área ${areaId}`;
   }
 
   // ── Paso 4: Criterios ────────────────────────────────────────────────────────
@@ -423,12 +429,9 @@ export class ActividadWizardComponent implements OnInit {
         const grupoId = gRes.data.id;
 
         // Si el grupo no tiene equipos pero sí tiene horarios, crear un equipo "General"
-        // para poder guardar los horarios (los horarios viven en el equipo, no en el grupo)
-        const equiposACrear = g.equipos.length > 0
-          ? g.equipos
-          : g.horarios.length > 0
-            ? [{ nombre: 'General', color: this.color, coach_id: null }]
-            : [];
+        const equiposACrear = g.horarios.length > 0
+          ? [{ nombre: 'General', color: this.color, coach_id: g.instructor_id }]
+          : [];
 
         for (const eq of equiposACrear) {
           const eRes = await firstValueFrom(this.svc.createEquipo({
@@ -446,7 +449,8 @@ export class ActividadWizardComponent implements OnInit {
               dia_semana:  h.dia_semana,
               hora_inicio: h.hora_inicio,
               hora_fin:    h.hora_fin,
-              lugar:       h.lugar || undefined,
+              lugar:       h.lugar ?? undefined,
+              area_id:     h.area_id ?? undefined,
               is_active:   true,
             }));
           }
@@ -511,8 +515,14 @@ export class ActividadWizardComponent implements OnInit {
     return nombres[n - 1] ?? '';
   }
 
-  totalEquipos(): number {
-    return this.grupos().reduce((acc, g) => acc + g.equipos.length, 0);
+  totalHorarios(): number {
+    return this.grupos().reduce((acc, g) => acc + g.horarios.length, 0);
+  }
+
+  getInstructorName(id: number | null): string {
+    if (!id) return 'Sin instructor';
+    const inst = this.formData()?.instructores?.find(i => i.id === id);
+    return inst ? inst.full_name : 'Sin instructor';
   }
 
   trackByIdx(_i: number, _v: any): number { return _i; }

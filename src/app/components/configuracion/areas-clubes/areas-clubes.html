@@ -9,6 +9,8 @@
 <ng-container *ngIf="editingArea()">
   <app-area-layout-editor
     [area]="editingArea()!"
+    [clubes]="editingClubes()"
+    [initialClubId]="editingClubId()"
     (close)="closeEditor()"
     (saved)="onLayoutSaved($event)">
   </app-area-layout-editor>

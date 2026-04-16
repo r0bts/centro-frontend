@@ -85,6 +85,7 @@ export interface HorarioEntrenamiento {
   hora_inicio: string;             // HH:MM:SS
   hora_fin: string;                // HH:MM:SS
   lugar?: string | null;
+  area_id?: number | null;         // FK → areas.id (área con layout mapeado)
   is_active: boolean;
   created_at?: string;
   updated_at?: string;
@@ -110,6 +111,23 @@ export interface CriterioEvaluacion {
 export interface ActividadFormData {
   acceso_clubes: { id: number; name: string }[];
   tipos: string[];
+  instructores: Instructor[];
+  areas_mapeadas: AreaMapeada[];
+}
+
+export interface Instructor {
+  id: number;
+  full_name: string;
+  specialty: string | null;
+}
+
+export interface AreaMapeada {
+  area_id: number;
+  area_name: string;
+  acceso_club_id: number;
+  filas: number;
+  columnas: number;
+  layout_id: number;
 }
 
 // =====================================================================
@@ -177,10 +195,11 @@ export interface CreateCriterioRequest {
 }
 
 export interface CreateHorarioRequest {
+  lugar?: string | null;
   dia_semana: number;              // 1–7
   hora_inicio: string;             // HH:MM
   hora_fin: string;                // HH:MM
-  lugar?: string;
+  area_id?: number | null;
   is_active?: boolean;
 }
 
@@ -259,7 +278,8 @@ export interface WizardGrupo {
   edad_max: number | null;
   tiene_cupo: boolean;
   cupo_maximo: number | null;
-  equipos: WizardEquipo[];
+  instructor_id: number | null;   // FK → users.id (is_instructor=1)
+  equipos: WizardEquipo[];        // interno: se crea equipo 'General' al guardar
   horarios: WizardHorario[];
 }
 
@@ -273,7 +293,8 @@ export interface WizardHorario {
   dia_semana: number;              // 1–7
   hora_inicio: string;
   hora_fin: string;
-  lugar: string;
+  lugar: string | null;            // texto libre (opcional)
+  area_id: number | null;          // FK → areas.id (solo áreas con layout mapeado)
 }
 
 export interface WizardCriterio {

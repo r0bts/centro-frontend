@@ -1,13 +1,14 @@
 import {
   Component, OnInit, OnChanges, SimpleChanges, Input,
-  signal, ChangeDetectionStrategy, ChangeDetectorRef, output
+  signal, ChangeDetectionStrategy, ChangeDetectorRef, output, computed
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   AreaClubService,
   LayoutPosition,
-  AreaConClubes
+  AreaConClubes,
+  Club
 } from '../../../../services/area-club.service';
 import Swal from 'sweetalert2';
 
@@ -29,6 +30,10 @@ interface GridCell {
 })
 export class AreaLayoutEditorComponent implements OnInit, OnChanges {
   @Input() area!: AreaConClubes;
+  /** Lista de todos los clubes disponibles (para el selector) */
+  @Input() clubes: Club[] = [];
+  /** Club con el que debe iniciarse el editor */
+  @Input() initialClubId: number = 0;
 
   /** Emite cuando se cierra el editor */
   close = output<void>();
@@ -43,6 +48,14 @@ export class AreaLayoutEditorComponent implements OnInit, OnChanges {
   saving   = signal(false);
   layoutId = signal<number | null>(null);
 
+  /** Club actualmente seleccionado en el editor */
+  selectedClubId = signal<number>(0);
+
+  /** Clubs asignados a esta área (para el selector) */
+  get areaClubs(): Club[] {
+    return this.clubes.filter(c => this.area?.clubes?.some(ac => ac.acceso_club_id === c.id));
+  }
+
   // ── Grid en memoria ────────────────────────────────────────
   grid = signal<GridCell[][]>([]);
 
@@ -52,13 +65,35 @@ export class AreaLayoutEditorComponent implements OnInit, OnChanges {
   ) {}
 
   ngOnInit(): void {
+    this._initClub();
     this.loadLayout();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['area'] && !changes['area'].firstChange) {
+      this._initClub();
       this.loadLayout();
     }
+  }
+
+  private _initClub(): void {
+    // Usar el club indicado por el padre, o el primero asignado al área
+    const preferred = this.initialClubId > 0 ? this.initialClubId : (this.area?.clubes?.[0]?.acceso_club_id ?? 0);
+    if (this.selectedClubId() === 0 || !this.area?.clubes?.some(ac => ac.acceso_club_id === this.selectedClubId())) {
+      this.selectedClubId.set(preferred);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // Cambio de club en el selector → recargar plano
+  // ─────────────────────────────────────────────────────────
+  onClubChange(clubId: number): void {
+    this.selectedClubId.set(+clubId);
+    this.layoutId.set(null);
+    this.nombre.set('Plano principal');
+    this.filas.set(6);
+    this.columnas.set(8);
+    this.loadLayout();
   }
 
   // ─────────────────────────────────────────────────────────
@@ -67,7 +102,7 @@ export class AreaLayoutEditorComponent implements OnInit, OnChanges {
   loadLayout(): void {
     if (!this.area) return;
     this.loading.set(true);
-    this.areaClubSvc.getLayout(this.area.id).subscribe({
+    this.areaClubSvc.getLayout(this.area.id, this.selectedClubId()).subscribe({
       next: res => {
         if (res.success && res.data.layout) {
           const l = res.data.layout;
@@ -205,10 +240,11 @@ export class AreaLayoutEditorComponent implements OnInit, OnChanges {
     }));
 
     this.areaClubSvc.saveLayout({
-      area_id:   this.area.id,
-      nombre:    this.nombre(),
-      filas:     this.filas(),
-      columnas:  this.columnas(),
+      area_id:        this.area.id,
+      acceso_club_id: this.selectedClubId(),
+      nombre:         this.nombre(),
+      filas:          this.filas(),
+      columnas:       this.columnas(),
       positions
     }).subscribe({
       next: res => {
@@ -224,14 +260,16 @@ export class AreaLayoutEditorComponent implements OnInit, OnChanges {
           });
           const updated: AreaConClubes = {
             ...this.area,
-            has_layout: true,
-            layout: {
-              id: res.data.layout_id,
-              nombre: this.nombre(),
-              filas: this.filas(),
-              columnas: this.columnas(),
-              is_active: true
-            }
+            layouts_por_club: [
+              ...(this.area.layouts_por_club ?? []).filter(l => l.acceso_club_id !== this.selectedClubId()),
+              {
+                acceso_club_id: this.selectedClubId(),
+                has_layout: true,
+                layout_id: res.data.layout_id,
+                filas: this.filas(),
+                columnas: this.columnas(),
+              }
+            ]
           };
           this.saved.emit(updated);
         } else {

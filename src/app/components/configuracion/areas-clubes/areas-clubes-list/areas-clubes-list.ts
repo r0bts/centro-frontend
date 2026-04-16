@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, ChangeDetectionStrategy, output } from '@angular/core';
+import { Component, OnInit, signal, ChangeDetectionStrategy, ChangeDetectorRef, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
   AreaClubService,
   AreaConClubes,
+  LayoutPorClub,
   Club
 } from '../../../../services/area-club.service';
 import Swal from 'sweetalert2';
@@ -17,21 +18,18 @@ import Swal from 'sweetalert2';
   styleUrls: ['./areas-clubes-list.scss']
 })
 export class AreasClubesListComponent implements OnInit {
-  /** Emite cuando el usuario quiere abrir el editor de plano de un área */
-  openEditor = output<AreaConClubes>();
+  openEditor = output<{ area: AreaConClubes; clubId: number; clubes: Club[] }>();
 
-  areas     = signal<AreaConClubes[]>([]);
-  clubes    = signal<Club[]>([]);
-  loading   = signal(true);
-  error     = signal('');
-  search    = signal('');
-  saving    = signal<number | null>(null); // area_id que se está procesando
+  areas   = signal<AreaConClubes[]>([]);
+  clubes  = signal<Club[]>([]);
+  loading = signal(true);
+  error   = signal('');
+  search  = signal('');
+  saving  = signal<number | null>(null);
 
-  constructor(private areaClubSvc: AreaClubService) {}
+  constructor(private areaClubSvc: AreaClubService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit(): void {
-    this.loadAreas();
-  }
+  ngOnInit(): void { this.loadAreas(); }
 
   loadAreas(): void {
     this.loading.set(true);
@@ -45,10 +43,12 @@ export class AreasClubesListComponent implements OnInit {
           this.error.set(res.message);
         }
         this.loading.set(false);
+        this.cdr.markForCheck();
       },
-      error: err => {
-        this.error.set('Error al cargar las áreas. Verifica la conexión.');
+      error: () => {
+        this.error.set('Error al cargar las áreas.');
         this.loading.set(false);
+        this.cdr.markForCheck();
       }
     });
   }
@@ -59,16 +59,17 @@ export class AreasClubesListComponent implements OnInit {
     return this.areas().filter(a => a.name.toLowerCase().includes(q));
   }
 
-  /** Verifica si un área tiene asignado un club específico */
   hasClub(area: AreaConClubes, clubId: number): boolean {
     return area.clubes.some(c => c.acceso_club_id === clubId);
   }
 
-  /** Toggle asignación área ↔ club */
+  isSaving(areaId: number): boolean {
+    return this.saving() === areaId;
+  }
+
   toggleClub(area: AreaConClubes, clubId: number): void {
     if (this.saving() !== null) return;
     this.saving.set(area.id);
-
     this.areaClubSvc.assignClub(area.id, clubId).subscribe({
       next: res => {
         if (res.success && res.data) {
@@ -77,43 +78,32 @@ export class AreasClubesListComponent implements OnInit {
             let clubes = [...a.clubes];
             if (res.data!.action === 'assigned') {
               const clubName = this.clubes().find(c => c.id === clubId)?.name ?? '';
-              clubes.push({
-                area_club_id: res.data!.id!,
-                acceso_club_id: clubId,
-                club_name: clubName
-              });
+              clubes.push({ area_club_id: res.data!.id!, acceso_club_id: clubId, club_name: clubName });
             } else {
               clubes = clubes.filter(c => c.acceso_club_id !== clubId);
             }
             return { ...a, clubes };
           });
           this.areas.set(updatedAreas);
+          this.cdr.markForCheck();
         }
         this.saving.set(null);
+        this.cdr.markForCheck();
       },
       error: () => {
         Swal.fire('Error', 'No se pudo actualizar la asignación', 'error');
         this.saving.set(null);
+        this.cdr.markForCheck();
       }
     });
   }
 
-  /** Abre el editor de plano para el área */
-  onOpenEditor(area: AreaConClubes): void {
-    this.openEditor.emit(area);
+  getLayoutForClub(area: AreaConClubes, clubId: number): LayoutPorClub | null {
+    return area.layouts_por_club?.find(l => l.acceso_club_id === clubId) ?? null;
   }
 
-  /** Iconos de check / empty según asignación */
-  clubIcon(area: AreaConClubes, clubId: number): string {
-    return this.hasClub(area, clubId) ? 'bi-check-circle-fill' : 'bi-circle';
-  }
-
-  clubColor(area: AreaConClubes, clubId: number): string {
-    return this.hasClub(area, clubId) ? 'text-success' : 'text-secondary';
-  }
-
-  isSaving(areaId: number): boolean {
-    return this.saving() === areaId;
+  onOpenEditor(area: AreaConClubes, clubId: number): void {
+    this.openEditor.emit({ area, clubId, clubes: this.clubes() });
   }
 
   trackByArea(_: number, area: AreaConClubes): number {

@@ -217,7 +217,11 @@
                 <div class="d-flex align-items-center gap-2">
                   <i class="bi bi-people-fill text-primary"></i>
                   <span class="fw-semibold">{{ g.nombre }}</span>
-                  <span class="badge bg-light text-secondary">{{ g.equipos.length }} equipos</span>
+                  @if (g.instructor_id) {
+                    <span class="badge bg-primary-subtle text-primary">
+                      <i class="bi bi-person-badge me-1"></i>{{ getInstructorName(g.instructor_id) }}
+                    </span>
+                  }
                 </div>
                 <button class="btn btn-sm btn-link text-danger p-0" (click)="removeGrupo(gi); $event.stopPropagation()">
                   <i class="bi bi-trash"></i>
@@ -269,28 +273,22 @@
                     }
                   </div>
 
-                  <!-- Equipos -->
-                  <label class="form-label small fw-semibold">Equipos</label>
-                  @for (eq of g.equipos; track trackByIdx($index, eq); let ei = $index) {
-                    <div class="equipo-row">
-                      <div class="equipo-color" [style.background]="eq.color"></div>
-                      <span>{{ eq.nombre }}</span>
-                      <button class="btn btn-sm btn-link text-danger ms-auto p-0"
-                              (click)="removeEquipo(gi, ei)">
-                        <i class="bi bi-x-lg"></i>
-                      </button>
-                    </div>
-                  }
-
-                  <div class="input-add-row mt-2" #equipoInput>
-                    <input type="text" class="form-control form-control-sm"
-                           placeholder="Nombre del equipo"
-                           #newEquipoName
-                           (keydown.enter)="addEquipoToGrupo(gi, newEquipoName.value); newEquipoName.value=''">
-                    <button class="btn btn-sm btn-outline-primary"
-                            (click)="addEquipoToGrupo(gi, newEquipoName.value); newEquipoName.value=''">
-                      <i class="bi bi-plus-lg"></i>
-                    </button>
+                  <!-- Instructor del grupo -->
+                  <div class="mb-3">
+                    <label class="form-label small fw-semibold">Instructor asignado</label>
+                    <select class="form-select form-select-sm"
+                            [ngModel]="grupos()[gi].instructor_id"
+                            (ngModelChange)="setGrupoInstructor(gi, $event)">
+                      <option [ngValue]="null">Sin instructor asignado</option>
+                      @for (inst of formData()?.instructores; track inst.id) {
+                        <option [ngValue]="inst.id">
+                          {{ inst.full_name }}{{ inst.specialty ? ' — ' + inst.specialty : '' }}
+                        </option>
+                      }
+                    </select>
+                    @if (formData()?.instructores?.length === 0) {
+                      <small class="text-muted">No hay instructores registrados aún.</small>
+                    }
                   </div>
                 </div>
               }
@@ -382,11 +380,20 @@
                                          (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
                                 </div>
                                 <div class="col-12 col-md-5">
-                                  <label class="form-label small text-muted mb-1 d-block">Lugar (opcional)</label>
-                                  <input type="text" class="form-control form-control-sm"
-                                         placeholder="Cancha 1, Salón B..."
-                                         [value]="h.item.lugar"
-                                         (input)="updateHorarioField(gIdx, h.originalIndex, 'lugar', $any($event.target).value)">
+                                  <label class="form-label small text-muted mb-1 d-block">Área</label>
+                                  @if (getAreasByClub().length === 0) {
+                                    <input type="text" class="form-control form-control-sm" disabled
+                                           placeholder="No hay áreas mapeadas para este club">
+                                  } @else {
+                                    <select class="form-select form-select-sm"
+                                            [ngModel]="h.item.area_id"
+                                            (ngModelChange)="updateHorarioField(gIdx, h.originalIndex, 'area_id', $event || null)">
+                                      <option [ngValue]="null">Sin área asignada</option>
+                                      @for (area of getAreasByClub(); track area.area_id) {
+                                        <option [ngValue]="area.area_id">{{ area.area_name }}</option>
+                                      }
+                                    </select>
+                                  }
                                 </div>
                                 <div class="col-12 col-md-1 d-flex justify-content-end align-items-end h-100 pb-1">
                                   <button class="btn btn-sm text-danger border-0 p-1"
@@ -510,8 +517,8 @@
               <span>{{ grupos().length }}</span>
             </div>
             <div class="summary-row">
-              <span class="summary-label"><i class="bi bi-shield-check me-2"></i>Equipos</span>
-              <span>{{ totalEquipos() }}</span>
+              <span class="summary-label"><i class="bi bi-clock me-2"></i>Horarios totales</span>
+              <span>{{ totalHorarios() }}</span>
             </div>
             <div class="summary-row">
               <span class="summary-label"><i class="bi bi-star me-2"></i>Criterios de evaluación</span>
@@ -530,7 +537,10 @@
                     <small class="text-muted ms-2">({{ g.edad_min ?? '?' }}–{{ g.edad_max ?? '?' }} años)</small>
                   }
                   <span class="ms-auto text-muted small">
-                    {{ g.equipos.length }} equipos · {{ g.horarios.length }} días
+                    @if (g.instructor_id) {
+                      <i class="bi bi-person-badge me-1"></i>{{ getInstructorName(g.instructor_id) }} ·
+                    }
+                    {{ g.horarios.length }} horarios
                     @if (g.tiene_cupo && g.cupo_maximo) {
                       · Cupo: <strong>{{ g.cupo_maximo }}</strong> lugares
                     }
