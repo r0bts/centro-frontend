@@ -901,16 +901,7 @@ export class UserFormComponent implements OnInit, OnChanges {
 
   onSave(): void {
     // Validaciones
-    if (!this.userForm.username || !this.userForm.nombre || 
-        !this.userForm.departamento || !this.userForm.rol_id) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campos obligatorios',
-        text: 'Por favor completa todos los campos obligatorios',
-        confirmButtonText: 'Entendido'
-      });
-      return;
-    }
+    
 
     const userData = {
       ...this.userForm,

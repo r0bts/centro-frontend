@@ -1,0 +1,260 @@
+<div class="catalog-page">
+
+  <!-- Toast ─────────────────────────────────────────────────────────────── -->
+  @if (toast()) {
+    <div class="toast-bar" [class.toast-danger]="toastType() === 'danger'">
+      {{ toast() }}
+    </div>
+  }
+
+  <!-- Header ──────────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="page-header__title">
+      <span class="page-header__icon">🏷️</span>
+      <div>
+        <h1>Catálogo de Actividades</h1>
+        <p>Gestiona categorías y tipos de actividad disponibles en los cursos de verano.</p>
+      </div>
+    </div>
+    <button class="btn btn-primary" (click)="openAddCategory()">
+      + Nueva categoría
+    </button>
+  </div>
+
+  <!-- Loading ─────────────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <span>Cargando catálogo…</span>
+    </div>
+  }
+
+  <!-- Error ───────────────────────────────────────────────────────────────── -->
+  @if (error()) {
+    <div class="alert alert-danger">{{ error() }}</div>
+  }
+
+  <!-- Catalog grid ─────────────────────────────────────────────────────────── -->
+  @if (!loading() && !error()) {
+    @if (categories().length === 0) {
+      <div class="empty-state">
+        <span class="empty-state__icon">🏷️</span>
+        <p>No hay categorías. Crea la primera.</p>
+      </div>
+    }
+
+    <div class="catalog-grid">
+      @for (cat of categories(); track cat.id) {
+        <div class="cat-card">
+
+          <!-- Category header -->
+          <div class="cat-card__head" [style.border-left-color]="cat.color">
+            <span class="cat-card__emoji">{{ cat.emoji }}</span>
+            <span class="cat-card__label">{{ cat.label }}</span>
+            <div class="cat-card__actions">
+              <button class="btn-icon" title="Editar categoría" (click)="openEditCategory(cat)">✏️</button>
+              <button class="btn-icon btn-icon--danger" title="Eliminar categoría" (click)="deleteCategory(cat)">🗑️</button>
+            </div>
+          </div>
+
+          <!-- Types -->
+          <div class="cat-card__types">
+            @for (type of cat.types; track type.id) {
+              <div class="type-chip"
+                   [style.color]="type.color"
+                   [style.background]="type.bg">
+                <span>{{ type.emoji }} {{ type.label }}</span>
+                <div class="type-chip__actions">
+                  <button class="btn-chip-icon" title="Editar" (click)="openEditType(type)">✏️</button>
+                  <button class="btn-chip-icon btn-chip-icon--danger" title="Eliminar" (click)="deleteType(type)">×</button>
+                </div>
+              </div>
+            }
+
+            <!-- Add type button -->
+            <button class="type-add-btn" (click)="openAddType(cat.id)">
+              + Agregar tipo
+            </button>
+          </div>
+
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+<!-- ═══ Modal: Categoría ══════════════════════════════════════════════════ -->
+@if (catModal()) {
+  <div class="modal-backdrop" (click)="closeCatModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h2>{{ catMode() === 'add' ? '+ Nueva categoría' : '✏️ Editar categoría' }}</h2>
+        <button class="btn-close" (click)="closeCatModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        @if (catMode() === 'add') {
+          <div class="form-group">
+            <label>ID (slug único)*</label>
+            <input type="text" class="form-control"
+                   placeholder="ej: aquatic"
+                   [value]="catId()"
+                   (input)="catId.set($any($event.target).value)" />
+            @if (catIdError()) { <span class="field-error">{{ catIdError() }}</span> }
+          </div>
+        }
+
+        <div class="form-group">
+          <label>Nombre*</label>
+          <input type="text" class="form-control"
+                 placeholder="ej: Acuáticas"
+                 [value]="catLabel()"
+                 (input)="catLabel.set($any($event.target).value)" />
+          @if (catLabelError()) { <span class="field-error">{{ catLabelError() }}</span> }
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Emoji</label>
+            <input type="text" class="form-control form-control--emoji"
+                   placeholder="🏊"
+                   [value]="catEmoji()"
+                   (input)="catEmoji.set($any($event.target).value)" />
+          </div>
+          <div class="form-group">
+            <label>Color</label>
+            <div class="color-input-row">
+              <input type="color"
+                     [value]="catColor()"
+                     (input)="catColor.set($any($event.target).value)" />
+              <input type="text" class="form-control"
+                     [value]="catColor()"
+                     (input)="catColor.set($any($event.target).value)" />
+            </div>
+          </div>
+          <div class="form-group form-group--sm">
+            <label>Orden</label>
+            <input type="number" class="form-control"
+                   [value]="catSortOrder()"
+                   (change)="catSortOrder.set(+$any($event.target).value)" />
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCatModal()">Cancelar</button>
+        <button class="btn btn-primary" [disabled]="catSaving() || !!catLabelError()" (click)="saveCat()">
+          {{ catSaving() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal: Tipo ═══════════════════════════════════════════════════════ -->
+@if (typeModal()) {
+  <div class="modal-backdrop" (click)="closeTypeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h2>{{ typeMode() === 'add' ? '+ Nuevo tipo de actividad' : '✏️ Editar tipo' }}</h2>
+        <button class="btn-close" (click)="closeTypeModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        @if (typeMode() === 'add') {
+          <div class="form-group">
+            <label>ID (slug único)*</label>
+            <input type="text" class="form-control"
+                   placeholder="ej: lucha_olimpica"
+                   [value]="typeId()"
+                   (input)="typeId.set($any($event.target).value)" />
+            @if (typeIdError()) { <span class="field-error">{{ typeIdError() }}</span> }
+          </div>
+        }
+
+        <div class="form-group">
+          <label>Nombre*</label>
+          <input type="text" class="form-control"
+                 placeholder="ej: Lucha Olímpica"
+                 [value]="typeLabel()"
+                 (input)="typeLabel.set($any($event.target).value)" />
+          @if (typeLabelError()) { <span class="field-error">{{ typeLabelError() }}</span> }
+        </div>
+
+        <div class="form-group">
+          <label>Categoría*</label>
+          <select class="form-control"
+                  [value]="typeCategoryId()"
+                  (change)="typeCategoryId.set($any($event.target).value)">
+            <option value="">— Seleccionar —</option>
+            @for (cat of categories(); track cat.id) {
+              <option [value]="cat.id">{{ cat.emoji }} {{ cat.label }}</option>
+            }
+          </select>
+          @if (typeCatError()) { <span class="field-error">{{ typeCatError() }}</span> }
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Emoji</label>
+            <input type="text" class="form-control form-control--emoji"
+                   placeholder="⭐"
+                   [value]="typeEmoji()"
+                   (input)="typeEmoji.set($any($event.target).value)" />
+          </div>
+          <div class="form-group">
+            <label>Color texto</label>
+            <div class="color-input-row">
+              <input type="color" [value]="typeColor()"
+                     (input)="typeColor.set($any($event.target).value)" />
+              <input type="text" class="form-control" [value]="typeColor()"
+                     (input)="typeColor.set($any($event.target).value)" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Color fondo</label>
+            <div class="color-input-row">
+              <input type="color" [value]="typeBgColor()"
+                     (input)="typeBgColor.set($any($event.target).value)" />
+              <input type="text" class="form-control" [value]="typeBgColor()"
+                     (input)="typeBgColor.set($any($event.target).value)" />
+            </div>
+          </div>
+          <div class="form-group form-group--sm">
+            <label>Orden</label>
+            <input type="number" class="form-control" [value]="typeSortOrder()"
+                   (change)="typeSortOrder.set(+$any($event.target).value)" />
+          </div>
+        </div>
+
+        <!-- Preview -->
+        <div class="form-group">
+          <label>Vista previa</label>
+          <div class="type-preview"
+               [style.color]="typeColor()"
+               [style.background]="typeBgColor()">
+            {{ typeEmoji() }} {{ typeLabel() || 'Ejemplo' }}
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeTypeModal()">Cancelar</button>
+        <button class="btn btn-primary"
+                [disabled]="typeSaving() || !!typeLabelError() || !!typeCatError()"
+                (click)="saveType()">
+          {{ typeSaving() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

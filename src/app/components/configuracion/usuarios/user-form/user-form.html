@@ -23,7 +23,7 @@
                    [(ngModel)]="userForm.username" 
                    name="username"
                    placeholder="Ej: jperez"
-                   required
+                   
                    disabled>
           </div>
           <div class="col-md-4">
@@ -34,7 +34,7 @@
                    [(ngModel)]="userForm.nombre" 
                    name="nombre"
                    placeholder="Ej: Juan Pérez"
-                   required
+                   
                    disabled>
           </div>
         </div>
@@ -46,7 +46,7 @@
                     id="departamento"
                     [(ngModel)]="userForm.departamento" 
                     name="departamento"
-                    required
+                    
                     disabled>
               <option value="">Seleccionar...</option>
               <option *ngFor="let dept of availableDepartments" [value]="dept.id">{{ dept.name }}</option>
@@ -58,7 +58,7 @@
                     id="location_id"
                     [(ngModel)]="userForm.location_id" 
                     name="location_id"
-                    required
+                    
                     [disabled]="!isEditMode">
               <option value="">Seleccionar...</option>
               <option *ngFor="let location of availableLocations" [value]="location.id">
@@ -84,7 +84,7 @@
                     name="rol_id"
                     (change)="onRoleChange()"
                     [disabled]="!isEditMode"
-                    required>
+                    >
               <option value="">Seleccionar...</option>
               <option *ngFor="let role of availableRoles" [value]="role.id">
                 {{ role.display_name }}

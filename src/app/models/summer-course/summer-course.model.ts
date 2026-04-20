@@ -290,6 +290,65 @@ export interface ScCatalogResponse {
     categories: ScCatalogCategory[];
   };
 }
+
+// ── Catalog CRUD interfaces ──────────────────────────────────────────────────
+
+export interface ScCatalogCategoryWithTypes extends ScCatalogCategory {
+  sort_order: number;
+  types: ScCatalogActivityTypeDetail[];
+}
+
+export interface ScCatalogActivityTypeDetail {
+  id: string;
+  label: string;
+  emoji: string;
+  category_id: string;
+  color: string;
+  bg: string;
+  sort_order: number;
+}
+
+export interface ScCatalogIndexResponse {
+  success: boolean;
+  data: { categories: ScCatalogCategoryWithTypes[] };
+}
+
+export interface ScCatalogItemResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+export interface CreateScCatalogCategoryRequest {
+  id: string;
+  label: string;
+  emoji: string;
+  color: string;
+  sort_order?: number;
+}
+export interface UpdateScCatalogCategoryRequest {
+  label?: string;
+  emoji?: string;
+  color?: string;
+  sort_order?: number;
+}
+export interface CreateScCatalogActivityTypeRequest {
+  id: string;
+  label: string;
+  emoji: string;
+  category_id: string;
+  color: string;
+  bg_color: string;
+  sort_order?: number;
+}
+export interface UpdateScCatalogActivityTypeRequest {
+  label?: string;
+  emoji?: string;
+  category_id?: string;
+  color?: string;
+  bg_color?: string;
+  sort_order?: number;
+}
 export interface ScActivityFormDataResponse {
   success: boolean;
   data: {
@@ -394,3 +453,5 @@ export interface UpdateScInstructorRequest {
   email?: string;
   specialty?: string | null;
 }
+
+

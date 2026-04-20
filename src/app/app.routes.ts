@@ -236,6 +236,11 @@ export const routes: Routes = [
           import('./components/summer-course/levels/summer-course-levels').then(m => m.SummerCourseLevelsComponent)
       },
       {
+        path: 'catalog',
+        loadComponent: () =>
+          import('./components/summer-course/catalog/summer-course-catalog').then(m => m.SummerCourseCatalogComponent)
+      },
+      {
         path: '',
         redirectTo: 'courses',
         pathMatch: 'full'
