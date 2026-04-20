@@ -321,6 +321,22 @@ export class NetsuiteSyncService {
   }
 
   /**
+   * Sincroniza registros de visitas médicas desde NetSuite
+   * POST /api/medical-records/sync
+   * Permiso: configuracion > netsuite_sync > sync_medical_records
+   * Origen NetSuite: customrecord_cl_visita_medica (~24,448 registros)
+   * ⚠️ Precondición: socios, membresias y detalle_membresias deben estar sincronizados primero.
+   *    Si custrecord_cl_paciente no existe en socios, el registro se descarta con skip.
+   */
+  syncMedicalRecords(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/medical-records/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
    * Ejecuta evaluación masiva de reglas sobre todos los socios activos
    * POST /api/evaluacion/batch
    * Permiso: configuracion > netsuite_sync > evaluar_batch
