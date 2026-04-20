@@ -43,6 +43,7 @@ export interface ScCost {
   id: number;
   course_id?: number;
   participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
+  weeks_count: number;
   cost_per_week: number;
   created_at?: string;
 }
@@ -244,7 +245,7 @@ export interface CreateScCourseRequest {
   acceso_club_id?: number | null;
   description?: string | null;
   weeks_count?: number;         // auto-generate N semanas
-  costs?: Array<{ participant_type: ScCost['participant_type']; cost_per_week: number }>;
+  costs?: Array<{ participant_type: ScCost['participant_type']; weeks_count: number; cost: number }>;
 }
 
 export interface UpdateScCourseRequest {
@@ -254,10 +255,8 @@ export interface UpdateScCourseRequest {
   status?: ScCourse['status'];
   acceso_club_id?: number | null;
   description?: string | null;
-  costs?: Array<{ participant_type: ScCost['participant_type']; cost_per_week: number }>;
+  costs?: Array<{ participant_type: ScCost['participant_type']; weeks_count: number; cost: number }>;
 }
-
-// ── Activities ──────────────────────────────────────────────────────
 export interface ScCatalogLevel {
   id: number;
   level_number: number;

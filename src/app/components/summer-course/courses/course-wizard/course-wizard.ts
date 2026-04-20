@@ -7,6 +7,7 @@ import {
   Output,
   EventEmitter,
   signal,
+  computed,
   inject,
   ChangeDetectorRef,
 } from '@angular/core';
@@ -24,10 +25,12 @@ import {
 
 type WizardStep = 1 | 2 | 3;
 
+/** Una fila de la tabla de tarifas: precio para 1..N semanas */
 interface CostDraft {
   participant_type: ScCost['participant_type'];
   label: string;
-  cost_per_week: number;
+  /** costs[i] = precio total cuando el participante compra (i+1) semanas */
+  costs: number[];
 }
 
 @Component({
@@ -66,12 +69,21 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
 
   accesoClubesList = signal<{id: number, name: string}[]>([]);
 
-  // ── Step 3: Costos ────────────────────────────────────────────────────────
+  /** Máximo de semanas permitidas según el rango de fechas (solo modo nuevo) */
+  maxWeeks = computed(() => {
+    const s = this.start_date();
+    const e = this.end_date();
+    if (!s || !e) return 8;
+    const diff = (new Date(e).getTime() - new Date(s).getTime()) / (1000 * 60 * 60 * 24 * 7);
+    return Math.max(1, Math.min(8, Math.floor(diff) + 1));
+  });
+
+  // ── Step 3: Tarifas (matriz: filas = tipos, columnas = semanas compradas) ─
   costs = signal<CostDraft[]>([
-    { participant_type: 'member',      label: 'Socio',           cost_per_week: 0 },
-    { participant_type: 'guest',       label: 'Invitado',        cost_per_week: 0 },
-    { participant_type: 'staff',       label: 'Staff',           cost_per_week: 0 },
-    { participant_type: 'staff_guest', label: 'Familiar staff',  cost_per_week: 0 },
+    { participant_type: 'member',      label: 'Socio',          costs: [0, 0, 0, 0] },
+    { participant_type: 'guest',       label: 'Invitado',       costs: [0, 0, 0, 0] },
+    { participant_type: 'staff',       label: 'Staff',          costs: [0, 0, 0, 0] },
+    { participant_type: 'staff_guest', label: 'Familiar staff', costs: [0, 0, 0, 0] },
   ]);
 
   readonly statusLabels  = SC_COURSE_STATUSES;
@@ -87,11 +99,17 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     document.body.style.overflow = 'hidden';
 
+    // BUG 1 FIX: cargar lista de sedes primero, LUEGO aplicar el valor del curso
     this.svc.getFormData().subscribe({
       next: res => {
         if (res.data?.acceso_clubes) {
           this.accesoClubesList.set(res.data.acceso_clubes);
         }
+        // Aplicar acceso_club_id DESPUÉS de que la lista esté lista
+        if (this.editCourse) {
+          this.acceso_club_id.set(this.editCourse.acceso_club_id ?? null);
+        }
+        this.cdr.markForCheck();
       },
       error: () => {}
     });
@@ -102,18 +120,10 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
       this.start_date.set(c.start_date);
       this.end_date.set(c.end_date);
       this.status.set(c.status);
-      this.acceso_club_id.set(c.acceso_club_id ?? null);
       this.description.set(c.description ?? '');
-      // Map costs if available
-      if (c.sc_costs?.length) {
-        this.costs.update(drafts =>
-          drafts.map(d => {
-            const found = c.sc_costs!.find(sc => sc.participant_type === d.participant_type);
-            return found ? { ...d, cost_per_week: found.cost_per_week } : d;
-          })
-        );
-      }
-      // Load weeks: use embedded data if present, otherwise fetch full course
+      // Cargar costos como matriz desde sc_costs
+      this._applyCostsFromApi(c.sc_costs ?? []);
+      // Semanas: usar las embebidas o cargar por API
       if (c.sc_weeks?.length) {
         this.editWeeks.set(c.sc_weeks);
       } else {
@@ -121,33 +131,49 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
         this.svc.getById(c.id).subscribe({
           next: res => {
             this.editWeeks.set(res.data.sc_weeks ?? []);
-            // Also update costs from fresh data
-            if (res.data.sc_costs?.length) {
-              this.costs.update(drafts =>
-                drafts.map(d => {
-                  const found = res.data.sc_costs!.find(sc => sc.participant_type === d.participant_type);
-                  return found ? { ...d, cost_per_week: found.cost_per_week } : d;
-                })
-              );
-            }
+            this._applyCostsFromApi(res.data.sc_costs ?? []);
             this.loadingWeeks.set(false);
+            this.cdr.markForCheck();
           },
           error: () => this.loadingWeeks.set(false),
         });
       }
     } else {
-      // New course: pre-build the weeks preview with default 4 weeks
       this.buildWeeksPreview();
     }
+  }
+
+  /** Convierte el array plano de ScCost[] en la matriz CostDraft[] */
+  private _applyCostsFromApi(apiCosts: ScCost[]): void {
+    if (!apiCosts.length) return;
+    // Determinar cuántas semanas hay en los costos guardados
+    const maxW = Math.max(...apiCosts.map(c => c.weeks_count ?? 1), 1);
+    this.costs.update(drafts =>
+      drafts.map(d => {
+        const row = Array.from({ length: maxW }, (_, i) => {
+          const found = apiCosts.find(
+            c => c.participant_type === d.participant_type && (c.weeks_count ?? 1) === i + 1
+          );
+          return found ? found.cost_per_week : 0;
+        });
+        return { ...d, costs: row };
+      })
+    );
   }
 
   // ── Navigation ───────────────────────────────────────────────────────────
   nextStep(): void {
     if (this.step() === 1) {
       if (!this.validateStep1()) return;
-      this.buildWeeksPreview();
+      if (!this.isEdit) {
+        this.buildWeeksPreview();
+        const clamped = Math.min(this.weeks_count(), this.maxWeeks());
+        if (clamped !== this.weeks_count()) this.weeks_count.set(clamped);
+        this._resizeCostMatrix(clamped);
+      }
       this.step.set(2);
     } else if (this.step() === 2) {
+      if (!this.isEdit) this._resizeCostMatrix(this.weeks_count());
       this.step.set(3);
     }
   }
@@ -206,15 +232,39 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   }
 
   onWeeksCountChange(n: number): void {
-    this.weeks_count.set(n);
+    const clamped = Math.min(n, this.maxWeeks());
+    this.weeks_count.set(clamped);
+    this._resizeCostMatrix(clamped);
     this.buildWeeksPreview();
   }
 
-  // ── Cost editing ─────────────────────────────────────────────────────────
-  updateCost(type: ScCost['participant_type'], value: number): void {
-    this.costs.update(list =>
-      list.map(c => c.participant_type === type ? { ...c, cost_per_week: value } : c)
+  /** Redimensiona el array costs[] de cada fila al nuevo tamaño */
+  private _resizeCostMatrix(n: number): void {
+    this.costs.update(drafts =>
+      drafts.map(d => {
+        const current = d.costs;
+        if (current.length === n) return d;
+        const resized = Array.from({ length: n }, (_, i) => current[i] ?? 0);
+        return { ...d, costs: resized };
+      })
     );
+  }
+
+  // ── Cost editing ─────────────────────────────────────────────────────
+  updateCostCell(type: ScCost['participant_type'], weekIdx: number, value: number): void {
+    this.costs.update(list =>
+      list.map(c => {
+        if (c.participant_type !== type) return c;
+        const costs = [...c.costs];
+        costs[weekIdx] = value;
+        return { ...c, costs };
+      })
+    );
+  }
+
+  /** Array de índices [0..n-1] para iterar semanas en el template */
+  get weeksArray(): number[] {
+    return Array.from({ length: this.weeks_count() }, (_, i) => i);
   }
 
   // ── Save ─────────────────────────────────────────────────────────────────
@@ -230,10 +280,13 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
       acceso_club_id: this.acceso_club_id(),
       description: this.description().trim() || null,
       weeks_count: this.isEdit ? undefined : this.weeks_count(),
-      costs: this.costs().map(c => ({
-        participant_type: c.participant_type,
-        cost_per_week:   c.cost_per_week,
-      })),
+      costs: this.costs().flatMap(c =>
+        c.costs.map((cost, i) => ({
+          participant_type: c.participant_type,
+          weeks_count: i + 1,
+          cost,
+        }))
+      ),
     };
 
     const obs$ = this.isEdit

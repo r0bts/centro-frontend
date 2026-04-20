@@ -14,7 +14,7 @@
   background: var(--bs-body-bg, #fff);
   border-radius: 0.75rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  width: min(640px, 100%);
+  width: min(760px, 100%);
   max-height: calc(100dvh - 3rem);
   display: flex;
   flex-direction: column;
@@ -157,16 +157,17 @@
   }
 }
 
-// ── Costs grid ────────────────────────────────────────────────────────────────
-.costs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
+// ── Costs table (matriz por semanas) ─────────────────────────────────────────
+.costs-table {
+  th, td { vertical-align: middle; }
+  th { font-size: 0.8rem; white-space: nowrap; }
+  td:first-child { min-width: 130px; }
+  td:not(:first-child) { min-width: 110px; }
 
-  .cost-card {
-    background: #f8f9fa;
-    border-radius: 10px;
-    padding: 1rem;
+  input[type='number'] {
+    min-width: 80px;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.85rem;
   }
 }
 

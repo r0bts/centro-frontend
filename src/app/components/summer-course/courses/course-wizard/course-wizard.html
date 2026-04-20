@@ -122,16 +122,16 @@
           <div class="mb-4">
             <label class="form-label fw-semibold">Número de semanas a generar</label>
             <div class="d-flex align-items-center gap-3">
-              <input type="range" class="form-range" min="1" max="8" step="1"
+              <input type="range" class="form-range" min="1" [max]="maxWeeks()" step="1"
                      [value]="weeks_count()"
                      (input)="onWeeksCountChange(+$any($event.target).value)">
               <span class="badge bg-primary fs-6 px-3">{{ weeks_count() }}</span>
             </div>
-            <div class="form-text">Las semanas se generan automáticamente de lunes a viernes.</div>
+            <div class="form-text">Las semanas se generan automáticamente de lunes a viernes. Máximo {{ maxWeeks() }} según las fechas del curso.</div>
           </div>
         }
 
-        <!-- Preview de semanas -->
+        <!-- Lista de semanas -->
         <div class="weeks-preview">
           <h6 class="fw-semibold mb-3">
             <i class="bi bi-calendar-week me-2"></i>
@@ -187,28 +187,43 @@
     <!-- ── STEP 3: Tarifas ── -->
     @if (step() === 3) {
       <div class="cw-body">
-        <p class="text-muted small mb-4">
-          Define la tarifa <strong>por semana</strong> para cada tipo de participante.
+        <p class="text-muted small mb-3">
+          Define el precio <strong>total</strong> que paga cada tipo de participante según cuántas semanas compra.
         </p>
 
-        <div class="costs-grid">
-          @for (cost of costs(); track cost.participant_type) {
-            <div class="cost-card">
-              <label class="form-label fw-semibold">{{ cost.label }}</label>
-              <div class="input-group">
-                <span class="input-group-text">$</span>
-                <input type="number" class="form-control text-end" min="0" step="100"
-                       [value]="cost.cost_per_week"
-                       (input)="updateCost(cost.participant_type, +$any($event.target).value)">
-                <span class="input-group-text text-muted">/semana</span>
-              </div>
-            </div>
-          }
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle costs-table">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">Tipo</th>
+                @for (w of weeksArray; track w) {
+                  <th class="text-center">{{ w + 1 }} sem.</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (cost of costs(); track cost.participant_type) {
+                <tr>
+                  <td class="ps-3 fw-semibold text-nowrap">{{ cost.label }}</td>
+                  @for (w of weeksArray; track w) {
+                    <td>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control text-end" min="0" step="100"
+                               [value]="cost.costs[w]"
+                               (input)="updateCostCell(cost.participant_type, w, +$any($event.target).value)">
+                      </div>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
 
-        <div class="alert alert-info mt-4 d-flex gap-2 align-items-center">
+        <div class="alert alert-info mt-3 d-flex gap-2 align-items-center py-2">
           <i class="bi bi-info-circle-fill"></i>
-          <span>Las tarifas se pueden modificar después desde la edición del curso.</span>
+          <span class="small">Cada celda es el precio <strong>total</strong> para ese número de semanas. Las tarifas se pueden modificar después.</span>
         </div>
       </div>
     }
