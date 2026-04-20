@@ -23,8 +23,10 @@ export class ScActivitiesService {
     return this.http.get<ScCatalogResponse>(`${this.catalogBase}/`);
   }
 
-  getFormData(): Observable<ScActivityFormDataResponse> {
-    return this.http.get<ScActivityFormDataResponse>(`${this.base}/form-data`);
+  getFormData(courseId?: number): Observable<ScActivityFormDataResponse> {
+    let params = new HttpParams();
+    if (courseId) params = params.set('course_id', courseId);
+    return this.http.get<ScActivityFormDataResponse>(`${this.base}/form-data`, { params });
   }
 
   getAll(filters: { week_id?: number; course_id?: number } = {}): Observable<ScActivityListResponse> {

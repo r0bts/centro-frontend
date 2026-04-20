@@ -15,6 +15,7 @@ import {
   ScCourse,
   ScWeek,
   ScInstructor,
+  ScArea,
   ScScheduleData,
   ScScheduleApiEntry,
   ScScheduleSavePayload,
@@ -38,6 +39,7 @@ export interface CellEntry {
   activityId: string;       // e.g. 'natacion'
   name: string;
   instructorId: number | null;
+  areaId: number | null;
   dbId?: number;
 }
 
@@ -99,6 +101,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
   currentDayIdx  = signal<number>(0);
   scheduleState  = signal<ScheduleState>(this.emptyState());
   instructors    = signal<ScInstructor[]>([]);
+  areas          = signal<ScArea[]>([]);
 
   loading   = signal(true);
   saving    = signal(false);
@@ -147,7 +150,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     // Load catalog (levels + activity types) AND form-data (courses + instructors) in parallel
     forkJoin({
       catalog:  this.activitiesSvc.getCatalog(),
-      formData: this.activitiesSvc.getFormData(),
+      formData: this.activitiesSvc.getFormData(this.currentCourseId() || undefined),
     }).subscribe({
       next: ({ catalog, formData }) => {
         // — Update dynamic catalog signals —
@@ -192,6 +195,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
         }));
         this.courses.set(courses);
         this.instructors.set(formData.data.instructors ?? []);
+        this.areas.set(formData.data.areas ?? []);
 
         // Use query-param course or first course
         const preselect = this.fromCourse() ? this.currentCourseId() : 0;
@@ -237,6 +241,11 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.currentWeeks.set(course.sc_weeks ?? []);
     this.currentWeekIdx.set(0);
     this.currentDayIdx.set(0);
+    // Recargar áreas para el nuevo curso
+    this.activitiesSvc.getFormData(courseId).subscribe({
+      next: fd => this.areas.set(fd.data.areas ?? []),
+      error: () => {},
+    });
     if (course.sc_weeks?.length) {
       this.loadSchedule(course.sc_weeks[0].id);
     }
@@ -278,10 +287,10 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.pendingDrop.set({ activity: act, target });
   }
 
-  onDropModalConfirm(instructorId: number | null): void {
+  onDropModalConfirm(data: { instructorId: number | null; areaId: number | null }): void {
     const pd = this.pendingDrop();
     if (!pd) return;
-    this.addEntryToState(pd.activity, pd.target, instructorId);
+    this.addEntryToState(pd.activity, pd.target, data.instructorId, data.areaId);
     this.pendingDrop.set(null);
   }
 
@@ -294,14 +303,14 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.detailTarget.set(data);
   }
 
-  onDetailSave(instructorId: number | null): void {
+  onDetailSave(data: { instructorId: number | null; areaId: number | null }): void {
     const dt = this.detailTarget();
     if (!dt) return;
     this.scheduleState.update(state => {
       const ns = this.cloneState(state);
       const cell = ns[dt.target.dayIdx]?.[dt.target.slotId]?.[dt.target.levelNum];
       if (cell?.[dt.target.entryIdx] !== undefined) {
-        cell[dt.target.entryIdx] = { ...cell[dt.target.entryIdx], instructorId };
+        cell[dt.target.entryIdx] = { ...cell[dt.target.entryIdx], instructorId: data.instructorId, areaId: data.areaId };
       }
       return ns;
     });
@@ -382,7 +391,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     return JSON.parse(JSON.stringify(state));
   }
 
-  private addEntryToState(act: ScActivityType, target: DropTarget, instructorId: number | null): void {
+  private addEntryToState(act: ScActivityType, target: DropTarget, instructorId: number | null, areaId: number | null = null): void {
     this.scheduleState.update(state => {
       const ns = this.cloneState(state);
       if (!ns[target.dayIdx]) ns[target.dayIdx] = this.emptyDayState();
@@ -392,6 +401,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
         activityId: act.id,
         name: act.label,
         instructorId,
+        areaId,
       });
       return ns;
     });
@@ -421,6 +431,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
               activityId: this.nameToActivityId(entry.name),
               name: entry.name,
               instructorId: entry.instructorId,
+              areaId: entry.areaId ?? null,
               dbId: entry.id,
             });
           }
@@ -432,7 +443,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
 
   /** Build POST payload for saveSchedule */
   private buildSavePayload(week_id: number): ScScheduleSavePayload {
-    const schedule: Record<string, Record<string, Record<string, Array<{ name: string; instructorId: number | null }>>>> = {};
+    const schedule: Record<string, Record<string, Record<string, Array<{ name: string; instructorId: number | null; area_id: number | null }>>>> = {};
     const state = this.scheduleState();
 
     state.forEach((dayData, dayIdx) => {
@@ -445,6 +456,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
             schedule[String(dayIdx)][slotId][String(lvl)] = entries.map(e => ({
               name: e.name,
               instructorId: e.instructorId,
+              area_id: e.areaId,
             }));
           }
         }

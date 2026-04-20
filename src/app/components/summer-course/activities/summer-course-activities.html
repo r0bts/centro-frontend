@@ -153,6 +153,7 @@
           [slots]="SC_SLOTS"
           [levels]="SC_LEVELS()"
           [instructors]="instructors()"
+          [areas]="areas()"
           [activityMap]="SC_ACTIVITY_MAP()"
           (drop)="onDrop($event)"
           (chipClick)="onChipClick($event)">
@@ -187,6 +188,7 @@
     [activity]="pendingDrop()!.activity"
     [target]="pendingDrop()!.target"
     [instructors]="instructors()"
+    [areas]="areas()"
     [levels]="SC_LEVELS()"
     [slots]="SC_SLOTS"
     [days]="SC_DAYS"
@@ -201,6 +203,7 @@
     [entry]="detailTarget()!.entry"
     [target]="detailTarget()!.target"
     [instructors]="instructors()"
+    [areas]="areas()"
     [levels]="SC_LEVELS()"
     [slots]="SC_SLOTS"
     [days]="SC_DAYS"

@@ -8,7 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScheduleState, CellEntry, DropTarget, DetailTarget } from '../summer-course-activities';
-import { ScInstructor } from '../../../../models/summer-course/summer-course.model';
+import { ScInstructor, ScArea } from '../../../../models/summer-course/summer-course.model';
 import { SC_LEVELS, SC_SLOTS, ScActivityType } from '../sc-schedule.constants';
 
 @Component({
@@ -25,6 +25,7 @@ export class ScScheduleGridComponent {
   @Input() slots = SC_SLOTS;
   @Input() levels: Array<{ n: number; roman: string; age: string }> = SC_LEVELS as any;
   @Input() instructors: ScInstructor[] = [];
+  @Input() areas: ScArea[] = [];
   @Input() activityMap: Record<string, ScActivityType> = {};
 
   @Output() drop      = new EventEmitter<DropTarget>();
@@ -70,6 +71,11 @@ export class ScScheduleGridComponent {
   getInstructor(id: number | null): ScInstructor | undefined {
     if (!id) return undefined;
     return this.instructors.find(i => i.id === id);
+  }
+
+  getArea(id: number | null): ScArea | undefined {
+    if (!id) return undefined;
+    return this.areas.find(a => a.id === id);
   }
 
   instructorInitials(inst: ScInstructor): string {

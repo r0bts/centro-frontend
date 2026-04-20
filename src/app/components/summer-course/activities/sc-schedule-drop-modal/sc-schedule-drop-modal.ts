@@ -7,7 +7,7 @@ import {
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ScInstructor } from '../../../../models/summer-course/summer-course.model';
+import { ScInstructor, ScArea } from '../../../../models/summer-course/summer-course.model';
 import { ScActivityType, SC_LEVELS, SC_SLOTS, SC_DAYS } from '../sc-schedule.constants';
 import { DropTarget } from '../summer-course-activities';
 
@@ -23,14 +23,16 @@ export class ScScheduleDropModalComponent {
   @Input() activity!: ScActivityType;
   @Input() target!: DropTarget;
   @Input() instructors: ScInstructor[] = [];
+  @Input() areas: ScArea[] = [];
   @Input() levels: Array<{ n: number; roman: string; age: string }> = SC_LEVELS as any;
   @Input() slots  = SC_SLOTS;
   @Input() days   = SC_DAYS;
 
-  @Output() confirmed = new EventEmitter<number | null>();
+  @Output() confirmed = new EventEmitter<{ instructorId: number | null; areaId: number | null }>();
   @Output() cancelled = new EventEmitter<void>();
 
   selectedInstructorId = signal<number | null>(null);
+  selectedAreaId       = signal<number | null>(null);
 
   get levelLabel(): string {
     return this.levels.find(l => l.n === this.target.levelNum)?.roman ?? String(this.target.levelNum);
@@ -54,7 +56,7 @@ export class ScScheduleDropModalComponent {
   }
 
   confirm(): void {
-    this.confirmed.emit(this.selectedInstructorId());
+    this.confirmed.emit({ instructorId: this.selectedInstructorId(), areaId: this.selectedAreaId() });
   }
 
   cancel(): void {

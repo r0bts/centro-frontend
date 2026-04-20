@@ -52,6 +52,19 @@
                 (click)="selectedInstructorId.set(null)">
           <i class="bi bi-person me-1"></i>Dejar sin instructor por ahora
         </button>
+
+        <hr class="my-3">
+
+        <p class="fw-semibold small mb-2">
+          <i class="bi bi-geo-alt me-1"></i>Área donde se imparte:
+        </p>
+        <select class="form-select form-select-sm"
+                (change)="selectedAreaId.set($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="" [selected]="!selectedAreaId()">— Sin área —</option>
+          @for (area of areas; track area.id) {
+            <option [value]="area.id" [selected]="selectedAreaId() === area.id">{{ area.name }}</option>
+          }
+        </select>
       </div>
 
       <div class="modal-footer border-0 pt-0">

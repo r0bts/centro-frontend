@@ -63,6 +63,10 @@
                       {{ instructorInitials(inst) }}
                     </span>
                   }
+                  @let area = getArea(entry.areaId);
+                  @if (area) {
+                    <span class="chip-area" [title]="area.name">📍</span>
+                  }
                 </div>
               }
 
