@@ -1014,6 +1014,76 @@
         </div>
 
         <!-- ══════════════════════════════════════════════════════ -->
+        <!-- Paso 4 — Registros Médicos                            -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div class="row mt-2">
+            <div class="col-12 mb-3">
+                <div class="alert alert-info py-2 mb-0 d-flex align-items-center" role="alert">
+                    <i class="bi bi-heart-pulse-fill me-2 fs-5 text-info"></i>
+                    <div>
+                        <strong>Paso 4 — Registros Médicos</strong> —
+                        Sincroniza las visitas médicas de los socios desde NetSuite.
+                        <span class="badge bg-info text-dark ms-1">Requiere Socios + Membresías + Detalle completados</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sincronizar Registros Médicos -->
+            <div class="col-md-4 mb-4">
+                <div class="card sync-card h-100 border-info">
+                    <div class="card-header bg-info bg-opacity-10 text-center py-1">
+                        <small class="text-info fw-bold">
+                            <i class="bi bi-4-circle me-1"></i>Paso 4 — Requiere Socios + Membresías + Detalle
+                        </small>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-heart-pulse text-info"></i>
+                        </div>
+                        <h5 class="card-title">Registros Médicos</h5>
+                        <p class="text-muted small mb-3">Sincronizar visitas médicas de socios desde NetSuite</p>
+
+                        <div *ngIf="!syncStatus['socios'].lastSync || !syncStatus['membresias'].lastSync || !syncStatus['detalle_membresias'].lastSync"
+                             class="alert alert-warning py-1 mb-2 small text-start">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Requiere <strong>Socios</strong>, <strong>Membresías</strong> y <strong>Detalle</strong> sincronizados
+                        </div>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['medical_records'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['medical_records'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['medical_records'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-info w-100"
+                            (click)="syncMedicalRecords()"
+                            [disabled]="syncStatus['medical_records'].isLoading">
+                            <span *ngIf="!syncStatus['medical_records'].isLoading">
+                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['medical_records'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
         <!-- Paso Final — Evaluación Masiva de Reglas              -->
         <!-- ══════════════════════════════════════════════════════ -->
         <div class="row mt-2">
@@ -1023,7 +1093,7 @@
                     <div>
                         <strong>Paso Final — Motor de Reglas</strong> —
                         Evalúa todos los socios activos contra las reglas de membresía configuradas.
-                        <span class="badge bg-warning text-dark ms-1">Requiere Pasos 1, 2 y 3 completados</span>
+                        <span class="badge bg-warning text-dark ms-1">Requiere Pasos 1, 2, 3 y 4 completados</span>
                     </div>
                 </div>
             </div>
@@ -1033,7 +1103,7 @@
                 <div class="card sync-card h-100 border-warning">
                     <div class="card-header bg-warning bg-opacity-10 text-center py-1">
                         <small class="fw-bold" style="color: var(--bs-warning-text-emphasis, #664d03);">
-                            <i class="bi bi-4-circle me-1"></i>Paso 4 — Requiere Socios + Membresías + Detalle
+                            <i class="bi bi-5-circle me-1"></i>Paso 5 — Requiere Socios + Membresías + Detalle + Registros Médicos
                         </small>
                     </div>
                     <div class="card-body text-center">

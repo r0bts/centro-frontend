@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'evaluacion_batch';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'evaluacion_batch';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -132,6 +132,11 @@ export class NetsuiteSyncComponent implements OnInit {
       isLoading: false,
       recordCount: 0
     },
+    medical_records: {
+      type: 'medical_records',
+      isLoading: false,
+      recordCount: 0
+    },
     evaluacion_batch: {
       type: 'evaluacion_batch',
       isLoading: false,
@@ -232,6 +237,10 @@ export class NetsuiteSyncComponent implements OnInit {
 
   syncDetalleMembresias(): void {
     this.performSync('detalle_membresias', 'Detalle Membresías', () => this.netsuiteSyncService.syncDetalleMembresias());
+  }
+
+  syncMedicalRecords(): void {
+    this.performSync('medical_records', 'Registros Médicos', () => this.netsuiteSyncService.syncMedicalRecords());
   }
 
   runEvaluacionBatch(): void {
@@ -339,6 +348,7 @@ export class NetsuiteSyncComponent implements OnInit {
             <li>Socios (Miembros)</li>
             <li>Membresías</li>
             <li>Detalle Membresías</li>
+            <li>Registros Médicos</li>
           </ul>
           <p class="mb-0 text-muted small">⏱️ Este proceso puede tomar entre 2-5 minutos</p>
         </div>
@@ -455,6 +465,9 @@ export class NetsuiteSyncComponent implements OnInit {
               }
               if (results.detalle_membresia?.data) {
                 this.syncStatus['detalle_membresias'].recordCount = results.detalle_membresia.data.synced || 0;
+              }
+              if (results.medical_records?.data) {
+                this.syncStatus['medical_records'].recordCount = results.medical_records.data.synced || 0;
               }
             }
 
