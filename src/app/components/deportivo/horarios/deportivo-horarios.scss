@@ -1,0 +1,204 @@
+:host { display: block; }
+
+// ── Header ───────────────────────────────────────────────────────────────────
+.dh-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.5rem;
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    .material-icons { font-size: 2rem; color: #6366f1; }
+    h4 { font-weight: 700; color: #1e293b; }
+  }
+}
+
+// ── Filtros ──────────────────────────────────────────────────────────────────
+.dh-filters {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  padding: .5rem 1.25rem .75rem;
+  .form-select { max-width: 230px; }
+}
+
+// ── Loading / empty ───────────────────────────────────────────────────────────
+.dh-loading {
+  display: flex; align-items: center; justify-content: center;
+  gap: .75rem; padding: 3rem;
+  color: #64748b;
+}
+.dh-empty {
+  text-align: center; padding: 3rem; color: #94a3b8;
+  .material-icons { font-size: 3rem; display: block; margin-bottom: .5rem; }
+}
+
+// ── Actividad ────────────────────────────────────────────────────────────────
+.dh-actividad {
+  margin: 0 1.25rem 1.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .65rem 1rem;
+    background: #f8fafc;
+    border-left: 4px solid #6366f1;
+    font-weight: 600;
+    font-size: .95rem;
+  }
+  &__icono { font-size: 1.3rem; }
+  &__nombre { flex: 1; }
+}
+
+// ── Grupo ─────────────────────────────────────────────────────────────────────
+.dh-grupo {
+  border-top: 1px solid #f1f5f9;
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem 1rem;
+    background: #f8fafc;
+    font-size: .875rem;
+    color: #475569;
+  }
+}
+
+.dh-cupo {
+  font-size: .75rem;
+  background: #ede9fe;
+  color: #6d28d9;
+  padding: .15rem .45rem;
+  border-radius: 20px;
+}
+
+// ── Equipo ────────────────────────────────────────────────────────────────────
+.dh-equipo {
+  padding: .25rem 0;
+  &__nombre {
+    padding: .35rem 1.25rem;
+    font-size: .82rem;
+    font-weight: 600;
+    color: #334155;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+  }
+}
+
+// ── Tabla de horarios ─────────────────────────────────────────────────────────
+.dh-horarios-tabla { padding: .25rem .5rem .5rem 1.5rem; }
+
+.dh-horario-row {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: .5rem;
+  overflow: hidden;
+  transition: border-color .2s;
+
+  &--sustituido {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  &__cuerpo {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .75rem;
+    padding: .6rem .75rem;
+  }
+}
+
+// Badge de sustitución activa
+.dh-sust-badge {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: .72rem;
+  font-weight: 600;
+  padding: .2rem .65rem;
+  border-bottom: 1px solid #fde68a;
+  i { font-size: .8rem; }
+}
+
+// ── Campos ─────────────────────────────────────────────────────────────────
+.dh-campo {
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+
+  &__label {
+    font-size: .68rem;
+    text-transform: uppercase;
+    color: #94a3b8;
+    letter-spacing: .04em;
+    margin-bottom: .1rem;
+  }
+  &__valor {
+    font-size: .85rem;
+    font-weight: 500;
+    color: #1e293b;
+    &.dh-campo--cambiado { color: #d97706; font-weight: 700; }
+  }
+  &__original {
+    font-size: .7rem;
+    color: #94a3b8;
+    font-style: italic;
+  }
+}
+
+// ── Acciones ─────────────────────────────────────────────────────────────────
+.dh-acciones {
+  display: flex;
+  gap: .4rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+// ── Motivo ────────────────────────────────────────────────────────────────────
+.dh-motivo {
+  font-size: .78rem;
+  color: #78350f;
+  background: #fef9c3;
+  padding: .3rem .75rem;
+  border-top: 1px solid #fde68a;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+.dh-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  background: #22c55e;
+  color: #fff;
+  padding: .65rem 1.25rem;
+  border-radius: 8px;
+  font-size: .875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  animation: slideIn .25s ease;
+
+  &--danger { background: #ef4444; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}

@@ -154,6 +154,11 @@ export const routes: Routes = [
           import('./components/deportivo/actividades/deportivo-actividades').then(m => m.DeportivoActividadesComponent)
       },
       {
+        path: 'horarios',
+        loadComponent: () =>
+          import('./components/deportivo/horarios/deportivo-horarios').then(m => m.DeportivoHorariosComponent)
+      },
+      {
         path: 'torneos',
         children: [
           {

@@ -1,0 +1,264 @@
+<div class="sf-overlay" (click)="cancel()">
+  <div class="sf-modal" (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="sf-header">
+      <div class="sf-header__title">
+        <i class="bi bi-arrow-repeat"></i>
+        <div>
+          <h5 class="mb-0">{{ isEditing() ? 'Editar sustitución' : 'Nueva sustitución temporal' }}</h5>
+          <small class="text-muted">
+            <strong>{{ equipo.nombre }}</strong> ·
+            {{ diaLabel(horario.dia_semana_base) }}
+            {{ horaFmt(horario.hora_inicio_base) }}–{{ horaFmt(horario.hora_fin_base) }}
+          </small>
+        </div>
+      </div>
+      <button class="btn-close" (click)="cancel()"></button>
+    </div>
+
+    <!-- Progress pasos -->
+    <div class="sf-steps">
+      <div class="sf-step" [class.active]="paso() === 1" [class.done]="paso() > 1">
+        <div class="sf-step__bubble">
+          @if (paso() > 1) { <i class="bi bi-check-lg"></i> } @else { 1 }
+        </div>
+        <span>¿Qué cambia?</span>
+      </div>
+      <div class="sf-step-line"></div>
+      <div class="sf-step" [class.active]="paso() === 2">
+        <div class="sf-step__bubble">2</div>
+        <span>¿Cuándo?</span>
+      </div>
+    </div>
+
+    <!-- Error global -->
+    @if (error()) {
+      <div class="alert alert-danger alert-sm mx-4 mt-3 mb-0 d-flex gap-2 align-items-center">
+        <i class="bi bi-exclamation-circle-fill"></i>{{ error() }}
+      </div>
+    }
+
+    <!-- Loading form data -->
+    @if (loading()) {
+      <div class="sf-loading">
+        <div class="spinner-border spinner-border-sm text-primary"></div>
+        <span>Cargando datos…</span>
+      </div>
+    } @else {
+
+      <!-- ═══ PASO 1: Qué cambia ═══ -->
+      @if (paso() === 1) {
+        <div class="sf-body">
+          <p class="sf-hint">
+            Marca los campos que quieres sustituir temporalmente.
+            Los que dejes sin marcar mantendrán su valor original.
+          </p>
+
+          <!-- Cambiar Profesor -->
+          <div class="sf-campo-grupo">
+            <label class="sf-check-label">
+              <input type="checkbox" class="form-check-input"
+                     [checked]="cambiarCoach()"
+                     (change)="cambiarCoach.set($any($event.target).checked)">
+              <span>Cambiar <strong>Profesor / Coach</strong></span>
+            </label>
+            <div class="sf-actual">
+              Actual: <em>{{ horario.coach_nombre_base ?? '—' }}</em>
+            </div>
+            @if (cambiarCoach()) {
+              <select class="form-select form-select-sm mt-2"
+                      [(ngModel)]="coach_id_sustituto">
+                <option [ngValue]="null" disabled>Selecciona el sustituto</option>
+                @for (i of formData()?.instructores; track i.id) {
+                  <option [ngValue]="i.id">
+                    {{ i.full_name }}{{ i.specialty ? ' · ' + i.specialty : '' }}
+                  </option>
+                }
+              </select>
+            }
+          </div>
+
+          <!-- Cambiar Área -->
+          <div class="sf-campo-grupo">
+            <label class="sf-check-label">
+              <input type="checkbox" class="form-check-input"
+                     [checked]="cambiarArea()"
+                     (change)="cambiarArea.set($any($event.target).checked)">
+              <span>Cambiar <strong>Área / Espacio</strong></span>
+            </label>
+            <div class="sf-actual">
+              Actual: <em>{{ horario.area_nombre_base ?? '—' }}</em>
+            </div>
+            @if (cambiarArea()) {
+              <select class="form-select form-select-sm mt-2"
+                      [(ngModel)]="area_id_sustituto">
+                <option [ngValue]="null" disabled>Selecciona el área</option>
+                @for (a of formData()?.areas; track a.area_id) {
+                  <option [ngValue]="a.area_id">{{ a.area_name }}</option>
+                }
+              </select>
+            }
+          </div>
+
+          <!-- Cambiar Día -->
+          <div class="sf-campo-grupo">
+            <label class="sf-check-label">
+              <input type="checkbox" class="form-check-input"
+                     [checked]="cambiarDia()"
+                     (change)="cambiarDia.set($any($event.target).checked)">
+              <span>Cambiar <strong>Día de la semana</strong></span>
+            </label>
+            <div class="sf-actual">
+              Actual: <em>{{ diaLabel(horario.dia_semana_base) }}</em>
+            </div>
+            @if (cambiarDia()) {
+              <div class="sf-dias mt-2">
+                @for (d of diasSemana; track d.num) {
+                  <button type="button"
+                          class="sf-dia-btn"
+                          [class.active]="dia_semana_sustituto === d.num"
+                          (click)="dia_semana_sustituto = d.num">
+                    {{ d.labelCorto }}
+                  </button>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Cambiar Hora -->
+          <div class="sf-campo-grupo">
+            <label class="sf-check-label">
+              <input type="checkbox" class="form-check-input"
+                     [checked]="cambiarHora()"
+                     (change)="cambiarHora.set($any($event.target).checked)">
+              <span>Cambiar <strong>Horario (hora)</strong></span>
+            </label>
+            <div class="sf-actual">
+              Actual: <em>{{ horaFmt(horario.hora_inicio_base) }} – {{ horaFmt(horario.hora_fin_base) }}</em>
+            </div>
+            @if (cambiarHora()) {
+              <div class="d-flex gap-2 mt-2 align-items-center">
+                <div>
+                  <label class="form-label form-label-sm mb-1">Inicio</label>
+                  <input type="time" class="form-control form-control-sm"
+                         [(ngModel)]="hora_inicio_sustituta">
+                </div>
+                <span class="mt-3">–</span>
+                <div>
+                  <label class="form-label form-label-sm mb-1">Fin</label>
+                  <input type="time" class="form-control form-control-sm"
+                         [(ngModel)]="hora_fin_sustituta">
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Footer paso 1 -->
+        <div class="sf-footer">
+          <button class="btn btn-outline-secondary btn-sm" (click)="cancel()">Cancelar</button>
+          <button class="btn btn-primary btn-sm"
+                  [disabled]="!tieneCambio()"
+                  (click)="irPaso2()">
+            Siguiente <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+      }
+
+      <!-- ═══ PASO 2: Cuándo ═══ -->
+      @if (paso() === 2) {
+        <div class="sf-body">
+
+          <!-- Preview de lo que cambia -->
+          <div class="sf-preview">
+            <div class="sf-preview__title">
+              <i class="bi bi-eye"></i> Resumen del cambio
+            </div>
+            <ul class="sf-preview__lista">
+              @if (cambiarCoach() && coach_id_sustituto) {
+                <li>
+                  <i class="bi bi-person-badge"></i>
+                  Profesor: <strong>{{ getNombreInstructor(coach_id_sustituto) }}</strong>
+                  <span class="text-muted">(orig: {{ horario.coach_nombre_base ?? '—' }})</span>
+                </li>
+              }
+              @if (cambiarArea() && area_id_sustituto) {
+                <li>
+                  <i class="bi bi-geo-alt"></i>
+                  Área: <strong>{{ getNombreArea(area_id_sustituto) }}</strong>
+                  <span class="text-muted">(orig: {{ horario.area_nombre_base ?? '—' }})</span>
+                </li>
+              }
+              @if (cambiarDia() && dia_semana_sustituto) {
+                <li>
+                  <i class="bi bi-calendar-week"></i>
+                  Día: <strong>{{ diaLabel(dia_semana_sustituto) }}</strong>
+                  <span class="text-muted">(orig: {{ diaLabel(horario.dia_semana_base) }})</span>
+                </li>
+              }
+              @if (cambiarHora() && hora_inicio_sustituta) {
+                <li>
+                  <i class="bi bi-clock"></i>
+                  Hora: <strong>{{ hora_inicio_sustituta }} – {{ hora_fin_sustituta }}</strong>
+                  <span class="text-muted">(orig: {{ horaFmt(horario.hora_inicio_base) }} – {{ horaFmt(horario.hora_fin_base) }})</span>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <!-- Fechas -->
+          <div class="row g-3 mt-1">
+            <div class="col-6">
+              <label class="form-label fw-semibold">Fecha inicio <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-sm"
+                     [(ngModel)]="fecha_inicio"
+                     [min]="hoyISO">
+              <small class="text-muted">Primer día en que aplica el cambio</small>
+            </div>
+            <div class="col-6">
+              <label class="form-label fw-semibold">Fecha fin <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-sm"
+                     [(ngModel)]="fecha_fin"
+                     [min]="fecha_inicio || hoyISO">
+              <small class="text-muted">Último día; al siguiente regresa al original</small>
+            </div>
+          </div>
+
+          <!-- Motivo -->
+          <div class="mt-3">
+            <label class="form-label fw-semibold">Motivo <span class="text-muted fw-normal">(opcional)</span></label>
+            <textarea class="form-control form-control-sm" rows="2"
+                      placeholder="Ej: Profesor de vacaciones, área en mantenimiento…"
+                      [(ngModel)]="motivo"></textarea>
+          </div>
+
+          <!-- Preview final -->
+          @if (fecha_inicio && fecha_fin) {
+            <div class="sf-preview sf-preview--fechas mt-3">
+              <i class="bi bi-info-circle"></i>
+              Del <strong>{{ fecha_inicio }}</strong> al <strong>{{ fecha_fin }}</strong>
+              el grupo <strong>{{ equipo.nombre }}</strong> tendrá el cambio indicado.
+              A partir del <strong>{{ fecha_fin }}</strong> regresa automáticamente al horario original.
+            </div>
+          }
+        </div>
+
+        <!-- Footer paso 2 -->
+        <div class="sf-footer">
+          <button class="btn btn-outline-secondary btn-sm" (click)="volverPaso1()">
+            <i class="bi bi-arrow-left me-1"></i> Atrás
+          </button>
+          <button class="btn btn-success btn-sm"
+                  [disabled]="saving() || !fecha_inicio || !fecha_fin"
+                  (click)="guardar()">
+            @if (saving()) {
+              <span class="spinner-border spinner-border-sm me-1"></span>
+            }
+            {{ isEditing() ? 'Guardar cambios' : 'Crear sustitución' }}
+          </button>
+        </div>
+      }
+    }
+  </div>
+</div>

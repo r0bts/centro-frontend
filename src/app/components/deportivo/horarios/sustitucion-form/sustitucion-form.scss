@@ -1,0 +1,221 @@
+// ── Overlay y Modal ───────────────────────────────────────────────────────────
+.sf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: rgba(0,0,0,.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sf-modal {
+  background: #fff;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  display: flex;
+  flex-direction: column;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────────
+.sf-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.1rem 1.25rem .75rem;
+  border-bottom: 1px solid #f1f5f9;
+
+  &__title {
+    display: flex;
+    align-items: flex-start;
+    gap: .6rem;
+    .bi-arrow-repeat { font-size: 1.5rem; color: #f59e0b; margin-top: .1rem; }
+    h5 { font-weight: 700; color: #1e293b; }
+  }
+}
+
+// ── Steps ─────────────────────────────────────────────────────────────────────
+.sf-steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  padding: .75rem 1.25rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sf-step {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  font-size: .8rem;
+  color: #94a3b8;
+
+  &__bubble {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .75rem;
+    font-weight: 700;
+    transition: all .2s;
+  }
+
+  &.active {
+    color: #6366f1;
+    .sf-step__bubble {
+      background: #6366f1;
+      color: #fff;
+    }
+  }
+  &.done {
+    color: #22c55e;
+    .sf-step__bubble {
+      background: #22c55e;
+      color: #fff;
+    }
+  }
+}
+
+.sf-step-line {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  max-width: 60px;
+}
+
+// ── Loading ───────────────────────────────────────────────────────────────────
+.sf-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .6rem;
+  padding: 2rem;
+  color: #64748b;
+  font-size: .875rem;
+}
+
+// ── Body ──────────────────────────────────────────────────────────────────────
+.sf-body {
+  padding: 1rem 1.25rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sf-hint {
+  font-size: .82rem;
+  color: #64748b;
+  background: #f8fafc;
+  border-left: 3px solid #6366f1;
+  padding: .5rem .75rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+// ── Grupos de campo con checkbox ──────────────────────────────────────────────
+.sf-campo-grupo {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: .65rem .85rem;
+  margin-bottom: .6rem;
+  transition: border-color .15s, background .15s;
+
+  &:has(input:checked) {
+    border-color: #6366f1;
+    background: #f5f3ff;
+  }
+}
+
+.sf-check-label {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  cursor: pointer;
+  font-size: .875rem;
+  margin: 0;
+}
+
+.sf-actual {
+  font-size: .75rem;
+  color: #94a3b8;
+  margin-top: .2rem;
+  em { font-style: normal; color: #475569; }
+}
+
+// ── Selector de días ──────────────────────────────────────────────────────────
+.sf-dias {
+  display: flex;
+  gap: .3rem;
+  flex-wrap: wrap;
+}
+
+.sf-dia-btn {
+  width: 36px; height: 36px;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  background: #fff;
+  font-size: .78rem;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all .15s;
+
+  &:hover { border-color: #6366f1; color: #6366f1; }
+  &.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+}
+
+// ── Preview ───────────────────────────────────────────────────────────────────
+.sf-preview {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  padding: .65rem .85rem;
+  font-size: .82rem;
+
+  &__title {
+    font-weight: 600;
+    color: #15803d;
+    display: flex; align-items: center; gap: .35rem;
+    margin-bottom: .4rem;
+  }
+
+  &__lista {
+    list-style: none;
+    margin: 0; padding: 0;
+    li {
+      display: flex;
+      align-items: center;
+      gap: .35rem;
+      padding: .2rem 0;
+      .bi { color: #16a34a; }
+      .text-muted { font-size: .72rem; }
+    }
+  }
+
+  &--fechas {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1e40af;
+    .bi { color: #3b82f6; }
+  }
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+.sf-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .75rem 1.25rem;
+  border-top: 1px solid #f1f5f9;
+  background: #fafafa;
+  border-radius: 0 0 14px 14px;
+}

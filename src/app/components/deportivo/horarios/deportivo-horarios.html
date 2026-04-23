@@ -1,0 +1,232 @@
+<!-- Toast -->
+@if (toast()) {
+  <div class="dh-toast" [class.dh-toast--danger]="toast()!.tipo === 'danger'">
+    <i class="bi" [class.bi-check-circle-fill]="toast()!.tipo === 'success'"
+                  [class.bi-exclamation-circle-fill]="toast()!.tipo === 'danger'"></i>
+    {{ toast()!.msg }}
+  </div>
+}
+
+<!-- Modal sustitución -->
+@if (formOpen()) {
+  <app-sustitucion-form
+    [horario]="formHorario()!"
+    [equipo]="formEquipo()!"
+    [sustitucionEditar]="formSustitucion()"
+    (saved)="onFormSaved($event)"
+    (cancelled)="onFormCancelled()">
+  </app-sustitucion-form>
+}
+
+<!-- ── Header ─────────────────────────────────────────────────────────────── -->
+<div class="dh-header">
+  <div class="dh-header__title">
+    <span class="material-icons">schedule</span>
+    <div>
+      <h4 class="mb-0">Horarios y Sustituciones</h4>
+      <small class="text-muted">
+        Grupos activos · Fecha: {{ (loading() ? '…' : (actividadesFiltradas()[0] ? actividadesFiltradas()[0].nombre : '')) }}
+        @if (!loading() && totalConSustitucion() > 0) {
+          <span class="badge bg-warning text-dark ms-2">
+            {{ totalConSustitucion() }} con sustitución activa
+          </span>
+        }
+      </small>
+    </div>
+  </div>
+  <button class="btn btn-sm btn-outline-secondary" (click)="load()">
+    <i class="bi bi-arrow-clockwise"></i> Recargar
+  </button>
+</div>
+
+<!-- ── Filtros ────────────────────────────────────────────────────────────── -->
+<div class="dh-filters">
+  <!-- Filtro por actividad -->
+  <select class="form-select form-select-sm" [ngModel]="filtroActividad()"
+          (ngModelChange)="filtroActividad.set($event ? +$event : null)">
+    <option [ngValue]="null">Todas las actividades</option>
+    @for (a of actividades(); track a.id) {
+      <option [ngValue]="a.id">{{ a.icono }} {{ a.nombre }}</option>
+    }
+  </select>
+
+  <!-- Filtro por día -->
+  <select class="form-select form-select-sm" [ngModel]="filtroDia()"
+          (ngModelChange)="filtroDia.set($event ? +$event : null)">
+    <option [ngValue]="null">Todos los días</option>
+    @for (d of diasSemana; track d.num) {
+      <option [ngValue]="d.num">{{ d.label }}</option>
+    }
+  </select>
+
+  <!-- Filtro por estado de sustitución -->
+  <select class="form-select form-select-sm" [ngModel]="filtroSolo()"
+          (ngModelChange)="filtroSolo.set($event)">
+    <option value="todas">Todos los horarios</option>
+    <option value="con_sustitucion">Solo con sustitución activa</option>
+    <option value="sin_sustitucion">Sin sustitución</option>
+  </select>
+</div>
+
+<!-- ── Cargando ───────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="dh-loading">
+    <div class="spinner-border text-primary" role="status"></div>
+    <span>Cargando horarios…</span>
+  </div>
+}
+
+<!-- ── Error ──────────────────────────────────────────────────────────────── -->
+@if (!loading() && error()) {
+  <div class="alert alert-danger m-3">
+    <i class="bi bi-exclamation-circle-fill me-2"></i>{{ error() }}
+  </div>
+}
+
+<!-- ── Sin resultados ─────────────────────────────────────────────────────── -->
+@if (!loading() && !error() && actividadesFiltradas().length === 0) {
+  <div class="dh-empty">
+    <span class="material-icons">event_busy</span>
+    <p>No se encontraron horarios con los filtros actuales.</p>
+  </div>
+}
+
+<!-- ── Lista de actividades ───────────────────────────────────────────────── -->
+@for (actividad of actividadesFiltradas(); track actividad.id) {
+  <div class="dh-actividad">
+
+    <!-- Cabecera de actividad -->
+    <div class="dh-actividad__header" [style.border-left-color]="actividad.color">
+      <span class="dh-actividad__icono">{{ actividad.icono }}</span>
+      <span class="dh-actividad__nombre">{{ actividad.nombre }}</span>
+      <span class="badge bg-secondary ms-2">{{ actividad.tipo }}</span>
+    </div>
+
+    <!-- Grupos -->
+    @for (grupo of actividad.grupos; track grupo.id) {
+      <div class="dh-grupo">
+        <div class="dh-grupo__header">
+          <i class="bi bi-people-fill"></i>
+          <strong>{{ grupo.nombre }}</strong>
+          @if (grupo.edad_min || grupo.edad_max) {
+            <span class="text-muted ms-2 small">
+              ({{ grupo.edad_min ?? '?' }} – {{ grupo.edad_max ?? '?' }} años)
+            </span>
+          }
+          @if (grupo.cupo_maximo) {
+            <span class="dh-cupo ms-auto">
+              {{ grupo.cupo_ocupado }}/{{ grupo.cupo_maximo }} lugares
+            </span>
+          }
+        </div>
+
+        <!-- Equipos -->
+        @for (equipo of grupo.equipos; track equipo.id) {
+          <div class="dh-equipo">
+            <div class="dh-equipo__nombre">
+              <i class="bi bi-shield-fill"></i> {{ equipo.nombre }}
+            </div>
+
+            <!-- Horarios del equipo -->
+            <div class="dh-horarios-tabla">
+              @for (horario of equipo.horarios; track horario.horario_id) {
+                <div class="dh-horario-row"
+                     [class.dh-horario-row--sustituido]="horario.tiene_sustitucion">
+
+                  <!-- Indicador de sustitución -->
+                  @if (horario.tiene_sustitucion) {
+                    <span class="dh-sust-badge">
+                      <i class="bi bi-arrow-repeat"></i> Sustitución activa
+                      hasta {{ horario.sustitucion_vigente!.fecha_fin }}
+                    </span>
+                  }
+
+                  <div class="dh-horario-row__cuerpo">
+                    <!-- Día y hora efectivos -->
+                    <div class="dh-campo">
+                      <span class="dh-campo__label">Día</span>
+                      <span class="dh-campo__valor" [class.dh-campo--cambiado]="horario.tiene_sustitucion && horario.sustitucion_vigente?.dia_semana_sustituto !== null">
+                        {{ diaLabel(horario.dia_semana_efectivo) }}
+                      </span>
+                      @if (horario.tiene_sustitucion && horario.sustitucion_vigente?.dia_semana_sustituto !== null) {
+                        <span class="dh-campo__original">
+                          (orig: {{ diaLabel(horario.dia_semana_base) }})
+                        </span>
+                      }
+                    </div>
+
+                    <div class="dh-campo">
+                      <span class="dh-campo__label">Horario</span>
+                      <span class="dh-campo__valor" [class.dh-campo--cambiado]="horario.tiene_sustitucion && (horario.sustitucion_vigente?.hora_inicio_sustituta || horario.sustitucion_vigente?.hora_fin_sustituta)">
+                        {{ horaFmt(horario.hora_inicio_efectiva) }} – {{ horaFmt(horario.hora_fin_efectiva) }}
+                      </span>
+                      @if (horario.tiene_sustitucion && (horario.sustitucion_vigente?.hora_inicio_sustituta || horario.sustitucion_vigente?.hora_fin_sustituta)) {
+                        <span class="dh-campo__original">
+                          (orig: {{ horaFmt(horario.hora_inicio_base) }} – {{ horaFmt(horario.hora_fin_base) }})
+                        </span>
+                      }
+                    </div>
+
+                    <div class="dh-campo">
+                      <span class="dh-campo__label">Profesor</span>
+                      <span class="dh-campo__valor" [class.dh-campo--cambiado]="horario.tiene_sustitucion && horario.sustitucion_vigente?.coach_id_sustituto !== null">
+                        {{ horario.coach_nombre_efectivo ?? '—' }}
+                      </span>
+                      @if (horario.tiene_sustitucion && horario.sustitucion_vigente?.coach_id_sustituto !== null) {
+                        <span class="dh-campo__original">
+                          (orig: {{ horario.coach_nombre_base ?? '—' }})
+                        </span>
+                      }
+                    </div>
+
+                    <div class="dh-campo">
+                      <span class="dh-campo__label">Área</span>
+                      <span class="dh-campo__valor" [class.dh-campo--cambiado]="horario.tiene_sustitucion && horario.sustitucion_vigente?.area_id_sustituto !== null">
+                        {{ horario.area_nombre_efectiva ?? '—' }}
+                      </span>
+                      @if (horario.tiene_sustitucion && horario.sustitucion_vigente?.area_id_sustituto !== null) {
+                        <span class="dh-campo__original">
+                          (orig: {{ horario.area_nombre_base ?? '—' }})
+                        </span>
+                      }
+                    </div>
+
+                    <!-- Acciones -->
+                    <div class="dh-acciones">
+                      @if (!horario.tiene_sustitucion) {
+                        <button class="btn btn-sm btn-outline-warning"
+                                title="Crear sustitución temporal"
+                                (click)="abrirFormulario(horario, equipo)">
+                          <i class="bi bi-arrow-repeat"></i> Sustituir
+                        </button>
+                      } @else {
+                        <button class="btn btn-sm btn-outline-primary"
+                                title="Editar sustitución"
+                                (click)="abrirFormulario(horario, equipo, horario.sustitucion_vigente)">
+                          <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                title="Cancelar sustitución (regresa al original)"
+                                (click)="onCancelarSustitucion(horario.sustitucion_vigente!)">
+                          <i class="bi bi-x-circle"></i> Cancelar
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <!-- Motivo de la sustitución -->
+                  @if (horario.tiene_sustitucion && horario.sustitucion_vigente?.motivo) {
+                    <div class="dh-motivo">
+                      <i class="bi bi-chat-left-text"></i>
+                      {{ horario.sustitucion_vigente!.motivo }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}
