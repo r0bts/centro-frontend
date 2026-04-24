@@ -42,6 +42,8 @@ export interface HorarioEfectivo {
   horario_id: number;
   tiene_sustitucion: boolean;
   sustitucion_vigente: HorarioSustitucion | null;
+  tiene_sustitucion_futura: boolean;
+  sustitucion_futura: HorarioSustitucion | null;
   // Valores efectivos (sustituto si hay vigencia, original si no)
   coach_id_efectivo: number | null;
   coach_nombre_efectivo: string | null;

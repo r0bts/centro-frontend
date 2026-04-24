@@ -133,11 +133,20 @@
                 <div class="dh-horario-row"
                      [class.dh-horario-row--sustituido]="horario.tiene_sustitucion">
 
-                  <!-- Indicador de sustitución -->
+                  <!-- Indicador de sustitución activa -->
                   @if (horario.tiene_sustitucion) {
                     <span class="dh-sust-badge">
                       <i class="bi bi-arrow-repeat"></i> Sustitución activa
                       hasta {{ horario.sustitucion_vigente!.fecha_fin }}
+                    </span>
+                  }
+
+                  <!-- Indicador de sustitución futura -->
+                  @if (!horario.tiene_sustitucion && horario.tiene_sustitucion_futura) {
+                    <span class="dh-sust-badge dh-sust-badge--futura">
+                      <i class="bi bi-calendar-plus"></i> Programada
+                      del {{ horario.sustitucion_futura!.fecha_inicio }}
+                      al {{ horario.sustitucion_futura!.fecha_fin }}
                     </span>
                   }
 
@@ -193,13 +202,13 @@
 
                     <!-- Acciones -->
                     <div class="dh-acciones">
-                      @if (!horario.tiene_sustitucion) {
+                      @if (!horario.tiene_sustitucion && !horario.tiene_sustitucion_futura) {
                         <button class="btn btn-sm btn-outline-warning"
                                 title="Crear sustitución temporal"
                                 (click)="abrirFormulario(horario, equipo)">
                           <i class="bi bi-arrow-repeat"></i> Sustituir
                         </button>
-                      } @else {
+                      } @else if (horario.tiene_sustitucion) {
                         <button class="btn btn-sm btn-outline-primary"
                                 title="Editar sustitución"
                                 (click)="abrirFormulario(horario, equipo, horario.sustitucion_vigente)">
@@ -208,6 +217,17 @@
                         <button class="btn btn-sm btn-outline-danger"
                                 title="Cancelar sustitución (regresa al original)"
                                 (click)="onCancelarSustitucion(horario.sustitucion_vigente!)">
+                          <i class="bi bi-x-circle"></i> Cancelar
+                        </button>
+                      } @else if (horario.tiene_sustitucion_futura) {
+                        <button class="btn btn-sm btn-outline-primary"
+                                title="Editar sustitución programada"
+                                (click)="abrirFormulario(horario, equipo, horario.sustitucion_futura)">
+                          <i class="bi bi-pencil"></i> Editar
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                title="Cancelar sustitución programada"
+                                (click)="onCancelarSustitucion(horario.sustitucion_futura!)">
                           <i class="bi bi-x-circle"></i> Cancelar
                         </button>
                       }

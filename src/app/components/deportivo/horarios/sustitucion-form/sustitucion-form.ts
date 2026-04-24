@@ -1,5 +1,5 @@
 import {
-  Component, ChangeDetectionStrategy, OnInit,
+  Component, ChangeDetectionStrategy, ChangeDetectorRef, OnInit,
   Input, Output, EventEmitter, signal, inject, computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -27,6 +27,7 @@ export class SustitucionFormComponent implements OnInit {
   @Output() cancelled = new EventEmitter<void>();
 
   private svc = inject(HorarioSustitucionService);
+  private cdr = inject(ChangeDetectorRef);
 
   readonly diasSemana = DIAS_SEMANA;
 
@@ -62,11 +63,10 @@ export class SustitucionFormComponent implements OnInit {
 
   readonly hoyISO = new Date().toISOString().split('T')[0];
 
+  // Habilita "Siguiente" en cuanto al menos UN checkbox esté marcado.
+  // La validación de que el valor esté seleccionado se hace en irPaso2().
   tieneCambio = computed(() =>
-    (this.cambiarCoach() && !!this.coach_id_sustituto) ||
-    (this.cambiarArea()  && !!this.area_id_sustituto)  ||
-    (this.cambiarDia()   && this.dia_semana_sustituto !== null) ||
-    (this.cambiarHora()  && !!this.hora_inicio_sustituta && !!this.hora_fin_sustituta)
+    this.cambiarCoach() || this.cambiarArea() || this.cambiarDia() || this.cambiarHora()
   );
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
@@ -76,10 +76,12 @@ export class SustitucionFormComponent implements OnInit {
         this.formData.set(res.data);
         this.loading.set(false);
         if (this.sustitucionEditar) this._patchFromSustitucion();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error.set('Error al cargar datos del formulario.');
         this.loading.set(false);
+        this.cdr.markForCheck();
       },
     });
   }
@@ -113,6 +115,23 @@ export class SustitucionFormComponent implements OnInit {
   irPaso2(): void {
     if (!this.tieneCambio()) {
       this.error.set('Selecciona al menos un campo a sustituir.');
+      return;
+    }
+    // Validar que cada opción marcada tenga un valor asignado
+    if (this.cambiarCoach() && !this.coach_id_sustituto) {
+      this.error.set('Selecciona el profesor sustituto.');
+      return;
+    }
+    if (this.cambiarArea() && !this.area_id_sustituto) {
+      this.error.set('Selecciona el área sustituta.');
+      return;
+    }
+    if (this.cambiarDia() && !this.dia_semana_sustituto) {
+      this.error.set('Selecciona el día de la semana.');
+      return;
+    }
+    if (this.cambiarHora() && (!this.hora_inicio_sustituta || !this.hora_fin_sustituta)) {
+      this.error.set('Indica la hora de inicio y fin.');
       return;
     }
     this.error.set(null);
@@ -159,11 +178,13 @@ export class SustitucionFormComponent implements OnInit {
       next: res => {
         this.saving.set(false);
         this.saved.emit(res.message);
+        this.cdr.markForCheck();
       },
       error: err => {
         this.saving.set(false);
         const msg = err?.error?.message ?? 'Error al guardar la sustitución.';
         this.error.set(msg);
+        this.cdr.markForCheck();
       },
     });
   }
