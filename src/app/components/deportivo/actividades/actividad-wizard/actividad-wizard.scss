@@ -455,3 +455,74 @@
   font-size: 0.82rem;
   padding: 0.5rem 0.75rem;
 }
+
+// ── Panel de réplica de horarios ─────────────────────────────────────────────
+.replicate-panel {
+  background: #f0f7ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.6rem;
+  padding: 0.85rem 1rem;
+
+  &__title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e40af;
+    margin-bottom: 0.6rem;
+  }
+
+  &__dias {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+  }
+
+  &__warn {
+    font-size: 0.78rem;
+    color: #92400e;
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.4rem;
+
+    i { margin-top: 0.1rem; flex-shrink: 0; }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+}
+
+.replicate-day-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 2rem;
+  border: 1.5px solid #93c5fd;
+  background: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  input[type="checkbox"] { display: none; }
+
+  &.checked {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+
+  &.has-existing:not(.checked) {
+    border-color: #fbbf24;
+    background: #fffbeb;
+    color: #92400e;
+  }
+}

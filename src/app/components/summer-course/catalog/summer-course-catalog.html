@@ -258,3 +258,14 @@
     </div>
   </div>
 }
+
+@if (confirmDialog()) {
+  <app-confirm-dialog
+    [title]="confirmDialog()!.title"
+    [message]="confirmDialog()!.message"
+    [confirmLabel]="confirmDialog()!.confirmLabel ?? 'Confirmar'"
+    confirmClass="btn-danger"
+    (confirmed)="executeConfirm()"
+    (cancelled)="confirmDialog.set(null)"
+  />
+}

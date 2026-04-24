@@ -111,6 +111,10 @@ export class ActividadWizardComponent implements OnInit {
   // ── Paso 3: Horarios — se editan por grupo ──────────────────────────────────
   // horarios están dentro de cada grupo.horarios
 
+  // Estado del panel de réplica de horarios
+  replicandoDia    = signal<{ grupoIdx: number; dia: number } | null>(null);
+  diasParaReplicar = signal<number[]>([]);
+
   // ── Paso 4: Criterios ───────────────────────────────────────────────────────
   criterios        = signal<WizardCriterio[]>([]);
   nuevoCriterioNombre = '';
@@ -207,6 +211,18 @@ export class ActividadWizardComponent implements OnInit {
       }
       if (!this.nombre.trim()) {
         this.error.set('El nombre de la actividad es obligatorio.');
+        return false;
+      }
+      if (!this.fecha_inicio) {
+        this.error.set('La fecha de inicio de la actividad es obligatoria.');
+        return false;
+      }
+      if (this.fecha_fin && this.fecha_fin < this.fecha_inicio) {
+        this.error.set('La fecha fin no puede ser anterior a la fecha inicio.');
+        return false;
+      }
+      if (this.tiene_costo && !this.monto) {
+        this.error.set('Debes ingresar el monto a cobrar.');
         return false;
       }
     }
@@ -319,6 +335,59 @@ export class ActividadWizardComponent implements OnInit {
     });
   }
 
+  // ── Réplica de horarios ──────────────────────────────────────────────────────────────────
+  toggleReplicar(grupoIdx: number, dia: number): void {
+    const current = this.replicandoDia();
+    if (current?.grupoIdx === grupoIdx && current?.dia === dia) {
+      this.cerrarReplicar();
+    } else {
+      this.replicandoDia.set({ grupoIdx, dia });
+      this.diasParaReplicar.set([]);
+    }
+  }
+
+  cerrarReplicar(): void {
+    this.replicandoDia.set(null);
+    this.diasParaReplicar.set([]);
+  }
+
+  isDiaParaReplicar(dia: number): boolean {
+    return this.diasParaReplicar().includes(dia);
+  }
+
+  tieneDestinosConConflicto(grupoIdx: number): boolean {
+    return this.diasParaReplicar().some(n => this.isDiaSelected(grupoIdx, n));
+  }
+
+  toggleDiaReplica(dia: number, checked: boolean): void {
+    this.diasParaReplicar.update((list: number[]) =>
+      checked ? [...list, dia] : list.filter((d: number) => d !== dia)
+    );
+  }
+
+  aplicarReplica(grupoIdx: number, diaFuente: number): void {
+    const destinos = this.diasParaReplicar();
+    if (!destinos.length) return;
+
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g, horarios: g.horarios.map(h => ({ ...h })) }));
+      const fuente = copy[grupoIdx].horarios.filter(h => h.dia_semana === diaFuente);
+
+      for (const dest of destinos) {
+        // Quitar horarios del día destino
+        copy[grupoIdx].horarios = copy[grupoIdx].horarios.filter(h => h.dia_semana !== dest);
+        // Copiar los del fuente con el día destino
+        for (const h of fuente) {
+          copy[grupoIdx].horarios.push({ ...h, dia_semana: dest });
+        }
+      }
+      copy[grupoIdx].horarios.sort((a, b) => a.dia_semana - b.dia_semana);
+      return copy;
+    });
+
+    this.cerrarReplicar();
+  }
+
   /** Filtra las áreas mapeadas por el club seleccionado en Paso 1 */
   getAreasByClub(): AreaMapeada[] {
     if (!this.club_id || !this.formData()) return [];
@@ -370,9 +439,9 @@ export class ActividadWizardComponent implements OnInit {
           tipo:            this.tipo,
           modo_mensajeria: this.modo_mensajeria,
           tiene_costo:     this.tiene_costo,
-          fecha_inicio:    this.tiene_costo ? (this.fecha_inicio || null) : null,
-          fecha_fin:       this.tiene_costo ? (this.fecha_fin    || null) : null,
-          monto:           this.tiene_costo ? (this.monto        ?? null) : null,
+          fecha_inicio:    this.fecha_inicio || null,
+          fecha_fin:       this.fecha_fin    || null,
+          monto:           this.tiene_costo ? (this.monto ?? null) : null,
         }));
         actividadId = res.data.id;
 
@@ -403,9 +472,9 @@ export class ActividadWizardComponent implements OnInit {
           tipo:            this.tipo,
           modo_mensajeria: this.modo_mensajeria,
           tiene_costo:     this.tiene_costo,
-          fecha_inicio:    this.tiene_costo ? (this.fecha_inicio || undefined) : undefined,
-          fecha_fin:       this.tiene_costo ? (this.fecha_fin    || undefined) : undefined,
-          monto:           this.tiene_costo ? (this.monto        ?? undefined) : undefined,
+          fecha_inicio:    this.fecha_inicio || undefined,
+          fecha_fin:       this.fecha_fin    || undefined,
+          monto:           this.tiene_costo ? (this.monto ?? undefined) : undefined,
           is_active:       true,
           created_by:      userId,
         }));

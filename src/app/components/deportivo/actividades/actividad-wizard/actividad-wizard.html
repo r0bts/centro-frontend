@@ -1,6 +1,6 @@
 <!-- Overlay -->
-<div class="wizard-overlay" (click)="cancel()">
-  <div class="wizard-container" (click)="$event.stopPropagation()">
+<div class="wizard-overlay">
+  <div class="wizard-container">
 
     <!-- ── Header del wizard ──────────────────────────────────────────────── -->
     <div class="wizard-header">
@@ -88,6 +88,25 @@
                       [(ngModel)]="descripcion"></textarea>
           </div>
 
+          <!-- Vigencia de la actividad -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Vigencia de la actividad</label>
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold">Fecha inicio <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" [(ngModel)]="fecha_inicio">
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold">
+                  Fecha fin
+                  <span class="text-muted fw-normal">(opcional)</span>
+                </label>
+                <input type="date" class="form-control" [(ngModel)]="fecha_fin" [min]="fecha_inicio">
+                <small class="text-muted">Sin fecha fin la actividad es indefinida.</small>
+              </div>
+            </div>
+          </div>
+
           <div class="mb-3">
             <label class="form-label fw-semibold">Tipo</label>
             <div class="tipo-grid">
@@ -162,24 +181,12 @@
             </label>
 
             @if (tiene_costo) {
-              <div class="row g-2 mt-2">
-                <div class="col-6">
-                  <label class="form-label small fw-semibold">Fecha inicio</label>
-                  <input type="date" class="form-control form-control-sm"
-                         [(ngModel)]="fecha_inicio">
-                </div>
-                <div class="col-6">
-                  <label class="form-label small fw-semibold">Fecha fin</label>
-                  <input type="date" class="form-control form-control-sm"
-                         [(ngModel)]="fecha_fin" [min]="fecha_inicio">
-                </div>
-                <div class="col-12">
-                  <label class="form-label small fw-semibold">Monto a cobrar</label>
-                  <div class="input-group input-group-sm">
-                    <span class="input-group-text">$</span>
-                    <input type="number" class="form-control" placeholder="0.00"
-                           min="0" step="0.01" [(ngModel)]="monto">
-                  </div>
+              <div class="mt-2">
+                <label class="form-label small fw-semibold">Monto a cobrar <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" placeholder="0.00"
+                         min="0" step="0.01" [(ngModel)]="monto">
                 </div>
               </div>
             }
@@ -358,11 +365,62 @@
                               <span class="badge bg-primary fs-6">{{ d.label }}</span>
                               <span class="fw-semibold text-secondary">{{ getDiaNombre(d.num) }}</span>
                             </div>
-                            <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
-                                    (click)="addHorarioOnly(gIdx, d.num)">
-                              <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
-                            </button>
+                            <div class="d-flex gap-2">
+                              @if (getHorariosByDia(gIdx, d.num).length > 0) {
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill d-flex align-items-center gap-1"
+                                        title="Replicar este horario en otros días"
+                                        (click)="toggleReplicar(gIdx, d.num)">
+                                  <i class="bi bi-copy"></i>
+                                  <span class="d-none d-sm-inline">Replicar</span>
+                                </button>
+                              }
+                              <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
+                                      (click)="addHorarioOnly(gIdx, d.num)">
+                                <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
+                              </button>
+                            </div>
                           </div>
+
+                          <!-- Panel de réplica inline -->
+                          @if (replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num) {
+                            <div class="replicate-panel mb-3">
+                              <div class="replicate-panel__title">
+                                <i class="bi bi-copy me-1"></i>
+                                Replicar horarios del <strong>{{ getDiaNombre(d.num) }}</strong> en:
+                              </div>
+                              <div class="replicate-panel__dias">
+                                @for (rd of dias; track rd.num) {
+                                  @if (rd.num !== d.num) {
+                                    <label class="replicate-day-check"
+                                           [class.has-existing]="isDiaSelected(gIdx, rd.num)"
+                                           [class.checked]="isDiaParaReplicar(rd.num)">
+                                      <input type="checkbox"
+                                             [checked]="isDiaParaReplicar(rd.num)"
+                                             (change)="toggleDiaReplica(rd.num, $any($event.target).checked)">
+                                      <span>{{ rd.label }}</span>
+                                      @if (isDiaSelected(gIdx, rd.num)) {
+                                        <i class="bi bi-exclamation-triangle-fill text-warning ms-1" title="Este día ya tiene horarios, serán reemplazados"></i>
+                                      }
+                                    </label>
+                                  }
+                                }
+                              </div>
+                              @if (tieneDestinosConConflicto(gIdx)) {
+                                <div class="replicate-panel__warn">
+                                  <i class="bi bi-exclamation-triangle-fill"></i>
+                                  Los días marcados con ⚠ ya tienen horarios configurados y serán <strong>reemplazados</strong>.
+                                </div>
+                              }
+                              <div class="replicate-panel__actions">
+                                <button class="btn btn-sm btn-outline-secondary" (click)="cerrarReplicar()">Cancelar</button>
+                                <button class="btn btn-sm btn-primary"
+                                        [disabled]="diasParaReplicar().length === 0"
+                                        (click)="aplicarReplica(gIdx, d.num)">
+                                  <i class="bi bi-check-lg me-1"></i>Aplicar
+                                </button>
+                              </div>
+                            </div>
+                          }
 
                           <div class="d-flex flex-column gap-2">
                             @for (h of getHorariosByDia(gIdx, d.num); track h.originalIndex) {

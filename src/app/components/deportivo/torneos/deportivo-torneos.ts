@@ -16,12 +16,13 @@ import {
 } from '../../../models/deportivo/torneo.model';
 import { TorneoWizardComponent } from './torneo-wizard/torneo-wizard';
 import { TorneoDetalleComponent } from './torneo-detalle/torneo-detalle';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-deportivo-torneos',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TorneoWizardComponent, TorneoDetalleComponent],
+  imports: [CommonModule, TorneoWizardComponent, TorneoDetalleComponent, ConfirmDialogComponent],
   templateUrl: './deportivo-torneos.html',
   styleUrl: './deportivo-torneos.scss',
 })
@@ -32,6 +33,7 @@ export class DeportivoTorneosComponent implements OnInit {
   readonly formData   = signal<TorneoFormData | null>(null);
   readonly loading    = signal(false);
   readonly error      = signal<string | null>(null);
+  confirmDialog = signal<{ title: string; message: string; confirmLabel?: string; action: () => void } | null>(null);
 
   // Filtros
   readonly filtroFormato = signal<TorneoFormato | null>(null);
@@ -146,13 +148,25 @@ export class DeportivoTorneosComponent implements OnInit {
   }
 
   async confirmDelete(t: Torneo): Promise<void> {
-    if (!confirm(`¿Eliminar el torneo "${t.nombre}"? Esta acción no se puede deshacer.`)) return;
-    try {
-      await firstValueFrom(this.svc.delete(t.id));
-      await this.loadTorneos();
-    } catch {
-      this.error.set('Error al eliminar el torneo.');
-    }
+    this.confirmDialog.set({
+      title: 'Eliminar torneo',
+      message: `¿Eliminar el torneo "${t.nombre}"?\nEsta acción no se puede deshacer.`,
+      confirmLabel: 'Sí, eliminar',
+      action: async () => {
+        try {
+          await firstValueFrom(this.svc.delete(t.id));
+          await this.loadTorneos();
+        } catch {
+          this.error.set('Error al eliminar el torneo.');
+        }
+      },
+    });
+  }
+
+  executeConfirm(): void {
+    const d = this.confirmDialog();
+    this.confirmDialog.set(null);
+    d?.action();
   }
 
   // ── Helpers UI ───────────────────────────────────────────────────────────────

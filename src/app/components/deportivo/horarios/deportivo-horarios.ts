@@ -10,12 +10,13 @@ import {
   HorarioEfectivo, HorarioSustitucion, DIAS_SEMANA,
 } from '../../../models/deportivo/horario-sustitucion.model';
 import { SustitucionFormComponent } from './sustitucion-form/sustitucion-form';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog';
 
 @Component({
   selector: 'app-deportivo-horarios',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, SustitucionFormComponent],
+  imports: [CommonModule, FormsModule, SustitucionFormComponent, ConfirmDialogComponent],
   templateUrl: './deportivo-horarios.html',
   styleUrl: './deportivo-horarios.scss',
 })
@@ -27,6 +28,9 @@ export class DeportivoHorariosComponent implements OnInit {
   loading       = signal(true);
   error         = signal<string | null>(null);
   toast         = signal<{ msg: string; tipo: 'success' | 'danger' } | null>(null);
+
+  // Confirm dialog
+  confirmDialog = signal<{ title: string; message: string; confirmLabel?: string; action: () => void } | null>(null);
 
   // Filtros
   filtroActividad = signal<number | null>(null);
@@ -144,14 +148,21 @@ export class DeportivoHorariosComponent implements OnInit {
   }
 
   onCancelarSustitucion(s: HorarioSustitucion): void {
-    if (!confirm(`¿Cancelar la sustitución vigente hasta ${s.fecha_fin}?\nEl horario regresará al original de inmediato.`)) return;
-    this.svc.cancel(s.id).subscribe({
-      next: res => {
-        this.showToast(res.message, 'success');
-        this.refresh();
-      },
-      error: () => this.showToast('Error al cancelar la sustitución.', 'danger'),
+    this.confirmDialog.set({
+      title: 'Cancelar sustitución',
+      message: `La sustitución vigente hasta ${s.fecha_fin} será eliminada.\nEl horario regresará al original de inmediato.`,
+      confirmLabel: 'Sí, cancelar',
+      action: () => this.svc.cancel(s.id).subscribe({
+        next: res => { this.showToast(res.message, 'success'); this.refresh(); },
+        error: () => this.showToast('Error al cancelar la sustitución.', 'danger'),
+      }),
     });
+  }
+
+  executeConfirm(): void {
+    const d = this.confirmDialog();
+    this.confirmDialog.set(null);
+    d?.action();
   }
 
   // ── Toast ────────────────────────────────────────────────────────────────────

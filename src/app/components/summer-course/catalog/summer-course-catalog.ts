@@ -8,6 +8,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScCatalogService } from '../../../services/summer-course/sc-catalog.service';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog/confirm-dialog';
 import {
   ScCatalogCategoryWithTypes,
   ScCatalogActivityTypeDetail,
@@ -24,7 +25,7 @@ type TypeModalMode = 'add' | 'edit';
   selector: 'app-summer-course-catalog',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule],
+  imports: [CommonModule, ConfirmDialogComponent],
   templateUrl: './summer-course-catalog.html',
   styleUrl: './summer-course-catalog.scss',
 })
@@ -33,6 +34,7 @@ export class SummerCourseCatalogComponent implements OnInit {
 
   // ── State ──────────────────────────────────────────────────────────────────
   categories = signal<ScCatalogCategoryWithTypes[]>([]);
+  confirmDialog = signal<{ title: string; message: string; confirmLabel?: string; action: () => void } | null>(null);
   loading    = signal(true);
   error      = signal<string | null>(null);
   toast      = signal<string | null>(null);
@@ -136,10 +138,14 @@ export class SummerCourseCatalogComponent implements OnInit {
   }
 
   deleteCategory(cat: ScCatalogCategoryWithTypes): void {
-    if (!confirm(`¿Eliminar la categoría "${cat.label}"?\nSe eliminarán también sus tipos de actividad.`)) return;
-    this.svc.deleteCategory(cat.id).subscribe({
-      next: () => { this.showToast('Categoría eliminada'); this.load(); },
-      error: e => this.showToast(e.error?.message || 'Error al eliminar', 'danger'),
+    this.confirmDialog.set({
+      title: 'Eliminar categoría',
+      message: `¿Eliminar "${cat.label}"?\nSe eliminarán también sus tipos de actividad.`,
+      confirmLabel: 'Sí, eliminar',
+      action: () => this.svc.deleteCategory(cat.id).subscribe({
+        next: () => { this.showToast('Categoría eliminada'); this.load(); },
+        error: e => this.showToast(e.error?.message || 'Error al eliminar', 'danger'),
+      }),
     });
   }
 
@@ -201,11 +207,21 @@ export class SummerCourseCatalogComponent implements OnInit {
   }
 
   deleteType(type: ScCatalogActivityTypeDetail): void {
-    if (!confirm(`¿Eliminar "${type.label}"?`)) return;
-    this.svc.deleteType(type.id).subscribe({
-      next: () => { this.showToast('Tipo eliminado'); this.load(); },
-      error: e => this.showToast(e.error?.message || 'Error', 'danger'),
+    this.confirmDialog.set({
+      title: 'Eliminar tipo',
+      message: `¿Eliminar "${type.label}"?`,
+      confirmLabel: 'Sí, eliminar',
+      action: () => this.svc.deleteType(type.id).subscribe({
+        next: () => { this.showToast('Tipo eliminado'); this.load(); },
+        error: e => this.showToast(e.error?.message || 'Error', 'danger'),
+      }),
     });
+  }
+
+  executeConfirm(): void {
+    const d = this.confirmDialog();
+    this.confirmDialog.set(null);
+    d?.action();
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────

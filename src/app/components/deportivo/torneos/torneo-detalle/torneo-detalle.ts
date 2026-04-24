@@ -21,6 +21,7 @@ import {
   FORMATO_META,
 } from '../../../../models/deportivo/torneo.model';
 import { TorneoService } from '../../../../services/deportivo/torneo.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog';
 
 type DetallTab = 'participantes' | 'jornadas' | 'posiciones';
 
@@ -28,11 +29,13 @@ type DetallTab = 'participantes' | 'jornadas' | 'posiciones';
   selector: 'app-torneo-detalle',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './torneo-detalle.html',
   styleUrl:    './torneo-detalle.scss',
 })
 export class TorneoDetalleComponent implements OnInit, OnDestroy {
+
+  confirmDialog = signal<{ title: string; message: string; confirmLabel?: string; action: () => void } | null>(null);
   @Input({ required: true }) torneo!: Torneo;
   @Input() formData: TorneoFormData | null = null;
   @Output() closed   = new EventEmitter<void>();
@@ -173,15 +176,21 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
 
   async removeInscripcion(insc: Inscripcion): Promise<void> {
     const nombre = insc.equipo?.nombre ?? 'este equipo';
-    if (!confirm(`¿Quitar a "${nombre}" del torneo?`)) return;
-    this.error.set(null);
-    try {
-      await firstValueFrom(this.svc.removeInscripcion(this.torneo.id, insc.id));
-      await this.loadInscripciones();
-      this.showSuccess('Inscripción eliminada');
-    } catch (e: any) {
-      this.error.set(e?.error?.message ?? 'Error al eliminar inscripción');
-    }
+    this.confirmDialog.set({
+      title: 'Quitar equipo',
+      message: `¿Quitar a "${nombre}" del torneo?`,
+      confirmLabel: 'Sí, quitar',
+      action: async () => {
+        this.error.set(null);
+        try {
+          await firstValueFrom(this.svc.removeInscripcion(this.torneo.id, insc.id));
+          await this.loadInscripciones();
+          this.showSuccess('Inscripción eliminada');
+        } catch (e: any) {
+          this.error.set(e?.error?.message ?? 'Error al eliminar inscripción');
+        }
+      },
+    });
   }
 
   async moverPosicion(insc: Inscripcion, direccion: 'up' | 'down'): Promise<void> {
@@ -201,21 +210,36 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
     }
   }
 
+  executeConfirm(): void {
+    const d = this.confirmDialog();
+    this.confirmDialog.set(null);
+    d?.action();
+  }
+
   // ── Jornadas ──────────────────────────────────────────────────────────────────
   async generarJornadas(): Promise<void> {
+    const doGenerar = async () => {
+      this.generando.set(true);
+      this.error.set(null);
+      try {
+        const res = await firstValueFrom(this.svc.generarJornadas(this.torneo.id));
+        this.jornadas.set(res.data.jornadas);
+        this.showSuccess(`${res.data.total} jornadas generadas correctamente`);
+      } catch (e: any) {
+        this.error.set(e?.error?.message ?? 'Error al generar jornadas');
+      } finally {
+        this.generando.set(false);
+      }
+    };
     if (this.jornadas().length > 0) {
-      if (!confirm('Ya existen jornadas. ¿Deseas regenerarlas? Se eliminarán las actuales.')) return;
-    }
-    this.generando.set(true);
-    this.error.set(null);
-    try {
-      const res = await firstValueFrom(this.svc.generarJornadas(this.torneo.id));
-      this.jornadas.set(res.data.jornadas);
-      this.showSuccess(`${res.data.total} jornadas generadas correctamente`);
-    } catch (e: any) {
-      this.error.set(e?.error?.message ?? 'Error al generar jornadas');
-    } finally {
-      this.generando.set(false);
+      this.confirmDialog.set({
+        title: 'Regenerar jornadas',
+        message: 'Ya existen jornadas configuradas.\n¿Deseas regenerarlas? Se eliminarán las actuales.',
+        confirmLabel: 'Sí, regenerar',
+        action: doGenerar,
+      });
+    } else {
+      await doGenerar();
     }
   }
 

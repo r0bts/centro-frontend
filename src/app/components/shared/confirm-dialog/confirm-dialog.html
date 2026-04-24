@@ -1,0 +1,24 @@
+<div class="cd-overlay">
+  <div class="cd-dialog">
+
+    <div class="cd-icon-wrap">
+      <i class="bi {{ icon }}" [ngClass]="iconClass"></i>
+    </div>
+
+    <h5 class="cd-title">{{ title }}</h5>
+
+    @if (message) {
+      <p class="cd-message">{{ message }}</p>
+    }
+
+    <div class="cd-actions">
+      <button class="btn btn-outline-secondary" (click)="cancelled.emit()">
+        {{ cancelLabel }}
+      </button>
+      <button class="btn {{ confirmClass }}" (click)="confirmed.emit()">
+        {{ confirmLabel }}
+      </button>
+    </div>
+
+  </div>
+</div>

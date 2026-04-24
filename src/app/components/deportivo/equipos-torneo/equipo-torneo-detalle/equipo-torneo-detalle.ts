@@ -19,6 +19,7 @@ import {
   SocioSearch,
 } from '../../../../models/deportivo/torneo-equipo.model';
 import { TorneoEquipoService } from '../../../../services/deportivo/torneo-equipo.service';
+import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog';
 
 type DetalleTab = 'integrantes' | 'info';
 
@@ -26,13 +27,15 @@ type DetalleTab = 'integrantes' | 'info';
   selector: 'app-equipo-torneo-detalle',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
   templateUrl: './equipo-torneo-detalle.html',
   styleUrl:    './equipo-torneo-detalle.scss',
 })
 export class EquipoTorneoDetalleComponent implements OnInit, OnDestroy {
   @Input({ required: true }) equipo!: TorneoEquipo;
   @Output() closed   = new EventEmitter<void>();
+
+  confirmDialog = signal<{ title: string; message: string; confirmLabel?: string; action: () => void } | null>(null);
   @Output() reloaded = new EventEmitter<void>();
 
   private svc = inject(TorneoEquipoService);
@@ -197,16 +200,28 @@ export class EquipoTorneoDetalleComponent implements OnInit, OnDestroy {
   // ── Quitar integrante ─────────────────────────────────────────────────────
   async removeIntegrante(i: TorneoIntegrante): Promise<void> {
     const nombre = i.socio?.nombre ?? 'este socio';
-    if (!confirm(`¿Quitar a "${nombre}" del equipo?`)) return;
-    this.error.set(null);
-    try {
-      await firstValueFrom(this.svc.removeIntegrante(this.equipo.id, i.id));
-      await this.loadIntegrantes();
-      this.reloaded.emit();
-      this.showSuccess('Integrante eliminado del equipo');
-    } catch (e: any) {
-      this.error.set(e?.error?.message ?? 'Error al eliminar integrante');
-    }
+    this.confirmDialog.set({
+      title: 'Quitar integrante',
+      message: `¿Quitar a "${nombre}" del equipo?`,
+      confirmLabel: 'Sí, quitar',
+      action: async () => {
+        this.error.set(null);
+        try {
+          await firstValueFrom(this.svc.removeIntegrante(this.equipo.id, i.id));
+          await this.loadIntegrantes();
+          this.reloaded.emit();
+          this.showSuccess('Integrante eliminado del equipo');
+        } catch (e: any) {
+          this.error.set(e?.error?.message ?? 'Error al eliminar integrante');
+        }
+      },
+    });
+  }
+
+  executeConfirm(): void {
+    const d = this.confirmDialog();
+    this.confirmDialog.set(null);
+    d?.action();
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

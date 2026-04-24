@@ -1,0 +1,66 @@
+// ── Overlay de fondo ─────────────────────────────────────────────────────────
+.cd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1070;
+  padding: 1rem;
+  animation: cd-fade-in 0.15s ease;
+}
+
+@keyframes cd-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Cuadro de diálogo ─────────────────────────────────────────────────────────
+.cd-dialog {
+  background: #fff;
+  border-radius: 1rem;
+  padding: 2rem 1.75rem 1.5rem;
+  max-width: 380px;
+  width: 100%;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  animation: cd-scale-in 0.18s ease;
+}
+
+@keyframes cd-scale-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+
+.cd-icon-wrap {
+  font-size: 2.5rem;
+  line-height: 1;
+  margin-bottom: 0.85rem;
+}
+
+.cd-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+}
+
+.cd-message {
+  color: var(--bs-secondary);
+  font-size: 0.88rem;
+  margin-bottom: 1.5rem;
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+.cd-actions {
+  display: flex;
+  gap: 0.65rem;
+  justify-content: center;
+
+  .btn {
+    min-width: 120px;
+    border-radius: 0.6rem;
+  }
+}
