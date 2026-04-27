@@ -494,6 +494,7 @@ export interface ScRegistrationParticipant {
   type: 'member' | 'guest' | 'staff' | 'staff_guest';
   weeks: number[];              // week_numbers seleccionados
   birth_date?: string | null;
+  suggested_level?: number | null;
 }
 
 /** Payload para POST /registration */
@@ -532,6 +533,8 @@ export interface ScRegisteredParticipant {
   weeks: Array<{ week_number: number; label: string }>;
   payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
   access_code: string | null;
+  assigned_level?: number | null;
+  suggested_level?: number | null;
 }
 
 /** Grupo de inscripción agrupado por titular */
@@ -564,4 +567,19 @@ export interface ScCostWithTotal extends ScCost {
 export interface ScCostsResponse {
   success: boolean;
   data: ScCostWithTotal[];
+}
+
+/** Nivel del Curso de Verano (sc_levels) */
+export interface ScLevel {
+  id: number;
+  level_number: number;
+  roman: string;         // I, II, III ... VIII
+  age_label: string;     // "3 años", "8-9 años", etc.
+  min_age: number;
+  max_age: number | null; // null = sin límite superior (13+)
+}
+
+export interface ScLevelsResponse {
+  success: boolean;
+  data: ScLevel[];
 }

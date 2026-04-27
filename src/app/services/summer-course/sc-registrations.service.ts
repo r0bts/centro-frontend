@@ -60,6 +60,13 @@ export class ScRegistrationsService {
   }
 
   /**
+   * Obtiene los niveles del curso (sc_levels) con rangos de edad.
+   */
+  getLevels(): Observable<any> {
+    return this.http.get<any>(`${this.base}/levels`);
+  }
+
+  /**
    * Verificar si un titular ya tiene inscripción activa en el curso.
    */
   getActiveRegistration(userId: number | string, courseId?: number): Observable<any> {

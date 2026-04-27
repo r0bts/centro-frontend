@@ -1,385 +1,537 @@
-<div class="sc-enrollments">
+<div class="sce-page">
 
-  <!-- ── Toast ── -->
+  <!-- ── Toast ─────────────────────────────────────────────────────────── -->
   @if (toast()) {
-    <div class="toast-banner toast-{{ toastType() }}">
-      <span class="material-symbols-outlined">{{ toastType() === 'success' ? 'check_circle' : toastType() === 'info' ? 'info' : 'error' }}</span>
+    <div class="sce-toast sce-toast--{{ toastType() }}">
+      <span class="material-symbols-outlined">
+        {{ toastType() === 'success' ? 'check_circle' : toastType() === 'info' ? 'info' : 'error' }}
+      </span>
       {{ toast() }}
     </div>
   }
 
-  <!-- ── Error ── -->
+  <!-- ── Error ─────────────────────────────────────────────────────────── -->
   @if (error()) {
-    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
-      <span class="material-symbols-outlined">warning</span>
-      {{ error() }}
-      <button class="btn-close ms-auto" (click)="clearError()"></button>
+    <div class="sce-error-banner">
+      <span class="material-symbols-outlined">warning_amber</span>
+      <span>{{ error() }}</span>
+      <button class="sce-error-close" (click)="clearError()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
   }
 
-  <!-- ── Header ── -->
-  <div class="page-header d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <h2 class="page-title mb-0">
-        <span class="material-symbols-outlined me-2">assignment_ind</span>Inscripciones
-      </h2>
-      <p class="text-muted mb-0 small">Registro de participantes al Curso de Verano</p>
+  <!-- ── Page header ────────────────────────────────────────────────────── -->
+  <div class="sce-header">
+    <div class="sce-header__left">
+      <div class="sce-header__icon-wrap">
+        <span class="material-symbols-outlined">pool</span>
+      </div>
+      <div>
+        <h1 class="sce-header__title">Inscripciones</h1>
+        <p class="sce-header__subtitle">Curso de Verano — Control de registro</p>
+      </div>
     </div>
-    <div class="d-flex align-items-center gap-3">
-      <!-- Course selector -->
+    <div class="sce-header__actions">
       @if (!loading()) {
-        <select class="form-select form-select-sm" style="min-width:200px"
-                [value]="selectedCourse()?.id ?? ''"
-                (change)="onCourseChange($any($event.target).value)">
-          @for (c of courses(); track c.id) {
-            <option [value]="c.id">{{ c.name }}</option>
-          }
-        </select>
+        <div class="sce-course-select-wrap">
+          <span class="material-symbols-outlined sce-course-select-icon">school</span>
+          <select class="sce-course-select"
+                  [value]="selectedCourse()?.id ?? ''"
+                  (change)="onCourseChange($any($event.target).value)">
+            @for (c of courses(); track c.id) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          </select>
+        </div>
       }
-      <button class="btn btn-primary btn-sm d-flex align-items-center gap-1"
-              (click)="openWizard()" [disabled]="!selectedCourse()">
-        <span class="material-symbols-outlined" style="font-size:16px">person_add</span>
+      <button class="sce-btn sce-btn--primary" (click)="openWizard()" [disabled]="!selectedCourse()">
+        <span class="material-symbols-outlined">person_add</span>
         Nueva inscripción
       </button>
-      <button class="btn btn-outline-secondary btn-sm" (click)="refreshTable()" title="Actualizar">
-        <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
+      <button class="sce-btn sce-btn--icon" (click)="refreshTable()" title="Actualizar lista">
+        <span class="material-symbols-outlined">refresh</span>
       </button>
     </div>
   </div>
 
-  <!-- ── Loading ── -->
+  <!-- ── Loading ────────────────────────────────────────────────────────── -->
   @if (loading()) {
-    <div class="text-center py-5">
-      <div class="spinner-border text-primary"></div>
-      <p class="mt-2 text-muted">Cargando...</p>
+    <div class="sce-loading-state">
+      <div class="sce-spinner"></div>
+      <p>Cargando módulo...</p>
     </div>
   }
 
   @if (!loading()) {
-    <!-- ── KPIs ── -->
-    <div class="kpi-row mb-4">
-      <div class="kpi-card">
-        <span class="kpi-icon material-symbols-outlined">groups</span>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ totalParticipants() }}</span>
-          <span class="kpi-label">Participantes</span>
+
+    <!-- ── KPI strip ───────────────────────────────────────────────────── -->
+    <div class="sce-kpi-strip">
+      <div class="sce-kpi sce-kpi--blue">
+        <span class="sce-kpi__icon material-symbols-outlined">groups</span>
+        <div class="sce-kpi__body">
+          <span class="sce-kpi__value">{{ totalParticipants() }}</span>
+          <span class="sce-kpi__label">Participantes</span>
         </div>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-icon material-symbols-outlined">family_restroom</span>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ registrations().length }}</span>
-          <span class="kpi-label">Familias</span>
+      <div class="sce-kpi sce-kpi--teal">
+        <span class="sce-kpi__icon material-symbols-outlined">family_restroom</span>
+        <div class="sce-kpi__body">
+          <span class="sce-kpi__value">{{ registrations().length }}</span>
+          <span class="sce-kpi__label">Familias</span>
         </div>
       </div>
-      <div class="kpi-card">
-        <span class="kpi-icon material-symbols-outlined">calendar_month</span>
-        <div class="kpi-body">
-          <span class="kpi-value">{{ selectedCourse()?.name ?? '—' }}</span>
-          <span class="kpi-label">Curso activo</span>
+      <div class="sce-kpi sce-kpi--violet">
+        <span class="sce-kpi__icon material-symbols-outlined">event_note</span>
+        <div class="sce-kpi__body">
+          <span class="sce-kpi__value">{{ courseWeeksCount() }}</span>
+          <span class="sce-kpi__label">Semanas</span>
+        </div>
+      </div>
+      <div class="sce-kpi sce-kpi--green">
+        <span class="sce-kpi__icon material-symbols-outlined">layers</span>
+        <div class="sce-kpi__body">
+          <span class="sce-kpi__value">{{ levels().length }}</span>
+          <span class="sce-kpi__label">Niveles</span>
         </div>
       </div>
     </div>
 
-    <!-- ── Search filter ── -->
-    <div class="mb-3">
-      <div class="input-group input-group-sm" style="max-width:320px">
-        <span class="input-group-text"><span class="material-symbols-outlined" style="font-size:16px">search</span></span>
-        <input type="text" class="form-control" placeholder="Filtrar por nombre..."
+    <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
+    <div class="sce-toolbar">
+      <div class="sce-search-box">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" placeholder="Buscar familia o participante..."
                [value]="searchFilter()"
                (input)="searchFilter.set($any($event.target).value)">
+        @if (searchFilter()) {
+          <button (click)="searchFilter.set('')">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        }
       </div>
+      <span class="sce-count-label">
+        {{ filteredRegistrations().length }} familia{{ filteredRegistrations().length !== 1 ? 's' : '' }}
+      </span>
     </div>
 
-    <!-- ── Table ── -->
     @if (tableLoading()) {
-      <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-    } @else if (!filteredRegistrations().length) {
-      <div class="empty-state py-5 text-center">
-        <span class="material-symbols-outlined empty-icon">assignment_ind</span>
-        <p class="text-muted mt-2">No hay inscripciones registradas</p>
-        <button class="btn btn-primary btn-sm mt-2" (click)="openWizard()">Registrar primera inscripción</button>
+      <div class="sce-loading-state sce-loading-state--sm">
+        <div class="sce-spinner sce-spinner--sm"></div>
+        <p>Actualizando...</p>
       </div>
-    } @else {
-      <div class="enrollments-table">
+    }
+
+    @if (!tableLoading() && !filteredRegistrations().length) {
+      <div class="sce-empty">
+        <div class="sce-empty__icon-wrap">
+          <span class="material-symbols-outlined">how_to_reg</span>
+        </div>
+        <h3>Sin inscripciones</h3>
+        <p>No hay participantes registrados en este curso todavía.</p>
+        <button class="sce-btn sce-btn--primary" (click)="openWizard()">
+          <span class="material-symbols-outlined">person_add</span>
+          Registrar primera inscripción
+        </button>
+      </div>
+    }
+
+    @if (!tableLoading() && filteredRegistrations().length) {
+      <div class="sce-accordion">
         @for (group of filteredRegistrations(); track group.titular_id) {
-          <!-- Group header row -->
-          <div class="group-header" (click)="toggleGroup(group.titular_id)">
-            <div class="d-flex align-items-center gap-3">
-              <span class="material-symbols-outlined expand-icon">
-                {{ isExpanded(group.titular_id) ? 'expand_less' : 'expand_more' }}
-              </span>
-              <div class="avatar-circle">{{ (group.titular_name ?? '?').charAt(0) }}</div>
-              <div>
-                <div class="fw-semibold">{{ group.titular_name ?? 'Sin titular' }}</div>
-                <div class="text-muted small">{{ group.participants.length }} participante{{ group.participants.length !== 1 ? 's' : '' }}</div>
+          <div class="sce-group" [class.sce-group--open]="isExpanded(group.titular_id)">
+
+            <div class="sce-group__header" (click)="toggleGroup(group.titular_id)">
+              <div class="sce-group__header-left">
+                <div class="sce-avatar">{{ (group.titular_name ?? '?').charAt(0).toUpperCase() }}</div>
+                <div class="sce-group__info">
+                  <span class="sce-group__name">{{ group.titular_name ?? 'Sin titular' }}</span>
+                  <span class="sce-group__meta">
+                    {{ group.participants.length }} participante{{ group.participants.length !== 1 ? 's' : '' }}
+                    @if (group.enrollment_date) { · {{ group.enrollment_date }} }
+                  </span>
+                </div>
+              </div>
+              <div class="sce-group__header-right">
+                @if (group.master_token) {
+                  <div class="sce-master-token">
+                    <span class="material-symbols-outlined">key</span>
+                    {{ group.master_token }}
+                  </div>
+                }
+                <span class="sce-chevron material-symbols-outlined">
+                  {{ isExpanded(group.titular_id) ? 'expand_less' : 'expand_more' }}
+                </span>
               </div>
             </div>
-            <div class="d-flex align-items-center gap-3">
-              @if (group.master_token) {
-                <span class="token-badge">
-                  <span class="material-symbols-outlined" style="font-size:14px">key</span>
-                  {{ group.master_token }}
-                </span>
-              }
-              <span class="text-muted small">{{ group.enrollment_date }}</span>
-            </div>
-          </div>
 
-          <!-- Participant rows -->
-          @if (isExpanded(group.titular_id)) {
-            @for (p of group.participants; track p.enrollment_id) {
-              <div class="participant-row">
-                <div class="d-flex align-items-center gap-3 ps-5">
-                  <span class="material-symbols-outlined text-muted" style="font-size:18px">person</span>
-                  <div>
-                    <div class="fw-medium">{{ p.full_name }}</div>
-                    <div class="text-muted small">{{ typeLabel(p.participant_type) }}</div>
+            @if (isExpanded(group.titular_id)) {
+              <div class="sce-group__body">
+                @for (p of group.participants; track p.enrollment_id) {
+                  <div class="sce-participant-row">
+                    <div class="sce-participant-row__left">
+                      <span class="material-symbols-outlined sce-participant-icon">person</span>
+                      <div>
+                        <span class="sce-participant-name">{{ p.full_name }}</span>
+                        <span class="sce-participant-type">{{ typeLabel(p.participant_type) }}</span>
+                      </div>
+                    </div>
+                    <div class="sce-participant-row__right">
+                      @if (levelByNumber(p.assigned_level); as lvl) {
+                        <span class="sce-level-badge sce-level-badge--{{ lvl.level_number }}"
+                              [title]="'Rango: ' + lvl.age_label">
+                          <span class="sce-level-badge__roman">Nivel {{ lvl.roman }}</span>
+                          <span class="sce-level-badge__age">{{ lvl.age_label }}</span>
+                        </span>
+                      } @else if (p.assigned_level) {
+                        <span class="sce-level-badge sce-level-badge--{{ p.assigned_level }}">
+                          Nivel {{ p.assigned_level }}
+                        </span>
+                      }
+                      <span class="sce-weeks-range">
+                        <span class="material-symbols-outlined">date_range</span>
+                        {{ weekRange(p.weeks) }}
+                      </span>
+                      <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}">
+                        {{ paymentLabel(p.payment_status) }}
+                      </span>
+                      @if (p.access_code) {
+                        <span class="sce-access-code">
+                          <span class="material-symbols-outlined">qr_code_2</span>
+                          {{ p.access_code }}
+                        </span>
+                      }
+                    </div>
                   </div>
-                </div>
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                  <span class="weeks-badge">{{ weekRange(p.weeks) }}</span>
-                  <span class="badge {{ paymentClass(p.payment_status) }}">{{ paymentLabel(p.payment_status) }}</span>
-                  @if (p.access_code) {
-                    <span class="access-code">
-                      <span class="material-symbols-outlined" style="font-size:13px">qr_code_2</span>
-                      {{ p.access_code }}
-                    </span>
-                  }
-                </div>
+                }
               </div>
             }
-          }
+          </div>
         }
       </div>
     }
   }
 </div>
 
-<!-- ══════════════════════════════════════════════════════════
-     WIZARD MODAL
-══════════════════════════════════════════════════════════ -->
+<!-- WIZARD -->
 @if (wizardOpen()) {
-  <div class="modal-backdrop" (click)="closeWizard()"></div>
-  <div class="wizard-modal">
+  <div class="wz-overlay" (click)="closeWizard()"></div>
+  <div class="wz-modal">
 
-    <!-- Header -->
-    <div class="wizard-header">
-      <div class="d-flex align-items-center gap-2">
-        <span class="material-symbols-outlined">person_add</span>
-        <span class="fw-semibold">Nueva Inscripción</span>
-        @if (selectedCourse()) {
-          <span class="badge bg-primary ms-1">{{ selectedCourse()!.name }}</span>
-        }
+    <div class="wz-header">
+      <div class="wz-header__left">
+        <div class="wz-header__icon">
+          <span class="material-symbols-outlined">person_add</span>
+        </div>
+        <div>
+          <span class="wz-header__title">Nueva Inscripción</span>
+          @if (selectedCourse()) {
+            <span class="wz-course-chip">{{ selectedCourse()!.name }}</span>
+          }
+        </div>
       </div>
-      <button class="btn-close" (click)="closeWizard()"></button>
+      <button class="wz-close" (click)="closeWizard()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
     </div>
 
-    <!-- Step indicator -->
     @if (wizardStep() !== 'done') {
-      <div class="step-indicator">
-        <div class="step" [class.active]="wizardStep() === 'search'" [class.done]="wizardStep() !== 'search'">
-          <span class="step-num">1</span><span class="step-label">Buscar titular</span>
+      <div class="wz-steps">
+        <div class="wz-step"
+             [class.wz-step--active]="wizardStep() === 'search'"
+             [class.wz-step--done]="wizardStep() === 'participants' || wizardStep() === 'confirm'">
+          <div class="wz-step__bubble">
+            @if (wizardStep() === 'participants' || wizardStep() === 'confirm') {
+              <span class="material-symbols-outlined" style="font-size:14px">check</span>
+            } @else { 1 }
+          </div>
+          <span class="wz-step__label">Titular</span>
         </div>
-        <div class="step-line"></div>
-        <div class="step" [class.active]="wizardStep() === 'participants'" [class.done]="wizardStep() === 'confirm'">
-          <span class="step-num">2</span><span class="step-label">Participantes</span>
+        <div class="wz-step-track" [class.wz-step-track--done]="wizardStep() === 'participants' || wizardStep() === 'confirm'"></div>
+        <div class="wz-step"
+             [class.wz-step--active]="wizardStep() === 'participants'"
+             [class.wz-step--done]="wizardStep() === 'confirm'">
+          <div class="wz-step__bubble">
+            @if (wizardStep() === 'confirm') {
+              <span class="material-symbols-outlined" style="font-size:14px">check</span>
+            } @else { 2 }
+          </div>
+          <span class="wz-step__label">Participantes</span>
         </div>
-        <div class="step-line"></div>
-        <div class="step" [class.active]="wizardStep() === 'confirm'">
-          <span class="step-num">3</span><span class="step-label">Confirmar</span>
+        <div class="wz-step-track" [class.wz-step-track--done]="wizardStep() === 'confirm'"></div>
+        <div class="wz-step" [class.wz-step--active]="wizardStep() === 'confirm'">
+          <div class="wz-step__bubble">3</div>
+          <span class="wz-step__label">Confirmar</span>
         </div>
       </div>
     }
 
-    <!-- Body -->
-    <div class="wizard-body">
+    <div class="wz-body">
 
-      <!-- ── STEP 1: Search ── -->
+      <!-- STEP 1 -->
       @if (wizardStep() === 'search') {
-        <h5 class="mb-3">Buscar socio titular</h5>
-        <div class="input-group mb-3">
-          <span class="input-group-text"><span class="material-symbols-outlined" style="font-size:16px">search</span></span>
-          <input type="text" class="form-control" placeholder="Nombre o número de membresía..."
+        <div class="wz-section-title">
+          <span class="material-symbols-outlined">manage_search</span>
+          Buscar socio titular
+        </div>
+        <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.</p>
+        <div class="wz-search-field" [class.wz-search-field--loading]="searching()">
+          <span class="material-symbols-outlined">search</span>
+          <input type="text" placeholder="Ej: Juan García o membresía 10005..."
                  [value]="searchQuery()"
                  (input)="onSearchInput($any($event.target).value)"
                  autofocus>
-          @if (searching()) {
-            <span class="input-group-text"><div class="spinner-border spinner-border-sm"></div></span>
-          }
+          @if (searching()) { <div class="wz-search-spinner"></div> }
         </div>
-
         @if (searchResults().length) {
-          <div class="search-results">
+          <div class="wz-results">
             @for (s of searchResults(); track s.id) {
-              <div class="search-result-item" (click)="selectTitular(s)">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="avatar-circle avatar-sm">{{ s.fullName.charAt(0) }}</div>
-                  <div>
-                    <div class="fw-medium">{{ s.fullName }}</div>
-                    <div class="text-muted small">
-                      Membresía: {{ s.membershipNumber }}
-                      @if (s.age !== null) { · {{ s.age }} años }
-                      · {{ s.family.length }} dependiente{{ s.family.length !== 1 ? 's' : '' }}
-                    </div>
-                  </div>
+              <div class="wz-result-card" (click)="selectTitular(s)">
+                <div class="wz-result-card__avatar">{{ s.fullName.charAt(0).toUpperCase() }}</div>
+                <div class="wz-result-card__info">
+                  <span class="wz-result-card__name">{{ s.fullName }}</span>
+                  <span class="wz-result-card__meta">
+                    Membresía {{ s.membershipNumber }}
+                    @if (s.age !== null) { · {{ s.age }} años }
+                    · {{ s.family.length }} familiar{{ s.family.length !== 1 ? 'es' : '' }}
+                  </span>
                 </div>
-                @if (s.enrolled) {
-                  <span class="badge bg-success ms-auto">Ya inscrito</span>
-                }
+                <div class="wz-result-card__badges">
+                  @if (s.enrolled) {
+                    <span class="wz-chip wz-chip--enrolled">
+                      <span class="material-symbols-outlined" style="font-size:13px">check_circle</span>
+                      Inscrito
+                    </span>
+                  }
+                  @if (_isOutOfRange(s.age)) {
+                    <span class="wz-chip wz-chip--out-of-range">
+                      <span class="material-symbols-outlined" style="font-size:13px">block</span>
+                      Fuera de rango
+                    </span>
+                  }
+                  @if (!_isOutOfRange(s.age)) {
+                    @if (_getLevelForAge(s.age); as lvl) {
+                      <span class="wz-level-pill wz-level-pill--{{ lvl.level_number }}"
+                            [title]="'Nivel ' + lvl.roman + ' · ' + lvl.age_label">
+                        {{ lvl.roman }}
+                      </span>
+                    }
+                  }
+                  <span class="material-symbols-outlined sce-chevron">chevron_right</span>
+                </div>
               </div>
             }
           </div>
         } @else if (searchQuery().length >= 2 && !searching()) {
-          <p class="text-muted text-center mt-3">No se encontraron resultados</p>
+          <div class="wz-no-results">
+            <span class="material-symbols-outlined">person_search</span>
+            <p>Sin resultados para "{{ searchQuery() }}"</p>
+          </div>
         }
       }
 
-      <!-- ── STEP 2: Participants ── -->
+      <!-- STEP 2 -->
       @if (wizardStep() === 'participants') {
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <button class="btn btn-link p-0 text-secondary" (click)="backToSearch()">
+        <div class="wz-step-header">
+          <button class="wz-back-btn" (click)="backToSearch()">
             <span class="material-symbols-outlined">arrow_back</span>
           </button>
-          <h5 class="mb-0">Seleccionar participantes y semanas</h5>
+          <div class="wz-section-title">
+            <span class="material-symbols-outlined">groups</span>
+            Participantes y semanas
+          </div>
         </div>
+        <p class="wz-hint">Toca los chips de semana para activar/desactivar. Los ya inscritos están bloqueados.</p>
 
         @if (!courseWeeks.length) {
-          <div class="alert alert-warning">El curso seleccionado no tiene semanas configuradas.</div>
+          <div class="wz-alert wz-alert--warning">
+            <span class="material-symbols-outlined">warning</span>
+            El curso no tiene semanas configuradas todavía.
+          </div>
         }
 
-        <div class="participants-table">
-          <div class="participants-head">
-            <div>Participante</div>
+        @if (courseWeeks.length) {
+          <div class="wz-week-header-row">
+            <div class="wz-week-header-spacer">Participante</div>
             @for (w of courseWeeks; track w.id) {
-              <div class="week-col text-center">{{ w.label }}</div>
+              <div class="wz-week-header-cell">{{ w.label }}</div>
             }
             <div></div>
           </div>
+        }
 
+        <div class="wz-participants-grid">
           @for (p of pendingParticipants(); track p.socio_id; let i = $index) {
-            <div class="participant-config-row" [class.already-enrolled]="p.alreadyEnrolled">
-              <div class="p-name">
-                <span class="fw-medium">{{ p.fullName }}</span>
-                <span class="text-muted small ms-1">{{ p.memberType }}</span>
-                @if (p.age !== null) { <span class="text-muted small"> · {{ p.age }}a</span> }
-                @if (p.alreadyEnrolled) {
-                  <span class="badge bg-warning ms-1" title="Ya inscrito">✓ inscrito</span>
-                }
+            <div class="wz-p-row"
+                     [class.wz-p-row--enrolled]="p.alreadyEnrolled"
+                     [class.wz-p-row--out-of-range]="p.outOfRange">
+              <div class="wz-p-row__info">
+                <div class="wz-p-avatar" [class.wz-p-avatar--gray]="p.outOfRange">{{ p.fullName.charAt(0).toUpperCase() }}</div>
+                <div class="wz-p-details">
+                  <span class="wz-p-name">{{ p.fullName }}</span>
+                  <div class="wz-p-meta">
+                    @if (p.age !== null) { <span>{{ p.age }} años</span> }
+                    @if (p.outOfRange) {
+                      <span class="wz-chip wz-chip--out-of-range wz-chip--xs">
+                        <span class="material-symbols-outlined" style="font-size:11px">block</span>
+                        Fuera de rango (3–15 años)
+                      </span>
+                    } @else if (p.suggestedLevel) {
+                      <span class="wz-level-pill wz-level-pill--{{ p.suggestedLevel.level_number }}"
+                            [title]="'Nivel ' + p.suggestedLevel.roman + ' · ' + p.suggestedLevel.age_label">
+                        Niv. {{ p.suggestedLevel.roman }}
+                      </span>
+                    }
+                    @if (p.alreadyEnrolled) {
+                      <span class="wz-chip wz-chip--enrolled wz-chip--xs">Ya inscrito</span>
+                    }
+                  </div>
+                </div>
               </div>
               @for (w of courseWeeks; track w.id) {
-                <div class="week-col text-center">
-                  <input type="checkbox"
-                         [checked]="isWeekSelected(i, w.week_number)"
-                         [disabled]="p.alreadyEnrolled"
-                         (change)="toggleWeek(i, w.week_number)">
-                </div>
-              }
-              <div>
-                <button class="btn btn-sm btn-link text-danger p-0" (click)="removeParticipant(i)" title="Quitar">
-                  <span class="material-symbols-outlined" style="font-size:16px">close</span>
+                <button class="wz-week-chip"
+                        [class.wz-week-chip--on]="isWeekSelected(i, w.week_number)"
+                        [disabled]="p.alreadyEnrolled || p.outOfRange"
+                        (click)="toggleWeek(i, w.week_number)"
+                        [title]="w.label">
+                  {{ w.week_number }}
                 </button>
-              </div>
+              }
+              <button class="wz-remove-btn" (click)="removeParticipant(i)"
+                      [disabled]="p.alreadyEnrolled || p.outOfRange" title="Quitar">
+                <span class="material-symbols-outlined">close</span>
+              </button>
             </div>
           }
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-3">
-          <span class="text-muted small">
-            {{ activePending.length }} participante{{ activePending.length !== 1 ? 's' : '' }} con semanas seleccionadas
+        <div class="wz-step2-footer">
+          <span class="wz-count-info">
+            <span class="material-symbols-outlined">check_circle</span>
+            {{ activePending.length }} con semanas seleccionadas
           </span>
-          <button class="btn btn-primary btn-sm" (click)="goToConfirm()" [disabled]="!canConfirm()">
-            Continuar <span class="material-symbols-outlined ms-1" style="font-size:14px">arrow_forward</span>
+          <button class="sce-btn sce-btn--primary" (click)="goToConfirm()" [disabled]="!canConfirm()">
+            Continuar
+            <span class="material-symbols-outlined">arrow_forward</span>
           </button>
         </div>
       }
 
-      <!-- ── STEP 3: Confirm ── -->
+      <!-- STEP 3 -->
       @if (wizardStep() === 'confirm') {
-        <div class="d-flex align-items-center gap-2 mb-3">
-          <button class="btn btn-link p-0 text-secondary" (click)="backToParticipants()">
+        <div class="wz-step-header">
+          <button class="wz-back-btn" (click)="backToParticipants()">
             <span class="material-symbols-outlined">arrow_back</span>
           </button>
-          <h5 class="mb-0">Confirmar inscripción</h5>
-        </div>
-
-        <div class="confirm-summary">
-          <div class="summary-block">
-            <span class="summary-label">Titular</span>
-            <span class="summary-value">{{ selectedTitular()?.fullName }}</span>
-          </div>
-          <div class="summary-block">
-            <span class="summary-label">Curso</span>
-            <span class="summary-value">{{ selectedCourse()?.name }}</span>
+          <div class="wz-section-title">
+            <span class="material-symbols-outlined">fact_check</span>
+            Confirmar inscripción
           </div>
         </div>
-
-        <table class="table table-sm mt-3">
-          <thead>
-            <tr>
-              <th>Participante</th>
-              <th>Tipo</th>
-              <th>Semanas</th>
-              <th class="text-end">Costo</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of activePending; track p.socio_id) {
+        <div class="wz-summary-strip">
+          <div class="wz-summary-item">
+            <span class="wz-summary-item__label">Titular</span>
+            <span class="wz-summary-item__value">{{ selectedTitular()?.fullName }}</span>
+          </div>
+          <div class="wz-summary-item">
+            <span class="wz-summary-item__label">Curso</span>
+            <span class="wz-summary-item__value">{{ selectedCourse()?.name }}</span>
+          </div>
+          <div class="wz-summary-item">
+            <span class="wz-summary-item__label">Participantes</span>
+            <span class="wz-summary-item__value">{{ activePending.length }}</span>
+          </div>
+        </div>
+        <div class="wz-confirm-table-wrap">
+          <table class="wz-confirm-table">
+            <thead>
               <tr>
-                <td>{{ p.fullName }}</td>
-                <td>{{ typeLabel(p.type) }}</td>
-                <td>{{ p.weeks.length }} semana{{ p.weeks.length !== 1 ? 's' : '' }}</td>
-                <td class="text-end">{{ currency(participantCost(p)) }}</td>
+                <th>Participante</th>
+                <th>Nivel</th>
+                <th>Tipo</th>
+                <th>Semanas</th>
+                <th class="ta-right">Costo</th>
               </tr>
-            }
-          </tbody>
-          <tfoot>
-            <tr class="fw-bold">
-              <td colspan="3">Total</td>
-              <td class="text-end text-primary">{{ currency(totalAmount()) }}</td>
-            </tr>
-          </tfoot>
-        </table>
-
-        <div class="d-flex justify-content-end mt-3">
-          <button class="btn btn-success d-flex align-items-center gap-2"
-                  (click)="saveRegistration()" [disabled]="saving()">
+            </thead>
+            <tbody>
+              @for (p of activePending; track p.socio_id) {
+                <tr>
+                  <td>
+                    <div class="wz-confirm-p">
+                      <div class="wz-p-avatar wz-p-avatar--sm">{{ p.fullName.charAt(0) }}</div>
+                      {{ p.fullName }}
+                    </div>
+                  </td>
+                  <td>
+                    @if (p.suggestedLevel) {
+                      <span class="wz-level-pill wz-level-pill--{{ p.suggestedLevel.level_number }}">
+                        {{ p.suggestedLevel.roman }}
+                      </span>
+                    } @else { — }
+                  </td>
+                  <td>{{ typeLabel(p.type) }}</td>
+                  <td><span class="wz-weeks-count">{{ p.weeks.length }} sem.</span></td>
+                  <td class="ta-right wz-cost">{{ currency(participantCost(p)) }}</td>
+                </tr>
+              }
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="wz-total-label">Total</td>
+                <td class="ta-right wz-total-value">{{ currency(totalAmount()) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        <div class="wz-confirm-actions">
+          <button class="sce-btn sce-btn--success" (click)="saveRegistration()" [disabled]="saving()">
             @if (saving()) {
-              <div class="spinner-border spinner-border-sm"></div>
+              <div class="sce-spinner sce-spinner--sm sce-spinner--white"></div>
+              Guardando...
             } @else {
               <span class="material-symbols-outlined">check_circle</span>
+              Confirmar inscripción
             }
-            {{ saving() ? 'Guardando...' : 'Confirmar inscripción' }}
           </button>
         </div>
       }
 
-      <!-- ── DONE ── -->
+      <!-- DONE -->
       @if (wizardStep() === 'done') {
-        <div class="done-screen text-center py-4">
-          <span class="material-symbols-outlined done-icon text-success">check_circle</span>
-          <h4 class="mt-3">¡Inscripción completada!</h4>
-
+        <div class="wz-done">
+          <div class="wz-done__anim">
+            <span class="material-symbols-outlined wz-done__icon">check_circle</span>
+          </div>
+          <h2 class="wz-done__title">¡Inscripción exitosa!</h2>
+          <p class="wz-done__sub">Los participantes han sido registrados correctamente.</p>
           @if (registrationResult()) {
-            <div class="token-display mt-3">
-              <div class="token-label">Token Maestro (recogida)</div>
-              <div class="token-value">{{ registrationResult().master_token }}</div>
+            <div class="wz-token-master">
+              <div class="wz-token-master__eyebrow">
+                <span class="material-symbols-outlined">key</span>
+                Token maestro de recogida
+              </div>
+              <div class="wz-token-master__code">{{ registrationResult().master_token }}</div>
+              <div class="wz-token-master__hint">Presenta este código para recoger a todos los participantes</div>
             </div>
-
             @if (registrationResult().pick_up_tokens?.length) {
-              <div class="individual-tokens mt-3">
-                <div class="fw-semibold mb-2">Tokens individuales:</div>
+              <div class="wz-token-list">
+                <div class="wz-token-list__title">Tokens individuales</div>
                 @for (t of registrationResult().pick_up_tokens; track t.participantId) {
-                  <div class="d-flex justify-content-between align-items-center individual-token-row">
-                    <span>{{ t.participantName }}</span>
-                    <span class="access-code">{{ t.accessCode }}</span>
+                  <div class="wz-token-item">
+                    <span class="wz-token-item__name">
+                      <span class="material-symbols-outlined">person</span>
+                      {{ t.participantName }}
+                    </span>
+                    <code class="wz-token-item__code">{{ t.accessCode }}</code>
                   </div>
                 }
               </div>
             }
           }
-
-          <button class="btn btn-primary mt-4" (click)="closeWizard()">Cerrar</button>
+          <button class="sce-btn sce-btn--primary wz-done__cta" (click)="closeWizard()">
+            <span class="material-symbols-outlined">close</span>
+            Cerrar
+          </button>
         </div>
       }
 

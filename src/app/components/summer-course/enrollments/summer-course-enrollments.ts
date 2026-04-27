@@ -14,6 +14,7 @@ import { ScRegistrationsService } from '../../../services/summer-course/sc-regis
 import { ScCoursesService } from '../../../services/summer-course/sc-courses.service';
 import {
   ScCourse,
+  ScLevel,
   ScRegistrationGroup,
   ScSocioSearchResult,
   ScRegistrationParticipant,
@@ -32,6 +33,8 @@ interface PendingParticipant {
   age: number | null;
   memberType: string;
   alreadyEnrolled: boolean;
+  suggestedLevel: ScLevel | null;
+  outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
 }
 
 @Component({
@@ -83,6 +86,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   selectedTitular    = signal<ScSocioSearchResult | null>(null);
   pendingParticipants = signal<PendingParticipant[]>([]);
   costs              = signal<ScCostWithTotal[]>([]);
+  levels             = signal<ScLevel[]>([]);
   saving             = signal(false);
   registrationResult = signal<any>(null);
 
@@ -94,7 +98,17 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       .reduce((sum, p) => sum + this._getCost(p.type, p.weeks.length), 0)
   );
 
+  courseWeeksCount = computed(() => this.selectedCourse()?.sc_weeks?.length ?? 0);
+
   readonly participantTypes = SC_PARTICIPANT_TYPES;
+
+  readonly MIN_AGE = 3;
+  readonly MAX_AGE = 15;
+
+  _isOutOfRange(age: number | null): boolean {
+    if (age === null) return true;
+    return age < this.MIN_AGE || age > this.MAX_AGE;
+  }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -177,11 +191,22 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       next: res => this.costs.set(res.data ?? []),
       error: () => {},
     });
+    this.svc.getLevels().subscribe({
+      next: res => this.levels.set(res.data ?? []),
+      error: () => {},
+    });
   }
 
   onSearchInput(val: string): void {
     this.searchQuery.set(val);
     this.search$.next(val);
+  }
+
+  _getLevelForAge(age: number | null): ScLevel | null {
+    if (age === null) return null;
+    return this.levels().find(l =>
+      l.min_age <= age && (l.max_age === null || l.max_age >= age)
+    ) ?? null;
   }
 
   selectTitular(s: ScSocioSearchResult): void {
@@ -192,11 +217,15 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       socio_id: s.id, fullName: s.fullName, type: 'member',
       weeks: [], birth_date: s.birth_date, age: s.age,
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
+      suggestedLevel: this._getLevelForAge(s.age),
+      outOfRange: this._isOutOfRange(s.age),
     };
     const family: PendingParticipant[] = s.family.map(f => ({
       socio_id: f.id, fullName: f.fullName, type: 'member' as const,
       weeks: [], birth_date: f.birth_date, age: f.age,
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
+      suggestedLevel: this._getLevelForAge(f.age),
+      outOfRange: this._isOutOfRange(f.age),
     }));
     this.pendingParticipants.set([titular, ...family]);
     this.wizardStep.set('participants');
@@ -208,6 +237,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   get courseWeeks() { return this.selectedCourse()?.sc_weeks ?? []; }
 
   toggleWeek(pIdx: number, weekNum: number): void {
+    const p = this.pendingParticipants()[pIdx];
+    if (p?.alreadyEnrolled || p?.outOfRange) return;
     this.pendingParticipants.update(list => {
       const updated = [...list];
       const p = { ...updated[pIdx] };
@@ -228,7 +259,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   get activePending(): PendingParticipant[] {
-    return this.pendingParticipants().filter(p => p.weeks.length > 0);
+    return this.pendingParticipants().filter(p => p.weeks.length > 0 && !p.outOfRange);
   }
 
   canConfirm(): boolean { return this.activePending.length > 0; }
@@ -260,10 +291,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       course_id:    course.id,
       total_amount: this.totalAmount(),
       participants: this.activePending.map(p => ({
-        socio_id:   p.socio_id,
-        type:       p.type,
-        weeks:      p.weeks,
-        birth_date: p.birth_date,
+        socio_id:        p.socio_id,
+        type:            p.type,
+        weeks:           p.weeks,
+        birth_date:      p.birth_date,
+        suggested_level: p.suggestedLevel?.level_number ?? null,
       })),
     };
 
@@ -311,4 +343,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   clearError(): void { this.error.set(null); }
+
+  levelByNumber(n: number | null | undefined): ScLevel | null {
+    if (n == null) return null;
+    return this.levels().find(l => l.level_number === n) ?? null;
+  }
 }

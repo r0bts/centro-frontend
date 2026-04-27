@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
@@ -123,11 +123,12 @@ export class AuthService {
         this.clearSession();
         this.router.navigate(['/login']);
       }),
-      catchError(error => {
-        // Si hay error en la API, igual limpiar la sesión local
+      catchError(_error => {
+        // Si hay error en la API (ej. token ya inválido), igual limpiar sesión local
         this.clearSession();
         this.router.navigate(['/login']);
-        return throwError(() => error);
+        // No propagar el error: el logout local ya fue exitoso
+        return of({ success: true, message: 'Local logout completed' });
       })
     );
   }

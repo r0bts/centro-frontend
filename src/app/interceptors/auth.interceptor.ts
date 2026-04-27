@@ -16,9 +16,14 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     req = addToken(req, authToken);
   }
 
+  // Nunca intentar refresh en endpoints de auth (evita ciclo infinito)
+  const isAuthEndpoint = req.url.includes('/auth/logout') ||
+                         req.url.includes('/auth/refresh') ||
+                         req.url.includes('/auth/login');
+
   return next(req).pipe(
     catchError(error => {
-      if (error instanceof HttpErrorResponse && error.status === 401) {
+      if (error instanceof HttpErrorResponse && error.status === 401 && !isAuthEndpoint) {
         return handle401Error(req, next, authService);
       }
       return throwError(() => error);
