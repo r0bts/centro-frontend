@@ -16,23 +16,25 @@
     <!-- ── Stepper ── -->
     <div class="cw-stepper">
       <div class="cw-stepper__bar">
-        <div class="cw-stepper__progress" [style.width.%]="((step() - 1) / 2) * 100"></div>
+        <div class="cw-stepper__progress"
+             [style.width.%]="isEdit ? (step() === 1 ? 0 : 100) : ((step() - 1) / 2) * 100">
+        </div>
       </div>
       <div class="cw-stepper__steps">
-        @for (s of [1, 2, 3]; track s) {
+        @for (s of (isEdit ? [1, 3] : [1, 2, 3]); track s) {
           <button
             class="cw-step"
             [class.active]="step() === s"
-            [class.done]="step() > s"
+            [class.done]="isEdit ? (s === 1 && step() > 1) : step() > s"
             type="button"
-            [disabled]="s > step()"
-            (click)="s < step() ? step.set($any(s)) : null"
+            [disabled]="isEdit ? (s === 3 && step() < 3) : s > step()"
+            (click)="isEdit ? (s === 1 && step() > 1 ? step.set(1) : null) : (s < step() ? step.set($any(s)) : null)"
           >
             <span class="cw-step__dot">
-              @if (step() > s) {
+              @if (isEdit ? (s === 1 && step() > 1) : step() > s) {
                 <i class="bi bi-check"></i>
               } @else {
-                {{ s }}
+                {{ isEdit ? (s === 1 ? 1 : 2) : s }}
               }
             </span>
             <span class="cw-step__label">
@@ -120,6 +122,23 @@
                       [value]="description()"
                       (input)="description.set($any($event.target).value)"></textarea>
           </div>
+
+          @if (isEdit) {
+            <div class="col-12">
+              <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-3" style="background:#f0fdf4; border:1px solid #bbf7d0">
+                <i class="bi bi-calendar-week text-success"></i>
+                @if (loadingWeeks()) {
+                  <span class="spinner-border spinner-border-sm text-success"></span>
+                  <span class="small text-muted">Cargando semanas...</span>
+                } @else if (editWeeks().length) {
+                  <span class="small text-success fw-semibold">{{ editWeeks().length }} semana{{ editWeeks().length === 1 ? '' : 's' }} registradas</span>
+                  <span class="small text-muted ms-1">· {{ editWeeks()[0].start_date | date:'dd MMM' }} → {{ editWeeks()[editWeeks().length - 1].end_date | date:'dd MMM yyyy' }}</span>
+                } @else {
+                  <span class="small text-muted">Sin semanas registradas aún</span>
+                }
+              </div>
+            </div>
+          }
 
         </div>
       </div>

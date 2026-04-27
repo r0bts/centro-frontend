@@ -208,13 +208,17 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   nextStep(): void {
     if (this.step() === 1) {
       if (!this.validateStep1()) return;
-      if (!this.isEdit) {
+      if (this.isEdit) {
+        // En edición: saltar directamente a Tarifas (step 3)
+        this._resizeCostMatrix(this.editWeeks().length || 1);
+        this.step.set(3);
+      } else {
         this.buildWeeksPreview();
         const clamped = Math.min(this.weeks_count(), this.maxWeeks());
         if (clamped !== this.weeks_count()) this.weeks_count.set(clamped);
         this._resizeCostMatrix(clamped);
+        this.step.set(2);
       }
-      this.step.set(2);
     } else if (this.step() === 2) {
       if (!this.isEdit) this._resizeCostMatrix(this.weeks_count());
       this.step.set(3);
@@ -222,7 +226,11 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   }
 
   prevStep(): void {
-    if (this.step() > 1) this.step.set((this.step() - 1) as WizardStep);
+    if (this.step() === 3 && this.isEdit) {
+      this.step.set(1);
+    } else if (this.step() > 1) {
+      this.step.set((this.step() - 1) as WizardStep);
+    }
   }
 
   // ── Validation ───────────────────────────────────────────────────────────

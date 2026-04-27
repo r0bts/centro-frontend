@@ -463,4 +463,105 @@ export interface UpdateScInstructorRequest {
   specialty?: string | null;
 }
 
+// =====================================================================
+// INSCRIPCIONES (registration flow)
+// =====================================================================
 
+/** Socio buscado en el wizard de inscripción */
+export interface ScSocioSearchResult {
+  id: string;
+  fullName: string;
+  membershipNumber: string;
+  birth_date: string | null;
+  age: number | null;
+  enrolled: boolean;            // ya inscrito en el curso seleccionado
+  family: ScSocioFamilyMember[];
+}
+
+export interface ScSocioFamilyMember {
+  id: string;
+  fullName: string;
+  memberType: string;           // Parentesco
+  birth_date: string | null;
+  age: number | null;
+  enrolled: boolean;
+}
+
+/** Participante a inscribir (paso 2 del wizard) */
+export interface ScRegistrationParticipant {
+  socio_id: string | null;
+  fullName: string;
+  type: 'member' | 'guest' | 'staff' | 'staff_guest';
+  weeks: number[];              // week_numbers seleccionados
+  birth_date?: string | null;
+}
+
+/** Payload para POST /registration */
+export interface ScRegistrationRequest {
+  titular_id: string | number;
+  course_id: number;
+  total_amount: number;
+  participants: ScRegistrationParticipant[];
+}
+
+/** Respuesta de POST /registration */
+export interface ScRegistrationResponse {
+  success: boolean;
+  message: string;
+  data: {
+    sales_order_id: string;
+    course_id: number;
+    registration_id: number;
+    master_token: string;
+    pick_up_tokens: Array<{
+      participantId: string;
+      participantName: string;
+      accessCode: string;
+    }>;
+  };
+}
+
+/** Participante inscrito en el listado admin */
+export interface ScRegisteredParticipant {
+  enrollment_id: number;
+  participant_id: number;
+  full_name: string;
+  participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
+  socio_id: number | null;
+  birth_date: string | null;
+  weeks: Array<{ week_number: number; label: string }>;
+  payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
+  access_code: string | null;
+}
+
+/** Grupo de inscripción agrupado por titular */
+export interface ScRegistrationGroup {
+  titular_id: string | null;
+  titular_name: string | null;
+  master_token: string | null;
+  enrollment_date: string | null;
+  participants: ScRegisteredParticipant[];
+}
+
+/** Respuesta de GET /registrations */
+export interface ScRegistrationsListResponse {
+  success: boolean;
+  data: ScRegistrationGroup[];
+}
+
+/** Respuesta de GET /search-socios */
+export interface ScSocioSearchResponse {
+  success: boolean;
+  data: ScSocioSearchResult[];
+}
+
+/** Costos con total calculado */
+export interface ScCostWithTotal extends ScCost {
+  total: number;
+}
+
+/** Respuesta de GET /costs */
+export interface ScCostsResponse {
+  success: boolean;
+  data: ScCostWithTotal[];
+}

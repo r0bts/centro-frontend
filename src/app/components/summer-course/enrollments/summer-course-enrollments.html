@@ -1,311 +1,388 @@
 <div class="sc-enrollments">
 
-  <!-- ── Header ── -->
-  <div class="page-header d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <h4 class="mb-0 fw-bold">
-        <span class="me-2">📋</span>Inscripciones
-      </h4>
-      <small class="text-muted">Gestión de inscripciones a cursos de verano</small>
+  <!-- ── Toast ── -->
+  @if (toast()) {
+    <div class="toast-banner toast-{{ toastType() }}">
+      <span class="material-symbols-outlined">{{ toastType() === 'success' ? 'check_circle' : toastType() === 'info' ? 'info' : 'error' }}</span>
+      {{ toast() }}
     </div>
-    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openForm()">
-      <i class="bi bi-plus-lg"></i>Nueva inscripción
-    </button>
-  </div>
-
-  <!-- ── Filters ── -->
-  <div class="filters-bar d-flex align-items-center gap-2 flex-wrap mb-3">
-    <select class="form-select form-select-sm w-auto"
-            [value]="filterCourse()"
-            (change)="filterCourse.set(+$any($event.target).value)">
-      <option value="0">Todos los cursos</option>
-      @for (c of courses(); track c.id) {
-        <option [value]="c.id">{{ c.name }}</option>
-      }
-    </select>
-
-    <select class="form-select form-select-sm w-auto"
-            [value]="filterStatus()"
-            (change)="filterStatus.set($any($event.target).value)">
-      <option value="">Todos los estados</option>
-      @for (s of paymentStatuses; track s.value) {
-        <option [value]="s.value">{{ s.label }}</option>
-      }
-    </select>
-
-    <span class="text-muted small ms-auto">
-      {{ filteredEnrollments().length }} inscripciones
-    </span>
-  </div>
+  }
 
   <!-- ── Error ── -->
   @if (error()) {
-    <div class="alert alert-danger d-flex align-items-center gap-2 py-2">
-      <i class="bi bi-exclamation-triangle-fill"></i>
-      <span>{{ error() }}</span>
+    <div class="alert alert-danger d-flex align-items-center gap-2 mb-3">
+      <span class="material-symbols-outlined">warning</span>
+      {{ error() }}
       <button class="btn-close ms-auto" (click)="clearError()"></button>
     </div>
   }
 
-  <!-- ── Toast ── -->
-  @if (toast()) {
-    <div class="toast-wrapper position-fixed bottom-0 end-0 p-3" style="z-index:1100">
-      <div class="toast show align-items-center border-0"
-           [class]="toastType() === 'success' ? 'text-bg-success' : 'text-bg-danger'">
-        <div class="d-flex">
-          <div class="toast-body d-flex align-items-center gap-2">
-            <i [class]="toastType() === 'success' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'"></i>
-            {{ toast() }}
-          </div>
-        </div>
-      </div>
+  <!-- ── Header ── -->
+  <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="page-title mb-0">
+        <span class="material-symbols-outlined me-2">assignment_ind</span>Inscripciones
+      </h2>
+      <p class="text-muted mb-0 small">Registro de participantes al Curso de Verano</p>
     </div>
-  }
+    <div class="d-flex align-items-center gap-3">
+      <!-- Course selector -->
+      @if (!loading()) {
+        <select class="form-select form-select-sm" style="min-width:200px"
+                [value]="selectedCourse()?.id ?? ''"
+                (change)="onCourseChange($any($event.target).value)">
+          @for (c of courses(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      }
+      <button class="btn btn-primary btn-sm d-flex align-items-center gap-1"
+              (click)="openWizard()" [disabled]="!selectedCourse()">
+        <span class="material-symbols-outlined" style="font-size:16px">person_add</span>
+        Nueva inscripción
+      </button>
+      <button class="btn btn-outline-secondary btn-sm" (click)="refreshTable()" title="Actualizar">
+        <span class="material-symbols-outlined" style="font-size:16px">refresh</span>
+      </button>
+    </div>
+  </div>
 
   <!-- ── Loading ── -->
   @if (loading()) {
-    <div class="d-flex justify-content-center py-5">
+    <div class="text-center py-5">
       <div class="spinner-border text-primary"></div>
+      <p class="mt-2 text-muted">Cargando...</p>
     </div>
   }
 
-  <!-- ── Table ── -->
   @if (!loading()) {
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>Participante</th>
-            <th>Curso</th>
-            <th>Tipo</th>
-            <th>Nivel sugerido</th>
-            <th>Nivel asignado</th>
-            <th>Estado pago</th>
-            <th>Fecha</th>
-            <th class="text-end">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (filteredEnrollments().length === 0) {
-            <tr>
-              <td colspan="9" class="text-center text-muted py-4">
-                <i class="bi bi-inbox fs-4 d-block mb-2 opacity-25"></i>
-                No hay inscripciones
-              </td>
-            </tr>
-          }
-          @for (e of filteredEnrollments(); track e.id) {
-            <tr>
-              <td class="text-muted small">{{ e.id }}</td>
-              <td>
-                <div class="fw-semibold small">{{ participantName(e) }}</div>
-              </td>
-              <td class="small">{{ courseName(e) }}</td>
-              <td>
-                <span class="badge bg-secondary-subtle text-secondary small">
-                  {{ e.participant_type }}
-                </span>
-              </td>
-              <td class="text-center">
-                <span class="level-badge" [class.empty]="!e.suggested_level">
-                  {{ levelRoman(e.suggested_level) }}
-                </span>
-              </td>
-              <td class="text-center">
-                <span class="level-badge assigned" [class.empty]="!e.assigned_level">
-                  {{ levelRoman(e.assigned_level) }}
-                </span>
-              </td>
-              <td>
-                <span class="badge" [class]="'bg-' + paymentBadge(e.payment_status) + '-subtle text-' + paymentBadge(e.payment_status)">
-                  {{ paymentLabel(e.payment_status) }}
-                </span>
-              </td>
-              <td class="text-muted small">{{ e.enrollment_date | date:'dd/MM/yy' }}</td>
-              <td class="text-end">
-                <div class="d-flex gap-1 justify-content-end">
-                  <button class="btn btn-sm btn-outline-primary"
-                          (click)="openAssignLevel(e)"
-                          title="Asignar nivel">
-                    <i class="bi bi-mortarboard"></i>
-                  </button>
-                  <button class="btn btn-sm btn-outline-danger"
-                          (click)="confirmDelete(e)"
-                          title="Eliminar">
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+    <!-- ── KPIs ── -->
+    <div class="kpi-row mb-4">
+      <div class="kpi-card">
+        <span class="kpi-icon material-symbols-outlined">groups</span>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ totalParticipants() }}</span>
+          <span class="kpi-label">Participantes</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-icon material-symbols-outlined">family_restroom</span>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ registrations().length }}</span>
+          <span class="kpi-label">Familias</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-icon material-symbols-outlined">calendar_month</span>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ selectedCourse()?.name ?? '—' }}</span>
+          <span class="kpi-label">Curso activo</span>
+        </div>
+      </div>
     </div>
-  }
 
-  <!-- ── Form Modal ── -->
-  @if (formOpen()) {
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content">
-          <div class="modal-header border-0">
-            <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Nueva inscripción</h5>
-            <button class="btn-close" (click)="cancelForm()"></button>
-          </div>
-          <div class="modal-body">
-            <div class="row g-3">
+    <!-- ── Search filter ── -->
+    <div class="mb-3">
+      <div class="input-group input-group-sm" style="max-width:320px">
+        <span class="input-group-text"><span class="material-symbols-outlined" style="font-size:16px">search</span></span>
+        <input type="text" class="form-control" placeholder="Filtrar por nombre..."
+               [value]="searchFilter()"
+               (input)="searchFilter.set($any($event.target).value)">
+      </div>
+    </div>
 
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
-                <input type="text" class="form-control"
-                       [value]="formParticipantFirstName()"
-                       (input)="formParticipantFirstName.set($any($event.target).value)">
+    <!-- ── Table ── -->
+    @if (tableLoading()) {
+      <div class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+    } @else if (!filteredRegistrations().length) {
+      <div class="empty-state py-5 text-center">
+        <span class="material-symbols-outlined empty-icon">assignment_ind</span>
+        <p class="text-muted mt-2">No hay inscripciones registradas</p>
+        <button class="btn btn-primary btn-sm mt-2" (click)="openWizard()">Registrar primera inscripción</button>
+      </div>
+    } @else {
+      <div class="enrollments-table">
+        @for (group of filteredRegistrations(); track group.titular_id) {
+          <!-- Group header row -->
+          <div class="group-header" (click)="toggleGroup(group.titular_id)">
+            <div class="d-flex align-items-center gap-3">
+              <span class="material-symbols-outlined expand-icon">
+                {{ isExpanded(group.titular_id) ? 'expand_less' : 'expand_more' }}
+              </span>
+              <div class="avatar-circle">{{ (group.titular_name ?? '?').charAt(0) }}</div>
+              <div>
+                <div class="fw-semibold">{{ group.titular_name ?? 'Sin titular' }}</div>
+                <div class="text-muted small">{{ group.participants.length }} participante{{ group.participants.length !== 1 ? 's' : '' }}</div>
               </div>
-
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Apellido <span class="text-danger">*</span></label>
-                <input type="text" class="form-control"
-                       [value]="formParticipantLastName()"
-                       (input)="formParticipantLastName.set($any($event.target).value)">
-              </div>
-
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Fecha de nacimiento</label>
-                <input type="date" class="form-control"
-                       [value]="formParticipantBirth()"
-                       (change)="formParticipantBirth.set($any($event.target).value)">
-              </div>
-
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Curso</label>
-                <select class="form-select"
-                        [value]="formCourseId()"
-                        (change)="formCourseId.set(+$any($event.target).value)">
-                  @for (c of courses(); track c.id) {
-                    <option [value]="c.id">{{ c.name }}</option>
-                  }
-                </select>
-              </div>
-
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Tipo de participante</label>
-                <select class="form-select"
-                        [value]="formType()"
-                        (change)="formType.set($any($event.target).value)">
-                  @for (t of participantTypes; track t.value) {
-                    <option [value]="t.value">{{ t.label }}</option>
-                  }
-                </select>
-              </div>
-
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Nivel sugerido</label>
-                <select class="form-select"
-                        [value]="formSuggestedLvl() ?? ''"
-                        (change)="formSuggestedLvl.set($any($event.target).value ? +$any($event.target).value : null)">
-                  <option value="">Sin nivel</option>
-                  @for (n of levelList; track n) {
-                    <option [value]="n">{{ levelLabels[n].roman }} — {{ levelLabels[n].age }}</option>
-                  }
-                </select>
-              </div>
-
-              <div class="col-sm-6">
-                <label class="form-label fw-semibold">Fecha de inscripción</label>
-                <input type="date" class="form-control"
-                       [value]="formEnrollDate()"
-                       (change)="formEnrollDate.set($any($event.target).value)">
-              </div>
-
+            </div>
+            <div class="d-flex align-items-center gap-3">
+              @if (group.master_token) {
+                <span class="token-badge">
+                  <span class="material-symbols-outlined" style="font-size:14px">key</span>
+                  {{ group.master_token }}
+                </span>
+              }
+              <span class="text-muted small">{{ group.enrollment_date }}</span>
             </div>
           </div>
-          <div class="modal-footer border-0">
-            <button class="btn btn-outline-secondary" (click)="cancelForm()" [disabled]="formSaving()">
-              Cancelar
-            </button>
-            <button class="btn btn-primary d-flex align-items-center gap-2"
-                    (click)="saveEnrollment()" [disabled]="formSaving()">
-              @if (formSaving()) { <span class="spinner-border spinner-border-sm"></span> }
-              Inscribir
-            </button>
-          </div>
-        </div>
+
+          <!-- Participant rows -->
+          @if (isExpanded(group.titular_id)) {
+            @for (p of group.participants; track p.enrollment_id) {
+              <div class="participant-row">
+                <div class="d-flex align-items-center gap-3 ps-5">
+                  <span class="material-symbols-outlined text-muted" style="font-size:18px">person</span>
+                  <div>
+                    <div class="fw-medium">{{ p.full_name }}</div>
+                    <div class="text-muted small">{{ typeLabel(p.participant_type) }}</div>
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                  <span class="weeks-badge">{{ weekRange(p.weeks) }}</span>
+                  <span class="badge {{ paymentClass(p.payment_status) }}">{{ paymentLabel(p.payment_status) }}</span>
+                  @if (p.access_code) {
+                    <span class="access-code">
+                      <span class="material-symbols-outlined" style="font-size:13px">qr_code_2</span>
+                      {{ p.access_code }}
+                    </span>
+                  }
+                </div>
+              </div>
+            }
+          }
+        }
       </div>
-    </div>
+    }
   }
-
-  <!-- ── Assign Level Modal ── -->
-  @if (levelTarget()) {
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header border-0">
-            <h5 class="modal-title"><i class="bi bi-mortarboard me-2"></i>Asignar nivel</h5>
-            <button class="btn-close" (click)="cancelAssignLevel()"></button>
-          </div>
-          <div class="modal-body">
-            <p class="small text-muted mb-3">
-              Participante: <strong>{{ participantName(levelTarget()!) }}</strong>
-            </p>
-
-            <label class="form-label fw-semibold">Nivel asignado</label>
-            <select class="form-select mb-3"
-                    [value]="assignedLevel()"
-                    (change)="assignedLevel.set(+$any($event.target).value)">
-              @for (n of levelList; track n) {
-                <option [value]="n">{{ levelLabels[n].roman }} — {{ levelLabels[n].age }}</option>
-              }
-            </select>
-
-            <label class="form-label fw-semibold">Notas de evaluación</label>
-            <textarea class="form-control" rows="3"
-                      placeholder="Observaciones del evaluador..."
-                      [value]="levelNotes()"
-                      (input)="levelNotes.set($any($event.target).value)"></textarea>
-          </div>
-          <div class="modal-footer border-0">
-            <button class="btn btn-outline-secondary" (click)="cancelAssignLevel()" [disabled]="levelSaving()">
-              Cancelar
-            </button>
-            <button class="btn btn-success d-flex align-items-center gap-2"
-                    (click)="saveLevel()" [disabled]="levelSaving()">
-              @if (levelSaving()) { <span class="spinner-border spinner-border-sm"></span> }
-              Asignar nivel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-
-  <!-- ── Delete Confirm ── -->
-  @if (deleteTarget()) {
-    <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header border-0">
-            <h5 class="modal-title text-danger">
-              <i class="bi bi-exclamation-triangle-fill me-2"></i>Eliminar inscripción
-            </h5>
-          </div>
-          <div class="modal-body">
-            <p>¿Eliminar la inscripción de <strong>{{ participantName(deleteTarget()!) }}</strong>?</p>
-          </div>
-          <div class="modal-footer border-0">
-            <button class="btn btn-outline-secondary" (click)="cancelDelete()">Cancelar</button>
-            <button class="btn btn-danger d-flex align-items-center gap-2"
-                    (click)="executeDelete()" [disabled]="deleting()">
-              @if (deleting()) { <span class="spinner-border spinner-border-sm"></span> }
-              Eliminar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-
 </div>
+
+<!-- ══════════════════════════════════════════════════════════
+     WIZARD MODAL
+══════════════════════════════════════════════════════════ -->
+@if (wizardOpen()) {
+  <div class="modal-backdrop" (click)="closeWizard()"></div>
+  <div class="wizard-modal">
+
+    <!-- Header -->
+    <div class="wizard-header">
+      <div class="d-flex align-items-center gap-2">
+        <span class="material-symbols-outlined">person_add</span>
+        <span class="fw-semibold">Nueva Inscripción</span>
+        @if (selectedCourse()) {
+          <span class="badge bg-primary ms-1">{{ selectedCourse()!.name }}</span>
+        }
+      </div>
+      <button class="btn-close" (click)="closeWizard()"></button>
+    </div>
+
+    <!-- Step indicator -->
+    @if (wizardStep() !== 'done') {
+      <div class="step-indicator">
+        <div class="step" [class.active]="wizardStep() === 'search'" [class.done]="wizardStep() !== 'search'">
+          <span class="step-num">1</span><span class="step-label">Buscar titular</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="wizardStep() === 'participants'" [class.done]="wizardStep() === 'confirm'">
+          <span class="step-num">2</span><span class="step-label">Participantes</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="wizardStep() === 'confirm'">
+          <span class="step-num">3</span><span class="step-label">Confirmar</span>
+        </div>
+      </div>
+    }
+
+    <!-- Body -->
+    <div class="wizard-body">
+
+      <!-- ── STEP 1: Search ── -->
+      @if (wizardStep() === 'search') {
+        <h5 class="mb-3">Buscar socio titular</h5>
+        <div class="input-group mb-3">
+          <span class="input-group-text"><span class="material-symbols-outlined" style="font-size:16px">search</span></span>
+          <input type="text" class="form-control" placeholder="Nombre o número de membresía..."
+                 [value]="searchQuery()"
+                 (input)="onSearchInput($any($event.target).value)"
+                 autofocus>
+          @if (searching()) {
+            <span class="input-group-text"><div class="spinner-border spinner-border-sm"></div></span>
+          }
+        </div>
+
+        @if (searchResults().length) {
+          <div class="search-results">
+            @for (s of searchResults(); track s.id) {
+              <div class="search-result-item" (click)="selectTitular(s)">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="avatar-circle avatar-sm">{{ s.fullName.charAt(0) }}</div>
+                  <div>
+                    <div class="fw-medium">{{ s.fullName }}</div>
+                    <div class="text-muted small">
+                      Membresía: {{ s.membershipNumber }}
+                      @if (s.age !== null) { · {{ s.age }} años }
+                      · {{ s.family.length }} dependiente{{ s.family.length !== 1 ? 's' : '' }}
+                    </div>
+                  </div>
+                </div>
+                @if (s.enrolled) {
+                  <span class="badge bg-success ms-auto">Ya inscrito</span>
+                }
+              </div>
+            }
+          </div>
+        } @else if (searchQuery().length >= 2 && !searching()) {
+          <p class="text-muted text-center mt-3">No se encontraron resultados</p>
+        }
+      }
+
+      <!-- ── STEP 2: Participants ── -->
+      @if (wizardStep() === 'participants') {
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <button class="btn btn-link p-0 text-secondary" (click)="backToSearch()">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h5 class="mb-0">Seleccionar participantes y semanas</h5>
+        </div>
+
+        @if (!courseWeeks.length) {
+          <div class="alert alert-warning">El curso seleccionado no tiene semanas configuradas.</div>
+        }
+
+        <div class="participants-table">
+          <div class="participants-head">
+            <div>Participante</div>
+            @for (w of courseWeeks; track w.id) {
+              <div class="week-col text-center">{{ w.label }}</div>
+            }
+            <div></div>
+          </div>
+
+          @for (p of pendingParticipants(); track p.socio_id; let i = $index) {
+            <div class="participant-config-row" [class.already-enrolled]="p.alreadyEnrolled">
+              <div class="p-name">
+                <span class="fw-medium">{{ p.fullName }}</span>
+                <span class="text-muted small ms-1">{{ p.memberType }}</span>
+                @if (p.age !== null) { <span class="text-muted small"> · {{ p.age }}a</span> }
+                @if (p.alreadyEnrolled) {
+                  <span class="badge bg-warning ms-1" title="Ya inscrito">✓ inscrito</span>
+                }
+              </div>
+              @for (w of courseWeeks; track w.id) {
+                <div class="week-col text-center">
+                  <input type="checkbox"
+                         [checked]="isWeekSelected(i, w.week_number)"
+                         [disabled]="p.alreadyEnrolled"
+                         (change)="toggleWeek(i, w.week_number)">
+                </div>
+              }
+              <div>
+                <button class="btn btn-sm btn-link text-danger p-0" (click)="removeParticipant(i)" title="Quitar">
+                  <span class="material-symbols-outlined" style="font-size:16px">close</span>
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+          <span class="text-muted small">
+            {{ activePending.length }} participante{{ activePending.length !== 1 ? 's' : '' }} con semanas seleccionadas
+          </span>
+          <button class="btn btn-primary btn-sm" (click)="goToConfirm()" [disabled]="!canConfirm()">
+            Continuar <span class="material-symbols-outlined ms-1" style="font-size:14px">arrow_forward</span>
+          </button>
+        </div>
+      }
+
+      <!-- ── STEP 3: Confirm ── -->
+      @if (wizardStep() === 'confirm') {
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <button class="btn btn-link p-0 text-secondary" (click)="backToParticipants()">
+            <span class="material-symbols-outlined">arrow_back</span>
+          </button>
+          <h5 class="mb-0">Confirmar inscripción</h5>
+        </div>
+
+        <div class="confirm-summary">
+          <div class="summary-block">
+            <span class="summary-label">Titular</span>
+            <span class="summary-value">{{ selectedTitular()?.fullName }}</span>
+          </div>
+          <div class="summary-block">
+            <span class="summary-label">Curso</span>
+            <span class="summary-value">{{ selectedCourse()?.name }}</span>
+          </div>
+        </div>
+
+        <table class="table table-sm mt-3">
+          <thead>
+            <tr>
+              <th>Participante</th>
+              <th>Tipo</th>
+              <th>Semanas</th>
+              <th class="text-end">Costo</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of activePending; track p.socio_id) {
+              <tr>
+                <td>{{ p.fullName }}</td>
+                <td>{{ typeLabel(p.type) }}</td>
+                <td>{{ p.weeks.length }} semana{{ p.weeks.length !== 1 ? 's' : '' }}</td>
+                <td class="text-end">{{ currency(participantCost(p)) }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot>
+            <tr class="fw-bold">
+              <td colspan="3">Total</td>
+              <td class="text-end text-primary">{{ currency(totalAmount()) }}</td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="d-flex justify-content-end mt-3">
+          <button class="btn btn-success d-flex align-items-center gap-2"
+                  (click)="saveRegistration()" [disabled]="saving()">
+            @if (saving()) {
+              <div class="spinner-border spinner-border-sm"></div>
+            } @else {
+              <span class="material-symbols-outlined">check_circle</span>
+            }
+            {{ saving() ? 'Guardando...' : 'Confirmar inscripción' }}
+          </button>
+        </div>
+      }
+
+      <!-- ── DONE ── -->
+      @if (wizardStep() === 'done') {
+        <div class="done-screen text-center py-4">
+          <span class="material-symbols-outlined done-icon text-success">check_circle</span>
+          <h4 class="mt-3">¡Inscripción completada!</h4>
+
+          @if (registrationResult()) {
+            <div class="token-display mt-3">
+              <div class="token-label">Token Maestro (recogida)</div>
+              <div class="token-value">{{ registrationResult().master_token }}</div>
+            </div>
+
+            @if (registrationResult().pick_up_tokens?.length) {
+              <div class="individual-tokens mt-3">
+                <div class="fw-semibold mb-2">Tokens individuales:</div>
+                @for (t of registrationResult().pick_up_tokens; track t.participantId) {
+                  <div class="d-flex justify-content-between align-items-center individual-token-row">
+                    <span>{{ t.participantName }}</span>
+                    <span class="access-code">{{ t.accessCode }}</span>
+                  </div>
+                }
+              </div>
+            }
+          }
+
+          <button class="btn btn-primary mt-4" (click)="closeWizard()">Cerrar</button>
+        </div>
+      }
+
+    </div>
+  </div>
+}
