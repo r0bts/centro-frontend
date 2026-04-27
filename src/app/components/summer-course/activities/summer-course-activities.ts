@@ -110,7 +110,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
   toastType = signal<'success' | 'danger'>('success');
 
   // ── Modal state ───────────────────────────────────────────────────────────
-  pendingDrop     = signal<{ activity: ScActivityType; target: DropTarget } | null>(null);
+  pendingDrop     = signal<{ activity: ScActivityType; target: DropTarget; pickActivity?: boolean } | null>(null);
   detailTarget    = signal<{ entry: CellEntry; target: DetailTarget } | null>(null);
   dragActivity    = signal<ScActivityType | null>(null);
 
@@ -287,10 +287,19 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.pendingDrop.set({ activity: act, target });
   }
 
-  onDropModalConfirm(data: { instructorId: number | null; areaId: number | null }): void {
+  /** Triggered when user clicks the + button on a cell */
+  onCellAdd(target: DropTarget): void {
+    // Open drop modal in pick-activity mode (no specific activity preselected)
+    const placeholder = this.SC_ACTIVITIES()[0];
+    if (!placeholder) return;
+    this.pendingDrop.set({ activity: placeholder, target, pickActivity: true });
+  }
+
+  onDropModalConfirm(data: { instructorId: number | null; areaId: number | null; activity?: any }): void {
     const pd = this.pendingDrop();
     if (!pd) return;
-    this.addEntryToState(pd.activity, pd.target, data.instructorId, data.areaId);
+    const act = (pd.pickActivity && data.activity) ? data.activity : pd.activity;
+    this.addEntryToState(act, pd.target, data.instructorId, data.areaId);
     this.pendingDrop.set(null);
   }
 
@@ -341,6 +350,39 @@ export class SummerCourseActivitiesComponent implements OnInit {
       return ns;
     });
     this.showToast('Día copiado a todos los días de la semana.');
+  }
+
+  /** Saves current week schedule then copies it to all other weeks of the course */
+  copyWeekToAll(): void {
+    const week = this.currentWeek();
+    if (!week) return;
+    const allWeeks = this.currentWeeks();
+    if (allWeeks.length < 2) {
+      this.showToast('El curso solo tiene una semana.', 'danger');
+      return;
+    }
+    const targetIds = allWeeks.filter(w => w.id !== week.id).map(w => w.id);
+    this.saving.set(true);
+    // First save the current week, then copy
+    const payload = this.buildSavePayload(week.id);
+    this.activitiesSvc.saveSchedule(payload).subscribe({
+      next: () => {
+        this.activitiesSvc.copySchedule(week.id, targetIds).subscribe({
+          next: res => {
+            this.saving.set(false);
+            this.showToast(`Semana copiada a ${res.data.copied_to} semana(s) — ${res.data.activities_each} actividades c/u.`, 'success');
+          },
+          error: () => {
+            this.saving.set(false);
+            this.showToast('Error al copiar la semana.', 'danger');
+          },
+        });
+      },
+      error: () => {
+        this.saving.set(false);
+        this.showToast('Error al guardar antes de copiar.', 'danger');
+      },
+    });
   }
 
   clearDay(): void {

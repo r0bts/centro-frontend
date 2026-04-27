@@ -30,8 +30,13 @@ export class ScScheduleGridComponent {
 
   @Output() drop      = new EventEmitter<DropTarget>();
   @Output() chipClick = new EventEmitter<{ entry: CellEntry; target: DetailTarget }>();
+  @Output() cellAdd   = new EventEmitter<DropTarget>();
 
   dragOverTarget = signal<string | null>(null);
+
+  onCellAdd(slotId: string, levelNum: number): void {
+    this.cellAdd.emit({ dayIdx: this.currentDayIdx, slotId, levelNum });
+  }
 
   onDragOver(event: DragEvent, slotId: string, levelNum: number): void {
     event.preventDefault();

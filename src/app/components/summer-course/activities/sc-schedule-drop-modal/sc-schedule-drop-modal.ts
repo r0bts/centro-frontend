@@ -24,15 +24,23 @@ export class ScScheduleDropModalComponent {
   @Input() target!: DropTarget;
   @Input() instructors: ScInstructor[] = [];
   @Input() areas: ScArea[] = [];
+  @Input() activities: ScActivityType[] = [];   // for click-to-add (activity picker)
+  @Input() pickActivity = false;                // true = show activity selector first
   @Input() levels: Array<{ n: number; roman: string; age: string }> = SC_LEVELS as any;
   @Input() slots  = SC_SLOTS;
   @Input() days   = SC_DAYS;
 
-  @Output() confirmed = new EventEmitter<{ instructorId: number | null; areaId: number | null }>();
+  @Output() confirmed = new EventEmitter<{ instructorId: number | null; areaId: number | null; activity?: ScActivityType | null }>();
   @Output() cancelled = new EventEmitter<void>();
 
   selectedInstructorId = signal<number | null>(null);
   selectedAreaId       = signal<number | null>(null);
+  selectedActivity     = signal<ScActivityType | null>(null);
+
+  /** The activity to use: either forced via @Input or picked by user */
+  get resolvedActivity(): ScActivityType | null {
+    return this.pickActivity ? this.selectedActivity() : (this.activity ?? null);
+  }
 
   get levelLabel(): string {
     return this.levels.find(l => l.n === this.target.levelNum)?.roman ?? String(this.target.levelNum);
@@ -56,7 +64,12 @@ export class ScScheduleDropModalComponent {
   }
 
   confirm(): void {
-    this.confirmed.emit({ instructorId: this.selectedInstructorId(), areaId: this.selectedAreaId() });
+    if (this.pickActivity && !this.resolvedActivity) return;
+    this.confirmed.emit({
+      instructorId: this.selectedInstructorId(),
+      areaId: this.selectedAreaId(),
+      activity: this.pickActivity ? this.resolvedActivity : undefined,
+    });
   }
 
   cancel(): void {

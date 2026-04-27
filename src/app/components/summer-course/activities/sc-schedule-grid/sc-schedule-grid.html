@@ -70,6 +70,13 @@
                 </div>
               }
 
+              <!-- Add button always visible -->
+              <button class="cell-add-btn"
+                      (click)="onCellAdd(slot.id, lvl.n)"
+                      title="Agregar actividad aquí">
+                <i class="bi bi-plus"></i>
+              </button>
+
               <!-- Drop hint when empty and drag over -->
               @if (isDragOver(slot.id, lvl.n) && getEntries(slot.id, lvl.n).length === 0) {
                 <div class="drop-hint">Soltar aquí</div>

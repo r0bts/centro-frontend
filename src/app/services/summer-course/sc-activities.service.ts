@@ -62,4 +62,11 @@ export class ScActivitiesService {
   saveSchedule(payload: ScScheduleSavePayload): Observable<{ success: boolean; message: string; saved: number }> {
     return this.http.post<{ success: boolean; message: string; saved: number }>(`${this.base}/schedule`, payload);
   }
+
+  copySchedule(sourceWeekId: number, targetWeekIds: number[]): Observable<{ success: boolean; message: string; data: { copied_to: number; activities_each: number } }> {
+    return this.http.post<any>(`${this.base}/schedule/copy`, {
+      source_week_id: sourceWeekId,
+      target_week_ids: targetWeekIds,
+    });
+  }
 }

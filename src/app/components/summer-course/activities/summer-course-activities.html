@@ -84,6 +84,19 @@
         <span class="d-none d-lg-inline">Copiar día</span>
       </button>
 
+      @if (currentWeeks().length > 1) {
+        <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+                (click)="copyWeekToAll()" [disabled]="saving()"
+                title="Guardar esta semana y copiar su horario completo a las demás semanas del curso">
+          @if (saving()) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <i class="bi bi-layers"></i>
+          }
+          <span class="d-none d-lg-inline">Copiar semana a todas</span>
+        </button>
+      }
+
       <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
               (click)="clearDay()" title="Limpiar todas las actividades del día">
         <i class="bi bi-trash"></i>
@@ -156,7 +169,8 @@
           [areas]="areas()"
           [activityMap]="SC_ACTIVITY_MAP()"
           (drop)="onDrop($event)"
-          (chipClick)="onChipClick($event)">
+          (chipClick)="onChipClick($event)"
+          (cellAdd)="onCellAdd($event)">
         </app-sc-schedule-grid>
       </div>
     }
@@ -189,6 +203,8 @@
     [target]="pendingDrop()!.target"
     [instructors]="instructors()"
     [areas]="areas()"
+    [activities]="SC_ACTIVITIES()"
+    [pickActivity]="!!pendingDrop()!.pickActivity"
     [levels]="SC_LEVELS()"
     [slots]="SC_SLOTS"
     [days]="SC_DAYS"

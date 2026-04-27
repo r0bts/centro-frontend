@@ -77,7 +77,10 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
     const diff = (new Date(e).getTime() - new Date(s).getTime()) / (1000 * 60 * 60 * 24 * 7);
     return Math.max(1, Math.min(8, Math.floor(diff) + 1));
   });
-
+  /** Número efectivo de semanas: en edición usa las semanas cargadas, en nuevo usa el slider */
+  effectiveWeeksCount = computed(() =>
+    this.isEdit ? this.editWeeks().length || 1 : this.weeks_count()
+  );
   // ── Step 3: Tarifas (matriz: filas = tipos, columnas = semanas compradas) ─
   costs = signal<CostDraft[]>([
     { participant_type: 'member',      label: 'Socio',          costs: [0, 0, 0, 0] },
@@ -132,6 +135,8 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
           next: res => {
             this.editWeeks.set(res.data.sc_weeks ?? []);
             this._applyCostsFromApi(res.data.sc_costs ?? []);
+            // Sync cost matrix columns to match actual weeks count
+            this._resizeCostMatrix(res.data.sc_weeks?.length ?? 1);
             this.loadingWeeks.set(false);
             this.cdr.markForCheck();
           },
@@ -159,6 +164,44 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
         return { ...d, costs: row };
       })
     );
+  }
+
+  // ── Date helpers ─────────────────────────────────────────────────────────
+  onStartDateChange(val: string): void {
+    this.start_date.set(val);
+    // Auto-set end_date to last day of the same month if not set yet or is before start
+    if (val) {
+      const d = new Date(val + 'T00:00:00');
+      const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      const lastDayStr = lastDay.toISOString().slice(0, 10);
+      const current = this.end_date();
+      if (!current || current < val) {
+        this.end_date.set(lastDayStr);
+      }
+    }
+    this.buildWeeksPreview();
+  }
+
+  /** Min end_date = start_date + 1 day */
+  get minEndDate(): string {
+    const s = this.start_date();
+    if (!s) return '';
+    const d = new Date(s + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  }
+
+  /** Hint: e.g. 'julio 2026: 06 jul – 31 jul' */
+  get dateRangeHint(): string {
+    const s = this.start_date();
+    const e = this.end_date();
+    if (!s || !e) return '';
+    const fmt = (str: string) => {
+      const d = new Date(str + 'T00:00:00');
+      return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+    };
+    const months = new Date(s + 'T00:00:00').toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+    return `${months.charAt(0).toUpperCase() + months.slice(1)}: ${fmt(s)} → ${fmt(e)}`;
   }
 
   // ── Navigation ───────────────────────────────────────────────────────────
@@ -264,7 +307,7 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
 
   /** Array de índices [0..n-1] para iterar semanas en el template */
   get weeksArray(): number[] {
-    return Array.from({ length: this.weeks_count() }, (_, i) => i);
+    return Array.from({ length: this.effectiveWeeksCount() }, (_, i) => i);
   }
 
   // ── Save ─────────────────────────────────────────────────────────────────

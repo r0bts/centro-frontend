@@ -158,17 +158,46 @@
 }
 
 // ── Costs table (matriz por semanas) ─────────────────────────────────────────
+.costs-scroll-wrapper {
+  overflow-x: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
 .costs-table {
   th, td { vertical-align: middle; }
   th { font-size: 0.8rem; white-space: nowrap; }
-  td:first-child { min-width: 130px; }
-  td:not(:first-child) { min-width: 110px; }
+  border: none !important;
+  margin-bottom: 0;
 
-  input[type='number'] {
-    min-width: 80px;
-    padding: 0.2rem 0.4rem;
-    font-size: 0.85rem;
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8f9fa;
   }
+}
+
+.costs-sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #fff;
+  min-width: 160px;
+  border-right: 2px solid #dee2e6 !important;
+  white-space: nowrap;
+
+  thead & {
+    z-index: 3;
+    background: #f8f9fa;
+  }
+}
+
+.costs-week-col {
+  min-width: 90px;
+  text-align: center;
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────

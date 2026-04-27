@@ -123,3 +123,38 @@
     font-size: 0.72rem;
   }
 }
+
+// ── Activity picker ──────────────────────────────────────────────────────────
+.activity-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.act-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 2rem;
+  border: 1.5px solid #e2e8f0;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 0.8rem;
+
+  &:hover {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+  }
+
+  &.selected {
+    font-weight: 600;
+  }
+
+  .act-pick-label {
+    white-space: nowrap;
+  }
+}

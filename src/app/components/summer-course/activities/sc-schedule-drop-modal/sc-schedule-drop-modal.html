@@ -3,11 +3,17 @@
 
     <div class="sc-modal__header">
       <h6 class="d-flex align-items-center gap-2 mb-0">
-        <span [style.background]="activity.bg"
-              [style.color]="activity.color"
-              class="act-badge">
-          {{ activity.emoji }} {{ activity.label }}
-        </span>
+        @if (resolvedActivity) {
+          <span [style.background]="resolvedActivity.bg"
+                [style.color]="resolvedActivity.color"
+                class="act-badge">
+            {{ resolvedActivity.emoji }} {{ resolvedActivity.label }}
+          </span>
+        } @else {
+          <span class="act-badge" style="background:#f1f5f9;color:#475569">
+            📅 Nueva actividad
+          </span>
+        }
       </h6>
       <button class="btn-close" (click)="cancel()"></button>
     </div>
@@ -20,6 +26,26 @@
     </div>
 
     <div class="sc-modal__body">
+      <!-- Activity picker (click-to-add mode) -->
+      @if (pickActivity) {
+        <p class="fw-semibold small mb-2"><i class="bi bi-grid me-1"></i>Selecciona la actividad:</p>
+        <div class="activity-picker mb-3">
+          @for (act of activities; track act.id) {
+            <div class="act-pick-item"
+                 [class.selected]="selectedActivity()?.id === act.id"
+                 [style.border-color]="selectedActivity()?.id === act.id ? act.color : '#e2e8f0'"
+                 [style.background]="selectedActivity()?.id === act.id ? act.bg : ''"
+                 (click)="selectedActivity.set(act)">
+              <span>{{ act.emoji }}</span>
+              <span class="act-pick-label" [style.color]="selectedActivity()?.id === act.id ? act.color : ''">
+                {{ act.label }}
+              </span>
+            </div>
+          }
+        </div>
+        <hr class="my-2">
+      }
+
       <p class="fw-semibold small mb-2">Selecciona un instructor:</p>
 
       @if (instructors.length === 0) {
@@ -66,7 +92,9 @@
 
     <div class="sc-modal__footer">
       <button class="btn btn-outline-secondary btn-sm" (click)="cancel()">Cancelar</button>
-      <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" (click)="confirm()">
+      <button class="btn btn-primary btn-sm d-flex align-items-center gap-1"
+              (click)="confirm()"
+              [disabled]="pickActivity && !resolvedActivity">
         <i class="bi bi-plus-lg"></i>Agregar
       </button>
     </div>
