@@ -576,9 +576,11 @@ export interface ScSocioSearchResponse {
   data: ScSocioSearchResult[];
 }
 
-/** Costos con total calculado */
+/** Costos con total calculado y desglose de descuento */
 export interface ScCostWithTotal extends ScCost {
-  total: number;
+  total:           number;  // precio real a cobrar (cost_per_week × weeks_count)
+  list_price:      number;  // precio lista sin descuento (tarifa W1 × weeks_count)
+  discount_amount: number;  // ahorro = list_price - total (0 si weeks_count=1)
 }
 
 /** Respuesta de GET /costs */

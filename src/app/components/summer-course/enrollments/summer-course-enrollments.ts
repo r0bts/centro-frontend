@@ -285,13 +285,42 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     const costs = this.costs();
     const match = costs.find(c => c.participant_type === type && c.weeks_count === weeksCount);
     if (match) return match.total;
+    // Fallback: tarifa W1 × semanas (sin descuento)
     const weekly = costs.find(c => c.participant_type === type && c.weeks_count === 1);
     return weekly ? weekly.cost_per_week * weeksCount : 0;
+  }
+
+  /** Precio lista (sin descuento) para el participante según tipo y semanas */
+  participantListPrice(p: PendingParticipant): number {
+    const costs = this.costs();
+    const match = costs.find(c => c.participant_type === p.type && c.weeks_count === p.weeks.length);
+    if (match) return match.list_price ?? match.total;
+    const weekly = costs.find(c => c.participant_type === p.type && c.weeks_count === 1);
+    return weekly ? weekly.cost_per_week * p.weeks.length : 0;
+  }
+
+  /** Descuento absoluto del participante (0 si no hay descuento) */
+  participantDiscount(p: PendingParticipant): number {
+    return Math.max(0, this.participantListPrice(p) - this._getCost(p.type, p.weeks.length));
   }
 
   participantCost(p: PendingParticipant): number {
     return this._getCost(p.type, p.weeks.length);
   }
+
+  /** Total de descuentos de todos los participantes activos */
+  totalDiscount = computed(() =>
+    this.pendingParticipants()
+      .filter(p => p.weeks.length > 0)
+      .reduce((sum, p) => sum + this.participantDiscount(p), 0)
+  );
+
+  /** Total precio lista de todos los participantes activos */
+  totalListPrice = computed(() =>
+    this.pendingParticipants()
+      .filter(p => p.weeks.length > 0)
+      .reduce((sum, p) => sum + this.participantListPrice(p), 0)
+  );
 
   saveRegistration(): void {
     const titular = this.selectedTitular();

@@ -644,6 +644,24 @@ $level-colors: (
 .wz-total-value { font-size: 1.1rem; font-weight: 800; color: #1d4ed8; }
 .ta-right { text-align: right; }
 
+// Precio tachado en columna de costo (precio lista antes del descuento)
+.wz-list-price {
+  display: block;
+  font-size: .72rem;
+  font-weight: 400;
+  color: #94a3b8;
+  text-decoration: line-through;
+  margin-bottom: 1px;
+}
+
+// Fila de precio lista en tfoot (tachada / muted)
+.wz-total-label--muted  { color: #94a3b8; font-weight: 500; font-size: .82rem; }
+.wz-total-value--muted  { color: #94a3b8; font-weight: 500; font-size: .9rem; text-decoration: line-through; }
+
+// Fila de descuento en tfoot (verde)
+.wz-total-label--discount { color: #16a34a; font-weight: 600; font-size: .85rem; }
+.wz-total-value--discount { color: #16a34a; font-weight: 700; font-size: .95rem; }
+
 .wz-confirm-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 
 // ─── Done screen ──────────────────────────────────────────────────────────────

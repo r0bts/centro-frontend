@@ -493,11 +493,26 @@
                   </td>
                   <td>{{ typeLabel(p.type) }}</td>
                   <td><span class="wz-weeks-count">{{ p.weeks.length }} sem.</span></td>
-                  <td class="ta-right wz-cost">{{ currency(participantCost(p)) }}</td>
+                  <td class="ta-right wz-cost">
+                    @if (participantDiscount(p) > 0) {
+                      <span class="wz-list-price">{{ currency(participantListPrice(p)) }}</span>
+                    }
+                    {{ currency(participantCost(p)) }}
+                  </td>
                 </tr>
               }
             </tbody>
             <tfoot>
+              @if (totalDiscount() > 0) {
+                <tr class="wz-tfoot-list">
+                  <td colspan="4" class="wz-total-label wz-total-label--muted">Precio lista</td>
+                  <td class="ta-right wz-total-value wz-total-value--muted">{{ currency(totalListPrice()) }}</td>
+                </tr>
+                <tr class="wz-tfoot-discount">
+                  <td colspan="4" class="wz-total-label wz-total-label--discount">Descuento</td>
+                  <td class="ta-right wz-total-value wz-total-value--discount">− {{ currency(totalDiscount()) }}</td>
+                </tr>
+              }
               <tr>
                 <td colspan="4" class="wz-total-label">Total</td>
                 <td class="ta-right wz-total-value">{{ currency(totalAmount()) }}</td>
