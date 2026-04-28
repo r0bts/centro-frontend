@@ -6,6 +6,7 @@ import {
   EventEmitter,
   OnInit,
   signal,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScInstructor, ScArea } from '../../../../models/summer-course/summer-course.model';
@@ -36,6 +37,23 @@ export class ScScheduleDetailModalComponent implements OnInit {
 
   selectedInstructorId = signal<number | null>(null);
   selectedAreaId       = signal<number | null>(null);
+  searchQuery          = signal('');
+  activeFilter         = signal<'all' | 'instructor' | 'coordinator'>('all');
+
+  filteredInstructors = computed(() => {
+    const q      = this.searchQuery().toLowerCase().trim();
+    const filter = this.activeFilter();
+    return this.instructors.filter(inst => {
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'instructor'  && inst.source !== 'coordinator') ||
+        (filter === 'coordinator' && inst.source !== 'instructor');
+      if (!matchesFilter) return false;
+      if (!q) return true;
+      const full = `${inst.first_name} ${inst.last_name}`.toLowerCase();
+      return full.includes(q);
+    });
+  });
 
   get activity(): ScActivityType | undefined {
     return this.activityMap[this.entry.activityId];

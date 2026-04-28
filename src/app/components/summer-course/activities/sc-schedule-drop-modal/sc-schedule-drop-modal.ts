@@ -5,6 +5,7 @@ import {
   Output,
   EventEmitter,
   signal,
+  computed,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ScInstructor, ScArea } from '../../../../models/summer-course/summer-course.model';
@@ -36,6 +37,23 @@ export class ScScheduleDropModalComponent {
   selectedInstructorId = signal<number | null>(null);
   selectedAreaId       = signal<number | null>(null);
   selectedActivity     = signal<ScActivityType | null>(null);
+  searchQuery          = signal('');
+  activeFilter         = signal<'all' | 'instructor' | 'coordinator'>('all');
+
+  filteredInstructors = computed(() => {
+    const q      = this.searchQuery().toLowerCase().trim();
+    const filter = this.activeFilter();
+    return this.instructors.filter(inst => {
+      const matchesFilter =
+        filter === 'all' ||
+        (filter === 'instructor'  && inst.source !== 'coordinator') ||
+        (filter === 'coordinator' && inst.source !== 'instructor');
+      if (!matchesFilter) return false;
+      if (!q) return true;
+      const full = `${inst.first_name} ${inst.last_name}`.toLowerCase();
+      return full.includes(q);
+    });
+  });
 
   /** The activity to use: either forced via @Input or picked by user */
   get resolvedActivity(): ScActivityType | null {

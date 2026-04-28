@@ -46,14 +46,46 @@
         <hr class="my-2">
       }
 
-      <p class="fw-semibold small mb-2">Selecciona un instructor:</p>
+      <!-- ── Instructor selector ───────────────────────────────────── -->
+      <div class="inst-section-header mb-2">
+        <span class="fw-semibold small">
+          <i class="bi bi-person-badge me-1"></i>Instructor
+        </span>
+        <div class="inst-filter-chips">
+          <button class="inst-chip"
+                  [class.active]="activeFilter() === 'all'"
+                  (click)="activeFilter.set('all')">Todos</button>
+          <button class="inst-chip inst-chip--instructor"
+                  [class.active]="activeFilter() === 'instructor'"
+                  (click)="activeFilter.set('instructor')">🎓 Instructores</button>
+          <button class="inst-chip inst-chip--coordinator"
+                  [class.active]="activeFilter() === 'coordinator'"
+                  (click)="activeFilter.set('coordinator')">📋 Coordinadores</button>
+        </div>
+      </div>
 
       @if (instructors.length === 0) {
         <p class="text-muted small">No hay instructores registrados.</p>
       } @else {
-        <div class="instructor-grid">
-          @for (inst of instructors; track inst.id) {
-            <div class="instructor-card"
+        <!-- Search box -->
+        <div class="inst-search-wrap mb-2">
+          <i class="bi bi-search inst-search-icon"></i>
+          <input class="inst-search-input"
+                 type="text"
+                 placeholder="Buscar por nombre…"
+                 [value]="searchQuery()"
+                 (input)="searchQuery.set($any($event.target).value)">
+          @if (searchQuery()) {
+            <button class="inst-search-clear" (click)="searchQuery.set('')">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          }
+        </div>
+
+        <!-- Scrollable list -->
+        <div class="inst-list">
+          @for (inst of filteredInstructors(); track inst.id) {
+            <div class="inst-row"
                  [class.selected]="selectedInstructorId() === inst.id"
                  (click)="selectInstructor(inst.id)">
               <div class="inst-avatar" [style.background]="avatarBg(inst.id)">
@@ -61,19 +93,31 @@
               </div>
               <div class="inst-info">
                 <div class="inst-name">{{ inst.first_name }} {{ inst.last_name }}</div>
-                <div class="inst-spec text-muted">{{ inst.specialty ?? 'Instructor' }}</div>
+                <div class="inst-sub text-muted">
+                  {{ inst.specialty ?? (inst.source === 'coordinator' ? 'Coord. Deportiva' : 'Instructor') }}
+                </div>
               </div>
+              <span class="inst-source-chip"
+                    [class.chip--instructor]="inst.source === 'instructor'"
+                    [class.chip--coordinator]="inst.source === 'coordinator'"
+                    [class.chip--both]="inst.source === 'both'">
+                {{ inst.source === 'coordinator' ? '📋' : '🎓' }}
+              </span>
               @if (selectedInstructorId() === inst.id) {
-                <i class="bi bi-check-circle-fill text-primary ms-auto"></i>
+                <i class="bi bi-check-circle-fill text-primary ms-1"></i>
               }
             </div>
+          } @empty {
+            <p class="text-muted small text-center py-2 mb-0">
+              Sin resultados para "<em>{{ searchQuery() }}</em>"
+            </p>
           }
         </div>
       }
 
-      <button class="btn btn-link text-muted btn-sm ps-0 mt-2"
+      <button class="btn btn-link text-muted btn-sm ps-0 mt-1"
               (click)="selectedInstructorId.set(null)">
-        <i class="bi bi-person me-1"></i>Dejar sin instructor por ahora
+        <i class="bi bi-person-x me-1"></i>Dejar sin instructor por ahora
       </button>
 
       <hr class="my-3">

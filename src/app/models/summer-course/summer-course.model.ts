@@ -128,6 +128,9 @@ export interface ScInstructor {
   specialty?: string | null;
   is_instructor: boolean;
   created_at?: string;
+  /** 'instructor' = is_instructor=1 | 'coordinator' = dept Coord. Deportiva | 'both' = ambos */
+  source?: 'instructor' | 'coordinator' | 'both';
+  department?: string;
   // Computed
   full_name?: string;
   initials?: string;            // 2 letras para avatar

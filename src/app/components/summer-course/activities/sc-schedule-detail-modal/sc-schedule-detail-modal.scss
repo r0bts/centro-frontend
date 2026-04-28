@@ -85,29 +85,101 @@
   }
 }
 
-.instructor-grid {
+// ── Instructor section header + filter chips ──────────────────────────────────
+.inst-section-header {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  max-height: 220px;
-  overflow-y: auto;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .4rem;
 }
 
-.instructor-card {
+.inst-filter-chips {
+  display: flex;
+  gap: .25rem;
+  flex-wrap: wrap;
+}
+
+.inst-chip {
+  padding: .15rem .55rem;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: .7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .15s;
+  &:hover { border-color: #94a3b8; color: #334155; }
+  &.active                       { background: #1e40af; border-color: #1e40af; color: #fff; }
+  &.inst-chip--instructor.active  { background: #1d4ed8; border-color: #1d4ed8; }
+  &.inst-chip--coordinator.active { background: #047857; border-color: #047857; }
+}
+
+// ── Search box ────────────────────────────────────────────────────────────────
+.inst-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.inst-search-icon {
+  position: absolute;
+  left: .6rem;
+  color: #94a3b8;
+  font-size: .8rem;
+  pointer-events: none;
+}
+.inst-search-input {
+  width: 100%;
+  padding: .35rem .35rem .35rem 2rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: .8rem;
+  color: #1e293b;
+  background: #f8fafc;
+  outline: none;
+  transition: border-color .15s;
+  &:focus { border-color: #6366f1; background: #fff; }
+}
+.inst-search-clear {
+  position: absolute;
+  right: .5rem;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: .75rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  &:hover { color: #475569; }
+}
+
+// ── Scrollable list ───────────────────────────────────────────────────────────
+.inst-list {
+  max-height: 210px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.inst-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: 7px;
-  border: 1.5px solid #e9ecef;
+  padding: 7px 10px;
+  border-bottom: 1px solid #f1f5f9;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: background .12s;
 
-  &:hover { background: #f8f9fa; border-color: #c7d2fe; }
+  &:last-child { border-bottom: none; }
+  &:hover      { background: #f8fafc; }
 
   &.selected {
-    border-color: var(--bs-primary);
-    background: rgba(var(--bs-primary-rgb), 0.05);
+    background: rgba(99, 102, 241, 0.07);
+    .inst-name { color: #4338ca; font-weight: 700; }
   }
 
   .inst-avatar {
@@ -123,12 +195,25 @@
     flex-shrink: 0;
   }
 
+  .inst-info { flex: 1; min-width: 0; }
+
   .inst-name {
     font-size: 0.8rem;
     font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
+  .inst-sub { font-size: 0.7rem; }
+}
 
-  .inst-spec {
-    font-size: 0.7rem;
-  }
+// ── Source chip ───────────────────────────────────────────────────────────────
+.inst-source-chip {
+  font-size: .8rem;
+  padding: .1rem .3rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  &.chip--instructor  { background: #eff6ff; }
+  &.chip--coordinator { background: #f0fdf4; }
+  &.chip--both        { background: #faf5ff; }
 }
