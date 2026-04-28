@@ -270,9 +270,22 @@ $level-colors: (
   &__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 }
 
-.sce-participant-icon { color: #94a3b8; font-size: 18px; }
+.sce-participant-icon {
+  color: #94a3b8; font-size: 18px;
+  &--guest { color: #d97706; }  // ámbar para invitados
+}
 .sce-participant-name { display: block; font-weight: 600; font-size: .875rem; color: #1e293b; }
 .sce-participant-type { font-size: .75rem; color: $c-neutral; }
+.sce-participant-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 1px; }
+
+// Chip "Invitado de [titular]" en la tabla de inscritos
+.sce-guest-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: .7rem; font-weight: 600;
+  background: #fef3c7; color: #92400e; border: 1px solid #fde68a;
+  padding: 1px 7px 1px 4px; border-radius: 20px;
+  .material-symbols-outlined { font-size: 12px; }
+}
 
 .sce-weeks-range {
   display: inline-flex; align-items: center; gap: 4px;
@@ -477,6 +490,7 @@ $level-colors: (
   font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 20px;
   &--enrolled     { background: #dcfce7; color: #15803d; }
   &--out-of-range { background: #fee2e2; color: #b91c1c; }
+  &--guest        { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
   &--xs { font-size: .68rem; padding: 2px 6px; }
 }
 
@@ -498,6 +512,7 @@ $level-colors: (
 // ─── Step 2 ──────────────────────────────────────────────────────────────────
 .wz-step-header {
   display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+  .wz-section-title { flex: 1; }
 }
 
 .wz-back-btn {
@@ -506,6 +521,16 @@ $level-colors: (
   color: $c-neutral; transition: background .12s;
   &:hover { background: #e2e8f0; color: #1e293b; }
   .material-symbols-outlined { font-size: 18px; }
+}
+
+.wz-add-guest-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border-radius: 8px; border: 1.5px solid #2563eb;
+  background: #eff6ff; color: #2563eb; font-size: .8rem; font-weight: 600;
+  cursor: pointer; transition: background .15s, color .15s;
+  white-space: nowrap;
+  .material-symbols-outlined { font-size: 16px; }
+  &:hover { background: #2563eb; color: #fff; }
 }
 
 .wz-week-header-row {

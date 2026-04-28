@@ -497,6 +497,22 @@ export interface ScRegistrationParticipant {
   suggested_level?: number | null;
 }
 
+/** Participante ya inscrito — devuelto por GET /registrations */
+export interface ScEnrolledParticipant {
+  enrollment_id:    number;
+  participant_id:   number;
+  full_name:        string;
+  participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
+  socio_id:         number | null;
+  guest_id:         number | null;
+  invited_by:       string | null;  // nombre del titular que lo invitó (solo guests)
+  birth_date:       string | null;
+  weeks:            { week_number: number; label: string }[];
+  payment_status:   string;
+  access_code:      string | null;
+  assigned_level:   number | null;
+}
+
 /** Payload para POST /registration */
 export interface ScRegistrationRequest {
   titular_id: string | number;
@@ -524,16 +540,18 @@ export interface ScRegistrationResponse {
 
 /** Participante inscrito en el listado admin */
 export interface ScRegisteredParticipant {
-  enrollment_id: number;
-  participant_id: number;
-  full_name: string;
+  enrollment_id:    number;
+  participant_id:   number;
+  full_name:        string;
   participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
-  socio_id: number | null;
-  birth_date: string | null;
-  weeks: Array<{ week_number: number; label: string }>;
-  payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
-  access_code: string | null;
-  assigned_level?: number | null;
+  socio_id:         number | null;
+  guest_id:         number | null;
+  invited_by:       string | null;  // nombre del titular que lo invitó (solo guests)
+  birth_date:       string | null;
+  weeks:            Array<{ week_number: number; label: string }>;
+  payment_status:   'pending' | 'paid' | 'partial' | 'cancelled';
+  access_code:      string | null;
+  assigned_level?:  number | null;
   suggested_level?: number | null;
 }
 
@@ -583,3 +601,55 @@ export interface ScLevelsResponse {
   success: boolean;
   data: ScLevel[];
 }
+
+// =====================================================================
+// GUESTS (invitados de socios + sync NetSuite)
+// =====================================================================
+
+/** Invitado registrado en DB y sincronizado (o pendiente) con NetSuite */
+export interface ScGuest {
+  id: number;
+  first_name: string;
+  last_name: string;
+  second_last_name?: string | null;
+  full_name: string;
+  email: string;
+  phone?: string | null;
+  birth_date: string | null;          // YYYY-MM-DD
+  rfc?: string | null;
+  relationship?: string | null;
+  socio_id: number;
+  ns_company_id?: number | null;
+  netsuite_contact_id?: number | null;
+  netsuite_synced_at?: string | null;
+  ns_sync_error?: string | null;
+  ns_synced: boolean;
+  created?: string;
+}
+
+export interface CreateGuestPayload {
+  first_name: string;
+  last_name: string;
+  second_last_name?: string;
+  email: string;
+  phone?: string;
+  birth_date: string;                 // YYYY-MM-DD
+  rfc?: string;
+  relationship?: string;
+  socio_id: number;
+}
+
+export interface GuestResult {
+  success: boolean;
+  message: string;
+  data: {
+    guest: ScGuest;
+    ns_synced: boolean;
+  };
+}
+
+export interface ScGuestListResponse {
+  success: boolean;
+  data: { guests: ScGuest[]; total: number };
+}
+

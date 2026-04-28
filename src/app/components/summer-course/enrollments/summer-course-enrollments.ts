@@ -15,12 +15,14 @@ import { ScCoursesService } from '../../../services/summer-course/sc-courses.ser
 import {
   ScCourse,
   ScLevel,
+  ScGuest,
   ScRegistrationGroup,
   ScSocioSearchResult,
   ScRegistrationParticipant,
   ScCostWithTotal,
   SC_PARTICIPANT_TYPES,
 } from '../../../models/summer-course/summer-course.model';
+import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 
 type WizardStep = 'search' | 'participants' | 'confirm' | 'done';
 
@@ -35,13 +37,14 @@ interface PendingParticipant {
   alreadyEnrolled: boolean;
   suggestedLevel: ScLevel | null;
   outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
+  guest_db_id?: number; // ID real en summer_course_guests (solo para invitados)
 }
 
 @Component({
   selector: 'app-summer-course-enrollments',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, GuestModalComponent],
   templateUrl: './summer-course-enrollments.html',
   styleUrl: './summer-course-enrollments.scss',
 })
@@ -90,12 +93,22 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   saving             = signal(false);
   registrationResult = signal<any>(null);
 
+  // ── Guest modal ───────────────────────────────────────────────────────────
+  guestModalOpen     = signal(false);
+
   private search$ = new Subject<string>();
 
   totalAmount = computed(() =>
     this.pendingParticipants()
       .filter(p => p.weeks.length > 0)
       .reduce((sum, p) => sum + this._getCost(p.type, p.weeks.length), 0)
+  );
+
+  /** IDs de invitados ya agregados al wizard — se pasa al GuestModalComponent */
+  guestIds = computed(() =>
+    this.pendingParticipants()
+      .filter(p => p.guest_db_id != null)
+      .map(p => p.guest_db_id!)
   );
 
   courseWeeksCount = computed(() => this.selectedCourse()?.sc_weeks?.length ?? 0);
@@ -292,6 +305,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       total_amount: this.totalAmount(),
       participants: this.activePending.map(p => ({
         socio_id:        p.socio_id,
+        guest_db_id:     p.guest_db_id ?? null,
         type:            p.type,
         weeks:           p.weeks,
         birth_date:      p.birth_date,
@@ -311,6 +325,58 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.error.set(err?.error?.message ?? 'Error al registrar');
       },
     });
+  }
+
+  // ── Guest modal ───────────────────────────────────────────────────────────
+  openGuestModal(): void {
+    this.guestModalOpen.set(true);
+  }
+
+  closeGuestModal(): void {
+    this.guestModalOpen.set(false);
+  }
+
+  /**
+   * Callback cuando el usuario selecciona/crea un invitado en el modal.
+   * Agrega el invitado a la lista de participantes pendientes.
+   */
+  onGuestSelected(guest: ScGuest): void {
+    this.guestModalOpen.set(false);
+
+    // Evitar duplicados
+    const guestUniqueId = `guest_${guest.id}`;
+    if (this.pendingParticipants().some(p => p.socio_id === guestUniqueId)) {
+      this.showToast(`${guest.full_name} ya está en la lista`, 'info');
+      return;
+    }
+
+    const age = guest.birth_date
+      ? (() => {
+          const b = new Date(guest.birth_date!);
+          const n = new Date();
+          let a = n.getFullYear() - b.getFullYear();
+          const m = n.getMonth() - b.getMonth();
+          if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
+          return a;
+        })()
+      : null;
+
+    const participant: PendingParticipant = {
+      socio_id:       guestUniqueId,
+      fullName:       guest.full_name,
+      type:           'guest',
+      weeks:          [],
+      birth_date:     guest.birth_date,
+      age,
+      memberType:     'Invitado',
+      alreadyEnrolled: false,
+      suggestedLevel:  this._getLevelForAge(age),
+      outOfRange:      this._isOutOfRange(age),
+      guest_db_id:     guest.id,  // ID real en summer_course_guests
+    };
+
+    this.pendingParticipants.update(list => [...list, participant]);
+    this.showToast(`${guest.full_name} agregado como invitado`, 'success');
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

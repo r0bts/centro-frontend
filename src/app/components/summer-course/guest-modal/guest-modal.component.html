@@ -1,0 +1,238 @@
+<div class="gm-overlay" (click)="close()"></div>
+
+<div class="gm-modal">
+
+  <!-- Header -->
+  <div class="gm-header">
+    <div class="gm-header__left">
+      <div class="gm-header__icon">
+        <span class="material-symbols-outlined">person_add</span>
+      </div>
+      <div>
+        <span class="gm-header__title">Invitados del socio</span>
+        @if (socioName()) {
+          <span class="gm-header__sub">
+            <span class="gm-titular-chip">
+              <span class="material-symbols-outlined">badge</span>
+              {{ socioName() }}
+            </span>
+          </span>
+        }
+      </div>
+    </div>
+    <button class="gm-close" (click)="close()">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="gm-tabs">
+    <button class="gm-tab" [class.gm-tab--active]="tab() === 'search'" (click)="setTab('search')">
+      <span class="material-symbols-outlined">search</span>
+      Invitados registrados
+    </button>
+    <button class="gm-tab" [class.gm-tab--active]="tab() === 'new'" (click)="setTab('new')">
+      <span class="material-symbols-outlined">person_add</span>
+      Nuevo invitado
+    </button>
+  </div>
+
+  <div class="gm-body">
+
+    <!-- ── Tab: lista de invitados existentes ─────────────────────────── -->
+    @if (tab() === 'search') {
+      @if (loadingList()) {
+        <div class="gm-loading">
+          <div class="gm-spinner"></div>
+          <p>Cargando invitados...</p>
+        </div>
+      } @else if (guests().length === 0) {
+        <div class="gm-empty">
+          <span class="material-symbols-outlined gm-empty__icon">group_off</span>
+          <p>Este socio no tiene invitados registrados.</p>
+          <button class="gm-btn gm-btn--primary" (click)="setTab('new')">
+            <span class="material-symbols-outlined">person_add</span>
+            Registrar nuevo invitado
+          </button>
+        </div>
+      } @else {
+        <p class="gm-hint">Selecciona un invitado para inscribirlo, o registra uno nuevo.</p>
+        <div class="gm-guest-list">
+          @for (g of guests(); track g.id) {
+            <div class="gm-guest-card"
+                 [class.gm-guest-card--added]="isAlreadyAdded(g.id)"
+                 (click)="selectGuest(g)">
+
+              <!-- Avatar -->
+              <div class="gm-guest-card__avatar"
+                   [class.gm-guest-card__avatar--added]="isAlreadyAdded(g.id)">
+                {{ g.first_name.charAt(0).toUpperCase() }}
+              </div>
+
+              <!-- Info -->
+              <div class="gm-guest-card__info">
+                <div class="gm-guest-card__name-row">
+                  <span class="gm-guest-card__name">{{ g.full_name }}</span>
+                  @if (g.relationship) {
+                    <span class="gm-rel-chip">{{ g.relationship }}</span>
+                  }
+                </div>
+                <span class="gm-guest-card__meta">
+                  @if (guestAge(g) !== null) { <strong>{{ guestAge(g) }} años</strong> · }
+                  {{ formatDate(g.birth_date) }}
+                </span>
+              </div>
+
+              <!-- Badges / acciones -->
+              <div class="gm-guest-card__badges">
+                @if (isAlreadyAdded(g.id)) {
+                  <span class="gm-badge gm-badge--added">
+                    <span class="material-symbols-outlined">check</span>
+                    Ya agregado
+                  </span>
+                } @else {
+                  @if (g.ns_synced) {
+                    <span class="gm-badge gm-badge--ns-ok"
+                          title="Sincronizado con NetSuite (ID: {{ g.netsuite_contact_id }})">
+                      <span class="material-symbols-outlined">cloud_done</span>
+                    </span>
+                  } @else {
+                    <button class="gm-badge gm-badge--pending"
+                            title="Sync NS pendiente — click para reintentar"
+                            (click)="retrySync(g, $event)">
+                      <span class="material-symbols-outlined">sync_problem</span>
+                    </button>
+                  }
+                  <span class="material-symbols-outlined gm-chevron">chevron_right</span>
+                }
+              </div>
+
+            </div>
+          }
+        </div>
+        <div class="gm-list-footer">
+          <button class="gm-btn gm-btn--ghost" (click)="setTab('new')">
+            <span class="material-symbols-outlined">add</span>
+            Agregar otro invitado
+          </button>
+        </div>
+      }
+    }
+
+    <!-- ── Tab: nuevo invitado ────────────────────────────────────────── -->
+    @if (tab() === 'new') {
+
+      @if (errorMsg()) {
+        <div class="gm-alert gm-alert--error">
+          <span class="material-symbols-outlined">error</span>
+          {{ errorMsg() }}
+        </div>
+      }
+      @if (successMsg()) {
+        <div class="gm-alert gm-alert--success">
+          <span class="material-symbols-outlined">check_circle</span>
+          {{ successMsg() }}
+        </div>
+      }
+
+      <form class="gm-form" (ngSubmit)="saveNewGuest()" #gf="ngForm">
+
+        <div class="gm-row">
+          <div class="gm-field">
+            <label class="gm-label">Nombre <span class="gm-req">*</span></label>
+            <input class="gm-input" type="text" placeholder="Nombre(s)"
+                   [value]="form().first_name"
+                   (input)="updateForm('first_name', $any($event.target).value)"
+                   required />
+          </div>
+        </div>
+
+        <div class="gm-row gm-row--2">
+          <div class="gm-field">
+            <label class="gm-label">Apellido paterno <span class="gm-req">*</span></label>
+            <input class="gm-input" type="text" placeholder="Primer apellido"
+                   [value]="form().last_name"
+                   (input)="updateForm('last_name', $any($event.target).value)"
+                   required />
+          </div>
+          <div class="gm-field">
+            <label class="gm-label">Apellido materno</label>
+            <input class="gm-input" type="text" placeholder="Segundo apellido"
+                   [value]="form().second_last_name"
+                   (input)="updateForm('second_last_name', $any($event.target).value)" />
+          </div>
+        </div>
+
+        <div class="gm-row gm-row--2">
+          <div class="gm-field">
+            <label class="gm-label">Fecha de nacimiento <span class="gm-req">*</span></label>
+            <input class="gm-input" type="date"
+                   [value]="form().birth_date"
+                   (change)="updateForm('birth_date', $any($event.target).value)"
+                   required />
+            @if (calcAge() !== null) {
+              <span class="gm-field-hint" [class.gm-field-hint--warn]="ageWarning()">
+                {{ calcAge() }} años
+                @if (ageWarning()) { — {{ ageWarning() }} }
+              </span>
+            }
+          </div>
+          <div class="gm-field">
+            <label class="gm-label">RFC / CURP</label>
+            <input class="gm-input" type="text" placeholder="RFC o CURP (requerido por NS)"
+                   [value]="form().rfc"
+                   (input)="updateForm('rfc', $any($event.target).value)"
+                   style="text-transform:uppercase" />
+          </div>
+        </div>
+
+        <div class="gm-row gm-row--2">
+          <div class="gm-field">
+            <label class="gm-label">Email <span class="gm-req">*</span></label>
+            <input class="gm-input" type="email" placeholder="correo@ejemplo.com"
+                   [value]="form().email"
+                   (input)="updateForm('email', $any($event.target).value)"
+                   required />
+          </div>
+          <div class="gm-field">
+            <label class="gm-label">Teléfono</label>
+            <input class="gm-input" type="tel" placeholder="55 1234 5678"
+                   [value]="form().phone"
+                   (input)="updateForm('phone', $any($event.target).value)" />
+          </div>
+        </div>
+
+        <div class="gm-row">
+          <div class="gm-field">
+            <label class="gm-label">Parentesco / Relación</label>
+            <input class="gm-input" type="text" placeholder="Ej: Hijo, Sobrino, Amigo..."
+                   [value]="form().relationship"
+                   (input)="updateForm('relationship', $any($event.target).value)" />
+          </div>
+        </div>
+
+        <div class="gm-info-box">
+          <span class="material-symbols-outlined">info</span>
+          <span>Al guardar, el invitado se registrará en el sistema y se sincronizará automáticamente con NetSuite como contacto AMIGO del socio.</span>
+        </div>
+
+        <div class="gm-form-footer">
+          <button type="button" class="gm-btn gm-btn--ghost" (click)="setTab('search')">
+            Cancelar
+          </button>
+          <button type="submit" class="gm-btn gm-btn--primary" [disabled]="!formValid() || saving()">
+            @if (saving()) {
+              <div class="gm-spinner gm-spinner--sm gm-spinner--white"></div>
+              Guardando y sincronizando...
+            } @else {
+              <span class="material-symbols-outlined">cloud_upload</span>
+              Guardar y sincronizar
+            }
+          </button>
+        </div>
+
+      </form>
+    }
+
+  </div>
+</div>

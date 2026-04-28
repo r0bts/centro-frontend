@@ -170,10 +170,21 @@
                 @for (p of group.participants; track p.enrollment_id) {
                   <div class="sce-participant-row">
                     <div class="sce-participant-row__left">
-                      <span class="material-symbols-outlined sce-participant-icon">person</span>
+                      <span class="material-symbols-outlined sce-participant-icon"
+                            [class.sce-participant-icon--guest]="p.participant_type === 'guest'">
+                        {{ p.participant_type === 'guest' ? 'person_outline' : 'person' }}
+                      </span>
                       <div>
                         <span class="sce-participant-name">{{ p.full_name }}</span>
-                        <span class="sce-participant-type">{{ typeLabel(p.participant_type) }}</span>
+                        <div class="sce-participant-meta">
+                          <span class="sce-participant-type">{{ typeLabel(p.participant_type) }}</span>
+                          @if (p.participant_type === 'guest' && p.invited_by) {
+                            <span class="sce-guest-badge">
+                              <span class="material-symbols-outlined">person_pin</span>
+                              Invitado de {{ p.invited_by }}
+                            </span>
+                          }
+                        </div>
                       </div>
                     </div>
                     <div class="sce-participant-row__right">
@@ -340,6 +351,10 @@
             <span class="material-symbols-outlined">groups</span>
             Participantes y semanas
           </div>
+          <button class="wz-add-guest-btn" (click)="openGuestModal()" title="Inscribir invitado">
+            <span class="material-symbols-outlined">person_add</span>
+            Invitado
+          </button>
         </div>
         <p class="wz-hint">Toca los chips de semana para activar/desactivar. Los ya inscritos están bloqueados.</p>
 
@@ -371,6 +386,13 @@
                   <span class="wz-p-name">{{ p.fullName }}</span>
                   <div class="wz-p-meta">
                     @if (p.age !== null) { <span>{{ p.age }} años</span> }
+                    <!-- Chip tipo invitado -->
+                    @if (p.type === 'guest') {
+                      <span class="wz-chip wz-chip--guest wz-chip--xs">
+                        <span class="material-symbols-outlined" style="font-size:11px">person_outline</span>
+                        Invitado de {{ selectedTitular()?.fullName }}
+                      </span>
+                    }
                     @if (p.outOfRange) {
                       <span class="wz-chip wz-chip--out-of-range wz-chip--xs">
                         <span class="material-symbols-outlined" style="font-size:11px">block</span>
@@ -537,4 +559,14 @@
 
     </div>
   </div>
+}
+
+<!-- GUEST MODAL -->
+@if (guestModalOpen() && selectedTitular()) {
+  <app-guest-modal
+    [socioId]="+selectedTitular()!.id"
+    [socioName]="selectedTitular()!.fullName"
+    [enrolledGuestIds]="guestIds()"
+    (guestSelected)="onGuestSelected($event)"
+    (closed)="closeGuestModal()" />
 }
