@@ -100,7 +100,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   totalAmount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0)
+      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
       .reduce((sum, p) => sum + this._getCost(p.type, p.weeks.length), 0)
   );
 
@@ -311,14 +311,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   /** Total de descuentos de todos los participantes activos */
   totalDiscount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0)
+      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
       .reduce((sum, p) => sum + this.participantDiscount(p), 0)
   );
 
   /** Total precio lista de todos los participantes activos */
   totalListPrice = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0)
+      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
       .reduce((sum, p) => sum + this.participantListPrice(p), 0)
   );
 

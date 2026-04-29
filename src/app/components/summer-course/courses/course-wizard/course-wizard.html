@@ -64,10 +64,10 @@
 
           <div class="col-12">
             <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
-            <select class="form-select" [ngModel]="acceso_club_id()" (ngModelChange)="acceso_club_id.set($event)" [disabled]="isEdit">
+            <select class="form-select" [ngModel]="location_id()" (ngModelChange)="location_id.set($event)" [disabled]="isEdit">
               <option [ngValue]="null" disabled>Selecciona una sede</option>
-              @for (c of accesoClubesList(); track c.id) {
-                <option [ngValue]="c.id">{{ c.name }}</option>
+              @for (loc of locationsList(); track loc.id) {
+                <option [ngValue]="loc.id">{{ loc.name }}</option>
               }
             </select>
           </div>

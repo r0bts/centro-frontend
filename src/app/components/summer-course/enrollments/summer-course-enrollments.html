@@ -423,6 +423,16 @@
                       [disabled]="p.alreadyEnrolled || p.outOfRange" title="Quitar">
                 <span class="material-symbols-outlined">close</span>
               </button>
+              <!-- F2: preview de costo por participante -->
+              @if (!p.outOfRange && !p.alreadyEnrolled && p.weeks.length > 0) {
+                <div class="wz-p-cost">
+                  @if (participantDiscount(p) > 0) {
+                    <span class="wz-p-cost__list">{{ currency(participantListPrice(p)) }}</span>
+                    <span class="wz-p-cost__discount">−{{ currency(participantDiscount(p)) }}</span>
+                  }
+                  <span class="wz-p-cost__total">{{ currency(participantCost(p)) }}</span>
+                </div>
+              }
             </div>
           }
         </div>
@@ -432,6 +442,16 @@
             <span class="material-symbols-outlined">check_circle</span>
             {{ activePending.length }} con semanas seleccionadas
           </span>
+          <!-- F3: total corriendo -->
+          @if (totalAmount() > 0) {
+            <div class="wz-step2-running-total">
+              @if (totalDiscount() > 0) {
+                <span class="wz-running-list">{{ currency(totalListPrice()) }}</span>
+                <span class="wz-running-discount">−{{ currency(totalDiscount()) }}</span>
+              }
+              <span class="wz-running-total">{{ currency(totalAmount()) }}</span>
+            </div>
+          }
           <button class="sce-btn sce-btn--primary" (click)="goToConfirm()" [disabled]="!canConfirm()">
             Continuar
             <span class="material-symbols-outlined">arrow_forward</span>

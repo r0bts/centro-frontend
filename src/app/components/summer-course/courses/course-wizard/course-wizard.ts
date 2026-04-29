@@ -58,7 +58,7 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   start_date  = signal('');
   end_date    = signal('');
   status      = signal<ScCourse['status']>('setup');
-  acceso_club_id = signal<number | null>(null);
+  location_id = signal<number | null>(null);
   description = signal('');
 
   // ── Step 2: Semanas ───────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   editWeeks     = signal<ScWeek[]>([]);
   loadingWeeks  = signal(false);
 
-  accesoClubesList = signal<{id: number, name: string}[]>([]);
+  locationsList = signal<{id: number, name: string}[]>([]);
 
   /** Máximo de semanas permitidas según el rango de fechas (solo modo nuevo) */
   maxWeeks = computed(() => {
@@ -105,12 +105,12 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
     // BUG 1 FIX: cargar lista de sedes primero, LUEGO aplicar el valor del curso
     this.svc.getFormData().subscribe({
       next: res => {
-        if (res.data?.acceso_clubes) {
-          this.accesoClubesList.set(res.data.acceso_clubes);
+        if (res.data?.locations) {
+          this.locationsList.set(res.data.locations);
         }
-        // Aplicar acceso_club_id DESPUÉS de que la lista esté lista
+        // Aplicar location_id DESPUÉS de que la lista esté lista
         if (this.editCourse) {
-          this.acceso_club_id.set(this.editCourse.acceso_club_id ?? null);
+          this.location_id.set(this.editCourse.location_id ?? null);
         }
         this.cdr.markForCheck();
       },
@@ -235,7 +235,7 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
 
   // ── Validation ───────────────────────────────────────────────────────────
   validateStep1(): boolean {
-    if (!this.acceso_club_id()) {
+    if (!this.location_id()) {
       this.error.set('Selecciona un Club o Sede.');
       return false;
     }
@@ -328,7 +328,7 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
       start_date:  this.start_date(),
       end_date:    this.end_date(),
       status:      this.status() || 'setup',
-      acceso_club_id: this.acceso_club_id(),
+      location_id: this.location_id(),
       description: this.description().trim() || null,
       weeks_count: this.isEdit ? undefined : this.weeks_count(),
       costs: this.costs().flatMap(c =>

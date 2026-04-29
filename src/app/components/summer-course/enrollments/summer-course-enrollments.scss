@@ -549,7 +549,7 @@ $level-colors: (
 
 .wz-p-row {
   display: grid;
-  grid-template-columns: 210px repeat(5, 56px) 36px;
+  grid-template-columns: 210px repeat(5, 56px) 36px auto;
   align-items: center; gap: 4px;
   padding: 10px 8px; border-bottom: 1px solid #f1f5f9;
   transition: background .1s;
@@ -600,10 +600,29 @@ $level-colors: (
   .material-symbols-outlined { font-size: 16px; }
 }
 
+// ── F2: badge de costo por participante ───────────────────────────────────
+.wz-p-cost {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 1px; min-width: 72px; font-size: .75rem; line-height: 1.2;
+  &__list   { text-decoration: line-through; color: #94a3b8; font-size: .7rem; }
+  &__discount { color: $c-success; font-size: .7rem; }
+  &__total  { font-weight: 700; color: #1e293b; font-size: .82rem; }
+}
+
 .wz-step2-footer {
   display: flex; justify-content: space-between; align-items: center;
   gap: 12px; flex-wrap: wrap; padding-top: 4px;
 }
+
+// ── F3: total corriendo en footer Step 2 ─────────────────────────────────
+.wz-step2-running-total {
+  display: flex; align-items: baseline; gap: 8px;
+  background: #f0f9ff; border: 1px solid #bae6fd;
+  border-radius: $radius-sm; padding: 4px 12px;
+}
+.wz-running-list    { font-size: .72rem; text-decoration: line-through; color: #94a3b8; }
+.wz-running-discount { font-size: .72rem; color: $c-success; font-weight: 600; }
+.wz-running-total   { font-weight: 700; font-size: .95rem; color: #0369a1; }
 
 .wz-count-info {
   display: flex; align-items: center; gap: 6px;
@@ -750,7 +769,7 @@ $level-colors: (
   }
   .wz-modal { max-height: 96vh; }
   .wz-week-header-row,
-  .wz-p-row { grid-template-columns: 160px repeat(5, 44px) 32px; }
+  .wz-p-row { grid-template-columns: 160px repeat(5, 44px) 32px auto; }
   .wz-week-chip { width: 30px; height: 30px; font-size: .7rem; }
 }
 
