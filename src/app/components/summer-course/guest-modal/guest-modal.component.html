@@ -195,10 +195,11 @@
                    required />
           </div>
           <div class="gm-field">
-            <label class="gm-label">Teléfono</label>
+            <label class="gm-label">Teléfono <span class="gm-req">*</span></label>
             <input class="gm-input" type="tel" placeholder="55 1234 5678"
                    [value]="form().phone"
-                   (input)="updateForm('phone', $any($event.target).value)" />
+                   (input)="updateForm('phone', $any($event.target).value)"
+                   required />
           </div>
         </div>
 

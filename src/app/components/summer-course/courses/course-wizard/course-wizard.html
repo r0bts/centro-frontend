@@ -148,29 +148,19 @@
     @if (step() === 2) {
       <div class="cw-body">
 
-        @if (!isEdit) {
-          <div class="mb-4">
-            <label class="form-label fw-semibold">Número de semanas a generar</label>
-            <div class="d-flex align-items-center gap-3">
-              <input type="range" class="form-range" min="1" [max]="maxWeeks()" step="1"
-                     [value]="weeks_count()"
-                     (input)="onWeeksCountChange(+$any($event.target).value)">
-              <span class="badge bg-primary fs-6 px-3">{{ weeks_count() }}</span>
-            </div>
-            <div class="form-text">Las semanas se generan automáticamente de lunes a viernes. Máximo {{ maxWeeks() }} según las fechas del curso.</div>
-          </div>
-        }
-
         <!-- Lista de semanas -->
         <div class="weeks-preview">
-          <h6 class="fw-semibold mb-3">
-            <i class="bi bi-calendar-week me-2"></i>
-            @if (isEdit) {
-              Semanas del curso
-            } @else {
-              Vista previa de {{ weeks_count() }} semana{{ weeks_count() === 1 ? '' : 's' }}
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-semibold mb-0">
+              <i class="bi bi-calendar-week me-2"></i>
+              @if (isEdit) { Semanas del curso } @else { Semanas generadas }
+            </h6>
+            @if (!isEdit) {
+              <span class="badge bg-primary-subtle text-primary px-3 py-2">
+                {{ weeks_count() }} semana{{ weeks_count() === 1 ? '' : 's' }}
+              </span>
             }
-          </h6>
+          </div>
 
           @if (isEdit) {
             @if (loadingWeeks()) {

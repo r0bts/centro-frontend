@@ -213,10 +213,11 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
         this._resizeCostMatrix(this.editWeeks().length || 1);
         this.step.set(3);
       } else {
+        // Las semanas se determinan 100% por el rango de fechas — no hay slider
+        const auto = this.maxWeeks();
+        this.weeks_count.set(auto);
+        this._resizeCostMatrix(auto);
         this.buildWeeksPreview();
-        const clamped = Math.min(this.weeks_count(), this.maxWeeks());
-        if (clamped !== this.weeks_count()) this.weeks_count.set(clamped);
-        this._resizeCostMatrix(clamped);
         this.step.set(2);
       }
     } else if (this.step() === 2) {
