@@ -99,6 +99,11 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'configuracion/limites-departamento',
+    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    canActivate: [authGuard]
+  },
+  {
     path: 'membresias',
     redirectTo: '/membresias/buscar',
     pathMatch: 'full'

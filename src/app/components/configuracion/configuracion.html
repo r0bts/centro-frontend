@@ -163,6 +163,11 @@
                     <div *ngIf="activeSection() === 'instructores'" class="config-panel">
                         <app-summer-course-instructors></app-summer-course-instructors>
                     </div>
+
+                    <!-- Límites de Requisición -->
+                    <div *ngIf="activeSection() === 'department_limits'" class="config-panel">
+                        <app-department-limits></app-department-limits>
+                    </div>
                 </div>
             </div>
         </div>
