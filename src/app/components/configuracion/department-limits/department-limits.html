@@ -264,27 +264,43 @@
           [(ngModel)]="productSearch"
           (input)="filterProductsForDept()">
         <div class="product-list">
-          <div *ngFor="let p of searchResults()" class="form-check border-bottom py-2 d-flex align-items-center gap-2">
-            <input
-              type="checkbox"
-              class="form-check-input"
-              [id]="'dp-' + p.id"
-              [checked]="selectedNewProducts.has(p.id)"
-              (change)="toggleNewProduct(p.id)">
-            <label [for]="'dp-' + p.id" class="form-check-label flex-grow-1">
-              <div class="fw-semibold">{{ p.name }}</div>
-              <small class="text-muted">{{ p.category_name }}</small>
-            </label>
-            <div *ngIf="selectedNewProducts.has(p.id)" style="width:110px">
-              <input
-                type="number"
-                class="form-control form-control-sm"
-                [(ngModel)]="newProductMaxMap[p.id]"
-                placeholder="Sin límite"
-                min="1">
+          <div *ngIf="deptResultsByCategory.length === 0" class="text-center py-3 text-muted">Sin resultados</div>
+
+          <div *ngFor="let group of deptResultsByCategory" class="mb-1">
+            <!-- Encabezado de categoría -->
+            <div class="d-flex align-items-center justify-content-between bg-light px-3 py-2 border-bottom">
+              <div class="d-flex align-items-center gap-2" style="cursor:pointer" (click)="toggleDeptCat(group.cat)">
+                <i class="bi" [class.bi-chevron-down]="!collapsedDeptCats.has(group.cat)" [class.bi-chevron-right]="collapsedDeptCats.has(group.cat)"></i>
+                <span class="fw-semibold small">{{ group.cat }}</span>
+                <span class="badge bg-secondary">{{ group.products.length }}</span>
+              </div>
+              <button class="btn btn-outline-primary py-0 px-2" style="font-size:0.75rem" (click)="selectAllFromDeptCategory(group.cat)">
+                <i class="bi bi-check2-all me-1"></i>Asignar todos
+              </button>
+            </div>
+            <!-- Productos del grupo -->
+            <div *ngIf="!collapsedDeptCats.has(group.cat)">
+              <div *ngFor="let p of group.products" class="form-check border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  [id]="'dp-' + p.id"
+                  [checked]="selectedNewProducts.has(p.id)"
+                  (change)="toggleNewProduct(p.id)">
+                <label [for]="'dp-' + p.id" class="form-check-label flex-grow-1">
+                  <div class="fw-semibold small">{{ p.name }}</div>
+                </label>
+                <div *ngIf="selectedNewProducts.has(p.id)" style="width:110px">
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="newProductMaxMap[p.id]"
+                    placeholder="Sin límite"
+                    min="1">
+                </div>
+              </div>
             </div>
           </div>
-          <div *ngIf="searchResults().length === 0" class="text-center py-3 text-muted">Sin resultados</div>
         </div>
       </div>
       <div class="card-footer text-end">
@@ -315,27 +331,43 @@
           [(ngModel)]="userProdSearch"
           (input)="filterProductsForUser()">
         <div class="product-list">
-          <div *ngFor="let p of userProdResults()" class="form-check border-bottom py-2 d-flex align-items-center gap-2">
-            <input
-              type="checkbox"
-              class="form-check-input"
-              [id]="'up-' + p.id"
-              [checked]="selectedNewUserProducts.has(p.id)"
-              (change)="toggleNewUserProduct(p.id)">
-            <label [for]="'up-' + p.id" class="form-check-label flex-grow-1">
-              <div class="fw-semibold">{{ p.name }}</div>
-              <small class="text-muted">{{ p.category_name }}</small>
-            </label>
-            <div *ngIf="selectedNewUserProducts.has(p.id)" style="width:110px">
-              <input
-                type="number"
-                class="form-control form-control-sm"
-                [(ngModel)]="newUserProductMaxMap[p.id]"
-                placeholder="Sin límite"
-                min="1">
+          <div *ngIf="userResultsByCategory.length === 0" class="text-center py-3 text-muted">Sin resultados</div>
+
+          <div *ngFor="let group of userResultsByCategory" class="mb-1">
+            <!-- Encabezado de categoría -->
+            <div class="d-flex align-items-center justify-content-between bg-light px-3 py-2 border-bottom">
+              <div class="d-flex align-items-center gap-2" style="cursor:pointer" (click)="toggleUserCat(group.cat)">
+                <i class="bi" [class.bi-chevron-down]="!collapsedUserCats.has(group.cat)" [class.bi-chevron-right]="collapsedUserCats.has(group.cat)"></i>
+                <span class="fw-semibold small">{{ group.cat }}</span>
+                <span class="badge bg-secondary">{{ group.products.length }}</span>
+              </div>
+              <button class="btn btn-outline-primary py-0 px-2" style="font-size:0.75rem" (click)="selectAllFromUserCategory(group.cat)">
+                <i class="bi bi-check2-all me-1"></i>Asignar todos
+              </button>
+            </div>
+            <!-- Productos del grupo -->
+            <div *ngIf="!collapsedUserCats.has(group.cat)">
+              <div *ngFor="let p of group.products" class="form-check border-bottom py-2 px-3 d-flex align-items-center gap-2">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  [id]="'up-' + p.id"
+                  [checked]="selectedNewUserProducts.has(p.id)"
+                  (change)="toggleNewUserProduct(p.id)">
+                <label [for]="'up-' + p.id" class="form-check-label flex-grow-1">
+                  <div class="fw-semibold small">{{ p.name }}</div>
+                </label>
+                <div *ngIf="selectedNewUserProducts.has(p.id)" style="width:110px">
+                  <input
+                    type="number"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="newUserProductMaxMap[p.id]"
+                    placeholder="Sin límite"
+                    min="1">
+                </div>
+              </div>
             </div>
           </div>
-          <div *ngIf="userProdResults().length === 0" class="text-center py-3 text-muted">Sin resultados</div>
         </div>
       </div>
       <div class="card-footer text-end">

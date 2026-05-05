@@ -46,8 +46,8 @@ export class DepartmentLimitsComponent implements OnInit {
   // Modal agregar productos (depto)
   showAddDeptModal = signal(false);
   productSearch  = '';
-  searchResults  = signal<{ id: number; name: string; category_name: string }[]>([]);
-  allProducts    = signal<{ id: number; name: string; category_name: string }[]>([]);
+  searchResults  = signal<{ id: number; name: string; category_name: string; category_id: number | null }[]>([]);
+  allProducts    = signal<{ id: number; name: string; category_name: string; category_id: number | null }[]>([]);
   selectedNewProducts: Set<number> = new Set();
   newProductMaxMap: { [product_id: number]: string } = {};
 
@@ -63,9 +63,13 @@ export class DepartmentLimitsComponent implements OnInit {
   // Modal agregar productos (usuario)
   showAddUserModal  = signal(false);
   userProdSearch    = '';
-  userProdResults   = signal<{ id: number; name: string; category_name: string }[]>([]);
+  userProdResults   = signal<{ id: number; name: string; category_name: string; category_id: number | null }[]>([]);
   selectedNewUserProducts: Set<number> = new Set();
   newUserProductMaxMap: { [product_id: number]: string } = {};
+
+  // Categorías colapsadas en modales
+  collapsedDeptCats: Set<string> = new Set();
+  collapsedUserCats: Set<string> = new Set();
 
   constructor(
     private authService: AuthService,
@@ -197,8 +201,31 @@ export class DepartmentLimitsComponent implements OnInit {
     this.searchResults.set(
       this.allProducts()
         .filter(p => !assigned.has(p.id) && (!q || p.name.toLowerCase().includes(q) || p.category_name.toLowerCase().includes(q)))
-        .slice(0, 60)
     );
+  }
+
+  /** Agrupa searchResults por category_name para el modal de depto */
+  get deptResultsByCategory(): { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] {
+    const map = new Map<string, { id: number; name: string; category_name: string; category_id: number | null }[]>();
+    for (const p of this.searchResults()) {
+      const cat = p.category_name || 'Sin categoría';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(p);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, products]) => ({ cat, products }));
+  }
+
+  selectAllFromDeptCategory(cat: string): void {
+    const group = this.deptResultsByCategory.find(g => g.cat === cat);
+    if (!group) return;
+    group.products.forEach(p => this.selectedNewProducts.add(p.id));
+    this.cdr.markForCheck();
+  }
+
+  toggleDeptCat(cat: string): void {
+    if (this.collapsedDeptCats.has(cat)) this.collapsedDeptCats.delete(cat);
+    else this.collapsedDeptCats.add(cat);
+    this.cdr.markForCheck();
   }
 
   toggleNewProduct(productId: number): void {
@@ -352,8 +379,31 @@ export class DepartmentLimitsComponent implements OnInit {
     this.userProdResults.set(
       this.allProducts()
         .filter(p => !assigned.has(p.id) && (!q || p.name.toLowerCase().includes(q) || p.category_name.toLowerCase().includes(q)))
-        .slice(0, 60)
     );
+  }
+
+  /** Agrupa userProdResults por category_name para el modal de usuario */
+  get userResultsByCategory(): { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] {
+    const map = new Map<string, { id: number; name: string; category_name: string; category_id: number | null }[]>();
+    for (const p of this.userProdResults()) {
+      const cat = p.category_name || 'Sin categoría';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(p);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, products]) => ({ cat, products }));
+  }
+
+  selectAllFromUserCategory(cat: string): void {
+    const group = this.userResultsByCategory.find(g => g.cat === cat);
+    if (!group) return;
+    group.products.forEach(p => this.selectedNewUserProducts.add(p.id));
+    this.cdr.markForCheck();
+  }
+
+  toggleUserCat(cat: string): void {
+    if (this.collapsedUserCats.has(cat)) this.collapsedUserCats.delete(cat);
+    else this.collapsedUserCats.add(cat);
+    this.cdr.markForCheck();
   }
 
   toggleNewUserProduct(productId: number): void {
@@ -414,7 +464,7 @@ export class DepartmentLimitsComponent implements OnInit {
         this.allProducts.set(
           (res?.data?.products ?? [])
             .filter((p: any) => !p.isInactive)
-            .map((p: any) => ({ id: Number(p.id), name: p.name, category_name: p.category_name }))
+            .map((p: any) => ({ id: Number(p.id), name: p.name, category_name: p.category_name ?? 'Sin categoría', category_id: p.category_id ?? null }))
         );
         this.cdr.markForCheck();
       },

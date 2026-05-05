@@ -84,6 +84,7 @@ export interface ProductSearchResult {
   id: string; // el API devuelve string
   code: string;
   name: string;
+  category_id: number | null;
   category_name: string;
   isInactive: boolean;
 }
