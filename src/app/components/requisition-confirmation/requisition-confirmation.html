@@ -324,7 +324,7 @@
                   [disabled]="!selectedEmployee"
                   [class.btn-secondary]="!selectedEmployee"
                   [class.btn-success]="selectedEmployee">
-                  {{ selectedEmployee ? 'Enviar Requisición' : 'Selecciona un empleado' }}
+                  {{ selectedEmployee ? (isEditMode ? 'Actualizar Requisición' : 'Enviar Requisición') : 'Selecciona un empleado' }}
                 </button>
               </div>
 

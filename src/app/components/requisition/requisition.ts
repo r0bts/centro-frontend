@@ -1,9 +1,9 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Subject } from 'rxjs';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
 import { RequisitionService, RequisitionProduct, Project as BackendProject, RequisitionArea, Location } from '../../services/requisition.service';
 import Swal from 'sweetalert2';
@@ -70,6 +70,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
+    private route: ActivatedRoute,
     private requisitionService: RequisitionService,
     private cdr: ChangeDetectorRef
   ) {
@@ -137,6 +138,11 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   // State de plantilla (se procesa después de cargar form data)
   private pendingTemplateState: any = null;
 
+  // 🔥 Modo edición de requisición existente
+  isEditMode: boolean = false;
+  editingRequisitionId: string = '';
+  private destroy$ = new Subject<void>();
+
   ngOnInit(): void {
     // 🔥 PASO 1: Verificar location_id del localStorage
     const storedLocationId = localStorage.getItem('location_id');
@@ -156,6 +162,27 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     
     // ✅ Cargar datos del backend
     this.loadFormData();
+
+    // 📅 Pre-llenar fecha de entrega con hoy (solo en modo creación)
+    if (!this.customDeliveryDate) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      this.customDeliveryDate = `${yyyy}-${mm}-${dd}`;
+      // También actualizar currentDeliveryDate con hora por defecto (08:00)
+      const [hours, minutes] = this.deliveryTime.split(':').map(Number);
+      this.currentDeliveryDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), hours, minutes, 0, 0);
+    }
+    
+    // 🔥 Detectar modo edición por queryParams (?id=REQ-XXXX&mode=edit)
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe(params => {
+      if (params['id'] && params['mode'] === 'edit') {
+        this.isEditMode = true;
+        this.editingRequisitionId = params['id'];
+        console.log('✏️ [Edit Mode] Cargando requisición para editar:', this.editingRequisitionId);
+      }
+    });
     
     // ⚡ Configurar debounce para búsquedas
     this.setupSearchDebounce();
@@ -302,6 +329,12 @@ export class RequisitionComponent implements OnInit, OnDestroy {
             console.log('🎯 [loadFormData] Procesando plantilla pendiente...');
             this.loadTemplateData(this.pendingTemplateState);
             this.pendingTemplateState = null; // Limpiar después de procesar
+          }
+          
+          // 🔥 CARGAR DATOS EN MODO EDICIÓN (si existe requisición a editar)
+          if (this.isEditMode && this.editingRequisitionId) {
+            console.log('✏️ [loadFormData] Cargando datos para editar:', this.editingRequisitionId);
+            this.loadRequisitionForEdit(this.editingRequisitionId);
           }
         }
       },
@@ -461,6 +494,101 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   formatDateForInput(date: Date): string {
     // Formatear fecha para el input type="date" (YYYY-MM-DD)
     return date.toISOString().split('T')[0];
+  }
+
+  /**
+   * 🔥 Carga los datos de una requisición existente en el formulario (modo edición)
+   */
+  loadRequisitionForEdit(requisitionId: string): void {
+    Swal.fire({
+      title: 'Cargando requisición...',
+      text: 'Por favor espera',
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading()
+    });
+
+    this.requisitionService.getRequisitionById(requisitionId).subscribe({
+      next: (response: any) => {
+        Swal.close();
+        if (response.success && response.data) {
+          const data = response.data;
+
+          // Verificar que sea editable (solo estatus "solicitado")
+          if (data.status && data.status.toLowerCase() !== 'solicitado') {
+            Swal.fire({
+              icon: 'warning',
+              title: 'No editable',
+              text: `Solo se pueden editar requisiciones en estado "Solicitado". Esta está en estado "${data.status}".`,
+              confirmButtonText: 'Volver al listado'
+            }).then(() => this.router.navigate(['/requisicion/lista']));
+            return;
+          }
+
+          // Fecha de entrega
+          if (data.deliveryDateTime) {
+            this.currentDeliveryDate = new Date(data.deliveryDateTime);
+            this.customDeliveryDate = this.formatDateForInput(this.currentDeliveryDate);
+            // Hora
+            const h = this.currentDeliveryDate.getHours().toString().padStart(2, '0');
+            const m = this.currentDeliveryDate.getMinutes().toString().padStart(2, '0');
+            this.deliveryTime = `${h}:${m}`;
+            this.selectedEvent = 'custom';
+          }
+
+          // Devolución
+          this.isDevolucion = data.awaitingReturn || false;
+
+          // Locación/unidad de negocio
+          if (data.locationId) {
+            this.selectedLocationId = String(data.locationId);
+            const loc = this.locations.find(l => String(l.id) === String(data.locationId));
+            if (loc) this.businessUnit = loc.name;
+          }
+
+          // Proyecto
+          if (data.projectId) {
+            this.selectedProjectId = String(data.projectId);
+          }
+
+          // Agrupar items por área (igual que en confirmation)
+          const areaMap = new Map<string, RequisitionSummary>();
+          (data.items || []).forEach((item: any) => {
+            const areaKey = item.areaName || 'Sin área';
+            if (!areaMap.has(areaKey)) {
+              areaMap.set(areaKey, {
+                area: areaKey,
+                areaId: item.areaId?.toString(),
+                products: []
+              });
+            }
+            areaMap.get(areaKey)!.products.push({
+              id: item.productId.toString(),
+              name: item.productName || '',
+              quantity: item.requestedQuantity,
+              unit: item.unit || '',
+              actions: ''
+            });
+          });
+          this.requisitionSummary = Array.from(areaMap.values());
+
+          console.log('✏️ [loadRequisitionForEdit] Datos cargados:', {
+            areas: this.requisitionSummary.length,
+            deliveryDate: this.currentDeliveryDate,
+            location: this.businessUnit
+          });
+
+          this.cdr.detectChanges();
+        }
+      },
+      error: (error: any) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: error.error?.message || 'No se pudo cargar la requisición',
+          confirmButtonText: 'Volver'
+        }).then(() => this.router.navigate(['/requisicion/lista']));
+      }
+    });
   }
 
   onAreaChange(): void {
@@ -830,11 +958,14 @@ export class RequisitionComponent implements OnInit, OnDestroy {
         requisitionData: this.requisitionSummary,
         deliveryDate: this.currentDeliveryDate,
         isDevolucion: this.isDevolucion,
-        selectedEventId: this.selectedEvent, // Pasar el evento seleccionado
-        businessUnit: this.businessUnit, // Pasar la unidad de negocio
+        selectedEventId: this.selectedEvent,
+        businessUnit: this.businessUnit,
         selectedLocationId: this.selectedLocationId,
         selectedProjectId: this.selectedProjectId,
-        selectedDepartmentId: this.selectedDepartmentId
+        selectedDepartmentId: this.selectedDepartmentId,
+        // 🔥 Modo edición
+        isEditMode: this.isEditMode,
+        editingRequisitionId: this.editingRequisitionId
       }
     });
   }
@@ -1015,6 +1146,10 @@ export class RequisitionComponent implements OnInit, OnDestroy {
       if (selectedLocation) {
         this.selectedLocationId = selectedLocation.id;
         console.log(`✅ Locación seleccionada: ${this.businessUnit} (ID: ${this.selectedLocationId})`);
+      }
+      // 📅 Si ya hay una fecha pre-cargada, sincronizar currentDeliveryDate con la hora actual
+      if (this.customDeliveryDate && !this.currentDeliveryDate) {
+        this.onCustomDateChange();
       }
     } else {
       this.selectedLocationId = undefined;
@@ -1236,5 +1371,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     // ⚡ Cleanup de subscriptions
     this.productSearchSubject.complete();
     this.areaSearchSubject.complete();
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

@@ -558,13 +558,18 @@
                             [class.bg-primary]="requisition()?.statusRaw === 'listo_recoger'"
                             [class.bg-warning]="requisition()?.statusRaw === 'parcialmente_entregado'"
                             [class.bg-success]="requisition()?.statusRaw === 'entregado'"
-                            [class.bg-info]="requisition()?.statusRaw === 'espera_devolucion'">
+                            [class.bg-info]="requisition()?.statusRaw === 'espera_devolucion'"
+                            [class.bg-danger]="requisition()?.statusRaw === 'cancelado'">
                         {{ requisition()?.status }}
                       </span>
                     </div>
                   </div>
                 </div>
-              </div>
+                <!-- Alerta para requisición cancelada -->
+                <div *ngIf="requisition()?.statusRaw === 'cancelado'" class="alert alert-danger mb-0 d-flex align-items-center mt-3">
+                  <i class="bi bi-x-circle-fill me-2 fs-5"></i>
+                  <span>Esta requisición ha sido <strong>cancelada</strong> y no puede procesarse.</span>
+                </div>
             </div>
           </div>
         </div>

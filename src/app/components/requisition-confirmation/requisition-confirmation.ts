@@ -92,6 +92,10 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   viewMode: 'view' | 'edit' = 'view';
   isFromList: boolean = false;
   
+  // 🔥 Modo edición (desde formulario de requisición)
+  isEditMode: boolean = false;
+  editingRequisitionId: string = '';
+  
   // Propiedad para devolución
   isDevolucion: boolean = false;
   
@@ -124,6 +128,9 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       this.selectedDepartmentId = navigation.extras.state['selectedDepartmentId'];
       this.selectedLocationId = navigation.extras.state['selectedLocationId'];
       this.selectedProjectId = navigation.extras.state['selectedProjectId'];
+      // 🔥 Modo edición
+      this.isEditMode = navigation.extras.state['isEditMode'] || false;
+      this.editingRequisitionId = navigation.extras.state['editingRequisitionId'] || '';
     }
   }
 
@@ -561,7 +568,38 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Enviar la requisición al backend
+    // Enviar la requisición al backend (crear o actualizar según modo)
+    if (this.isEditMode && this.editingRequisitionId) {
+      // 🔥 MODO EDICIÓN: actualizar requisición existente
+      const numericId = this.editingRequisitionId.replace(/^REQ-0*/, '');
+      this.requisitionService.updateRequisition(numericId, payload).subscribe({
+        next: (response) => {
+          Swal.fire({
+            icon: 'success',
+            title: '¡Requisición actualizada!',
+            html: `
+              <div class="text-start">
+                <p class="mb-2"><strong>ID:</strong> ${this.editingRequisitionId}</p>
+                <p class="mb-2"><strong>Productos actualizados:</strong> ${response.data?.items_count ?? payload.items.length}</p>
+              </div>
+            `,
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#28a745'
+          }).then(() => {
+            this.router.navigate(['/requisicion/lista']);
+          });
+        },
+        error: (error) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error al actualizar',
+            text: error.error?.message || 'No se pudo actualizar la requisición.',
+            confirmButtonText: 'Aceptar'
+          });
+        }
+      });
+    } else {
+    // FLUJO NORMAL: crear nueva requisición
     this.requisitionService.createRequisition(payload).subscribe({
       next: (response) => {
         // Determinar el mensaje según si fue auto-autorizada o no
@@ -620,7 +658,8 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
         });
       }
     });
-  }
+    } // fin else flujo normal
+  } // fin confirmFinalRequisition
 
   // Métodos para el modo edición desde la lista
   confirmEdit(): void {

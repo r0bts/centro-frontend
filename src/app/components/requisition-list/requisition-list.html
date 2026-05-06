@@ -192,19 +192,29 @@
                       <!-- Acciones -->
                       <td class="align-middle border">
                         <div class="d-flex gap-1 justify-content-center">
-                          <!-- Editar Requisición -->
+                          <!-- Editar Requisición (solo si está en Solicitado y tiene permiso) -->
                           <button 
-                            *ngIf="canUpdate()"
+                            *ngIf="canUpdate() && isEditable(requisition)"
                             type="button" 
                             class="btn btn-outline-primary btn-sm"
-                            (click)="supplyRequisition(requisition)"
+                            (click)="editRequisition(requisition)"
                             title="Editar Requisición">
                             <i class="bi bi-pencil"></i>
                           </button>
-                          
-                          <!-- Surtir en Almacén -->
+
+                          <!-- Ver Detalle / PIN (para cualquier estado activo con permiso supply) -->
                           <button 
-                            *ngIf="canSupply()"
+                            *ngIf="canSupply() && isViewable(requisition)"
+                            type="button" 
+                            class="btn btn-outline-warning btn-sm"
+                            (click)="supplyRequisition(requisition)"
+                            title="Autorizar Requisición">
+                            <i class="bi bi-check-circle"></i>
+                          </button>
+                          
+                          <!-- Surtir en Almacén (solo si está en estado surtible) -->
+                          <button 
+                            *ngIf="canSupply() && isSurtible(requisition)"
                             type="button" 
                             class="btn btn-outline-success btn-sm"
                             (click)="warehouseSupply(requisition)"

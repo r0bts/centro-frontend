@@ -287,8 +287,29 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     });
   }
 
+  isEditable(requisition: RequisitionItem): boolean {
+    return requisition.status === 'Solicitado';
+  }
+
+  isViewable(requisition: RequisitionItem): boolean {
+    return requisition.status !== 'Cancelado';
+  }
+
+  isSurtible(requisition: RequisitionItem): boolean {
+    return ['Autorizada', 'En Proceso', 'Parcialmente Entregado', 'Listo para Recoger'].includes(requisition.status);
+  }
+
+  editRequisition(requisition: RequisitionItem): void {
+    this.router.navigate(['/requisicion'], {
+      queryParams: {
+        id: requisition.id,
+        mode: 'edit'
+      }
+    });
+  }
+
   supplyRequisition(requisition: RequisitionItem): void {
-    // Navegar a la vista de confirmación en modo edición
+    // Navegar a la vista de confirmación para autorizar
     this.router.navigate(['/requisicion/confirmacion'], {
       queryParams: {
         id: requisition.id,
