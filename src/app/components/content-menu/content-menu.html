@@ -57,6 +57,59 @@
       <!-- Acciones -->
       <div class="topnav-actions">
 
+        <!-- Campana de Notificaciones -->
+        <div class="topnav-notif-wrapper" [class.open]="isNotifOpen()">
+          <button class="topnav-action-btn"
+                  [class.active]="isNotifOpen()"
+                  title="Notificaciones"
+                  (click)="toggleNotif($event)">
+            <i class="bi bi-bell-fill"></i>
+            <span class="notif-badge" *ngIf="notifService.unreadCount() > 0">
+              {{ notifService.unreadCount() > 99 ? '99+' : notifService.unreadCount() }}
+            </span>
+          </button>
+
+          <!-- Panel dropdown de notificaciones -->
+          <div class="notif-panel" [class.show]="isNotifOpen()" (click)="$event.stopPropagation()">
+            <div class="notif-panel__header">
+              <span class="notif-panel__title">Notificaciones</span>
+              <button class="notif-panel__mark-all"
+                      *ngIf="notifService.unreadCount() > 0"
+                      (click)="notifService.markAllRead()">
+                Marcar todas como leídas
+              </button>
+            </div>
+
+            <!-- Lista vacía -->
+            <div class="notif-panel__empty" *ngIf="notifService.notifications().length === 0">
+              <i class="bi bi-bell-slash"></i>
+              <span>Sin notificaciones</span>
+            </div>
+
+            <!-- Lista de notificaciones -->
+            <div class="notif-panel__list" *ngIf="notifService.notifications().length > 0">
+              <div *ngFor="let n of notifService.notifications()"
+                   class="notif-item"
+                   [class.notif-item--unread]="!n.is_read"
+                   (click)="navigateFromNotif(n)"
+                   title="Ir a la requisición">
+                <!-- Chip de tipo -->
+                <span class="notif-item__chip"
+                      [style.background]="notifService.chipColor(n.type)">
+                  <i [class]="'bi ' + notifService.chipIcon(n.type)"></i>
+                  {{ notifService.chipLabel(n.type) }}
+                </span>
+                <!-- Contenido -->
+                <div class="notif-item__content">
+                  <p class="notif-item__title">{{ n.title }}</p>
+                  <p class="notif-item__body" *ngIf="n.body">{{ n.body }}</p>
+                  <span class="notif-item__time">{{ notifService.timeAgo(n.created_at) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Engranaje Configuración -->
         <div class="topnav-gear-wrapper" [class.open]="isGearOpen()">
           <button class="topnav-action-btn"

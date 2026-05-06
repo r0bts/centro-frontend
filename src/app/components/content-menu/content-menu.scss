@@ -347,3 +347,158 @@
 
   .topnav-gear-wrapper { position: relative; }
 }
+
+// ═══════════════════════════════════════════════════════════
+// NOTIFICACIONES — Campana + Badge + Panel
+// ═══════════════════════════════════════════════════════════
+
+// Wrapper con posición relativa para el panel absoluto
+.topnav-notif-wrapper {
+  position: relative;
+}
+
+// Badge rojo con número de no leídas
+.notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  pointer-events: none;
+  line-height: 1;
+  border: 1.5px solid #efefef;
+}
+
+// Panel dropdown de notificaciones
+.notif-panel {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 340px;
+  max-height: 430px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  z-index: 400;
+  overflow: hidden;
+  flex-direction: column;
+  animation: navFadeDown 0.15s ease;
+
+  &.show { display: flex; }
+
+  // Header del panel
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.07);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e1e2e;
+  }
+
+  &__mark-all {
+    background: none;
+    border: none;
+    font-size: 11px;
+    color: #3b82f6;
+    cursor: pointer;
+    padding: 0;
+    font-weight: 500;
+    &:hover { text-decoration: underline; }
+  }
+
+  // Estado vacío
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 36px 16px;
+    color: #94a3b8;
+    font-size: 13px;
+
+    i { font-size: 28px; }
+  }
+
+  // Lista scrolleable
+  &__list {
+    overflow-y: auto;
+    max-height: 360px;
+    padding: 6px;
+  }
+}
+
+// Item de notificación
+.notif-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(59, 130, 246, 0.08);
+    .notif-item__title { color: #3b82f6; }
+  }
+
+  // Fondo sutil para las no leídas
+  &--unread {
+    background: rgba(59, 130, 246, 0.05);
+
+    .notif-item__title { font-weight: 600; }
+  }
+
+  // Chip de tipo (azul, verde, gris)
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    width: fit-content;
+
+    i { font-size: 10px; }
+  }
+
+  &__content { display: flex; flex-direction: column; gap: 2px; }
+
+  &__title {
+    font-size: 13px;
+    color: #1e1e2e;
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  &__body {
+    font-size: 11px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__time {
+    font-size: 11px;
+    color: #94a3b8;
+  }
+}
