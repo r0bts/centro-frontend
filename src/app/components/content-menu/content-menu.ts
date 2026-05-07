@@ -6,8 +6,8 @@ import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { MenuService } from '../../services/menu.service';
-import { NotificationService } from '../../services/notification.service';
 import { MenuItem } from '../../models/auth.model';
+import { NotificationService, AppNotification } from '../../services/notification.service';
 import { filter } from 'rxjs/operators';
 
 /** Módulo ID de Configuración — se separa del nav principal al engranaje */
@@ -37,22 +37,18 @@ export class ContentMenu implements OnInit, OnDestroy {
   /** Estado dropdown engranaje */
   isGearOpen = signal(false);
 
-  /** Estado panel de notificaciones */
+  /** Estado panel notificaciones */
   isNotifOpen = signal(false);
 
   constructor(
     private authService: AuthService,
     private menuService: MenuService,
-    public notifService: NotificationService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public notifService: NotificationService
   ) {
     this.authService.permissions$.subscribe(() => {
       this.loadMenu();
-      // Arrancar polling cuando el usuario está autenticado
-      if (this.authService.isAuthenticated()) {
-        this.notifService.startPolling();
-      }
     });
 
     this.router.events.pipe(
@@ -61,22 +57,17 @@ export class ContentMenu implements OnInit, OnDestroy {
       this.updateActiveStates();
       // Cerrar mobile menu al navegar
       this.isMobileMenuOpen.set(false);
-      // Cerrar panel de notificaciones al navegar
-      this.isNotifOpen.set(false);
     });
-  }
-
-  ngOnDestroy(): void {
-    this.notifService.stopPolling();
   }
 
   ngOnInit(): void {
     this.loadMenu();
     this.updateActiveStates();
-    // Arrancar polling si el usuario ya tiene sesión activa al cargar el componente
-    if (this.authService.isAuthenticated()) {
-      this.notifService.startPolling();
-    }
+    this.notifService.startPolling();
+  }
+
+  ngOnDestroy(): void {
+    this.notifService.stopPolling();
   }
 
   // ── Cargar menú ──────────────────────────────
@@ -119,57 +110,10 @@ export class ContentMenu implements OnInit, OnDestroy {
     return this.gearItems().some(child => this.isActive(child.id));
   }
 
-  // ── Navegar desde notificación según permisos ────────────
-  /**
-   * type='autorizado':
-   *   - tiene supply    → /almacen/surtir?id=REQ-XXXX  (abre la REQ directamente)
-   *   - tiene authorize → /requisicion/confirmacion    (lista de REQs a confirmar)
-   *   - cualquier otro  → /requisicion/lista
-   *
-   * type='listo_recoger' / 'entregado':
-   *   - siempre         → /requisicion/lista
-   */
-  navigateFromNotif(n: import('../../services/notification.service').AppNotification): void {
-    this.isNotifOpen.set(false);
-
-    const hasSupply    = this.authService.hasPermission('requisition_list', 'supply');
-    const hasAuthorize = this.authService.hasPermission('requisition_confirmation', 'authorize');
-
-    if (n.type === 'autorizado') {
-      if (hasSupply) {
-        const reqCode = 'REQ-' + String(n.requisition_id).padStart(4, '0');
-        this.router.navigate(['/almacen/surtir'], { queryParams: { id: reqCode } });
-        return;
-      }
-      if (hasAuthorize) {
-        this.router.navigate(['/requisicion/confirmacion']);
-        return;
-      }
-    }
-
-    // listo_recoger, entregado o sin permiso especial → lista del solicitante
-    this.router.navigate(['/requisicion/lista']);
-  }
-
-  // ── Toggle notificaciones ────────────────────────
-  toggleNotif(event: Event): void {
-    event.stopPropagation();
-    const opening = !this.isNotifOpen();
-    this.isNotifOpen.set(opening);
-    // Cerrar engranaje si está abierto
-    this.isGearOpen.set(false);
-    // Cargar notificaciones al abrir el panel
-    if (opening) {
-      this.notifService.loadAll();
-    }
-  }
-
-  // ── Toggle engranaje ────────────────────────────
+  // ── Toggle engranaje ─────────────────────────
   toggleGear(event: Event): void {
     event.stopPropagation();
     this.isGearOpen.update(v => !v);
-    // Cerrar notificaciones si están abiertas
-    this.isNotifOpen.set(false);
     // Cerrar dropdowns del nav
     this.closeAllDropdowns();
   }
@@ -278,8 +222,30 @@ export class ContentMenu implements OnInit, OnDestroy {
     return this.activeSection === sectionId;
   }
 
+  // ── Notificaciones ───────────────────────────
+  toggleNotif(event: Event): void {
+    event.stopPropagation();
+    this.isNotifOpen.update(v => !v);
+    if (this.isNotifOpen()) {
+      this.isGearOpen.set(false);
+    }
+  }
+
+  navigateFromNotif(n: AppNotification): void {
+    this.isNotifOpen.set(false);
+    switch (n.type) {
+      case 'solicitado':
+        this.router.navigate(['/requisicion/confirmacion']);
+        break;
+      case 'autorizado':
+      case 'listo_recoger':
+      case 'entregado':
+        this.router.navigate(['/requisicion', n.requisition_id]);
+        break;
+    }
+  }
+
   onLogout(): void {
-    this.notifService.stopPolling();
     this.authService.logout().subscribe({
       next:  (r)   => console.log('Logout successful:', r.message),
       error: (err) => console.error('Logout error:', err)
