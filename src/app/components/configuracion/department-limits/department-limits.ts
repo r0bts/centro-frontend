@@ -1,6 +1,8 @@
-import { Component, OnInit, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subject, Subscription, EMPTY } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../../services/auth.service';
 import { UserService } from '../../../services/user.service';
 import {
@@ -24,10 +26,14 @@ interface EditableProductLimit extends ProductLimit {
   templateUrl: './department-limits.html',
   styleUrls: ['./department-limits.scss']
 })
-export class DepartmentLimitsComponent implements OnInit {
+export class DepartmentLimitsComponent implements OnInit, OnDestroy {
 
   // ── Permisos ──────────────────────────────────
   canView  = false;
+
+  // ── Debounce búsqueda usuarios ────────────────
+  private userSearchSubject = new Subject<string>();
+  private userSearchSub?: Subscription;
   canUpdate = false;
   canDelete = false;
 
@@ -71,6 +77,11 @@ export class DepartmentLimitsComponent implements OnInit {
   collapsedDeptCats: Set<string> = new Set();
   collapsedUserCats: Set<string> = new Set();
 
+  // Caché de resultados agrupados — se recalculan SOLO en filterProductsForDept/User,
+  // NO en cada markForCheck (evita congelamiento con 1277 productos en modal OnPush)
+  deptResultsByCategory: { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] = [];
+  userResultsByCategory: { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] = [];
+
   constructor(
     private authService: AuthService,
     private limitsService: DepartmentLimitsService,
@@ -88,8 +99,43 @@ export class DepartmentLimitsComponent implements OnInit {
       return;
     }
 
+    // Configurar debounce para búsqueda de usuarios (300ms, cancela requests anteriores)
+    this.userSearchSub = this.userSearchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(query => {
+        if (!query) {
+          this.userSearchResults.set([]);
+          this.cdr.markForCheck();
+          return EMPTY;
+        }
+        return this.userService.getAllUsers(200);
+      })
+    ).subscribe({
+      next: (users: any) => {
+        if (!Array.isArray(users)) return;
+        const lower = this.userSearchQuery.trim().toLowerCase();
+        const filtered = users.filter((u: any) =>
+          u.username.toLowerCase().includes(lower) ||
+          (u.firstName + ' ' + u.lastName).toLowerCase().includes(lower)
+        ).slice(0, 20);
+        this.userSearchResults.set(filtered.map((u: any) => ({
+          id: Number(u.id),
+          username: u.username,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          departmentName: (u as any).departmentName || ''
+        })));
+        this.cdr.markForCheck();
+      }
+    });
+
     this.loadDepartments();
     this.loadAllProducts();
+  }
+
+  ngOnDestroy(): void {
+    this.userSearchSub?.unsubscribe();
   }
 
   // ─────────────────────────────────────────────
@@ -202,17 +248,18 @@ export class DepartmentLimitsComponent implements OnInit {
       this.allProducts()
         .filter(p => !assigned.has(p.id) && (!q || p.name.toLowerCase().includes(q) || p.category_name.toLowerCase().includes(q)))
     );
+    this.rebuildDeptByCategory();
   }
 
-  /** Agrupa searchResults por category_name para el modal de depto */
-  get deptResultsByCategory(): { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] {
+  /** Recalcula deptResultsByCategory y guarda en caché — llamar solo desde filterProductsForDept() */
+  private rebuildDeptByCategory(): void {
     const map = new Map<string, { id: number; name: string; category_name: string; category_id: number | null }[]>();
     for (const p of this.searchResults()) {
       const cat = p.category_name || 'Sin categoría';
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(p);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, products]) => ({ cat, products }));
+    this.deptResultsByCategory = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, products]) => ({ cat, products }));
   }
 
   selectAllFromDeptCategory(cat: string): void {
@@ -234,6 +281,7 @@ export class DepartmentLimitsComponent implements OnInit {
     } else {
       this.selectedNewProducts.add(productId);
     }
+    this.cdr.markForCheck();
   }
 
   confirmAddDeptProducts(): void {
@@ -268,25 +316,7 @@ export class DepartmentLimitsComponent implements OnInit {
   // ─────────────────────────────────────────────
 
   searchUsers(): void {
-    const q = this.userSearchQuery.trim();
-    if (!q) { this.userSearchResults.set([]); return; }
-    this.userService.getAllUsers(200).subscribe({
-      next: users => {
-        const lower = q.toLowerCase();
-        const filtered = users.filter(u =>
-          u.username.toLowerCase().includes(lower) ||
-          (u.firstName + ' ' + u.lastName).toLowerCase().includes(lower)
-        ).slice(0, 20);
-        this.userSearchResults.set(filtered.map(u => ({
-          id: Number(u.id),
-          username: u.username,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          departmentName: (u as any).departmentName || ''
-        })));
-        this.cdr.markForCheck();
-      }
-    });
+    this.userSearchSubject.next(this.userSearchQuery.trim());
   }
 
   selectUser(user: { id: number; username: string; firstName: string; lastName: string; departmentName: string }): void {
@@ -380,17 +410,18 @@ export class DepartmentLimitsComponent implements OnInit {
       this.allProducts()
         .filter(p => !assigned.has(p.id) && (!q || p.name.toLowerCase().includes(q) || p.category_name.toLowerCase().includes(q)))
     );
+    this.rebuildUserByCategory();
   }
 
-  /** Agrupa userProdResults por category_name para el modal de usuario */
-  get userResultsByCategory(): { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] {
+  /** Recalcula userResultsByCategory y guarda en caché — llamar solo desde filterProductsForUser() */
+  private rebuildUserByCategory(): void {
     const map = new Map<string, { id: number; name: string; category_name: string; category_id: number | null }[]>();
     for (const p of this.userProdResults()) {
       const cat = p.category_name || 'Sin categoría';
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(p);
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, products]) => ({ cat, products }));
+    this.userResultsByCategory = Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0])).map(([cat, products]) => ({ cat, products }));
   }
 
   selectAllFromUserCategory(cat: string): void {
@@ -412,6 +443,7 @@ export class DepartmentLimitsComponent implements OnInit {
     } else {
       this.selectedNewUserProducts.add(productId);
     }
+    this.cdr.markForCheck();
   }
 
   confirmAddUserProducts(): void {
@@ -455,6 +487,9 @@ export class DepartmentLimitsComponent implements OnInit {
 
   markDirty(item: EditableProductLimit): void {
     item.dirty = true;
+    // Con ChangeDetectionStrategy.OnPush la mutación directa no dispara re-render;
+    // markForCheck() le indica a Angular que revise este árbol en el próximo ciclo.
+    this.cdr.markForCheck();
   }
 
   private loadAllProducts(): void {
@@ -468,7 +503,16 @@ export class DepartmentLimitsComponent implements OnInit {
         );
         this.cdr.markForCheck();
       },
-      error: () => {}
+      error: (err) => {
+        // Si el usuario no tiene permiso 'configuracion > productos > view',
+        // el endpoint /api/products devuelve 403. Avisamos con un banner.
+        const status = err?.status;
+        const msg = status === 403
+          ? 'Tu usuario no tiene permiso para listar productos (configuracion > productos > view). Contacta al administrador.'
+          : 'No se pudo cargar el catálogo de productos. Verifica tu conexión.';
+        Swal.fire({ icon: 'warning', title: 'Catálogo no disponible', text: msg, confirmButtonText: 'Entendido' });
+        this.cdr.markForCheck();
+      }
     });
   }
 
