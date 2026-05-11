@@ -10,8 +10,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 
-import { ScRegistrationsService } from '../../../services/summer-course/sc-registrations.service';
-import { ScCoursesService } from '../../../services/summer-course/sc-courses.service';
+import { ScRegistrationsService }   from '../../../services/summer-course/sc-registrations.service';
+import { ScCoursesService }         from '../../../services/summer-course/sc-courses.service';
+import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
 import {
   ScCourse,
   ScLevel,
@@ -21,6 +22,8 @@ import {
   ScRegistrationParticipant,
   ScCostWithTotal,
   SC_PARTICIPANT_TYPES,
+  ScKitDeliveryItem,
+  ScKitDeliverySummary,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 
@@ -51,6 +54,7 @@ interface PendingParticipant {
 export class SummerCourseEnrollmentsComponent implements OnInit {
   private svc        = inject(ScRegistrationsService);
   private coursesSvc = inject(ScCoursesService);
+  private kitSvc     = inject(ScKitDeliveriesService);
 
   // ── Global ────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -59,6 +63,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   toast          = signal<string | null>(null);
   toastType      = signal<'success' | 'danger' | 'info'>('success');
   error          = signal<string | null>(null);
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────
+  activeTab = signal<'inscriptions' | 'kit'>('inscriptions');
 
   // ── Admin table ───────────────────────────────────────────────────────────
   registrations      = signal<ScRegistrationGroup[]>([]);
@@ -77,6 +84,42 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   totalParticipants = computed(() =>
     this.registrations().reduce((s, g) => s + g.participants.length, 0)
+  );
+
+  // ── Kit delivery ─────────────────────────────────────────────────────────
+  kitItems        = signal<ScKitDeliveryItem[]>([]);
+  kitSummary      = signal<ScKitDeliverySummary>({ total: 0, delivered: 0, pending: 0 });
+  kitLoading      = signal(false);
+  kitFilter       = signal<'all' | 'pending' | 'delivered'>('all');
+  kitSearch       = signal('');
+  kitSelectedIds  = signal<Set<number>>(new Set());
+  kitModalOpen    = signal(false);
+  kitModalMode    = signal<'individual' | 'bulk'>('individual');
+  kitModalItem    = signal<ScKitDeliveryItem | null>(null);
+  kitReceivedBy   = signal('');
+  kitNotes        = signal('');
+  kitSaving       = signal(false);
+
+  kitFilteredItems = computed(() => {
+    const tab = this.kitFilter();
+    const q   = this.kitSearch().toLowerCase();
+    return this.kitItems().filter(item => {
+      const matchTab = tab === 'all' ? true : tab === 'pending' ? !item.kit_delivered : item.kit_delivered;
+      const matchQ   = !q || item.full_name.toLowerCase().includes(q) || (item.membership_no?.toString().includes(q) ?? false);
+      return matchTab && matchQ;
+    });
+  });
+
+  kitAllSelected = computed(() => {
+    const pending = this.kitFilteredItems().filter(i => !i.kit_delivered);
+    return pending.length > 0 && pending.every(i => this.kitSelectedIds().has(i.enrollment_id));
+  });
+
+  kitSelectedCount = computed(() =>
+    [...this.kitSelectedIds()].filter(id => {
+      const item = this.kitItems().find(i => i.enrollment_id === id);
+      return item && !item.kit_delivered;
+    }).length
   );
 
   // ── Wizard ────────────────────────────────────────────────────────────────
@@ -132,6 +175,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         if (list.length) {
           this.selectedCourse.set(list[0]);
           this._loadRegistrations(list[0].id);
+          this._loadKits(list[0].id);
         }
         this.loading.set(false);
       },
@@ -156,7 +200,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   onCourseChange(courseId: string): void {
     const c = this.courses().find(c => c.id === +courseId) ?? null;
     this.selectedCourse.set(c);
-    if (c) this._loadRegistrations(c.id);
+    if (c) {
+      this._loadRegistrations(c.id);
+      this._loadKits(c.id);
+    }
   }
 
   private _loadRegistrations(courseId: number): void {
@@ -406,6 +453,133 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
     this.pendingParticipants.update(list => [...list, participant]);
     this.showToast(`${guest.full_name} agregado como invitado`, 'success');
+  }
+
+  // ── Kit delivery ─────────────────────────────────────────────────────────
+  private _loadKits(courseId: number): void {
+    this.kitLoading.set(true);
+    this.kitSvc.getStatus(courseId).subscribe({
+      next: res => {
+        this.kitItems.set(res.data?.items ?? []);
+        this.kitSummary.set(res.data?.summary ?? { total: 0, delivered: 0, pending: 0 });
+        this.kitLoading.set(false);
+      },
+      error: () => this.kitLoading.set(false),
+    });
+  }
+
+  switchTab(tab: 'inscriptions' | 'kit'): void {
+    this.activeTab.set(tab);
+    if (tab === 'kit') {
+      const c = this.selectedCourse();
+      if (c) this._loadKits(c.id);
+    }
+  }
+
+  kitToggleSelect(id: number): void {
+    this.kitSelectedIds.update(s => {
+      const next = new Set(s);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  kitToggleAll(): void {
+    const pending = this.kitFilteredItems().filter(i => !i.kit_delivered);
+    const allSel  = this.kitAllSelected();
+    this.kitSelectedIds.update(s => {
+      const next = new Set(s);
+      allSel ? pending.forEach(i => next.delete(i.enrollment_id))
+             : pending.forEach(i => next.add(i.enrollment_id));
+      return next;
+    });
+  }
+
+  kitClearSelection(): void { this.kitSelectedIds.set(new Set()); }
+
+  kitOpenIndividual(item: ScKitDeliveryItem): void {
+    this.kitModalMode.set('individual');
+    this.kitModalItem.set(item);
+    this.kitReceivedBy.set(item.full_name);
+    this.kitNotes.set('');
+    this.kitModalOpen.set(true);
+  }
+
+  kitOpenBulk(): void {
+    this.kitModalMode.set('bulk');
+    this.kitModalItem.set(null);
+    this.kitReceivedBy.set('');
+    this.kitNotes.set('');
+    this.kitModalOpen.set(true);
+  }
+
+  kitCloseModal(): void { this.kitModalOpen.set(false); }
+
+  kitSaveDelivery(): void {
+    const receivedBy = this.kitReceivedBy().trim();
+    if (!receivedBy) { this.showToast('El nombre de quien recibe es requerido', 'danger'); return; }
+
+    const courseId = this.selectedCourse()!.id;
+    this.kitSaving.set(true);
+
+    if (this.kitModalMode() === 'individual') {
+      const item = this.kitModalItem()!;
+      this.kitSvc.deliver({
+        enrollment_id:    item.enrollment_id,
+        received_by_name: receivedBy,
+        notes:            this.kitNotes() || undefined,
+      }).subscribe({
+        next: () => {
+          this.kitSaving.set(false);
+          this.kitCloseModal();
+          this.showToast(`Kit de ${item.full_name} marcado como entregado ✓`, 'success');
+          this._loadKits(courseId);
+        },
+        error: err => {
+          this.kitSaving.set(false);
+          this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+        },
+      });
+    } else {
+      // Masivo: agrupar por titular_socio_id
+      const ids = this.kitSelectedIds();
+      const pending = this.kitItems().filter(i => !i.kit_delivered && ids.has(i.enrollment_id));
+      const byTitular = new Map<number | null, ScKitDeliveryItem[]>();
+      pending.forEach(i => {
+        const k = i.titular_socio_id;
+        if (!byTitular.has(k)) byTitular.set(k, []);
+        byTitular.get(k)!.push(i);
+      });
+
+      const requests = [...byTitular.entries()].map(([titularId, items]) =>
+        titularId
+          ? { titular_socio_id: titularId, course_id: courseId, received_by_name: receivedBy, notes: this.kitNotes() || undefined }
+          : { enrollment_id: items[0].enrollment_id,             received_by_name: receivedBy, notes: this.kitNotes() || undefined }
+      );
+
+      let done = 0; let totalDelivered = 0;
+      requests.forEach(payload => {
+        this.kitSvc.deliver(payload as any).subscribe({
+          next: res => {
+            totalDelivered += res.data?.summary?.delivered_count ?? res.data?.delivered?.length ?? 1;
+            if (++done === requests.length) {
+              this.kitSaving.set(false);
+              this.kitCloseModal();
+              this.kitClearSelection();
+              this.showToast(`${totalDelivered} kits marcados como entregados ✓`, 'success');
+              this._loadKits(courseId);
+            }
+          },
+          error: () => { if (++done === requests.length) { this.kitSaving.set(false); this.kitCloseModal(); this._loadKits(courseId); } },
+        });
+      });
+    }
+  }
+
+  kitFormatDate(iso: string | null): string {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

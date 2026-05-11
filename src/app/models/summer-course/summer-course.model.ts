@@ -658,3 +658,54 @@ export interface ScGuestListResponse {
   data: { guests: ScGuest[]; total: number };
 }
 
+// ─── Kit Delivery ──────────────────────────────────────────────────────────────
+
+export interface ScKitDeliveryItem {
+  enrollment_id:    number;
+  participant_id:   number;
+  full_name:        string;
+  participant_type: string;
+  titular_socio_id: number | null;
+  membership_no:    number | null;
+  kit_delivered:    boolean;
+  delivered_by_name: string | null;
+  received_by_name:  string | null;
+  delivered_at:      string | null;   // 'YYYY-MM-DD HH:mm:ss'
+  notes:             string | null;
+}
+
+export interface ScKitDeliverySummary {
+  total:     number;
+  delivered: number;
+  pending:   number;
+}
+
+export interface ScKitStatusResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items:   ScKitDeliveryItem[];
+    summary: ScKitDeliverySummary;
+  };
+}
+
+export interface ScKitDeliverRequest {
+  enrollment_id?:    number;   // modo individual
+  titular_socio_id?: number;   // modo masivo
+  course_id?:        number;   // modo masivo
+  received_by_name:  string;
+  notes?:            string;
+}
+
+export interface ScKitDeliverResponse {
+  success: boolean;
+  message: string;
+  data: {
+    delivered: { enrollment_id: number; participant_id: number; full_name: string; delivered_at: string }[];
+    skipped:   { enrollment_id: number; full_name: string; reason: string }[];
+    summary:   { delivered_count: number; skipped_count: number };
+    already_delivered?: boolean;
+    delivered_at?: string;
+  };
+}
+

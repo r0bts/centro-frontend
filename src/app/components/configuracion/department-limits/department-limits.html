@@ -280,14 +280,8 @@
             </div>
             <!-- Productos del grupo -->
             <div *ngIf="!collapsedDeptCats.has(group.cat)">
-              <div *ngFor="let p of group.products" class="form-check border-bottom py-2 px-3 d-flex align-items-center gap-2">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  [id]="'dp-' + p.id"
-                  [checked]="selectedNewProducts.has(p.id)"
-                  (change)="toggleNewProduct(p.id)">
-                <label [for]="'dp-' + p.id" class="form-check-label flex-grow-1">
+              <div *ngFor="let p of group.products" class="border-bottom py-2 px-3 d-flex align-items-center gap-3">
+                <label [for]="'dp-' + p.id" class="flex-grow-1 mb-0" style="cursor:pointer">
                   <div class="fw-semibold small">{{ p.name }}</div>
                 </label>
                 <div *ngIf="selectedNewProducts.has(p.id)" style="width:110px">
@@ -298,6 +292,13 @@
                     placeholder="Sin límite"
                     min="1">
                 </div>
+                <input
+                  type="checkbox"
+                  class="flex-shrink-0"
+                  style="width:1.35em; height:1.35em; cursor:pointer; accent-color:#0d6efd"
+                  [id]="'dp-' + p.id"
+                  [checked]="selectedNewProducts.has(p.id)"
+                  (change)="toggleNewProduct(p.id)">
               </div>
             </div>
           </div>
@@ -347,14 +348,8 @@
             </div>
             <!-- Productos del grupo -->
             <div *ngIf="!collapsedUserCats.has(group.cat)">
-              <div *ngFor="let p of group.products" class="form-check border-bottom py-2 px-3 d-flex align-items-center gap-2">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  [id]="'up-' + p.id"
-                  [checked]="selectedNewUserProducts.has(p.id)"
-                  (change)="toggleNewUserProduct(p.id)">
-                <label [for]="'up-' + p.id" class="form-check-label flex-grow-1">
+              <div *ngFor="let p of group.products" class="border-bottom py-2 px-3 d-flex align-items-center gap-3">
+                <label [for]="'up-' + p.id" class="flex-grow-1 mb-0" style="cursor:pointer">
                   <div class="fw-semibold small">{{ p.name }}</div>
                 </label>
                 <div *ngIf="selectedNewUserProducts.has(p.id)" style="width:110px">
@@ -365,6 +360,13 @@
                     placeholder="Sin límite"
                     min="1">
                 </div>
+                <input
+                  type="checkbox"
+                  class="flex-shrink-0"
+                  style="width:1.35em; height:1.35em; cursor:pointer; accent-color:#0d6efd"
+                  [id]="'up-' + p.id"
+                  [checked]="selectedNewUserProducts.has(p.id)"
+                  (change)="toggleNewUserProduct(p.id)">
               </div>
             </div>
           </div>
