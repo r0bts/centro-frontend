@@ -77,6 +77,10 @@ export class DepartmentLimitsComponent implements OnInit, OnDestroy {
   collapsedDeptCats: Set<string> = new Set();
   collapsedUserCats: Set<string> = new Set();
 
+  // Filtros para las tablas de productos asignados
+  deptFilter = '';
+  userFilter = '';
+
   // Caché de resultados agrupados — se recalculan SOLO en filterProductsForDept/User,
   // NO en cada markForCheck (evita congelamiento con 1277 productos en modal OnPush)
   deptResultsByCategory: { cat: string; products: { id: number; name: string; category_name: string; category_id: number | null }[] }[] = [];
@@ -136,6 +140,24 @@ export class DepartmentLimitsComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.userSearchSub?.unsubscribe();
+  }
+
+  get filteredDeptProducts(): EditableProductLimit[] {
+    if (!this.deptFilter.trim()) return this.deptProducts();
+    const q = this.deptFilter.toLowerCase();
+    return this.deptProducts().filter(p =>
+      p.product_name.toLowerCase().includes(q) ||
+      (p.category ?? '').toLowerCase().includes(q)
+    );
+  }
+
+  get filteredUserProducts(): EditableProductLimit[] {
+    if (!this.userFilter.trim()) return this.userProducts();
+    const q = this.userFilter.toLowerCase();
+    return this.userProducts().filter(p =>
+      p.product_name.toLowerCase().includes(q) ||
+      (p.category ?? '').toLowerCase().includes(q)
+    );
   }
 
   // ─────────────────────────────────────────────

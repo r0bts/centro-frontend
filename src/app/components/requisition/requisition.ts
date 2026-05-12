@@ -28,6 +28,7 @@ export interface Product {
   quantity: number;
   unit: string;
   actions: string;
+  maxQuantity: number | null; // null = sin límite
 }
 
 export interface RequisitionSummary {
@@ -566,7 +567,8 @@ export class RequisitionComponent implements OnInit, OnDestroy {
               name: item.productName || '',
               quantity: item.requestedQuantity,
               unit: item.unit || '',
-              actions: ''
+              actions: '',
+              maxQuantity: this.productMap.get(item.productName || '')?.max_quantity ?? null,
             });
           });
           this.requisitionSummary = Array.from(areaMap.values());
@@ -819,7 +821,8 @@ export class RequisitionComponent implements OnInit, OnDestroy {
         name: product.name,
         quantity: product.quantity,
         unit: product.unit,
-        actions: product.actions
+        actions: product.actions,
+        maxQuantity: product.maxQuantity ?? null
       }));
     } else {
       // Si no existe, limpiar la lista de productos
@@ -869,14 +872,27 @@ export class RequisitionComponent implements OnInit, OnDestroy {
       });
       return;
     }
+
+    // Validar contra max_quantity si tiene límite
+    const maxQty = this.selectedProductData.max_quantity;
+    if (maxQty !== null && maxQty !== undefined && quantity > maxQty) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Cantidad excede el límite',
+        text: `La cantidad máxima permitida para "${this.selectedProductData.name}" es ${maxQty}.`,
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
     
     // ✅ Crear producto usando datos del backend
     const newProduct: Product = {
-      id: this.selectedProductData.id, // ID del backend
+      id: this.selectedProductData.id,
       name: this.selectedProductData.name,
       quantity: quantity,
-      unit: this.selectedProductData.unit, // ✅ Unidad del backend (PIEZA, KILO, LITRO, METRO)
-      actions: ''
+      unit: this.selectedProductData.unit,
+      actions: '',
+      maxQuantity: maxQty ?? null,
     };
     
     this.products.push(newProduct);
@@ -1058,16 +1074,24 @@ export class RequisitionComponent implements OnInit, OnDestroy {
 
   updateQuantityFromInput(productId: string, event: any): void {
     const value = event.target.value;
-    // Permitir editar libremente y actualizar
     const cleanValue = value.replace(/[^0-9]/g, '');
-    const numericValue = parseInt(cleanValue) || 1;
+    let numericValue = parseInt(cleanValue) || 1;
+    const product = this.products.find(p => p.id === productId);
+    if (product && product.maxQuantity !== null && numericValue > product.maxQuantity) {
+      numericValue = product.maxQuantity;
+      event.target.value = numericValue.toString();
+    }
     this.updateQuantity(productId, numericValue);
   }
 
   // Método para validar al perder el foco en inputs de la tabla
   validateTableInput(productId: string, event: any): void {
     const value = event.target.value;
-    const numericValue = parseInt(value.replace(/[^0-9]/g, '')) || 1;
+    let numericValue = parseInt(value.replace(/[^0-9]/g, '')) || 1;
+    const product = this.products.find(p => p.id === productId);
+    if (product && product.maxQuantity !== null && numericValue > product.maxQuantity) {
+      numericValue = product.maxQuantity;
+    }
     this.updateQuantity(productId, numericValue);
     event.target.value = numericValue.toString();
   }
@@ -1075,6 +1099,9 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   incrementQuantity(productId: string): void {
     const product = this.products.find(p => p.id === productId);
     if (product) {
+      if (product.maxQuantity !== null && product.quantity >= product.maxQuantity) {
+        return; // No incrementar si ya está en el máximo
+      }
       product.quantity += 1;
     }
   }
@@ -1086,17 +1113,36 @@ export class RequisitionComponent implements OnInit, OnDestroy {
     }
   }
 
-  validateNumberInput(event: any): void {
-    const value = event.target.value;
-    // Permitir editar libremente, solo limpiar caracteres no numéricos
-    const numericValue = value.replace(/[^0-9]/g, '');
+  onQuantityChange(value: any, inputEl?: HTMLInputElement): void {
+    // Limpiar caracteres no numéricos
+    let numericValue = String(value).replace(/[^0-9]/g, '');
+    // Clampear al máximo si hay límite
+    const maxQty = this.selectedProductData?.max_quantity;
+    if (numericValue !== '' && maxQty !== null && maxQty !== undefined) {
+      const num = parseInt(numericValue);
+      if (num > maxQty) {
+        numericValue = String(maxQty);
+      }
+    }
     this.currentQuantity = numericValue;
-    event.target.value = this.currentQuantity;
+    // Forzar el DOM aunque Angular no detecte cambio (mismo valor anterior)
+    if (inputEl) {
+      inputEl.value = numericValue;
+    }
+    this.cdr.markForCheck();
   }
 
   isValidQuantity(): boolean {
     const quantity = parseInt(this.currentQuantity);
-    return this.currentQuantity.trim() !== '' && !isNaN(quantity) && quantity > 0;
+    if (this.currentQuantity.trim() === '' || isNaN(quantity) || quantity <= 0) {
+      return false;
+    }
+    // Si el producto tiene límite, no permitir superar el máximo
+    const maxQty = this.selectedProductData?.max_quantity;
+    if (maxQty !== null && maxQty !== undefined && quantity > maxQty) {
+      return false;
+    }
+    return true;
   }
 
   onSectionChange(section: string): void {
