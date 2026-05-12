@@ -67,6 +67,7 @@ export class MembresiaService {
                 reglaNombre:  j.regla_nombre,
               },
               socios: res.data.socios.map((s: SocioRaw): SocioMembresia => ({
+                id:                      s.id,
                 numeroHumano:            s.numero_humano,
                 nombreCompleto:          s.nombre_completo,
                 edad:                    s.edad,
@@ -96,6 +97,22 @@ export class MembresiaService {
   sincronizar(): Observable<SyncResponse> {
     return this.http.post<SyncResponse>(
       `${this.BASE}/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // POST /api/socios/refresh/{id}
+  // ─────────────────────────────────────────────────────────────────────────
+  /**
+   * Sincroniza UN socio individual desde NetSuite REST Record y lo re-evalúa
+   * con el motor de reglas. Sin permiso especial — abierto a cualquier usuario.
+   * @param socioId  id interno del socio (PK = NS id)
+   */
+  sincronizarSocio(socioId: number): Observable<any> {
+    return this.http.post<any>(
+      `${environment.apiUrl}/socios/refresh/${socioId}`,
       {},
       { headers: this.getHeaders() }
     );

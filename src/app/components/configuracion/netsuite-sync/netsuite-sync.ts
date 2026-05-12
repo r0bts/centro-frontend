@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'evaluacion_batch';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -137,6 +137,11 @@ export class NetsuiteSyncComponent implements OnInit {
       isLoading: false,
       recordCount: 0
     },
+    socio_health: {
+      type: 'socio_health',
+      isLoading: false,
+      recordCount: 0
+    },
     evaluacion_batch: {
       type: 'evaluacion_batch',
       isLoading: false,
@@ -241,6 +246,103 @@ export class NetsuiteSyncComponent implements OnInit {
 
   syncMedicalRecords(): void {
     this.performSync('medical_records', 'Registros Médicos', () => this.netsuiteSyncService.syncMedicalRecords());
+  }
+
+  syncSocioHealth(): void {
+    const type = 'socio_health';
+
+    Swal.fire({
+      title: '¿Sincronizar Perfil de Salud?',
+      html: `
+        <div class="text-start">
+          <p class="mb-2">Se llamará a NetSuite individualmente por cada socio activo.</p>
+          <div class="alert alert-danger py-2 mb-2">
+            <i class="bi bi-shield-exclamation me-1"></i>
+            <strong>Datos sensibles — LFPDPPP</strong><br>
+            <small>Tipo de sangre, alergias, condiciones, contacto de emergencia</small>
+          </div>
+          <div class="alert alert-warning py-2 mb-0">
+            <i class="bi bi-clock me-1"></i>
+            <strong>Proceso lento</strong> — ~13,000 llamadas individuales a NetSuite<br>
+            <small>Tiempo estimado: 10–20 minutos</small>
+          </div>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, sincronizar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      width: '500px'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      console.log('🔄 Iniciando sync de perfil de salud...');
+      this.syncStatus[type].isLoading = true;
+
+      Swal.fire({
+        title: 'Sincronizando Perfil de Salud',
+        html: 'Llamando a NetSuite por cada socio activo...<br><small class="text-muted">Este proceso puede tomar 10–20 minutos</small>',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      this.netsuiteSyncService.syncSocioHealth().subscribe({
+        next: (response: any) => {
+          console.log('✅ Sync salud completado:', response);
+          this.syncStatus[type].isLoading  = false;
+          this.syncStatus[type].lastSync   = new Date();
+          this.syncStatus[type].recordCount = (response.data?.created ?? 0) + (response.data?.updated ?? 0);
+
+          const d = response.data || {};
+          Swal.fire({
+            icon: d.errors > 0 ? 'warning' : 'success',
+            title: 'Perfil de Salud sincronizado',
+            html: `
+              <div class="text-start">
+                <table class="table table-sm table-borderless">
+                  <tbody>
+                    <tr><td class="text-muted">Socios activos:</td><td class="text-end"><strong>${d.total_socios_activos ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Creados:</td><td class="text-end"><strong class="text-success">${d.created ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Actualizados:</td><td class="text-end"><strong class="text-primary">${d.updated ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Sin datos médicos (omitidos):</td><td class="text-end"><strong>${d.skipped ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Errores:</td><td class="text-end"><strong class="text-danger">${d.errors ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Duración:</td><td class="text-end"><strong>${d.duration_seconds ?? 0}s</strong></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            `,
+            confirmButtonText: 'Aceptar',
+            width: '500px'
+          });
+        },
+        error: (error: any) => {
+          console.error('❌ Error sync salud:', error);
+          this.syncStatus[type].isLoading = false;
+
+          let errorMessage = 'Error al sincronizar perfil de salud';
+          let errorDetails = '';
+          if (error.status === 403) {
+            errorMessage = error.error?.message || 'No tienes permisos';
+            if (error.error?.error?.required_permissions) {
+              const perms = error.error.error.required_permissions;
+              errorDetails = '<strong>Permisos requeridos:</strong><br>';
+              perms.forEach((p: any) => { errorDetails += `• ${p.module} → ${p.submodule} → ${p.permission}<br>`; });
+            }
+          } else if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error en sincronización de salud',
+            html: `<div class="text-start"><p class="mb-3">${errorMessage}</p>${errorDetails ? `<div class="alert alert-light mb-3"><small>${errorDetails}</small></div>` : ''}</div>`,
+            confirmButtonText: 'Aceptar'
+          });
+        }
+      });
+    });
   }
 
   runEvaluacionBatch(): void {

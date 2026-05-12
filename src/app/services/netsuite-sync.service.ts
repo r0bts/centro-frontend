@@ -337,6 +337,23 @@ export class NetsuiteSyncService {
   }
 
   /**
+   * Sincroniza perfil de salud de socios desde NetSuite REST Record API
+   * POST /api/socios/sync-health
+   * Permiso: configuracion > netsuite_sync > sync_medical_records (id=39)
+   * ⚠️ Proceso lento: ~13,000 llamadas individuales a NetSuite (~10-20 min)
+   * ⚠️ Datos sensibles — LFPDPPP
+   * Origen: GET /customer/{id} (REST Record, NO SuiteQL)
+   * Llena: socio_health_info (blood_type, allergies, conditions, medical_notes, emergency_contact_*)
+   */
+  syncSocioHealth(): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/socios/sync-health`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
    * Ejecuta evaluación masiva de reglas sobre todos los socios activos
    * POST /api/evaluacion/batch
    * Permiso: configuracion > netsuite_sync > evaluar_batch

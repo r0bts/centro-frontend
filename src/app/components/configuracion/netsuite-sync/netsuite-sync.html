@@ -1084,6 +1084,83 @@
         </div>
 
         <!-- ══════════════════════════════════════════════════════ -->
+        <!-- Paso 4b — Perfil de Salud                             -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div class="row mt-2">
+            <div class="col-12 mb-3">
+                <div class="alert alert-danger py-2 mb-0 d-flex align-items-center" role="alert">
+                    <i class="bi bi-shield-heart-fill me-2 fs-5 text-danger"></i>
+                    <div>
+                        <strong>Paso 4b — Perfil de Salud</strong> —
+                        Sincroniza tipo de sangre, alergias, condiciones médicas y contacto de emergencia desde NetSuite.
+                        <span class="badge bg-danger ms-1">⚠️ Datos sensibles — LFPDPPP</span>
+                        <span class="badge bg-warning text-dark ms-1">~10–20 min</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sincronizar Perfil de Salud -->
+            <div class="col-md-4 mb-4">
+                <div class="card sync-card h-100 border-danger">
+                    <div class="card-header bg-danger bg-opacity-10 text-center py-1">
+                        <small class="text-danger fw-bold">
+                            <i class="bi bi-4-circle me-1"></i>Paso 4b — Requiere Socios sincronizados
+                        </small>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-shield-heart text-danger"></i>
+                        </div>
+                        <h5 class="card-title">Perfil de Salud</h5>
+                        <p class="text-muted small mb-2">Tipo de sangre, alergias, condiciones y contacto de emergencia</p>
+                        <span class="badge bg-danger mb-3">⚠️ Datos sensibles — LFPDPPP</span>
+
+                        <div *ngIf="!syncStatus['socios'].lastSync"
+                             class="alert alert-warning py-1 mb-2 small text-start">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            Requiere <strong>Socios</strong> sincronizados primero
+                        </div>
+
+                        <div class="alert alert-warning py-1 mb-3 small text-start">
+                            <i class="bi bi-clock me-1"></i>
+                            <strong>Proceso lento</strong> — ~13,000 llamadas individuales a NetSuite
+                        </div>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['socio_health'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['socio_health'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['socio_health'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-danger w-100"
+                            (click)="syncSocioHealth()"
+                            [disabled]="syncStatus['socio_health'].isLoading">
+                            <span *ngIf="!syncStatus['socio_health'].isLoading">
+                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Salud
+                            </span>
+                            <span *ngIf="syncStatus['socio_health'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════════ -->
         <!-- Paso Final — Evaluación Masiva de Reglas              -->
         <!-- ══════════════════════════════════════════════════════ -->
         <div class="row mt-2">

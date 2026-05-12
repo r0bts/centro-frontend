@@ -134,31 +134,59 @@ export class MembresiasBuscarComponent {
   // ─────────────────────────────────────────────────────────────────────────────
 
   sincronizar(): void {
+    // Si no hay membresía activa, no hay nada que sincronizar
+    if (this.estado !== 'results' || this.socios.length === 0) {
+      this.showToast('⚠️ Busca una membresía primero', '#d97706');
+      return;
+    }
+
     if (this.sincronizando) return;
     this.sincronizando = true;
     this.cdr.markForCheck();
 
-    this.svc.sincronizar().subscribe({
-      next: (res) => {
+    // Sync individual: cada socio de la membresía visible uno por uno
+    const total   = this.socios.length;
+    let   done    = 0;
+    let   errores = 0;
+
+    const next = (index: number) => {
+      if (index >= total) {
+        // Todos terminados — refrescar la búsqueda y mostrar toast final
         this.sincronizando = false;
-        this.showToast(
-          res.success
-            ? `✅ Sincronización completa — ${res.data?.synced ?? 0} membresías`
-            : '⚠️ Error al sincronizar',
-          res.success ? '#16a34a' : '#dc2626'
-        );
-        // Repetir la búsqueda si hay una activa
-        if (this.query.trim() && this.estado === 'results') {
+        const msg = errores > 0
+          ? `⚠️ ${done} actualizado(s), ${errores} con error`
+          : `✅ ${done} socio(s) actualizados y evaluados`;
+        this.showToast(msg, errores > 0 ? '#d97706' : '#16a34a');
+        if (this.query.trim()) {
           this.buscar();
         }
         this.cdr.markForCheck();
-      },
-      error: () => {
-        this.sincronizando = false;
-        this.showToast('Error de conexión al sincronizar', '#dc2626');
-        this.cdr.markForCheck();
-      },
-    });
+        return;
+      }
+
+      const socio = this.socios[index];
+      this.svc.sincronizarSocio(socio.id).subscribe({
+        next: (res) => {
+          if (res.success) {
+            done++;
+            this.showToast(`✅ ${socio.nombreCompleto} actualizado`, '#16a34a');
+          } else {
+            errores++;
+            this.showToast(`⚠️ ${socio.nombreCompleto}: ${res.message || 'error'}`, '#d97706');
+          }
+          this.cdr.markForCheck();
+          next(index + 1);
+        },
+        error: () => {
+          errores++;
+          this.showToast(`❌ ${socio.nombreCompleto}: error de conexión`, '#dc2626');
+          this.cdr.markForCheck();
+          next(index + 1);
+        },
+      });
+    };
+
+    next(0);
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

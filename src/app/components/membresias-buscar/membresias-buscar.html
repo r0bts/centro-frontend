@@ -24,9 +24,14 @@
       <button
         class="btn-sync"
         (click)="sincronizar()"
-        [disabled]="sincronizando"
+        [disabled]="sincronizando || estado !== 'results'"
+        [title]="estado !== 'results' ? 'Busca una membresía primero' : 'Actualizar desde NetSuite y re-evaluar reglas'"
       >
-        {{ sincronizando ? 'Sincronizando…' : 'Sincronizar' }}
+        {{ sincronizando
+            ? 'Actualizando…'
+            : estado === 'results' && socios.length > 0
+              ? 'Actualizar (' + socios.length + ')'
+              : 'Sincronizar' }}
       </button>
     </div>
 

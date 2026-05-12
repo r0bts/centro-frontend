@@ -59,6 +59,8 @@ export interface AccesoSocio {
 // Fuentes: detalle_membresias + socios + parentesco + condicion_adm + ctrl_cumplimiento
 // ─────────────────────────────────────────────────────────────────────────────
 export interface SocioMembresia {
+  /** socios.id — id interno (PK = NS id) — necesario para POST /socios/refresh/{id} */
+  id: number;
   /** socios.entityid — número legible del socio */
   numeroHumano: string;
   /** socios.first_name + last_name (o altname) */
@@ -103,6 +105,7 @@ export interface AccesoRaw {
 }
 
 export interface SocioRaw {
+  id: number;
   numero_humano: string;
   nombre_completo: string;
   edad: number | null;
