@@ -205,12 +205,18 @@
                 <div class="col-md-2">
                   <label class="form-label "><span class="text-danger">*</span> Cantidad</label>
                   <input 
-                    type="text" 
+                    #qtyInput
+                    type="number" 
                     class="form-control " 
-                    [(ngModel)]="currentQuantity"
-                    (input)="validateNumberInput($event)"
+                    [ngModel]="currentQuantity"
+                    (ngModelChange)="onQuantityChange($event, qtyInput)"
                     placeholder="Ingrese cantidad"
+                    min="1"
+                    [max]="selectedProductData?.max_quantity ?? ''"
                     [disabled]="!businessUnit || !currentDeliveryDate || !selectedArea">
+                  <small *ngIf="selectedProductData?.max_quantity !== null && selectedProductData?.max_quantity !== undefined" class="text-muted">
+                    Máx: {{ selectedProductData?.max_quantity }}
+                  </small>
                 </div>
                 <div class="col-md-3">
                   <label class="form-label ">Presentación</label>
@@ -255,18 +261,24 @@
                               <i class="bi bi-dash"></i>
                             </button>
                             <input 
-                              type="text" 
+                              type="number" 
                               class="form-control text-center" 
                               [value]="product.quantity"
+                              min="1"
+                              [max]="product.maxQuantity ?? ''"
                               (input)="updateQuantityFromInput(product.id, $event)"
                               (blur)="validateTableInput(product.id, $event)">
                             <button 
                               class="btn btn-outline-secondary" 
                               type="button" 
-                              (click)="incrementQuantity(product.id)">
+                              (click)="incrementQuantity(product.id)"
+                              [disabled]="product.maxQuantity !== null && product.quantity >= product.maxQuantity">
                               <i class="bi bi-plus"></i>
                             </button>
                           </div>
+                          <small *ngIf="product.maxQuantity !== null" class="text-muted d-block text-center" style="font-size:0.75rem">
+                            Máx: {{ product.maxQuantity }}
+                          </small>
                         </td>
                         <td class="fs-6 py-3">{{ product.unit }}</td>
                         <td>

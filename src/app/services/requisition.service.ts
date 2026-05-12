@@ -95,6 +95,7 @@ export interface RequisitionProduct {
   code: string;
   name: string;
   unit: string; // La unidad viene del backend, no es editable
+  max_quantity: number | null; // null = sin límite
 }
 
 /**
