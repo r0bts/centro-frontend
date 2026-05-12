@@ -265,23 +265,38 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       cancelButtonColor: '#6c757d'
     }).then((result) => {
       if (result.isConfirmed) {
-        // Aquí implementarías la lógica de eliminación
-        this.requisitions.update(reqs => reqs.filter(r => r.id !== requisition.id));
-        
-        // Reagrupar después de eliminar usando Helper
-        const { grouped, dateKeys } = RequisitionGroupingHelper.groupByDeliveryDate(this.requisitions());
-        this.groupedRequisitions.set(grouped);
-        this.dateGroups.set(dateKeys);
-        this.filteredGroupedRequisitions.set({ ...grouped });
-        this.filteredDateGroups.set([...dateKeys]);
-        
         Swal.fire({
-          icon: 'success',
-          title: 'Requisición eliminada',
-          text: `La requisición ${requisition.id} ha sido eliminada exitosamente`,
-          confirmButtonText: 'Continuar',
-          timer: 2000,
-          timerProgressBar: true
+          title: 'Eliminando...',
+          allowOutsideClick: false,
+          didOpen: () => Swal.showLoading()
+        });
+
+        this.requisitionService.deleteRequisition(requisition.id).subscribe({
+          next: () => {
+            this.requisitions.update(reqs => reqs.filter(r => r.id !== requisition.id));
+            const { grouped, dateKeys } = RequisitionGroupingHelper.groupByDeliveryDate(this.requisitions());
+            this.groupedRequisitions.set(grouped);
+            this.dateGroups.set(dateKeys);
+            this.filteredGroupedRequisitions.set({ ...grouped });
+            this.filteredDateGroups.set([...dateKeys]);
+
+            Swal.fire({
+              icon: 'success',
+              title: 'Requisición eliminada',
+              text: `La requisición ${requisition.id} ha sido eliminada exitosamente`,
+              confirmButtonText: 'Continuar',
+              timer: 2000,
+              timerProgressBar: true
+            });
+          },
+          error: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al eliminar',
+              text: error?.error?.message || 'No se pudo eliminar la requisición',
+              confirmButtonText: 'Entendido'
+            });
+          }
         });
       }
     });
@@ -322,7 +337,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   canDeleteReq(requisition: RequisitionItem): boolean {
-    return requisition.status === 'Solicitado' || requisition.status === 'Cancelado';
+    return requisition.status === 'Solicitado';
   }
 
   canSupplyReq(requisition: RequisitionItem): boolean {

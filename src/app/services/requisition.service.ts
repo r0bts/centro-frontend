@@ -407,6 +407,17 @@ export class RequisitionService {
   }
 
   /**
+   * Eliminar una requisición (soft-delete)
+   * Endpoint: DELETE /api/requisitions/{id}
+   */
+  deleteRequisition(id: string): Observable<any> {
+    return this.http.delete(`${this.API_URL}/requisitions/${id}`).pipe(
+      tap(response => console.log('✅ Requisición eliminada:', response)),
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Cancelar una requisición
    * Endpoint: POST /api/requisitions/{id}/cancel
    */

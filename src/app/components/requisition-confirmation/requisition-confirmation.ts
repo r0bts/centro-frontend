@@ -193,7 +193,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
             emp => emp.id === currentUser.id.toString()
           );
           
-          if (loggedUserEmployee) {
+          if (loggedUserEmployee && !this.selectedEmployee) {
             this.selectedEmployee = loggedUserEmployee;
             this.employeeSearchTerm = loggedUserEmployee.name;
           }
