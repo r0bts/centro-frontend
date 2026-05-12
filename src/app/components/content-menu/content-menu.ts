@@ -36,6 +36,9 @@ export class ContentMenu implements OnInit {
   /** Estado dropdown engranaje */
   isGearOpen = signal(false);
 
+  /** Estado dropdown avatar */
+  isAvatarOpen = signal(false);
+
   constructor(
     private authService: AuthService,
     private menuService: MenuService,
@@ -88,13 +91,74 @@ export class ContentMenu implements OnInit {
     this.cdr.markForCheck();
   }
 
-  // ── Inicial del avatar ───────────────────────
+  // ── Inicial(es) del avatar ──────────────────────────────────────────
   userInitial(): string {
     const user = this.authService.getCurrentUser();
-    const name = (user as any)?.name || (user as any)?.username || 'U';
+    const first = (user as any)?.first_name || '';
+    const last  = (user as any)?.last_name  || '';
+    if (first && last) return (first.charAt(0) + last.charAt(0)).toUpperCase();
+    const name = first || (user as any)?.username || 'U';
     return name.charAt(0).toUpperCase();
   }
 
+  // ── Nombre completo del usuario ──────────────────────────────
+  userDisplayName(): string {
+    const user = this.authService.getCurrentUser();
+    const first = (user as any)?.first_name || '';
+    const last  = (user as any)?.last_name  || '';
+    if (first || last) return `${first} ${last}`.trim();
+    return (user as any)?.username || 'Usuario';
+  }
+
+  // ── Rol del usuario ─────────────────────────────────────────
+  userRoleLabel(): string {
+    const roles = this.authService.getRoles();
+    if (roles && roles.length > 0) {
+      return roles[0].display_name || roles[0].name || 'Sin rol';
+    }
+    return 'Sin rol';
+  }
+
+  // ── Email del usuario ────────────────────────────────────
+  userEmail(): string {
+    const user = this.authService.getCurrentUser();
+    return (user as any)?.email || '';
+  }
+
+  // ── Departamento del usuario ─────────────────────────────
+  userDepartment(): string {
+    const user = this.authService.getCurrentUser();
+    return (user as any)?.department_name || '';
+  }
+
+  // ── Sucursal / Location ─────────────────────────────────
+  userLocation(): string {
+    const user = this.authService.getCurrentUser();
+    return (user as any)?.location_name || '';
+  }
+
+  // ── Número de empleado ────────────────────────────────
+  userEmployeeNumber(): string {
+    const user = this.authService.getCurrentUser();
+    return (user as any)?.number_employee || '';
+  }
+
+  // ── Toggle avatar dropdown ──────────────────────────────
+  toggleAvatar(event: Event): void {
+    event.stopPropagation();
+    this.isAvatarOpen.update(v => !v);
+    this.isGearOpen.set(false);
+    this.closeAllDropdowns();
+  }
+  openAvatar(): void {
+    this.isAvatarOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  closeAvatar(): void {
+    this.isAvatarOpen.set(false);
+    this.cdr.markForCheck();
+  }
   // ── Engranaje activo si algún sub-item de config está activo ──
   isGearActive(): boolean {
     return this.gearItems().some(child => this.isActive(child.id));
@@ -124,6 +188,7 @@ export class ContentMenu implements OnInit {
 
     this.closeAllDropdowns();
     this.isGearOpen.set(false);
+    this.isAvatarOpen.set(false);
     this.isMobileMenuOpen.set(false);
 
     if (menuItem?.route) {
@@ -168,6 +233,7 @@ export class ContentMenu implements OnInit {
     if (!target.closest('app-content-menu')) {
       this.closeAllDropdowns();
       this.isGearOpen.set(false);
+      this.isAvatarOpen.set(false);
       this.cdr.markForCheck();
     }
   }

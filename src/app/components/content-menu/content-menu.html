@@ -58,7 +58,7 @@
       <div class="topnav-actions">
 
         <!-- Engranaje Configuración -->
-        <div class="topnav-gear-wrapper" [class.open]="isGearOpen()">
+        <div class="topnav-gear-wrapper" [class.open]="isGearOpen()" *ngIf="gearItems().length > 0">
           <button class="topnav-action-btn"
                   [class.active]="isGearOpen() || isGearActive()"
                   title="Configuración"
@@ -78,16 +78,54 @@
         </div>
 
         <!-- Avatar / Perfil -->
-        <div class="topnav-avatar" title="Perfil">
-          {{ userInitial() }}
-        </div>
+        <div class="topnav-avatar-wrapper">
+          <div class="topnav-avatar"
+               [class.open]="isAvatarOpen()"
+               title="Perfil"
+               (click)="toggleAvatar($event)">
+            {{ userInitial() }}
+          </div>
+          <div class="topnav-avatar-dropdown" [class.show]="isAvatarOpen()">
 
-        <!-- Logout -->
-        <button class="topnav-action-btn topnav-action-btn--logout"
-                title="Cerrar sesión"
-                (click)="onLogout()">
-          <i class="bi bi-box-arrow-right"></i>
-        </button>
+            <!-- Cabecera: círculo + nombre + rol -->
+            <div class="topnav-avatar-header">
+              <div class="topnav-avatar-circle">{{ userInitial() }}</div>
+              <div class="topnav-avatar-info">
+                <span class="topnav-avatar-name">{{ userDisplayName() }}</span>
+                <span class="topnav-avatar-role">{{ userRoleLabel() }}</span>
+              </div>
+            </div>
+
+            <!-- Datos del usuario -->
+            <div class="topnav-avatar-body">
+              <div class="topnav-avatar-row" *ngIf="userEmail()">
+                <i class="bi bi-envelope"></i>
+                <span>{{ userEmail() }}</span>
+              </div>
+              <div class="topnav-avatar-row" *ngIf="userDepartment()">
+                <i class="bi bi-building"></i>
+                <span>{{ userDepartment() }}</span>
+              </div>
+              <div class="topnav-avatar-row" *ngIf="userLocation()">
+                <i class="bi bi-geo-alt"></i>
+                <span>{{ userLocation() }}</span>
+              </div>
+              <div class="topnav-avatar-row" *ngIf="userEmployeeNumber()">
+                <i class="bi bi-person-badge"></i>
+                <span>No. {{ userEmployeeNumber() }}</span>
+              </div>
+            </div>
+
+            <!-- Logout -->
+            <div class="topnav-avatar-footer">
+              <button class="topnav-avatar-logout" (click)="onLogout()">
+                <i class="bi bi-box-arrow-right"></i>
+                Cerrar sesión
+              </button>
+            </div>
+
+          </div>
+        </div>
 
       </div>
     </div><!-- /collapse -->

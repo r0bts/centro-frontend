@@ -256,14 +256,19 @@
   position: relative;
 }
 
-// ── Avatar ──
+// ── Avatar wrapper (dropdown) ──
+.topnav-avatar-wrapper {
+  position: relative;
+}
+
+// ── Avatar círculo ──
 .topnav-avatar {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-color, #406eba), var(--primary-dark, #1d3d79));
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -271,12 +276,159 @@
   cursor: pointer;
   flex-shrink: 0;
   margin: 0 4px;
+  border: 2px solid transparent;
+  transition: border-color 0.18s, box-shadow 0.18s;
+  letter-spacing: 0.02em;
+
+  &:hover, &.open {
+    border-color: var(--primary-color, #406eba);
+    box-shadow: 0 0 0 3px rgba(64, 110, 186, 0.18);
+  }
+}
+
+// ── Avatar dropdown panel ──
+.topnav-avatar-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  padding: 8px;
+  min-width: 220px;
+  z-index: 400;
+  display: none;
+  animation: navFadeDownRight 0.15s ease;
+
+  &.show { display: block; }
+}
+
+// ── Avatar dropdown — cabecera ──
+.topnav-avatar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  margin-bottom: 6px;
+}
+
+.topnav-avatar-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #406eba), var(--primary-dark, #1d3d79));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.topnav-avatar-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.topnav-avatar-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-900, #141414);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topnav-avatar-role {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--primary-color, #406eba);
+  background: rgba(64,110,186,0.09);
+  border-radius: 6px;
+  padding: 1px 7px;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// ── Avatar dropdown — cuerpo con datos ──
+.topnav-avatar-body {
+  padding: 4px 4px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.topnav-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.13s;
+
+  i {
+    font-size: 13px;
+    color: var(--neutral-400, #a1a1a1);
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+  }
+
+  span {
+    font-size: 12px;
+    color: var(--neutral-600, #727272);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 170px;
+  }
+
+  &:hover {
+    background: var(--neutral-100, #f2f2f2);
+    span { color: var(--neutral-900, #141414); }
+  }
+}
+
+// ── Avatar dropdown — footer logout ──
+.topnav-avatar-footer {
+  padding: 6px 4px 2px;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  margin-top: 4px;
+}
+
+.topnav-avatar-logout {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--danger-color, #da3e3e);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  i { font-size: 14px; }
+
+  &:hover {
+    background: rgba(218, 62, 62, 0.08);
+  }
 }
 
 /* ═══════════════════════════════════════════════
-   RESPONSIVE ≤ 768px — Hamburguesa
+   RESPONSIVE ≤ 1150px — Hamburguesa
 ═══════════════════════════════════════════════ */
-@media (max-width: 768px) {
+@media (max-width: 1150px) {
   .topnav-wrapper { padding: 8px 10px 0; }
 
   .topnav-bar {
