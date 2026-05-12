@@ -220,10 +220,17 @@
                           Nivel {{ p.assigned_level }}
                         </span>
                       }
-                      <span class="sce-weeks-range">
-                        <span class="material-symbols-outlined">date_range</span>
-                        {{ weekRange(p.weeks) }}
-                      </span>
+                      <div class="sce-weeks-chips">
+                        @for (chip of weekChips(p.weeks); track chip.short) {
+                          <span class="sce-week-chip">
+                            <span class="material-symbols-outlined">date_range</span>
+                            {{ chip.short }}@if (chip.dates) {: {{ chip.dates }}}
+                          </span>
+                        }
+                        @if (!p.weeks.length) {
+                          <span class="sce-week-chip sce-week-chip--empty">—</span>
+                        }
+                      </div>
                       <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}">
                         {{ paymentLabel(p.payment_status) }}
                       </span>

@@ -595,10 +595,26 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.participantTypes.find(x => x.value === t)?.label ?? t;
   }
 
-  weekRange(weeks: Array<{week_number: number; label: string}>): string {
-    if (!weeks.length) return '—';
-    if (weeks.length === 1) return weeks[0].label;
-    return `${weeks[0].label} – ${weeks[weeks.length-1].label}`;
+  weekChips(weeks: Array<{week_number: number; label: string}>): Array<{short: string; dates: string}> {
+    if (!weeks.length) return [];
+    return weeks.map(w => {
+      const courseWeek = this.courseWeeks.find(cw => cw.week_number === w.week_number);
+      const dates = courseWeek
+        ? this._fmtWeekRange(courseWeek.start_date, courseWeek.end_date)
+        : '';
+      return { short: `Sem ${w.week_number}`, dates };
+    });
+  }
+
+  private _fmtWeekRange(start: string, end: string): string {
+    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const s = new Date(start + 'T12:00:00');
+    const e = new Date(end   + 'T12:00:00');
+    const dS = s.getDate();
+    const dE = e.getDate();
+    const mS = months[s.getMonth()];
+    const mE = months[e.getMonth()];
+    return mS === mE ? `${dS}–${dE} ${mS}` : `${dS} ${mS}–${dE} ${mE}`;
   }
 
   currency(val: number): string {

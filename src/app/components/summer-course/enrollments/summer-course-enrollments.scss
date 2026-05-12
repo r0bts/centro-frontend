@@ -287,11 +287,17 @@ $level-colors: (
   .material-symbols-outlined { font-size: 12px; }
 }
 
-.sce-weeks-range {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-size: .78rem; color: #475569;
-  background: #f1f5f9; padding: 3px 8px; border-radius: $radius-sm;
-  .material-symbols-outlined { font-size: 13px; }
+.sce-weeks-chips {
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+}
+
+.sce-week-chip {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: .74rem; font-weight: 500; color: #1d4ed8;
+  background: #eff6ff; border: 1px solid #bfdbfe;
+  padding: 2px 7px; border-radius: 20px; white-space: nowrap;
+  .material-symbols-outlined { font-size: 12px; }
+  &--empty { color: #94a3b8; background: #f8fafc; border-color: #e2e8f0; }
 }
 
 .sce-access-code {
