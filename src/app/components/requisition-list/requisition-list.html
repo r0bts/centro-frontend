@@ -202,9 +202,9 @@
                             <i class="bi bi-pencil"></i>
                           </button>
 
-                          <!-- Ver Detalle / PIN (para cualquier estado activo con permiso supply) -->
+                          <!-- Autorizar Requisición (solo si está en Solicitado y tiene permiso update) -->
                           <button 
-                            *ngIf="canSupply() && isViewable(requisition)"
+                            *ngIf="canUpdate() && isEditable(requisition)"
                             type="button" 
                             class="btn btn-outline-warning btn-sm"
                             (click)="supplyRequisition(requisition)"

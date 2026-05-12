@@ -296,7 +296,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   isSurtible(requisition: RequisitionItem): boolean {
-    return ['Autorizada', 'En Proceso', 'Parcialmente Entregado', 'Listo para Recoger'].includes(requisition.status);
+    return ['Autorizada', 'En Proceso', 'Parcialmente Entregado', 'Listo para Recoger', 'Espera Devolución'].includes(requisition.status);
   }
 
   editRequisition(requisition: RequisitionItem): void {
