@@ -625,8 +625,8 @@
 
 <!-- ── Modal Entrega de Kit (por familia) ──────────────────────────────── -->
 @if (kitModalOpen() && kitModalGroup()) {
-  <div class="sce-modal-overlay" (click)="kitCloseModal()">
-    <div class="sce-modal" (click)="$event.stopPropagation()">
+  <div class="sce-modal-overlay">
+    <div class="sce-modal">
       <div class="sce-modal__header">
         <span class="material-symbols-outlined">card_giftcard</span>
         <h2>Entrega de kit — {{ kitModalGroup()!.titular_name }}</h2>
