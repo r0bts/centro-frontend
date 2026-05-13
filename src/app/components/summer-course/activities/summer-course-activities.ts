@@ -154,25 +154,34 @@ export class SummerCourseActivitiesComponent implements OnInit {
     }).subscribe({
       next: ({ catalog, formData }) => {
         // — Update dynamic catalog signals —
-        if (catalog.data.levels?.length) {
-          this.SC_LEVELS.set(
-            catalog.data.levels.map(l => ({ n: l.level_number, roman: l.roman, age: l.age_label }))
-          );
-        }
-        if (catalog.data.activity_types?.length) {
-          this.SC_ACTIVITIES.set(
-            catalog.data.activity_types.map(a => ({
-              id:    a.id,
-              label: a.label,
-              emoji: a.emoji,
-              cat:   a.cat as any,
-              color: a.color,
-              bg:    a.bg,
+        // Backend returns { categories: [{ id, label, emoji, color, types: [...] }] }
+        // (ScCatalogIndexResponse shape, not the flat ScCatalogResponse shape)
+        const catalogCats: any[] = (catalog.data as any).categories ?? [];
+        if (catalogCats.length) {
+          // Update SC_CATEGORIES (strip 'types' / extra fields)
+          this.SC_CATEGORIES.set(catalogCats.map((c: any) => ({
+            id: c.id, label: c.label, emoji: c.emoji, color: c.color,
+          })));
+
+          // Derive flat SC_ACTIVITIES from nested category.types
+          const allTypes: ScActivityType[] = catalogCats.flatMap((c: any) =>
+            (c.types ?? []).map((t: any) => ({
+              id:    t.id,
+              label: t.label,
+              emoji: t.emoji,
+              cat:   (t.category_id ?? c.id) as any,
+              color: t.color,
+              bg:    t.bg,
             }))
           );
+          if (allTypes.length) this.SC_ACTIVITIES.set(allTypes);
         }
-        if (catalog.data.categories?.length) {
-          this.SC_CATEGORIES.set(catalog.data.categories);
+
+        // Levels (only present if backend adds them; fall back to constants otherwise)
+        if ((catalog.data as any).levels?.length) {
+          this.SC_LEVELS.set(
+            (catalog.data as any).levels.map((l: any) => ({ n: l.level_number, roman: l.roman, age: l.age_label }))
+          );
         }
 
         // — Map form-data courses to ScCourse-compatible objects —

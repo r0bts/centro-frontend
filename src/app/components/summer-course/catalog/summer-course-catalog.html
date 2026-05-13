@@ -86,7 +86,7 @@
 
 <!-- ═══ Modal: Categoría ══════════════════════════════════════════════════ -->
 @if (catModal()) {
-  <div class="modal-backdrop" (click)="closeCatModal()">
+  <div class="modal-backdrop">
     <div class="modal-box" (click)="$event.stopPropagation()">
 
       <div class="modal-header">
@@ -158,7 +158,7 @@
 
 <!-- ═══ Modal: Tipo ═══════════════════════════════════════════════════════ -->
 @if (typeModal()) {
-  <div class="modal-backdrop" (click)="closeTypeModal()">
+  <div class="modal-backdrop">
     <div class="modal-box" (click)="$event.stopPropagation()">
 
       <div class="modal-header">
