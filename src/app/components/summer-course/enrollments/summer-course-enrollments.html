@@ -96,28 +96,7 @@
         </div>
       </div>
     </div>
-    <!-- ── Tabs ─────────────────────────────────────────────────────────────── -->
-    <div class="sce-tabs">
-      <button class="sce-tab" [class.sce-tab--active]="activeTab() === 'inscriptions'"
-              (click)="switchTab('inscriptions')">
-        <span class="material-symbols-outlined">assignment_ind</span>
-        Inscritos
-        <span class="sce-tab__badge">{{ totalParticipants() }}</span>
-      </button>
-      <button class="sce-tab" [class.sce-tab--active]="activeTab() === 'kit'"
-              (click)="switchTab('kit')">
-        <span class="material-symbols-outlined">card_giftcard</span>
-        Entrega de Kit
-        @if (kitSummary().pending > 0) {
-          <span class="sce-tab__badge sce-tab__badge--warning">{{ kitSummary().pending }}</span>
-        } @else if (kitSummary().total > 0) {
-          <span class="sce-tab__badge sce-tab__badge--success">&#10003;</span>
-        }
-      </button>
-    </div>
 
-    <!-- ── TAB: Inscripciones ──────────────────────────────────────────── -->
-    @if (activeTab() === 'inscriptions') {
     <!-- ── Toolbar ────────────────────────────────────────────────────────── -->
     <div class="sce-toolbar">
       <div class="sce-search-box">
@@ -179,6 +158,24 @@
                     <span class="material-symbols-outlined">key</span>
                     {{ group.master_token }}
                   </div>
+                }
+                @if (!kitLoading()) {
+                  @if (kitGroupStatus(group) === 'all') {
+                    <span class="sce-kit-badge sce-kit-badge--done">
+                      <span class="material-symbols-outlined">card_giftcard</span>
+                      Entregado
+                    </span>
+                  } @else if (kitGroupStatus(group) === 'partial') {
+                    <button class="sce-kit-btn sce-kit-btn--partial" (click)="openKitModal(group, $event)">
+                      <span class="material-symbols-outlined">card_giftcard</span>
+                      {{ kitDeliveredCount(group) }}/{{ kitGroupItems(group).length }} kits
+                    </button>
+                  } @else if (kitGroupItems(group).length > 0) {
+                    <button class="sce-kit-btn" (click)="openKitModal(group, $event)">
+                      <span class="material-symbols-outlined">card_giftcard</span>
+                      Entregar kit
+                    </button>
+                  }
                 }
                 <span class="sce-chevron material-symbols-outlined">
                   {{ isExpanded(group.titular_id) ? 'expand_less' : 'expand_more' }}
@@ -622,202 +619,39 @@
   </div>
 }
 
-  } <!-- /activeTab inscriptions -->
-
-    <!-- ── TAB: Entrega de Kit ───────────────────────────────────────── -->
-    @if (activeTab() === 'kit') {
-      <div class="kit-section">
-
-        <!-- KPIs kit -->
-        <div class="kit-kpis">
-          <div class="kit-kpi">
-            <span class="kit-kpi__number">{{ kitSummary().total }}</span>
-            <span class="kit-kpi__label">Total</span>
-          </div>
-          <div class="kit-kpi kit-kpi--success">
-            <span class="material-symbols-outlined kit-kpi__icon">check_circle</span>
-            <span class="kit-kpi__number">{{ kitSummary().delivered }}</span>
-            <span class="kit-kpi__label">Entregados</span>
-          </div>
-          <div class="kit-kpi kit-kpi--warning">
-            <span class="material-symbols-outlined kit-kpi__icon">schedule</span>
-            <span class="kit-kpi__number">{{ kitSummary().pending }}</span>
-            <span class="kit-kpi__label">Pendientes</span>
-          </div>
-          @if (kitSummary().total > 0) {
-            <div class="kit-kpi kit-kpi--progress">
-              <div class="kit-progress-bar">
-                <div class="kit-progress-bar__fill"
-                     [style.width.%]="(kitSummary().delivered / kitSummary().total) * 100">
-                </div>
-              </div>
-              <span class="kit-kpi__label">
-                {{ ((kitSummary().delivered / kitSummary().total) * 100) | number:'1.0-0' }}% completado
-              </span>
-            </div>
-          }
-        </div>
-
-        <!-- Toolbar kit -->
-        <div class="kit-toolbar">
-          <div class="kit-subtabs">
-            <button class="kit-subtab" [class.kit-subtab--active]="kitFilter() === 'all'"
-                    (click)="kitFilter.set('all')">
-              Todos
-            </button>
-            <button class="kit-subtab" [class.kit-subtab--active]="kitFilter() === 'pending'"
-                    (click)="kitFilter.set('pending')">
-              Pendientes
-            </button>
-            <button class="kit-subtab" [class.kit-subtab--active]="kitFilter() === 'delivered'"
-                    (click)="kitFilter.set('delivered')">
-              Entregados
-            </button>
-          </div>
-          <div class="sce-search-box">
-            <span class="material-symbols-outlined">search</span>
-            <input type="text" placeholder="Buscar participante..."
-                   [value]="kitSearch()"
-                   (input)="kitSearch.set($any($event.target).value)">
-            @if (kitSearch()) {
-              <button (click)="kitSearch.set('')">
-                <span class="material-symbols-outlined">close</span>
-              </button>
-            }
-          </div>
-          @if (kitSelectedCount() > 0) {
-            <div class="kit-bulk-bar">
-              <span>{{ kitSelectedCount() }} seleccionado{{ kitSelectedCount() > 1 ? 's' : '' }}</span>
-              <button class="sce-btn sce-btn--primary" (click)="kitOpenBulk()">
-                <span class="material-symbols-outlined">card_giftcard</span>
-                Entregar seleccionados
-              </button>
-              <button class="sce-btn sce-btn--ghost" (click)="kitClearSelection()">
-                <span class="material-symbols-outlined">close</span>
-              </button>
-            </div>
-          }
-        </div>
-
-        <!-- Tabla kit -->
-        @if (kitLoading()) {
-          <div class="sce-loading-state sce-loading-state--sm">
-            <div class="sce-spinner sce-spinner--sm"></div>
-            <p>Cargando kits...</p>
-          </div>
-        } @else {
-          <div class="kit-table-wrap">
-            <table class="kit-table">
-              <thead>
-                <tr>
-                  <th class="kit-th--check">
-                    <input type="checkbox"
-                           [checked]="kitAllSelected()"
-                           (change)="kitToggleAll()">
-                  </th>
-                  <th>Participante</th>
-                  <th>Membresía</th>
-                  <th>Estado</th>
-                  <th>Entregó</th>
-                  <th>Recibió</th>
-                  <th>Fecha</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (item of kitFilteredItems(); track item.enrollment_id) {
-                  <tr [class.kit-row--delivered]="item.kit_delivered"
-                      [class.kit-row--selected]="kitSelectedIds().has(item.enrollment_id)">
-                    <td class="kit-th--check">
-                      @if (!item.kit_delivered) {
-                        <input type="checkbox"
-                               [checked]="kitSelectedIds().has(item.enrollment_id)"
-                               (change)="kitToggleSelect(item.enrollment_id)">
-                      }
-                    </td>
-                    <td>
-                      <div class="kit-participant">
-                        <span class="kit-participant__name">{{ item.full_name }}</span>
-                      </div>
-                    </td>
-                    <td class="kit-td--muted">{{ item.membership_no ?? '—' }}</td>
-                    <td>
-                      @if (item.kit_delivered) {
-                        <span class="sce-badge sce-badge--success">
-                          <span class="material-symbols-outlined">check</span> Entregado
-                        </span>
-                      } @else {
-                        <span class="sce-badge sce-badge--warning">
-                          <span class="material-symbols-outlined">schedule</span> Pendiente
-                        </span>
-                      }
-                    </td>
-                    <td class="kit-td--muted">{{ item.delivered_by_name ?? '—' }}</td>
-                    <td class="kit-td--muted">{{ item.received_by_name ?? '—' }}</td>
-                    <td class="kit-td--muted">{{ kitFormatDate(item.delivered_at) }}</td>
-                    <td>
-                      @if (!item.kit_delivered) {
-                        <button class="sce-btn sce-btn--sm sce-btn--primary"
-                                (click)="kitOpenIndividual(item)">
-                          <span class="material-symbols-outlined">card_giftcard</span>
-                          Entregar
-                        </button>
-                      } @else {
-                        <span class="kit-check-icon material-symbols-outlined">check_circle</span>
-                      }
-                    </td>
-                  </tr>
-                }
-                @if (kitFilteredItems().length === 0) {
-                  <tr>
-                    <td colspan="8" class="kit-empty-row">
-                      <span class="material-symbols-outlined">inbox</span>
-                      Sin participantes para este filtro.
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
-
-      </div>
-    } <!-- /activeTab kit -->
-
   } <!-- /!loading -->
 
 </div>
 
-<!-- ── Modal Entrega de Kit ────────────────────────────────────────────── -->
-@if (kitModalOpen()) {
+<!-- ── Modal Entrega de Kit (por familia) ──────────────────────────────── -->
+@if (kitModalOpen() && kitModalGroup()) {
   <div class="sce-modal-overlay" (click)="kitCloseModal()">
     <div class="sce-modal" (click)="$event.stopPropagation()">
       <div class="sce-modal__header">
         <span class="material-symbols-outlined">card_giftcard</span>
-        <h2>
-          @if (kitModalMode() === 'individual') {
-            Registrar entrega de kit
-          } @else {
-            Entrega masiva — {{ kitSelectedCount() }} participante{{ kitSelectedCount() > 1 ? 's' : '' }}
-          }
-        </h2>
+        <h2>Entrega de kit — {{ kitModalGroup()!.titular_name }}</h2>
         <button class="sce-modal__close" (click)="kitCloseModal()">
           <span class="material-symbols-outlined">close</span>
         </button>
       </div>
       <div class="sce-modal__body">
-        @if (kitModalMode() === 'individual' && kitModalItem()) {
-          <div class="sce-modal__info-row">
-            <span class="sce-modal__label">Participante</span>
-            <strong>{{ kitModalItem()!.full_name }}</strong>
-          </div>
-        }
-        @if (kitModalMode() === 'bulk') {
-          <div class="sce-modal__info-row">
-            <span class="sce-modal__label">Participantes</span>
-            <em>{{ kitSelectedCount() }} participantes seleccionados</em>
-          </div>
-        }
+        <div class="kit-modal-participants">
+          @for (item of kitGroupItems(kitModalGroup()!); track item.enrollment_id) {
+            <label class="kit-modal-row" [class.kit-modal-row--delivered]="item.kit_delivered">
+              @if (item.kit_delivered) {
+                <span class="kit-modal-check material-symbols-outlined">check_circle</span>
+              } @else {
+                <input type="checkbox"
+                       [checked]="kitGroupChecked().has(item.enrollment_id)"
+                       (change)="toggleKitCheck(item.enrollment_id)">
+              }
+              <span class="kit-modal-name">{{ item.full_name }}</span>
+              @if (item.kit_delivered) {
+                <span class="kit-modal-meta">{{ kitFormatDate(item.delivered_at) }}</span>
+              }
+            </label>
+          }
+        </div>
         <div class="sce-form-field">
           <label class="sce-form-label">
             Nombre de quien recibe <span class="sce-form-required">*</span>
@@ -837,11 +671,12 @@
         <button class="sce-btn sce-btn--ghost" (click)="kitCloseModal()" [disabled]="kitSaving()">
           Cancelar
         </button>
-        <button class="sce-btn sce-btn--primary" (click)="kitSaveDelivery()" [disabled]="kitSaving()">
+        <button class="sce-btn sce-btn--primary" (click)="confirmKitDelivery()" [disabled]="kitSaving()">
           @if (kitSaving()) {
             <div class="sce-spinner sce-spinner--sm"></div> Guardando...
           } @else {
-            <span class="material-symbols-outlined">check_circle</span> Confirmar entrega
+            <span class="material-symbols-outlined">check_circle</span>
+            Entregar seleccionados ({{ kitGroupChecked().size }})
           }
         </button>
       </div>
