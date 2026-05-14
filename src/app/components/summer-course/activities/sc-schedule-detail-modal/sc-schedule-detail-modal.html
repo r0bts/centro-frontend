@@ -15,63 +15,22 @@
       <button class="btn-close" (click)="cancel()"></button>
     </div>
 
-    <div class="sc-modal__body">
-      <div class="row g-3">
+    <div class="sc-modal__subheader">
+      <p class="text-muted small mb-0">
+        <strong>Nivel {{ levelLabel }}</strong> ({{ levelAge }}) ·
+        {{ slotLabel }} {{ slotTime }} · {{ dayLabel }}
+      </p>
+    </div>
 
-        <!-- Info column -->
-        <div class="col-md-5">
-          <div class="detail-rows">
-            <div class="detail-row">
-              <i class="bi bi-mortarboard"></i>
-              <span class="label">Nivel</span>
-              <span class="value">{{ levelLabel }} ({{ levelAge }})</span>
-            </div>
-            <div class="detail-row">
-              <i class="bi bi-clock"></i>
-              <span class="label">Bloque</span>
-              <span class="value">{{ slotLabel }} · {{ slotTime }}</span>
-            </div>
-            <div class="detail-row">
-              <i class="bi bi-calendar3"></i>
-              <span class="label">Día</span>
-              <span class="value">{{ dayLabel }}</span>
-            </div>
-            @if (currentInstructor) {
-              <div class="detail-row">
-                <i class="bi bi-person-badge"></i>
-                <span class="label">Instructor</span>
-                <span class="value">{{ currentInstructor.first_name }} {{ currentInstructor.last_name }}</span>
-              </div>
-            } @else {
-              <div class="detail-row text-muted">
-                <i class="bi bi-person-slash"></i>
-                <span class="label">Instructor</span>
-                <span class="value">Sin asignar</span>
-              </div>
-            }
-            @if (currentArea) {
-              <div class="detail-row">
-                <i class="bi bi-geo-alt-fill"></i>
-                <span class="label">Área</span>
-                <span class="value">{{ currentArea.name }}</span>
-              </div>
-            } @else {
-              <div class="detail-row text-muted">
-                <i class="bi bi-geo-alt"></i>
-                <span class="label">Área</span>
-                <span class="value">Sin asignar</span>
-              </div>
-            }
-          </div>
-        </div>
+    <div class="sc-modal__body">
+      <div class="row g-4">
 
         <!-- Instructor selector column -->
-        <div class="col-md-7">
-
+        <div class="col-md-6 border-end-md">
           <!-- Header + filtros rápidos -->
           <div class="inst-section-header mb-2">
-            <p class="fw-semibold small mb-0">
-              <i class="bi bi-person-badge me-1"></i>Instructor
+            <p class="fw-semibold small mb-0 text-primary">
+              <i class="bi bi-person-badge me-1"></i>Asignar Instructor
             </p>
             <div class="inst-filter-chips">
               <button class="inst-chip"
@@ -141,18 +100,52 @@
               <i class="bi bi-person-x me-1"></i>Quitar instructor
             </button>
           }
+        </div>
 
+        <!-- Area selector column -->
+        <div class="col-md-6">
           @if (areas.length > 0) {
-            <p class="fw-semibold small mb-2 mt-3">
-              <i class="bi bi-geo-alt me-1"></i>Área donde se imparte:
+            <p class="fw-semibold small mb-2 text-primary">
+              <i class="bi bi-geo-alt me-1"></i>Asignar Área
             </p>
-            <select class="form-select form-select-sm"
-                    (change)="selectedAreaId.set($any($event.target).value ? +$any($event.target).value : null)">
-              <option value="" [selected]="!selectedAreaId()">— Sin área —</option>
-              @for (area of areas; track area.id) {
-                <option [value]="area.id" [selected]="selectedAreaId() === area.id">{{ area.name }}</option>
+
+            <div class="inst-search-wrap mb-2">
+              <i class="bi bi-search inst-search-icon"></i>
+              <input class="inst-search-input"
+                     type="text"
+                     placeholder="Buscar área por nombre…"
+                     [value]="searchAreaQuery()"
+                     (input)="searchAreaQuery.set($any($event.target).value)">
+              @if (searchAreaQuery()) {
+                <button class="inst-search-clear" (click)="searchAreaQuery.set('')">
+                  <i class="bi bi-x-lg"></i>
+                </button>
               }
-            </select>
+            </div>
+
+            <div class="inst-list" style="max-height: 150px;">
+              @for (area of filteredAreas(); track area.id) {
+                <div class="inst-row"
+                     [class.selected]="selectedAreaId() === area.id"
+                     (click)="selectArea(area.id)">
+                  <div class="inst-info">
+                    <div class="inst-name"><i class="bi bi-pin-map text-muted me-2"></i>{{ area.name }}</div>
+                  </div>
+                  @if (selectedAreaId() === area.id) {
+                    <i class="bi bi-check-circle-fill text-primary ms-1"></i>
+                  }
+                </div>
+              } @empty {
+                <p class="text-muted small text-center py-2 mb-0">
+                  Sin resultados para "<em>{{ searchAreaQuery() }}</em>"
+                </p>
+              }
+            </div>
+
+            <button class="btn btn-link text-muted btn-sm ps-0 mt-1"
+                    (click)="selectedAreaId.set(null)">
+              <i class="bi bi-x-circle me-1"></i>Quitar área
+            </button>
           }
         </div>
 

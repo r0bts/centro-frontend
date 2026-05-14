@@ -38,10 +38,15 @@ export class ScScheduleDetailModalComponent implements OnInit {
   selectedInstructorId = signal<number | null>(null);
   selectedAreaId       = signal<number | null>(null);
   searchQuery          = signal('');
+  searchAreaQuery      = signal('');
   activeFilter         = signal<'all' | 'instructor' | 'coordinator'>('all');
 
+  private normalizeString(str: string): string {
+    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
   filteredInstructors = computed(() => {
-    const q      = this.searchQuery().toLowerCase().trim();
+    const q      = this.normalizeString(this.searchQuery().trim());
     const filter = this.activeFilter();
     return this.instructors.filter(inst => {
       const matchesFilter =
@@ -50,9 +55,15 @@ export class ScScheduleDetailModalComponent implements OnInit {
         (filter === 'coordinator' && inst.source !== 'instructor');
       if (!matchesFilter) return false;
       if (!q) return true;
-      const full = `${inst.first_name} ${inst.last_name}`.toLowerCase();
+      const full = this.normalizeString(`${inst.first_name} ${inst.last_name}`);
       return full.includes(q);
     });
+  });
+
+  filteredAreas = computed(() => {
+    const q = this.normalizeString(this.searchAreaQuery().trim());
+    if (!q) return this.areas;
+    return this.areas.filter(a => this.normalizeString(a.name).includes(q));
   });
 
   get activity(): ScActivityType | undefined {
@@ -88,6 +99,11 @@ export class ScScheduleDetailModalComponent implements OnInit {
   selectInstructor(id: number): void {
     const current = this.selectedInstructorId();
     this.selectedInstructorId.set(current === id ? null : id);
+  }
+
+  selectArea(id: number): void {
+    const current = this.selectedAreaId();
+    this.selectedAreaId.set(current === id ? null : id);
   }
 
   save(): void {

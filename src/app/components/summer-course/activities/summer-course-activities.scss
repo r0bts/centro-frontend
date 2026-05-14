@@ -23,6 +23,13 @@
   .btn {
     font-size: 0.78rem;
     padding: 0.2rem 0.5rem;
+    transition: all 0.2s;
+  }
+  .drag-over-tab {
+    background-color: #e0f2fe;
+    border-color: #0284c7;
+    color: #0369a1;
+    transform: scale(1.05);
   }
 }
 

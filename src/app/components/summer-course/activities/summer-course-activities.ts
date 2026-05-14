@@ -33,6 +33,8 @@ import { ScSchedulePaletteComponent } from './sc-schedule-palette/sc-schedule-pa
 import { ScScheduleGridComponent }    from './sc-schedule-grid/sc-schedule-grid';
 import { ScScheduleDropModalComponent }   from './sc-schedule-drop-modal/sc-schedule-drop-modal';
 import { ScScheduleDetailModalComponent } from './sc-schedule-detail-modal/sc-schedule-detail-modal';
+import { ScScheduleCopyDayModalComponent } from './sc-schedule-copy-day-modal/sc-schedule-copy-day-modal';
+import { ScScheduleCopyWeekModalComponent } from './sc-schedule-copy-week-modal/sc-schedule-copy-week-modal';
 
 /** Celda de estado interna (UI state) */
 export interface CellEntry {
@@ -67,6 +69,8 @@ export interface DetailTarget extends DropTarget {
     ScScheduleGridComponent,
     ScScheduleDropModalComponent,
     ScScheduleDetailModalComponent,
+    ScScheduleCopyDayModalComponent,
+    ScScheduleCopyWeekModalComponent,
   ],
   templateUrl: './summer-course-activities.html',
   styleUrl: './summer-course-activities.scss',
@@ -113,6 +117,10 @@ export class SummerCourseActivitiesComponent implements OnInit {
   pendingDrop     = signal<{ activity: ScActivityType; target: DropTarget; pickActivity?: boolean } | null>(null);
   detailTarget    = signal<{ entry: CellEntry; target: DetailTarget } | null>(null);
   dragActivity    = signal<ScActivityType | null>(null);
+  dragSourceEntry = signal<{ entry: CellEntry; target: DetailTarget } | null>(null);
+  pendingCopyDay  = signal(false);
+  pendingCopyWeek = signal(false);
+  dragOverTabIdx  = signal<number | null>(null);
 
   // ── Computed ──────────────────────────────────────────────────────────────
   currentWeek = computed(() => this.currentWeeks()[this.currentWeekIdx()] ?? null);
@@ -287,13 +295,82 @@ export class SummerCourseActivitiesComponent implements OnInit {
   // ── Drag & Drop ──────────────────────────────────────────────────────────
   onActivityDragStart(act: ScActivityType): void {
     this.dragActivity.set(act);
+    this.dragSourceEntry.set(null);
+  }
+
+  onChipDragStart(data: { entry: CellEntry; target: DetailTarget }): void {
+    this.dragSourceEntry.set(data);
+    this.dragActivity.set(null);
   }
 
   onDrop(target: DropTarget): void {
+    const moveData = this.dragSourceEntry();
+    if (moveData) {
+      this.moveEntry(moveData, target);
+      this.dragSourceEntry.set(null);
+      this.save(true);
+      return;
+    }
+
     const act = this.dragActivity();
     if (!act) return;
     this.dragActivity.set(null);
     this.pendingDrop.set({ activity: act, target });
+  }
+
+  onDayTabDragOver(event: DragEvent, dayIdx: number): void {
+    if (!this.dragSourceEntry()) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    this.dragOverTabIdx.set(dayIdx);
+  }
+
+  onDayTabDragLeave(): void {
+    this.dragOverTabIdx.set(null);
+  }
+
+  onDayTabDrop(event: DragEvent, dropDayIdx: number): void {
+    event.preventDefault();
+    this.dragOverTabIdx.set(null);
+
+    const moveData = this.dragSourceEntry();
+    if (moveData) {
+      const newTarget: DropTarget = {
+        dayIdx: dropDayIdx,
+        slotId: moveData.target.slotId,
+        levelNum: moveData.target.levelNum
+      };
+      this.moveEntry(moveData, newTarget);
+      this.dragSourceEntry.set(null);
+      
+      const dayLabel = this.SC_DAYS.find(d => d.idx === dropDayIdx)?.label;
+      this.showToast(`Actividad movida a ${dayLabel}.`);
+      this.save(true);
+    }
+  }
+
+  private moveEntry(source: { entry: CellEntry; target: DetailTarget }, dropTarget: DropTarget): void {
+    if (source.target.dayIdx === dropTarget.dayIdx &&
+        source.target.slotId === dropTarget.slotId &&
+        source.target.levelNum === dropTarget.levelNum) {
+      return;
+    }
+
+    this.scheduleState.update(state => {
+      const ns = this.cloneState(state);
+      
+      // Remove from source
+      ns[source.target.dayIdx]?.[source.target.slotId]?.[source.target.levelNum]?.splice(source.target.entryIdx, 1);
+      
+      // Add to target
+      if (!ns[dropTarget.dayIdx]) ns[dropTarget.dayIdx] = this.emptyDayState();
+      if (!ns[dropTarget.dayIdx][dropTarget.slotId]) ns[dropTarget.dayIdx][dropTarget.slotId] = {};
+      if (!ns[dropTarget.dayIdx][dropTarget.slotId][dropTarget.levelNum]) ns[dropTarget.dayIdx][dropTarget.slotId][dropTarget.levelNum] = [];
+      
+      ns[dropTarget.dayIdx][dropTarget.slotId][dropTarget.levelNum].push(source.entry);
+      
+      return ns;
+    });
   }
 
   /** Triggered when user clicks the + button on a cell */
@@ -310,6 +387,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     const act = (pd.pickActivity && data.activity) ? data.activity : pd.activity;
     this.addEntryToState(act, pd.target, data.instructorId, data.areaId);
     this.pendingDrop.set(null);
+    this.save(true);
   }
 
   onDropModalCancel(): void {
@@ -333,6 +411,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
       return ns;
     });
     this.detailTarget.set(null);
+    this.save(true);
   }
 
   onDetailRemove(): void {
@@ -340,6 +419,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     if (!dt) return;
     this.removeEntry(dt.target, dt.target.entryIdx);
     this.detailTarget.set(null);
+    this.save(true);
   }
 
   onDetailCancel(): void {
@@ -347,49 +427,82 @@ export class SummerCourseActivitiesComponent implements OnInit {
   }
 
   // ── Day operations ────────────────────────────────────────────────────────
-  copyDayToAllWeek(): void {
-    const src = this.currentDayIdx();
+  openCopyDayModal(): void {
+    this.pendingCopyDay.set(true);
+  }
+
+  onCopyDayConfirm(data: { sourceDayIdx: number; targetDays: number[] }): void {
+    const src = data.sourceDayIdx;
     this.scheduleState.update(state => {
       const ns = this.cloneState(state);
-      for (let d = 0; d < 5; d++) {
+      for (const d of data.targetDays) {
         if (d !== src) {
           ns[d] = JSON.parse(JSON.stringify(ns[src]));
         }
       }
       return ns;
     });
-    this.showToast('Día copiado a todos los días de la semana.');
+    this.pendingCopyDay.set(false);
+    this.showToast(`Día copiado a ${data.targetDays.length} día(s).`);
+    
+    // Auto-navigate to the newly copied day so the user sees the changes immediately
+    if (data.targetDays.length > 0) {
+      this.currentDayIdx.set(data.targetDays[data.targetDays.length - 1]);
+    }
+    
+    this.save(true);
   }
 
-  /** Saves current week schedule then copies it to all other weeks of the course */
-  copyWeekToAll(): void {
-    const week = this.currentWeek();
-    if (!week) return;
-    const allWeeks = this.currentWeeks();
-    if (allWeeks.length < 2) {
+  onCopyDayCancel(): void {
+    this.pendingCopyDay.set(false);
+  }
+
+  openCopyWeekModal(): void {
+    if (this.currentWeeks().length < 2) {
       this.showToast('El curso solo tiene una semana.', 'danger');
       return;
     }
-    const targetIds = allWeeks.filter(w => w.id !== week.id).map(w => w.id);
+    this.pendingCopyWeek.set(true);
+  }
+
+  onCopyWeekCancel(): void {
+    this.pendingCopyWeek.set(false);
+  }
+
+  onCopyWeekConfirm(data: { sourceWeekId: number; targetWeekIds: number[] }): void {
+    this.pendingCopyWeek.set(false);
     this.saving.set(true);
-    // First save the current week, then copy
-    const payload = this.buildSavePayload(week.id);
-    this.activitiesSvc.saveSchedule(payload).subscribe({
-      next: () => {
-        this.activitiesSvc.copySchedule(week.id, targetIds).subscribe({
-          next: res => {
-            this.saving.set(false);
-            this.showToast(`Semana copiada a ${res.data.copied_to} semana(s) — ${res.data.activities_each} actividades c/u.`, 'success');
-          },
-          error: () => {
-            this.saving.set(false);
-            this.showToast('Error al copiar la semana.', 'danger');
-          },
-        });
+    
+    // First save the current week if it is the source week
+    const currentWeekId = this.currentWeek()?.id;
+    if (currentWeekId === data.sourceWeekId) {
+      const payload = this.buildSavePayload(currentWeekId);
+      this.activitiesSvc.saveSchedule(payload).subscribe({
+        next: () => this.executeCopyWeek(data.sourceWeekId, data.targetWeekIds),
+        error: () => {
+          this.saving.set(false);
+          this.showToast('Error al guardar antes de copiar.', 'danger');
+        }
+      });
+    } else {
+      this.executeCopyWeek(data.sourceWeekId, data.targetWeekIds);
+    }
+  }
+
+  private executeCopyWeek(sourceWeekId: number, targetWeekIds: number[]): void {
+    this.activitiesSvc.copySchedule(sourceWeekId, targetWeekIds).subscribe({
+      next: res => {
+        this.saving.set(false);
+        this.showToast(`Semana copiada a ${res.data.copied_to} semana(s) — ${res.data.activities_each} actividades c/u.`, 'success');
+        // If we copied TO the currently viewed week, reload it
+        const currentWeekId = this.currentWeek()?.id;
+        if (currentWeekId && targetWeekIds.includes(currentWeekId)) {
+          this.loadSchedule(currentWeekId);
+        }
       },
       error: () => {
         this.saving.set(false);
-        this.showToast('Error al guardar antes de copiar.', 'danger');
+        this.showToast('Error al copiar la semana.', 'danger');
       },
     });
   }
@@ -402,10 +515,11 @@ export class SummerCourseActivitiesComponent implements OnInit {
       return ns;
     });
     this.showToast('Día limpiado.');
+    this.save(true);
   }
 
   // ── Save ─────────────────────────────────────────────────────────────────
-  save(): void {
+  save(silent = false): void {
     const week = this.currentWeek();
     if (!week) return;
     this.saving.set(true);
@@ -413,11 +527,16 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.activitiesSvc.saveSchedule(payload).subscribe({
       next: res => {
         this.saving.set(false);
-        this.showToast(`Horario guardado — ${res.saved} actividades.`, 'success');
+        if (!silent) {
+          const msg = res.saved !== undefined ? `Horario guardado — ${res.saved} actividades.` : 'Horario guardado correctamente.';
+          this.showToast(msg, 'success');
+        }
       },
-      error: () => {
+      error: (err) => {
+        console.error('Save error:', err);
         this.saving.set(false);
-        this.showToast('Error al guardar el horario.', 'danger');
+        const msg = err?.error?.message || 'Error al guardar el horario.';
+        this.showToast(msg, 'danger');
       },
     });
   }

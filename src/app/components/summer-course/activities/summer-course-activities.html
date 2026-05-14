@@ -66,9 +66,13 @@
       <!-- Day tabs -->
       <div class="day-tabs d-flex gap-1">
         @for (day of SC_DAYS; track day.idx) {
-          <button class="btn btn-sm"
+          <button class="btn btn-sm day-tab-btn"
                   [class.btn-primary]="currentDayIdx() === day.idx"
                   [class.btn-outline-secondary]="currentDayIdx() !== day.idx"
+                  [class.drag-over-tab]="dragOverTabIdx() === day.idx"
+                  (dragover)="onDayTabDragOver($event, day.idx)"
+                  (dragleave)="onDayTabDragLeave()"
+                  (drop)="onDayTabDrop($event, day.idx)"
                   (click)="setDay(day.idx)">
             {{ day.label.slice(0, 3) }}
           </button>
@@ -79,38 +83,38 @@
 
       <!-- Actions -->
       <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
-              (click)="copyDayToAllWeek()" title="Copiar este día a todos los días de la semana">
+              (click)="openCopyDayModal()" title="Copiar este día a otros días de la semana">
         <i class="bi bi-clipboard-plus"></i>
         <span class="d-none d-lg-inline">Copiar día</span>
       </button>
 
-      @if (currentWeeks().length > 1) {
+
+
         <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
-                (click)="copyWeekToAll()" [disabled]="saving()"
-                title="Guardar esta semana y copiar su horario completo a las demás semanas del curso">
-          @if (saving()) {
-            <span class="spinner-border spinner-border-sm"></span>
-          } @else {
-            <i class="bi bi-layers"></i>
-          }
-          <span class="d-none d-lg-inline">Copiar semana a todas</span>
+                (click)="openCopyWeekModal()" title="Copiar horario entre semanas"
+                [disabled]="!currentWeek() || currentWeeks().length < 2 || saving()">
+          <i class="bi bi-files"></i>
+          <span class="d-none d-lg-inline">Copiar semana</span>
         </button>
-      }
+        <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                (click)="clearDay()" title="Limpiar día actual"
+                [disabled]="!currentWeek() || saving()">
+          <i class="bi bi-trash"></i>
+          <span class="d-none d-lg-inline">Limpiar</span>
+        </button>
 
-      <button class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
-              (click)="clearDay()" title="Limpiar todas las actividades del día">
-        <i class="bi bi-trash"></i>
-        <span class="d-none d-lg-inline">Limpiar</span>
-      </button>
-
-      <button class="btn btn-success btn-sm ms-auto d-flex align-items-center gap-2"
-              (click)="save()" [disabled]="saving() || !currentWeek()">
+      <button class="btn btn-sm ms-auto d-flex align-items-center gap-2"
+              [class.btn-success]="!saving()"
+              [class.btn-outline-secondary]="saving()"
+              (click)="save()" [disabled]="saving() || !currentWeek()"
+              title="Guardado automático activado. Clic para forzar un guardado manual.">
         @if (saving()) {
           <span class="spinner-border spinner-border-sm"></span>
+          Guardando...
         } @else {
-          <i class="bi bi-floppy"></i>
+          <i class="bi bi-cloud-check"></i>
+          Autoguardado
         }
-        Guardar
       </button>
     </div>
 
@@ -170,6 +174,7 @@
           [activityMap]="SC_ACTIVITY_MAP()"
           (drop)="onDrop($event)"
           (chipClick)="onChipClick($event)"
+          (chipDragStart)="onChipDragStart($event)"
           (cellAdd)="onCellAdd($event)">
         </app-sc-schedule-grid>
       </div>
@@ -228,4 +233,23 @@
     (removed)="onDetailRemove()"
     (cancelled)="onDetailCancel()">
   </app-sc-schedule-detail-modal>
+}
+
+<!-- ── Copy Day Modal ── -->
+@if (pendingCopyDay()) {
+  <app-sc-schedule-copy-day-modal
+    [currentDayIdx]="currentDayIdx()"
+    [days]="SC_DAYS"
+    (confirmed)="onCopyDayConfirm($event)"
+    (cancelled)="onCopyDayCancel()">
+  </app-sc-schedule-copy-day-modal>
+}
+
+@if (pendingCopyWeek()) {
+  <app-sc-schedule-copy-week-modal
+    [currentWeekId]="currentWeek()?.id || 0"
+    [weeks]="currentWeeks()"
+    (confirmed)="onCopyWeekConfirm($event)"
+    (cancelled)="onCopyWeekCancel()">
+  </app-sc-schedule-copy-week-modal>
 }

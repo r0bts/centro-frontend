@@ -48,6 +48,8 @@
               @for (entry of getEntries(slot.id, lvl.n); track $index) {
                 @let act = getActivity(entry.activityId);
                 <div class="activity-chip"
+                     draggable="true"
+                     (dragstart)="onChipDragStart($event, entry, slot.id, lvl.n, $index)"
                      [style.background]="act?.bg ?? '#f1f5f9'"
                      [style.color]="act?.color ?? '#475569'"
                      [style.border-color]="act?.color ?? '#94a3b8'"

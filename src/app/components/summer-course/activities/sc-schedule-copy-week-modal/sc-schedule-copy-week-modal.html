@@ -1,0 +1,60 @@
+<div class="sc-modal-overlay" (click)="cancel()">
+  <div class="sc-modal" style="max-width: 450px;" (click)="$event.stopPropagation()">
+    
+    <!-- Header -->
+    <div class="sc-modal__header d-flex justify-content-between align-items-center">
+      <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+        <i class="bi bi-files text-primary"></i> Copiar semana
+      </h6>
+      <button class="btn-close shadow-none" (click)="cancel()"></button>
+    </div>
+
+    <!-- Body -->
+    <div class="sc-modal__body p-3">
+      <div class="mb-3">
+        <label class="form-label small fw-semibold text-muted">Copiar desde la semana:</label>
+        <select class="form-select"
+                [value]="selectedSourceWeek()"
+                (change)="setSourceWeek(+$any($event.target).value)">
+          @for (w of weeks; track w.id) {
+            <option [value]="w.id">{{ w.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div>
+        <p class="small text-muted mb-2">Selecciona las semanas destino a las que deseas pegar el horario completo:</p>
+        
+        @if (weeks.length <= 1) {
+          <div class="alert alert-warning py-2 mb-0">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> No hay otras semanas disponibles.
+          </div>
+        } @else {
+          <div class="list-group">
+            @for (w of weeks; track w.id) {
+              @if (w.id != selectedSourceWeek()) {
+                <label class="list-group-item d-flex align-items-center gap-2 user-select-none" style="cursor: pointer;">
+                  <input class="form-check-input flex-shrink-0 mt-0" type="checkbox"
+                         [checked]="selectedTargetWeeks().has(w.id * 1)"
+                         (change)="toggleWeek(w.id)">
+                  <span>{{ w.label }}</span>
+                </label>
+              }
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="sc-modal__footer d-flex justify-content-end gap-2">
+      <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="cancel()">Cancelar</button>
+      <button class="btn btn-sm btn-primary rounded-pill px-4 d-flex align-items-center gap-1"
+              (click)="confirm()"
+              [disabled]="selectedTargetWeeks().size === 0">
+        <i class="bi bi-check2"></i> Copiar
+      </button>
+    </div>
+
+  </div>
+</div>

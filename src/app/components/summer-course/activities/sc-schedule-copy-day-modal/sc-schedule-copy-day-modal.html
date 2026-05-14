@@ -1,0 +1,50 @@
+<div class="sc-modal-overlay">
+  <div class="sc-modal" style="max-width: 400px;">
+    <div class="sc-modal__header">
+      <h6 class="mb-0 fw-bold d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard-plus text-primary"></i>
+        Copiar día
+      </h6>
+      <button class="btn-close" (click)="cancel()"></button>
+    </div>
+
+    <div class="sc-modal__body">
+      <div class="mb-4">
+        <label class="fw-semibold small mb-2 d-block text-muted">Copiar desde el día:</label>
+        <select class="form-select form-select-sm" (change)="setSourceDay(+$any($event.target).value)">
+          @for (day of days; track day.idx) {
+            <option [value]="day.idx" [selected]="day.idx === selectedSourceDay()">{{ day.label }}</option>
+          }
+        </select>
+      </div>
+
+      <p class="small text-muted mb-3">
+        Selecciona los días destino a los que deseas pegar las actividades:
+      </p>
+
+      <div class="d-flex flex-column gap-2">
+        @for (day of days; track day.idx) {
+          @if (day.idx !== selectedSourceDay()) {
+            <label class="day-checkbox-label d-flex align-items-center gap-2 p-2 border rounded cursor-pointer"
+                   [class.bg-light]="selectedTargetDays().has(day.idx)"
+                   [class.border-primary]="selectedTargetDays().has(day.idx)">
+              <input type="checkbox" class="form-check-input m-0"
+                     [checked]="selectedTargetDays().has(day.idx)"
+                     (change)="toggleDay(day.idx)">
+              <span class="fw-medium">{{ day.label }}</span>
+            </label>
+          }
+        }
+      </div>
+    </div>
+
+    <div class="sc-modal__footer">
+      <button class="btn btn-outline-secondary btn-sm" (click)="cancel()">Cancelar</button>
+      <button class="btn btn-primary btn-sm d-flex align-items-center gap-1"
+              (click)="confirm()"
+              [disabled]="selectedTargetDays().size === 0">
+        <i class="bi bi-check-lg"></i>Copiar
+      </button>
+    </div>
+  </div>
+</div>
