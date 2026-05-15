@@ -67,7 +67,7 @@
             <div class="inst-list">
               @for (inst of filteredInstructors(); track inst.id) {
                 <div class="inst-row"
-                     [class.selected]="selectedInstructorId() === inst.id"
+                     [class.selected]="selectedInstructorIds().includes(inst.id)"
                      (click)="selectInstructor(inst.id)">
                   <div class="inst-avatar" [style.background]="avatarBg(inst.id)">
                     {{ initials(inst) }}
@@ -84,7 +84,7 @@
                         [class.chip--both]="inst.source === 'both'">
                     {{ inst.source === 'coordinator' ? '📋' : '🎓' }}
                   </span>
-                  @if (selectedInstructorId() === inst.id) {
+                  @if (selectedInstructorIds().includes(inst.id)) {
                     <i class="bi bi-check-circle-fill text-primary ms-1"></i>
                   }
                 </div>
@@ -96,8 +96,8 @@
             </div>
 
             <button class="btn btn-link text-muted btn-sm ps-0 mt-1"
-                    (click)="selectedInstructorId.set(null)">
-              <i class="bi bi-person-x me-1"></i>Quitar instructor
+                    (click)="selectedInstructorIds.set([])">
+              <i class="bi bi-person-x me-1"></i>Quitar instructores
             </button>
           }
         </div>

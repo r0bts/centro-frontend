@@ -1,4 +1,6 @@
-<div class="sc-activities d-flex h-100">
+<div class="sc-activities d-flex h-100"
+     (dragover)="onMainDragOver($event)"
+     (drop)="onMainDrop($event)">
 
   <!-- ══════════════════════════════════════════════════════════════════════
        PALETTE PANEL (izquierdo)
@@ -172,9 +174,10 @@
           [instructors]="instructors()"
           [areas]="areas()"
           [activityMap]="SC_ACTIVITY_MAP()"
-          (drop)="onDrop($event)"
+          (gridDrop)="onDrop($event)"
           (chipClick)="onChipClick($event)"
           (chipDragStart)="onChipDragStart($event)"
+          (chipDragEnd)="onChipDragEnd($event)"
           (cellAdd)="onCellAdd($event)">
         </app-sc-schedule-grid>
       </div>

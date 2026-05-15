@@ -127,7 +127,6 @@
   }
 
   &:hover {
-    transform: scale(1.02);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   }
 
@@ -166,7 +165,9 @@
 
 // ── Add button ───────────────────────────────────────────────────────────────
 .cell-add-btn {
-  display: none;
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
   width: 18px;
   height: 18px;
   border-radius: 50%;
@@ -190,7 +191,8 @@
 }
 
 .schedule-cell:hover .cell-add-btn {
-  display: flex;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 // ── Fixed rows ────────────────────────────────────────────────────────────────

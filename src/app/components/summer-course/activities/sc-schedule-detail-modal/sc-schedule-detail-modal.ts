@@ -31,11 +31,11 @@ export class ScScheduleDetailModalComponent implements OnInit {
   @Input() days   = SC_DAYS;
   @Input() activityMap: Record<string, ScActivityType> = {};
 
-  @Output() saved    = new EventEmitter<{ instructorId: number | null; areaId: number | null }>();
+  @Output() saved    = new EventEmitter<{ instructorIds: number[]; areaId: number | null }>();
   @Output() removed  = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
-  selectedInstructorId = signal<number | null>(null);
+  selectedInstructorIds = signal<number[]>([]);
   selectedAreaId       = signal<number | null>(null);
   searchQuery          = signal('');
   searchAreaQuery      = signal('');
@@ -84,21 +84,25 @@ export class ScScheduleDetailModalComponent implements OnInit {
   get dayLabel(): string {
     return this.days.find(d => d.idx === this.target.dayIdx)?.label ?? '';
   }
-  get currentInstructor(): ScInstructor | undefined {
-    return this.instructors.find(i => i.id === this.selectedInstructorId());
+  get currentInstructors(): ScInstructor[] {
+    return this.instructors.filter(i => this.selectedInstructorIds().includes(i.id));
   }
   get currentArea(): ScArea | undefined {
     return this.areas.find(a => a.id === this.selectedAreaId());
   }
 
   ngOnInit(): void {
-    this.selectedInstructorId.set(this.entry.instructorId);
+    this.selectedInstructorIds.set(this.entry.instructorIds || []);
     this.selectedAreaId.set(this.entry.areaId);
   }
 
   selectInstructor(id: number): void {
-    const current = this.selectedInstructorId();
-    this.selectedInstructorId.set(current === id ? null : id);
+    const current = this.selectedInstructorIds();
+    if (current.includes(id)) {
+      this.selectedInstructorIds.set(current.filter(i => i !== id));
+    } else {
+      this.selectedInstructorIds.set([...current, id]);
+    }
   }
 
   selectArea(id: number): void {
@@ -107,7 +111,7 @@ export class ScScheduleDetailModalComponent implements OnInit {
   }
 
   save(): void {
-    this.saved.emit({ instructorId: this.selectedInstructorId(), areaId: this.selectedAreaId() });
+    this.saved.emit({ instructorIds: this.selectedInstructorIds(), areaId: this.selectedAreaId() });
   }
 
   remove(): void {

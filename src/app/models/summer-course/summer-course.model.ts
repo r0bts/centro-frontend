@@ -153,7 +153,7 @@ export interface ScArea {
 export interface ScScheduleEntry {
   id: string;                   // id de actividad del catálogo SC_ACTIVITIES (e.g. 'natacion')
   name: string;
-  instructorId: number | null;
+  instructorIds: number[];
   areaId: number | null;        // areas.id del club donde se imparte
   dbId?: number;                // sc_activities.id una vez guardado en DB
 }
@@ -175,7 +175,8 @@ export interface ScScheduleApiEntry {
   id: number;                   // sc_activities.id (DB id)
   name: string;
   levels: number[];             // array de niveles (1-8)
-  instructorId: number | null;
+  instructorIds?: number[];
+  instructorId?: number | null; // For backwards compatibility
   areaId: number | null;
 }
 
@@ -186,7 +187,7 @@ export interface ScScheduleApiEntry {
 export interface ScScheduleSavePayload {
   week_id: number;
   course_id: number;
-  schedule: Record<string, Record<string, Record<string, Array<{ name: string; instructorId: number | null; area_id: number | null }>>>>;
+  schedule: Record<string, Record<string, Record<string, Array<{ name: string; instructor_ids: number[]; area_id: number | null }>>>>;
 }
 
 // =====================================================================

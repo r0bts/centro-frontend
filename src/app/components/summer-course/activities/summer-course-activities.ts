@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import Swal from 'sweetalert2';
 import { ScActivitiesService } from '../../../services/summer-course/sc-activities.service';
 import {
   ScCourse,
@@ -40,7 +41,7 @@ import { ScScheduleCopyWeekModalComponent } from './sc-schedule-copy-week-modal/
 export interface CellEntry {
   activityId: string;       // e.g. 'natacion'
   name: string;
-  instructorId: number | null;
+  instructorIds: number[];
   areaId: number | null;
   dbId?: number;
 }
@@ -298,9 +299,70 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.dragSourceEntry.set(null);
   }
 
-  onChipDragStart(data: { entry: CellEntry; target: DetailTarget }): void {
+  onChipDragStart(data: { event?: DragEvent; entry: CellEntry; target: DetailTarget }): void {
     this.dragSourceEntry.set(data);
     this.dragActivity.set(null);
+  }
+
+  onChipDragEnd(data: { event: DragEvent; entry: CellEntry; target: DetailTarget }): void {
+    // If dropEffect is 'none', it was dropped outside of any dropzone (even outside the window possibly)
+    if (data.event.dataTransfer?.dropEffect === 'none') {
+      this.promptRemoveActivity(data);
+    } else {
+      // dragSourceEntry is cleared by the drop handler if successful, or here if not async
+      this.dragSourceEntry.set(null);
+    }
+  }
+
+  onMainDragOver(event: DragEvent): void {
+    if (this.dragSourceEntry()) {
+      event.preventDefault(); // Allows the drop
+      if (event.dataTransfer) {
+        event.dataTransfer.dropEffect = 'move';
+      }
+    }
+  }
+
+  onMainDrop(event: DragEvent): void {
+    event.preventDefault();
+    const data = this.dragSourceEntry();
+    if (data) {
+      this.promptRemoveActivity(data);
+    }
+  }
+
+  private promptRemoveActivity(data: { entry: CellEntry; target: DetailTarget }): void {
+    if (!this.dragSourceEntry()) return; // Already processing
+    this.dragSourceEntry.set(null);
+
+    // Defer the removal and modal to avoid browser drag-and-drop context conflicts (like mouseup dismissing the modal)
+    setTimeout(() => {
+      // Temporarily remove the entry so it disappears while the alert is shown
+      this.removeEntry(data.target, data.target.entryIdx);
+
+      Swal.fire({
+        title: '¿Eliminar actividad?',
+        text: `¿Seguro que deseas quitar la actividad "${data.entry.name}" del horario?`,
+        icon: 'warning',
+        showCancelButton: true,
+        allowOutsideClick: false,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, quitar',
+        cancelButtonText: 'Cancelar'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          this.save(true);
+        } else {
+          // Restore the entry to its original position
+          this.scheduleState.update(state => {
+            const ns = this.cloneState(state);
+            ns[data.target.dayIdx][data.target.slotId][data.target.levelNum].splice(data.target.entryIdx, 0, data.entry);
+            return ns;
+          });
+        }
+      });
+    }, 10);
   }
 
   onDrop(target: DropTarget): void {
@@ -321,6 +383,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
   onDayTabDragOver(event: DragEvent, dayIdx: number): void {
     if (!this.dragSourceEntry()) return;
     event.preventDefault();
+    event.stopPropagation();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
     this.dragOverTabIdx.set(dayIdx);
   }
@@ -331,6 +394,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
 
   onDayTabDrop(event: DragEvent, dropDayIdx: number): void {
     event.preventDefault();
+    event.stopPropagation();
     this.dragOverTabIdx.set(null);
 
     const moveData = this.dragSourceEntry();
@@ -381,11 +445,11 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.pendingDrop.set({ activity: placeholder, target, pickActivity: true });
   }
 
-  onDropModalConfirm(data: { instructorId: number | null; areaId: number | null; activity?: any }): void {
+  onDropModalConfirm(data: { instructorIds: number[]; areaId: number | null; activity?: any }): void {
     const pd = this.pendingDrop();
     if (!pd) return;
     const act = (pd.pickActivity && data.activity) ? data.activity : pd.activity;
-    this.addEntryToState(act, pd.target, data.instructorId, data.areaId);
+    this.addEntryToState(act, pd.target, data.instructorIds, data.areaId);
     this.pendingDrop.set(null);
     this.save(true);
   }
@@ -399,14 +463,14 @@ export class SummerCourseActivitiesComponent implements OnInit {
     this.detailTarget.set(data);
   }
 
-  onDetailSave(data: { instructorId: number | null; areaId: number | null }): void {
+  onDetailSave(data: { instructorIds: number[]; areaId: number | null }): void {
     const dt = this.detailTarget();
     if (!dt) return;
     this.scheduleState.update(state => {
       const ns = this.cloneState(state);
       const cell = ns[dt.target.dayIdx]?.[dt.target.slotId]?.[dt.target.levelNum];
       if (cell?.[dt.target.entryIdx] !== undefined) {
-        cell[dt.target.entryIdx] = { ...cell[dt.target.entryIdx], instructorId: data.instructorId, areaId: data.areaId };
+        cell[dt.target.entryIdx] = { ...cell[dt.target.entryIdx], instructorIds: data.instructorIds, areaId: data.areaId };
       }
       return ns;
     });
@@ -561,7 +625,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
     return JSON.parse(JSON.stringify(state));
   }
 
-  private addEntryToState(act: ScActivityType, target: DropTarget, instructorId: number | null, areaId: number | null = null): void {
+  private addEntryToState(act: ScActivityType, target: DropTarget, instructorIds: number[], areaId: number | null = null): void {
     this.scheduleState.update(state => {
       const ns = this.cloneState(state);
       if (!ns[target.dayIdx]) ns[target.dayIdx] = this.emptyDayState();
@@ -570,7 +634,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
       ns[target.dayIdx][target.slotId][target.levelNum].push({
         activityId: act.id,
         name: act.label,
-        instructorId,
+        instructorIds,
         areaId,
       });
       return ns;
@@ -600,7 +664,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
             state[dayIdx][slotId][lvl].push({
               activityId: this.nameToActivityId(entry.name),
               name: entry.name,
-              instructorId: entry.instructorId,
+              instructorIds: entry.instructorIds ?? (entry.instructorId ? [entry.instructorId] : []),
               areaId: entry.areaId ?? null,
               dbId: entry.id,
             });
@@ -613,7 +677,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
 
   /** Build POST payload for saveSchedule */
   private buildSavePayload(week_id: number): ScScheduleSavePayload {
-    const schedule: Record<string, Record<string, Record<string, Array<{ name: string; instructorId: number | null; area_id: number | null }>>>> = {};
+    const schedule: Record<string, Record<string, Record<string, Array<{ name: string; instructor_ids: number[]; area_id: number | null }>>>> = {};
     const state = this.scheduleState();
 
     state.forEach((dayData, dayIdx) => {
@@ -625,7 +689,7 @@ export class SummerCourseActivitiesComponent implements OnInit {
           if (entries.length) {
             schedule[String(dayIdx)][slotId][String(lvl)] = entries.map(e => ({
               name: e.name,
-              instructorId: e.instructorId,
+              instructor_ids: e.instructorIds,
               area_id: e.areaId,
             }));
           }

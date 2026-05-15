@@ -31,10 +31,10 @@ export class ScScheduleDropModalComponent {
   @Input() slots  = SC_SLOTS;
   @Input() days   = SC_DAYS;
 
-  @Output() confirmed = new EventEmitter<{ instructorId: number | null; areaId: number | null; activity?: ScActivityType | null }>();
+  @Output() confirmed = new EventEmitter<{ instructorIds: number[]; areaId: number | null; activity?: ScActivityType | null }>();
   @Output() cancelled = new EventEmitter<void>();
 
-  selectedInstructorId = signal<number | null>(null);
+  selectedInstructorIds = signal<number[]>([]);
   selectedAreaId       = signal<number | null>(null);
   selectedActivity     = signal<ScActivityType | null>(null);
   searchQuery          = signal('');
@@ -88,8 +88,12 @@ export class ScScheduleDropModalComponent {
   }
 
   selectInstructor(id: number): void {
-    const current = this.selectedInstructorId();
-    this.selectedInstructorId.set(current === id ? null : id);
+    const current = this.selectedInstructorIds();
+    if (current.includes(id)) {
+      this.selectedInstructorIds.set(current.filter(i => i !== id));
+    } else {
+      this.selectedInstructorIds.set([...current, id]);
+    }
   }
 
   selectArea(id: number): void {
@@ -100,7 +104,7 @@ export class ScScheduleDropModalComponent {
   confirm(): void {
     if (this.pickActivity && !this.resolvedActivity) return;
     this.confirmed.emit({
-      instructorId: this.selectedInstructorId(),
+      instructorIds: this.selectedInstructorIds(),
       areaId: this.selectedAreaId(),
       activity: this.pickActivity ? this.resolvedActivity : undefined,
     });

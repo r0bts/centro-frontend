@@ -28,9 +28,10 @@ export class ScScheduleGridComponent {
   @Input() areas: ScArea[] = [];
   @Input() activityMap: Record<string, ScActivityType> = {};
 
-  @Output() drop      = new EventEmitter<DropTarget>();
+  @Output() gridDrop  = new EventEmitter<DropTarget>();
   @Output() chipClick = new EventEmitter<{ entry: CellEntry; target: DetailTarget }>();
   @Output() chipDragStart = new EventEmitter<{ entry: CellEntry; target: DetailTarget }>();
+  @Output() chipDragEnd = new EventEmitter<{ event: DragEvent; entry: CellEntry; target: DetailTarget }>();
   @Output() cellAdd   = new EventEmitter<DropTarget>();
 
   dragOverTarget = signal<string | null>(null);
@@ -41,6 +42,7 @@ export class ScScheduleGridComponent {
 
   onDragOver(event: DragEvent, slotId: string, levelNum: number): void {
     event.preventDefault();
+    event.stopPropagation();
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = event.dataTransfer.effectAllowed === 'move' ? 'move' : 'copy';
     }
@@ -53,8 +55,9 @@ export class ScScheduleGridComponent {
 
   onDrop(event: DragEvent, slotId: string, levelNum: number): void {
     event.preventDefault();
+    event.stopPropagation();
     this.dragOverTarget.set(null);
-    this.drop.emit({ dayIdx: this.currentDayIdx, slotId, levelNum });
+    this.gridDrop.emit({ dayIdx: this.currentDayIdx, slotId, levelNum });
   }
 
   onChipClick(entry: CellEntry, slotId: string, levelNum: number, entryIdx: number): void {
@@ -70,6 +73,14 @@ export class ScScheduleGridComponent {
       event.dataTransfer.setData('text/plain', entry.name);
     }
     this.chipDragStart.emit({
+      entry,
+      target: { dayIdx: this.currentDayIdx, slotId, levelNum, entryIdx },
+    });
+  }
+
+  onChipDragEnd(event: DragEvent, entry: CellEntry, slotId: string, levelNum: number, entryIdx: number): void {
+    this.chipDragEnd.emit({
+      event,
       entry,
       target: { dayIdx: this.currentDayIdx, slotId, levelNum, entryIdx },
     });
