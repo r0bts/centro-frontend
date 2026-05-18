@@ -179,36 +179,40 @@
           </div>
           <div class="gm-field">
             <label class="gm-label">RFC / CURP</label>
-            <input class="gm-input" type="text" placeholder="RFC o CURP (requerido por NS)"
+            <input class="gm-input" type="text" placeholder="Se genera automáticamente"
                    [value]="form().rfc"
-                   (input)="updateForm('rfc', $any($event.target).value)"
-                   style="text-transform:uppercase" />
+                   style="text-transform:uppercase; opacity: 0.7; pointer-events: none; background-color: var(--surface-alt);"
+                   readonly tabindex="-1" />
           </div>
         </div>
 
         <div class="gm-row gm-row--2">
           <div class="gm-field">
-            <label class="gm-label">Email <span class="gm-req">*</span></label>
+            <label class="gm-label">Email <span class="gm-opt">(opcional)</span></label>
             <input class="gm-input" type="email" placeholder="correo@ejemplo.com"
                    [value]="form().email"
-                   (input)="updateForm('email', $any($event.target).value)"
-                   required />
+                   (input)="updateForm('email', $any($event.target).value)" />
           </div>
           <div class="gm-field">
-            <label class="gm-label">Teléfono <span class="gm-req">*</span></label>
+            <label class="gm-label">Teléfono <span class="gm-opt">(opcional)</span></label>
             <input class="gm-input" type="tel" placeholder="55 1234 5678"
                    [value]="form().phone"
-                   (input)="updateForm('phone', $any($event.target).value)"
-                   required />
+                   (input)="updateForm('phone', $any($event.target).value)" />
           </div>
         </div>
 
         <div class="gm-row">
           <div class="gm-field">
-            <label class="gm-label">Parentesco / Relación</label>
-            <input class="gm-input" type="text" placeholder="Ej: Hijo, Sobrino, Amigo..."
+            <label class="gm-label">Parentesco / Relación <span class="gm-req">*</span></label>
+            <select class="gm-input"
                    [value]="form().relationship"
-                   (input)="updateForm('relationship', $any($event.target).value)" />
+                   (change)="updateForm('relationship', $any($event.target).value)"
+                   required>
+              <option value="" disabled hidden>Selecciona un parentesco</option>
+              @for (rel of relationships; track rel) {
+                <option [value]="rel">{{ rel }}</option>
+              }
+            </select>
           </div>
         </div>
 

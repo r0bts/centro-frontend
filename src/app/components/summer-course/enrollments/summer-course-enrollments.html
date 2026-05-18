@@ -304,11 +304,19 @@
 
       <!-- STEP 1 -->
       @if (wizardStep() === 'search') {
-        <div class="wz-section-title">
-          <span class="material-symbols-outlined">manage_search</span>
-          Buscar socio titular
+        <div class="wz-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <span class="material-symbols-outlined">manage_search</span>
+            Buscar titular
+          </div>
+          <div style="display:flex; gap: 8px;">
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'socio'" [class.sce-btn--ghost]="wizardMode() !== 'socio'" (click)="wizardMode.set('socio')">Socio</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador'" (click)="wizardMode.set('colaborador')">Colaborador</button>
+          </div>
         </div>
-        <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.</p>
+
+        @if (wizardMode() === 'socio') {
+          <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.</p>
         <div class="wz-search-field" [class.wz-search-field--loading]="searching()">
           <span class="material-symbols-outlined">search</span>
           <input type="text" placeholder="Ej: Juan García o membresía 10005..."
@@ -362,6 +370,23 @@
             <p>Sin resultados para "{{ searchQuery() }}"</p>
           </div>
         }
+        } @else {
+          <!-- COLABORADOR -->
+          <p class="wz-hint">Ingresa los datos del colaborador. Los colaboradores solo pueden inscribir invitados.</p>
+          <div style="display:flex; gap: 16px; margin-top: 16px; margin-bottom: 24px;">
+            <div class="sce-form-field" style="flex:1;">
+               <label class="sce-form-label">Número de empleado</label>
+               <input class="sce-form-input" type="text" [value]="colaboradorNo()" (input)="colaboradorNo.set($any($event.target).value)" placeholder="Ej. 1234">
+            </div>
+            <div class="sce-form-field" style="flex:2;">
+               <label class="sce-form-label">Nombre del empleado <span style="font-weight: normal; color: var(--text-muted); font-size: 0.85em;">(opcional)</span></label>
+               <input class="sce-form-input" type="text" [value]="colaboradorName()" (input)="colaboradorName.set($any($event.target).value)" placeholder="Nombre completo">
+            </div>
+          </div>
+          <button class="sce-btn sce-btn--primary" (click)="selectColaborador()">
+            Continuar <span class="material-symbols-outlined">arrow_forward</span>
+          </button>
+        }
       }
 
       <!-- STEP 2 -->
@@ -410,11 +435,18 @@
                   <div class="wz-p-meta">
                     @if (p.age !== null) { <span>{{ p.age }} años</span> }
                     <!-- Chip tipo invitado -->
-                    @if (p.type === 'guest') {
-                      <span class="wz-chip wz-chip--guest wz-chip--xs">
-                        <span class="material-symbols-outlined" style="font-size:11px">person_outline</span>
-                        Invitado de {{ selectedTitular()?.fullName }}
-                      </span>
+                    @if (p.type === 'guest' || p.type === 'staff_guest') {
+                      @if (wizardMode() === 'colaborador') {
+                        <select class="sce-form-input" style="padding: 2px 8px; font-size: 11px; height: auto;" [value]="p.type" (change)="changeGuestType(i, $any($event.target).value)">
+                          <option value="staff_guest">Invitado colaborador</option>
+                          <option value="guest">Amigo / Conocido</option>
+                        </select>
+                      } @else {
+                        <span class="wz-chip wz-chip--guest wz-chip--xs">
+                          <span class="material-symbols-outlined" style="font-size:11px">person_outline</span>
+                          Invitado de {{ selectedTitular()?.fullName }}
+                        </span>
+                      }
                     }
                     @if (p.outOfRange) {
                       <span class="wz-chip wz-chip--out-of-range wz-chip--xs">
@@ -535,7 +567,7 @@
                     } @else { — }
                   </td>
                   <td>{{ typeLabel(p.type) }}</td>
-                  <td><span class="wz-weeks-count">{{ p.weeks.length }} sem.</span></td>
+                  <td><span class="wz-weeks-count" style="font-size: 0.85rem;">Sem: {{ p.weeks.join(', ') }}</span></td>
                   <td class="ta-right wz-cost">
                     @if (participantDiscount(p) > 0) {
                       <span class="wz-list-price">{{ currency(participantListPrice(p)) }}</span>
@@ -687,7 +719,7 @@
 <!-- GUEST MODAL -->
 @if (guestModalOpen() && selectedTitular()) {
   <app-guest-modal
-    [socioId]="+selectedTitular()!.id"
+    [socioId]="wizardMode() === 'colaborador' ? 'EMP-' + colaboradorNo() : +selectedTitular()!.id"
     [socioName]="selectedTitular()!.fullName"
     [enrolledGuestIds]="guestIds()"
     (guestSelected)="onGuestSelected($event)"

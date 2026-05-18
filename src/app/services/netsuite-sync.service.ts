@@ -380,4 +380,15 @@ export class NetsuiteSyncService {
       { headers: this.getHeaders() }
     );
   }
+
+  /**
+   * Obtiene el estado de última sincronización de todos los recursos
+   * GET /api/netsuite/sync-status
+   */
+  getSyncStatus(): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/netsuite/sync-status`,
+      { headers: this.getHeaders() }
+    );
+  }
 }

@@ -30,7 +30,10 @@ export class ScGuestSyncService {
    * Obtiene los invitados registrados de un socio.
    * Si ns_synced=false, el guest quedó pendiente de sync con NetSuite.
    */
-  getGuestsBySocio(socioId: number): Observable<ScGuestListResponse> {
+  getGuestsBySocio(socioId: number | string): Observable<ScGuestListResponse> {
+    if (typeof socioId === 'string' && socioId.startsWith('EMP-')) {
+      return new Observable(obs => obs.next({ success: true, data: { guests: [], total: 0 } }));
+    }
     const params = new HttpParams().set('socio_id', socioId.toString());
     return this.http.get<ScGuestListResponse>(this.base, { params });
   }

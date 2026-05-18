@@ -203,8 +203,8 @@ export const SC_COURSE_STATUSES: { value: ScCourse['status']; label: string }[] 
 export const SC_PARTICIPANT_TYPES: { value: ScCost['participant_type']; label: string }[] = [
   { value: 'member',      label: 'Socio' },
   { value: 'guest',       label: 'Invitado' },
-  { value: 'staff',       label: 'Staff' },
-  { value: 'staff_guest', label: 'Familiar staff' },
+  { value: 'staff',       label: 'Colaborador' },
+  { value: 'staff_guest', label: 'Invitado colaborador' },
 ];
 
 export const SC_PAYMENT_STATUSES: { value: ScEnrollment['payment_status']; label: string; color: string }[] = [

@@ -1,6 +1,7 @@
 import {
   Component, Input, Output, EventEmitter, OnInit,
-  signal, ChangeDetectionStrategy, HostListener, ChangeDetectorRef
+  signal, ChangeDetectionStrategy, HostListener, ChangeDetectorRef,
+  ViewChild, ElementRef, AfterViewInit, OnDestroy
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, NavigationEnd } from '@angular/router';
@@ -20,9 +21,13 @@ const CONFIG_MODULE_ID = 'configuracion';
   templateUrl: './content-menu.html',
   styleUrls: ['./content-menu.scss']
 })
-export class ContentMenu implements OnInit {
+export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   @Input() activeSection: string = '';
   @Output() sectionChange = new EventEmitter<string>();
+
+  @ViewChild('navList') navList!: ElementRef<HTMLUListElement>;
+
+  indicatorStyle = signal({ left: '0px', top: '0px', width: '0px', height: '0px', opacity: 0 });
 
   /** Items visibles en la barra principal (sin Configuración) */
   menuItems = signal<MenuItem[]>([]);
@@ -58,9 +63,29 @@ export class ContentMenu implements OnInit {
     });
   }
 
+  private resizeObserver!: ResizeObserver;
+
   ngOnInit(): void {
     this.loadMenu();
     this.updateActiveStates();
+  }
+
+  ngAfterViewInit(): void {
+    setTimeout(() => this.updateIndicator(), 100);
+    
+    // Escuchar redimensionamiento para ajustar el indicador
+    this.resizeObserver = new ResizeObserver(() => {
+      this.updateIndicator();
+    });
+    if (this.navList?.nativeElement) {
+      this.resizeObserver.observe(this.navList.nativeElement);
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
   }
 
   // ── Cargar menú ──────────────────────────────
@@ -88,6 +113,33 @@ export class ContentMenu implements OnInit {
     const currentRoute = this.router.url;
     this.menuService.updateActiveState(this.menuItems(), currentRoute);
     this.menuItems.update(items => [...items]);
+    this.cdr.markForCheck();
+    setTimeout(() => this.updateIndicator(), 50);
+  }
+
+  // ── Actualizar indicador deslizante ──────────
+  updateIndicator(): void {
+    if (!this.navList?.nativeElement) return;
+    
+    const activeLink = this.navList.nativeElement.querySelector('.topnav-link.active') as HTMLElement;
+    if (activeLink) {
+      // Necesitamos asegurar que el elemento esté visible y renderizado
+      const listRect = this.navList.nativeElement.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+
+      // Si el item está oculto o no tiene tamaño
+      if (linkRect.width === 0) return;
+
+      this.indicatorStyle.set({
+        left: `${activeLink.offsetLeft}px`,
+        top: `${activeLink.offsetTop}px`,
+        width: `${activeLink.offsetWidth}px`,
+        height: `${activeLink.offsetHeight}px`,
+        opacity: 1
+      });
+    } else {
+      this.indicatorStyle.update(s => ({ ...s, opacity: 0 }));
+    }
     this.cdr.markForCheck();
   }
 

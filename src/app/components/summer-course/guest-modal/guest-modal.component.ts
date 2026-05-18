@@ -19,8 +19,8 @@ export type GuestModalTab = 'search' | 'new';
 export class GuestModalComponent implements OnInit {
   private readonly guestSvc = inject(ScGuestSyncService);
 
-  /** ID del socio titular */
-  readonly socioId = input.required<number>();
+  /** ID del socio titular o número de empleado */
+  readonly socioId = input.required<number | string>();
   /** Nombre del socio para mostrar en el header */
   readonly socioName = input<string>('');
 
@@ -64,9 +64,17 @@ export class GuestModalComponent implements OnInit {
     return null;
   });
 
+  readonly relationships = [
+    'Hijo(a)',
+    'Sobrino(a)',
+    'Nieto(a)',
+    'Amigo(a)',
+    'Otro'
+  ];
+
   readonly formValid = computed(() => {
     const f = this.form();
-    return f.first_name.trim() && f.last_name.trim() && f.email.trim() && f.phone.trim() && f.birth_date;
+    return f.first_name.trim() && f.last_name.trim() && f.birth_date && f.relationship.trim();
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -106,11 +114,55 @@ export class GuestModalComponent implements OnInit {
 
   updateForm(field: keyof ReturnType<typeof this.form>, value: string): void {
     this.form.update(f => ({ ...f, [field]: value }));
+    if (field === 'first_name' || field === 'last_name' || field === 'second_last_name' || field === 'birth_date') {
+      this.tryAutoCompleteCURP();
+    }
+  }
+
+  private tryAutoCompleteCURP(): void {
+    const f = this.form();
+    if (!f.first_name || !f.last_name || !f.birth_date || f.birth_date.length !== 10) return;
+    
+    // Si ya escribió un CURP completo (más de 10 chars), no lo sobreescribimos
+    if (f.rfc && f.rfc.length > 10) return;
+
+    const clean = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().trim();
+    const pat = clean(f.last_name);
+    const mat = f.second_last_name ? clean(f.second_last_name) : 'X';
+    const nom = clean(f.first_name);
+    
+    if (!pat || !nom) return;
+    
+    const firstLetterPat = pat.charAt(0);
+    let firstVowelPat = 'X';
+    for (let i = 1; i < pat.length; i++) {
+       if (['A','E','I','O','U'].includes(pat.charAt(i))) {
+           firstVowelPat = pat.charAt(i);
+           break;
+       }
+    }
+    const firstLetterMat = mat.charAt(0) || 'X';
+    const firstLetterName = nom.charAt(0) || 'X';
+    
+    const parts = f.birth_date.split('-');
+    if (parts.length !== 3) return;
+    const yy = parts[0].slice(2,4);
+    const mm = parts[1];
+    const dd = parts[2];
+    
+    const generated = `${firstLetterPat}${firstVowelPat}${firstLetterMat}${firstLetterName}${yy}${mm}${dd}`;
+    
+    if (f.rfc !== generated) {
+      this.form.update(curr => ({ ...curr, rfc: generated }));
+    }
   }
 
   saveNewGuest(): void {
     if (!this.formValid()) return;
     const f = this.form();
+    const sId = this.socioId();
+    const isEmp = typeof sId === 'string' && sId.startsWith('EMP-');
+
     const payload: CreateGuestPayload = {
       first_name:       f.first_name.trim(),
       last_name:        f.last_name.trim(),
@@ -119,8 +171,8 @@ export class GuestModalComponent implements OnInit {
       phone:            f.phone.trim() || undefined,
       birth_date:       f.birth_date,
       rfc:              f.rfc.trim().toUpperCase() || undefined,
-      relationship:     f.relationship.trim() || undefined,
-      socio_id:         this.socioId(),
+      relationship:     isEmp ? `${f.relationship.trim()} (EMP: ${sId} - ${this.socioName()})` : f.relationship.trim(),
+      socio_id:         isEmp ? (null as any) : (sId as number),
     };
 
     this.saving.set(true);

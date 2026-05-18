@@ -14,24 +14,43 @@
   & + * { padding-top: 8px; }
 }
 
-// ── Barra pill ──
+// ── Barra contenedora ──
 .topnav-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+// ── Píldoras independientes ──
+.topnav-pill {
   background: var(--topnav-bg, #efefef);
-  border-radius: 999px;
-  padding: 5px 8px;
+  border-radius: 34px;
+  padding: 2px 8px;
+  box-shadow: var(--topnav-shadow, 0 4px 24px rgba(0,0,0,0.09));
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  box-shadow: var(--topnav-shadow, 0 4px 24px rgba(0,0,0,0.09));
-  gap: 6px;
-  height: var(--topnav-height, 68px);
+  min-height: 42px;
+}
+
+.topnav-pill--brand {
+  flex-shrink: 0;
+  padding: 2px 20px;
+}
+
+.topnav-pill--nav {
+  margin: 0 auto;
+}
+
+.topnav-pill--actions {
+  flex-shrink: 0;
 }
 
 // ── Marca / Logo ──
 .topnav-brand {
   display: flex;
   align-items: center;
-  padding: 0 10px;
   flex-shrink: 0;
 }
 .topnav-logo {
@@ -59,22 +78,32 @@
 // ── Collapse: flex en desktop, oculto en mobile ──
 .topnav-collapse {
   display: flex;
-  align-items: center;
-  margin-left: auto;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 12px;
   justify-content: flex-end;
   flex: 1;
 }
 
 // ── Lista de items ──
 .topnav-list {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 4px;
   list-style: none;
   margin: 0;
-  padding: 0;
-  flex-wrap: nowrap;
+  padding: 2px 4px;
+  flex-wrap: wrap; // Evita scroll horizontal envolviendo a la siguiente línea si no caben
+}
+
+.topnav-active-indicator {
+  position: absolute;
+  background: var(--topnav-pill-active, #1e1e2e);
+  border-radius: 999px;
+  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .topnav-item {
@@ -83,6 +112,8 @@
 
 // ── Link base ──
 .topnav-link {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -95,17 +126,15 @@
   white-space: nowrap;
   text-decoration: none;
   border: none;
-  background: transparent;
-  transition: background 0.18s, color 0.18s;
+  background: transparent !important;
+  transition: color 0.2s;
   user-select: none;
 
   &:hover {
-    background: var(--topnav-hover-bg, rgba(0,0,0,0.06));
     color: var(--neutral-900, #141414);
   }
 
   &.active {
-    background: var(--topnav-pill-active, #1e1e2e);
     color: #fff;
     font-weight: 600;
 
@@ -205,13 +234,8 @@
   }
 }
 
-// ── Separador vertical ──
-.topnav-sep {
-  width: 1px;
-  height: 22px;
-  background: rgba(0,0,0,0.12);
-  flex-shrink: 0;
-}
+// ── Separador vertical (ya no se usa pero se deja comentado) ──
+// .topnav-sep { display: none; }
 
 // ── Acciones (gear + avatar + logout) ──
 .topnav-actions {
@@ -432,13 +456,25 @@
   .topnav-wrapper { padding: 8px 10px 0; }
 
   .topnav-bar {
-    border-radius: 24px;
     flex-wrap: wrap;
     height: auto;
-    padding: 8px 10px;
+    padding: 0;
+    gap: 8px;
   }
 
-  .topnav-toggler { display: flex; }
+  .topnav-pill--brand {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 16px;
+  }
+
+  .topnav-pill--nav, .topnav-pill--actions {
+    width: 100%;
+    border-radius: 24px;
+    padding: 8px;
+  }
+
+  .topnav-toggler { display: flex; margin-left: 0; }
 
   .topnav-collapse {
     display: none;
@@ -446,12 +482,16 @@
     align-items: stretch;
     width: 100%;
     margin-left: 0;
-    gap: 2px;
-    padding: 8px 0 4px;
-    border-top: 1px solid rgba(0,0,0,0.08);
-    margin-top: 6px;
+    gap: 8px;
+    padding: 0;
+    border-top: none;
+    margin-top: 0;
 
-    &.open { display: flex; }
+    &.open { 
+      display: flex; 
+      max-height: calc(100vh - 90px);
+      overflow-y: auto;
+    }
   }
 
   .topnav-list {
@@ -490,12 +530,33 @@
   .topnav-sep { display: none; }
 
   .topnav-actions {
-    padding: 6px 4px 2px;
-    border-top: 1px solid rgba(0,0,0,0.08);
+    padding: 4px;
+    border-top: none;
     width: 100%;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 6px;
   }
 
-  .topnav-gear-wrapper { position: relative; }
+  .topnav-gear-wrapper,
+  .topnav-avatar-wrapper {
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .topnav-avatar-dropdown {
+    position: static;
+    transform: none;
+    box-shadow: none;
+    background: rgba(0,0,0,0.04);
+    border-radius: 12px;
+    padding: 8px;
+    animation: none;
+    margin-top: 6px;
+    width: 100%;
+    min-width: unset;
+  }
 }

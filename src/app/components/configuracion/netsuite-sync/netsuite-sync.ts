@@ -154,6 +154,39 @@ export class NetsuiteSyncComponent implements OnInit {
   ngOnInit(): void {
     console.log('✅ NetsuiteSyncComponent initialized');
     console.log('🔗 Conectado a endpoints reales de NetSuite');
+    this.loadSyncStatus();
+  }
+
+  loadSyncStatus(): void {
+    this.netsuiteSyncService.getSyncStatus().subscribe({
+      next: (response: any) => {
+        if (response.success && response.data?.status) {
+          const status = response.data.status;
+          
+          const keyMap: { [key: string]: string } = {
+            'account_i': 'accounti',
+            'account_e': 'accounte',
+            'membresia': 'membresias',
+            'detalle_membresia': 'detalle_membresias'
+          };
+
+          Object.keys(status).forEach(backendKey => {
+            const frontendKey = keyMap[backendKey] || backendKey;
+            
+            if (this.syncStatus[frontendKey]) {
+              this.syncStatus[frontendKey].recordCount = status[backendKey].total_records || 0;
+              if (status[backendKey].last_sync) {
+                // Ensure date is parsed correctly across timezones
+                this.syncStatus[frontendKey].lastSync = new Date(status[backendKey].last_sync + 'Z');
+              }
+            }
+          });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error cargando estado de sincronización inicial', error);
+      }
+    });
   }
 
   syncUsers(): void {

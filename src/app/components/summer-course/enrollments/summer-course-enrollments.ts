@@ -97,6 +97,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Wizard ────────────────────────────────────────────────────────────────
   wizardOpen         = signal(false);
   wizardStep         = signal<WizardStep>('search');
+  wizardMode         = signal<'socio'|'colaborador'>('socio');
+  colaboradorNo      = signal('');
+  colaboradorName    = signal('');
 
   searchQuery        = signal('');
   searchResults      = signal<ScSocioSearchResult[]>([]);
@@ -207,6 +210,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   openWizard(): void {
     this.wizardOpen.set(true);
     this.wizardStep.set('search');
+    this.wizardMode.set('socio');
+    this.colaboradorNo.set('');
+    this.colaboradorName.set('');
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.selectedTitular.set(null);
@@ -263,6 +269,34 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.wizardStep.set('participants');
   }
 
+  selectColaborador(): void {
+    const colNo = this.colaboradorNo().trim();
+    if (!colNo) {
+      this.showToast('El número de empleado es requerido', 'danger');
+      return;
+    }
+    
+    let colName = this.colaboradorName().trim();
+    if (!colName) {
+      colName = 'Colaborador #' + colNo;
+    }
+    
+    const s: ScSocioSearchResult = {
+      id: 'EMP-' + colNo,
+      fullName: colName,
+      membershipNumber: 'EMP-' + colNo,
+      birth_date: null,
+      age: null,
+      enrolled: false,
+      family: []
+    };
+    
+    this.selectedTitular.set(s);
+    // Un colaborador no se inscribe a sí mismo, solo invitados
+    this.pendingParticipants.set([]);
+    this.wizardStep.set('participants');
+  }
+
   backToSearch(): void { this.wizardStep.set('search'); this.selectedTitular.set(null); }
 
   // ── Step 2 ────────────────────────────────────────────────────────────────
@@ -288,6 +322,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   removeParticipant(idx: number): void {
     this.pendingParticipants.update(list => list.filter((_, i) => i !== idx));
+  }
+
+  changeGuestType(idx: number, newType: 'guest' | 'staff_guest'): void {
+    this.pendingParticipants.update(list => {
+      const updated = [...list];
+      updated[idx] = { ...updated[idx], type: newType };
+      return updated;
+    });
   }
 
   get activePending(): PendingParticipant[] {
@@ -422,6 +464,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       outOfRange:      this._isOutOfRange(age),
       guest_db_id:     guest.id,  // ID real en summer_course_guests
     };
+
+    if (this.wizardMode() === 'colaborador') {
+      participant.type = 'staff_guest'; // Default para colaboradores es familiar
+    }
 
     this.pendingParticipants.update(list => [...list, participant]);
     this.showToast(`${guest.full_name} agregado como invitado`, 'success');

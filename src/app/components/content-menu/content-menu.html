@@ -1,23 +1,27 @@
 <div class="topnav-wrapper">
   <nav class="topnav-bar">
 
-    <!-- Marca -->
-    <div class="topnav-brand">
-      <img src="/assets/images/LOGO_CL.png" alt="Logo CL" class="topnav-logo">
+    <!-- Pill 1: Marca y Toggler -->
+    <div class="topnav-pill topnav-pill--brand">
+      <div class="topnav-brand">
+        <img src="/assets/images/LOGO_CL.png" alt="Logo CL" class="topnav-logo">
+      </div>
+      <button class="topnav-toggler" (click)="toggleMobileMenu()" [attr.aria-expanded]="isMobileMenuOpen()">
+        <i [class]="isMobileMenuOpen() ? 'bi bi-x-lg' : 'bi bi-list'"></i>
+      </button>
     </div>
-
-    <!-- Botón hamburguesa (mobile) -->
-    <button class="topnav-toggler" (click)="toggleMobileMenu()" [attr.aria-expanded]="isMobileMenuOpen()">
-      <i [class]="isMobileMenuOpen() ? 'bi bi-x-lg' : 'bi bi-list'"></i>
-    </button>
 
     <!-- Collapse -->
     <div class="topnav-collapse" [class.open]="isMobileMenuOpen()">
 
-      <!-- Items de navegación -->
-      <ul class="topnav-list">
+      <!-- Pill 2: Items de navegación -->
+      <div class="topnav-pill topnav-pill--nav">
+        <ul class="topnav-list" #navList>
+          
+          <!-- Indicador deslizante -->
+          <div class="topnav-active-indicator" [ngStyle]="indicatorStyle()"></div>
 
-        <li class="topnav-item" *ngFor="let item of menuItems()">
+          <li class="topnav-item" *ngFor="let item of menuItems()">
 
           <!-- Item con hijos → dropdown -->
           <div *ngIf="item.children && item.children.length > 0; else simpleNavItem"
@@ -49,13 +53,12 @@
           </ng-template>
 
         </li>
-      </ul>
+        </ul>
+      </div>
 
-      <!-- Separador -->
-      <div class="topnav-sep"></div>
-
-      <!-- Acciones -->
-      <div class="topnav-actions">
+      <!-- Pill 3: Acciones -->
+      <div class="topnav-pill topnav-pill--actions">
+        <div class="topnav-actions">
 
         <!-- Engranaje Configuración -->
         <div class="topnav-gear-wrapper" [class.open]="isGearOpen()" *ngIf="gearItems().length > 0">
@@ -127,6 +130,7 @@
           </div>
         </div>
 
+        </div>
       </div>
     </div><!-- /collapse -->
 

@@ -85,8 +85,8 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
   costs = signal<CostDraft[]>([
     { participant_type: 'member',      label: 'Socio',          costs: [0, 0, 0, 0] },
     { participant_type: 'guest',       label: 'Invitado',       costs: [0, 0, 0, 0] },
-    { participant_type: 'staff',       label: 'Staff',          costs: [0, 0, 0, 0] },
-    { participant_type: 'staff_guest', label: 'Familiar staff', costs: [0, 0, 0, 0] },
+    { participant_type: 'staff',       label: 'Colaborador',          costs: [0, 0, 0, 0] },
+    { participant_type: 'staff_guest', label: 'Invitado colaborador', costs: [0, 0, 0, 0] },
   ]);
 
   readonly statusLabels  = SC_COURSE_STATUSES;
