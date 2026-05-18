@@ -99,7 +99,7 @@
 
 .topnav-active-indicator {
   position: absolute;
-  background: var(--topnav-pill-active, #1e1e2e);
+  background: var(--primary-color, #406eba);
   border-radius: 999px;
   transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
   pointer-events: none;

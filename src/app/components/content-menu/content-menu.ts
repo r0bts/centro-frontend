@@ -131,10 +131,10 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
       if (linkRect.width === 0) return;
 
       this.indicatorStyle.set({
-        left: `${activeLink.offsetLeft}px`,
-        top: `${activeLink.offsetTop}px`,
-        width: `${activeLink.offsetWidth}px`,
-        height: `${activeLink.offsetHeight}px`,
+        left: `${linkRect.left - listRect.left}px`,
+        top: `${linkRect.top - listRect.top}px`,
+        width: `${linkRect.width}px`,
+        height: `${linkRect.height}px`,
         opacity: 1
       });
     } else {
