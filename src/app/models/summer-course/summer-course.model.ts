@@ -609,6 +609,72 @@ export interface ScLevelsResponse {
 }
 
 // =====================================================================
+// GRUPOS POR NIVEL (sc_level_groups)
+// =====================================================================
+
+/** Grupo de natación dentro de un nivel y edición del curso */
+/** Usuario del departamento deportivo — para selects de titular/auxiliar */
+export interface ScSportsUser {
+  id:         number;
+  first_name: string | null;
+  last_name:  string | null;
+  full_name:  string;
+}
+
+export interface ScLevelGroup {
+  id:             number;
+  course_id:      number;
+  level_id:       number;          // 1-8 → coincide con sc_levels.id
+  alias:          string;          // "Grupo A — Lun/Mié"
+  teacher_id:     number | null;
+  teacher_name?:  string | null;   // relación cargada por el backend
+  auxiliaries?:   { id: number; full_name: string }[];  // auxiliares cargados
+  capacity:       number | null;   // null = sin límite
+  is_active:      boolean;
+  enrolled_count?: number;         // calculado por el backend
+}
+
+/** Grupos agrupados por nivel — estructura del response de lista */
+export interface ScLevelGroupByLevel {
+  level_id:     number;
+  level_number: number;
+  roman:        string;
+  age_label:    string;
+  groups:       ScLevelGroup[];
+}
+
+export interface ScLevelGroupListResponse {
+  success: boolean;
+  data: { groups_by_level: ScLevelGroupByLevel[] };
+}
+
+export interface ScLevelGroupResponse {
+  success: boolean;
+  data: ScLevelGroup;
+}
+
+export interface CreateScLevelGroupRequest {
+  course_id:    number;
+  level_id:     number;
+  alias:        string;
+  teacher_id?:  number | null;
+  capacity?:    number | null;
+  auxiliaries?: number[];  // user ids
+}
+
+export interface UpdateScLevelGroupRequest {
+  alias?:       string;
+  teacher_id?:  number | null;
+  capacity?:    number | null;
+  auxiliaries?: number[];
+}
+
+export interface ScLevelGroupFormDataResponse {
+  success: boolean;
+  data: { sports_users: ScSportsUser[] };
+}
+
+// =====================================================================
 // GUESTS (invitados de socios + sync NetSuite)
 // =====================================================================
 
