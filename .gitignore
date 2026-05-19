@@ -44,3 +44,4 @@ Thumbs.db
 # Environment files — cada desarrollador mantiene los suyos localmente
 src/environments/environment.ts
 src/environments/environment.prod.ts
+.env
