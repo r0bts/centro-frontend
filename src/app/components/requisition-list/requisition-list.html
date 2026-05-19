@@ -202,14 +202,14 @@
                             <i class="bi bi-pencil"></i>
                           </button>
 
-                          <!-- Autorizar Requisición (solo si está en Solicitado y tiene permiso update) -->
+                          <!-- Ver / Autorizar Requisición -->
                           <button 
-                            *ngIf="canUpdate() && isEditable(requisition)"
+                            *ngIf="isViewable(requisition)"
                             type="button" 
                             class="btn btn-outline-warning btn-sm"
-                            (click)="supplyRequisition(requisition)"
-                            title="Autorizar Requisición">
-                            <i class="bi bi-check-circle"></i>
+                            (click)="viewRequisition(requisition)"
+                            [title]="isEditable(requisition) ? 'Autorizar Requisición' : 'Ver Requisición'">
+                            <i class="bi" [ngClass]="isEditable(requisition) ? 'bi-check-circle' : 'bi-eye'"></i>
                           </button>
                           
                           <!-- Surtir en Almacén (solo si está en estado surtible) -->
@@ -224,10 +224,9 @@
                           
                           <!-- Eliminar -->
                           <button 
-                            *ngIf="canDelete()"
+                            *ngIf="canDelete() && canDeleteReq(requisition)"
                             type="button" 
                             class="btn btn-outline-danger btn-sm"
-                            [disabled]="!canDeleteReq(requisition)"
                             (click)="deleteRequisition(requisition)"
                             title="Eliminar Requisición">
                             <i class="bi bi-trash"></i>

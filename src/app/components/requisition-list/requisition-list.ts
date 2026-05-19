@@ -240,12 +240,11 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   // Acciones de la tabla
   viewRequisition(requisition: RequisitionItem): void {
-    console.log('Ver requisición:', requisition);
-    // Navegar a la vista de confirmación/detalle de la requisición
+    const mode = this.isEditable(requisition) ? 'edit' : 'view';
     this.router.navigate(['/requisicion/confirmacion'], {
       queryParams: {
         id: requisition.id,
-        mode: 'view'
+        mode
       },
       state: {
         businessUnit: requisition.businessUnit
