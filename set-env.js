@@ -5,7 +5,7 @@ const envPath = path.resolve(__dirname, '.env');
 const targetPath = path.resolve(__dirname, './src/environments/environment.ts');
 const targetProdPath = path.resolve(__dirname, './src/environments/environment.prod.ts');
 
-let apiUrl = 'https://ecosistema-centro.ddev.site/api'; // Default
+let apiUrl = 'http://centro.ddev.site/api'; // Default
 
 if (fs.existsSync(envPath)) {
   const envFile = fs.readFileSync(envPath, 'utf8');
