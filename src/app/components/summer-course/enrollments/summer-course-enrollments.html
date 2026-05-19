@@ -203,20 +203,51 @@
                             </span>
                           }
                         </div>
+                        <!-- Assign level / group actions -->
+                        <div class="sce-assign-actions">
+                          @if (levelByNumber(p.assigned_level); as lvl) {
+                            <button class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}"
+                                    (click)="openLevelModal(p, group.titular_id)"
+                                    [title]="'Cambiar nivel · ' + lvl.age_label">
+                              <span class="sce-assign-badge__roman">Niv. {{ lvl.roman }}</span>
+                              <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                            </button>
+                          } @else {
+                            <button class="sce-assign-btn sce-assign-btn--level"
+                                    (click)="openLevelModal(p, group.titular_id)"
+                                    title="Asignar nivel">
+                              <span class="material-symbols-outlined">school</span>
+                              Asignar nivel
+                            </button>
+                          }
+                          @if (p.assigned_level) {
+                            @if (p.group_id) {
+                              <button class="sce-assign-badge sce-assign-badge--group"
+                                      (click)="openGroupModal(p, group.titular_id)"
+                                      title="Cambiar grupo">
+                                <span class="material-symbols-outlined">groups</span>
+                                {{ p.group_alias ?? 'Grupo' }}
+                                <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                              </button>
+                            } @else {
+                              <button class="sce-assign-btn sce-assign-btn--group"
+                                      (click)="openGroupModal(p, group.titular_id)"
+                                      title="Asignar grupo">
+                                <span class="material-symbols-outlined">groups</span>
+                                Asignar grupo
+                              </button>
+                            }
+                          } @else {
+                            <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled
+                                    title="Primero asigna un nivel">
+                              <span class="material-symbols-outlined">groups</span>
+                              Sin grupo
+                            </button>
+                          }
+                        </div>
                       </div>
                     </div>
                     <div class="sce-participant-row__right">
-                      @if (levelByNumber(p.assigned_level); as lvl) {
-                        <span class="sce-level-badge sce-level-badge--{{ lvl.level_number }}"
-                              [title]="'Rango: ' + lvl.age_label">
-                          <span class="sce-level-badge__roman">Nivel {{ lvl.roman }}</span>
-                          <span class="sce-level-badge__age">{{ lvl.age_label }}</span>
-                        </span>
-                      } @else if (p.assigned_level) {
-                        <span class="sce-level-badge sce-level-badge--{{ p.assigned_level }}">
-                          Nivel {{ p.assigned_level }}
-                        </span>
-                      }
                       <div class="sce-weeks-chips">
                         @for (chip of weekChips(p.weeks); track chip.short) {
                           <span class="sce-week-chip">
@@ -423,28 +454,30 @@
           </div>
         }
 
-        <div class="wz-participants-grid">
+        <div class="wz-participants-list">
           @for (p of pendingParticipants(); track p.socio_id; let i = $index) {
-            <div class="wz-p-row"
-                     [class.wz-p-row--enrolled]="p.alreadyEnrolled"
-                     [class.wz-p-row--out-of-range]="p.outOfRange">
-              <div class="wz-p-row__info">
+            <div class="wz-p-card"
+                 [class.wz-p-card--enrolled]="p.alreadyEnrolled"
+                 [class.wz-p-card--out-of-range]="p.outOfRange"
+                 [class.wz-p-card--expanded]="pendingExpandIdx() === i">
+
+              <!-- ── Cabecera tarjeta ── -->
+              <div class="wz-p-card__head">
                 <div class="wz-p-avatar" [class.wz-p-avatar--gray]="p.outOfRange">{{ p.fullName.charAt(0).toUpperCase() }}</div>
                 <div class="wz-p-details">
                   <span class="wz-p-name">{{ p.fullName }}</span>
                   <div class="wz-p-meta">
                     @if (p.age !== null) { <span>{{ p.age }} años</span> }
-                    <!-- Chip tipo invitado -->
                     @if (p.type === 'guest' || p.type === 'staff_guest') {
                       @if (wizardMode() === 'colaborador') {
-                        <select class="sce-form-input" style="padding: 2px 8px; font-size: 11px; height: auto;" [value]="p.type" (change)="changeGuestType(i, $any($event.target).value)">
+                        <select class="sce-form-input" style="padding:2px 8px;font-size:11px;height:auto" [value]="p.type" (change)="changeGuestType(i, $any($event.target).value)">
                           <option value="staff_guest">Invitado colaborador</option>
                           <option value="guest">Amigo / Conocido</option>
                         </select>
                       } @else {
                         <span class="wz-chip wz-chip--guest wz-chip--xs">
                           <span class="material-symbols-outlined" style="font-size:11px">person_outline</span>
-                          Invitado de {{ selectedTitular()?.fullName }}
+                          Invitado
                         </span>
                       }
                     }
@@ -453,41 +486,145 @@
                         <span class="material-symbols-outlined" style="font-size:11px">block</span>
                         Fuera de rango (3–15 años)
                       </span>
-                    } @else if (p.suggestedLevel) {
-                      <span class="wz-level-pill wz-level-pill--{{ p.suggestedLevel.level_number }}"
-                            [title]="'Nivel ' + p.suggestedLevel.roman + ' · ' + p.suggestedLevel.age_label">
-                        Niv. {{ p.suggestedLevel.roman }}
-                      </span>
                     }
                     @if (p.alreadyEnrolled) {
                       <span class="wz-chip wz-chip--enrolled wz-chip--xs">Ya inscrito</span>
                     }
                   </div>
                 </div>
-              </div>
-              @for (w of courseWeeks; track w.id) {
-                <button class="wz-week-chip"
-                        [class.wz-week-chip--on]="isWeekSelected(i, w.week_number)"
-                        [disabled]="p.alreadyEnrolled || p.outOfRange"
-                        (click)="toggleWeek(i, w.week_number)"
-                        [title]="w.label">
-                  {{ w.week_number }}
+                <!-- Estado nivel/grupo asignado en cabecera -->
+                @if (!p.outOfRange && !p.alreadyEnrolled) {
+                  <div class="wz-p-card__status">
+                    @if (levelByNumber(p.selectedLevel ?? undefined); as lvl) {
+                      <span class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}" style="cursor:default">
+                        <span class="material-symbols-outlined" style="font-size:13px">check_circle</span>
+                        Niv. {{ lvl.roman }}
+                      </span>
+                    }
+                    @if (p.selectedGroupAlias) {
+                      <span class="sce-assign-badge sce-assign-badge--group" style="cursor:default">
+                        <span class="material-symbols-outlined" style="font-size:13px">groups</span>
+                        {{ p.selectedGroupAlias }}
+                      </span>
+                    }
+                  </div>
+                }
+                <button class="wz-remove-btn" (click)="removeParticipant(i)"
+                        [disabled]="p.alreadyEnrolled || p.outOfRange" title="Quitar">
+                  <span class="material-symbols-outlined">close</span>
                 </button>
-              }
-              <button class="wz-remove-btn" (click)="removeParticipant(i)"
-                      [disabled]="p.alreadyEnrolled || p.outOfRange" title="Quitar">
-                <span class="material-symbols-outlined">close</span>
-              </button>
-              <!-- F2: preview de costo por participante -->
-              @if (!p.outOfRange && !p.alreadyEnrolled && p.weeks.length > 0) {
-                <div class="wz-p-cost">
-                  @if (participantDiscount(p) > 0) {
-                    <span class="wz-p-cost__list">{{ currency(participantListPrice(p)) }}</span>
-                    <span class="wz-p-cost__discount">−{{ currency(participantDiscount(p)) }}</span>
+              </div>
+
+              <!-- ── Sección semanas ── -->
+              @if (!p.outOfRange && !p.alreadyEnrolled) {
+                <div class="wz-p-card__section">
+                  <span class="wz-p-card__section-label">
+                    <span class="wz-p-card__step-num">1</span>
+                    Semanas
+                  </span>
+                  <div class="wz-p-card__weeks">
+                    @for (w of courseWeeks; track w.id) {
+                      <button class="wz-week-chip"
+                              [class.wz-week-chip--on]="isWeekSelected(i, w.week_number)"
+                              (click)="toggleWeek(i, w.week_number)"
+                              [title]="w.label">
+                        {{ w.week_number }}
+                      </button>
+                    }
+                    @if (!courseWeeks.length) {
+                      <span style="font-size:.75rem;color:#94a3b8">Sin semanas configuradas</span>
+                    }
+                  </div>
+                  @if (p.weeks.length > 0 && participantDiscount(p) > 0) {
+                    <div class="wz-p-card__cost">
+                      <span class="wz-p-cost__list">{{ currency(participantListPrice(p)) }}</span>
+                      <span class="wz-p-cost__discount">−{{ currency(participantDiscount(p)) }}</span>
+                      <span class="wz-p-cost__total">{{ currency(participantCost(p)) }}</span>
+                    </div>
+                  } @else if (p.weeks.length > 0) {
+                    <div class="wz-p-card__cost">
+                      <span class="wz-p-cost__total">{{ currency(participantCost(p)) }}</span>
+                    </div>
                   }
-                  <span class="wz-p-cost__total">{{ currency(participantCost(p)) }}</span>
+                </div>
+              } @else if (p.alreadyEnrolled) {
+                <div class="wz-p-card__section">
+                  <span style="font-size:.78rem;color:#92400e">Este participante ya está inscrito en este curso.</span>
                 </div>
               }
+
+              <!-- ── Sección nivel y grupo ── -->
+              @if (!p.outOfRange && !p.alreadyEnrolled) {
+                <div class="wz-p-card__section wz-p-card__section--level">
+                  <button class="wz-p-card__section-label wz-p-card__section-label--btn"
+                          (click)="togglePendingExpand(i)">
+                    <span class="wz-p-card__step-num" [class.wz-p-card__step-num--done]="!!p.selectedLevel">2</span>
+                    Nivel y grupo
+                    @if (p.suggestedLevel && !p.selectedLevel) {
+                      <span class="wz-p-card__suggested">Sugerido: Niv. {{ p.suggestedLevel.roman }}</span>
+                    }
+                    <span class="material-symbols-outlined wz-p-card__chevron"
+                          [class.wz-p-card__chevron--open]="pendingExpandIdx() === i">expand_more</span>
+                  </button>
+
+                  @if (pendingExpandIdx() === i) {
+                    <div class="wz-p-inline-panel">
+                      <!-- Nivel -->
+                      <div class="wz-p-inline-panel__section">
+                        <span class="wz-p-inline-panel__label">
+                          <span class="material-symbols-outlined">school</span> Selecciona el nivel
+                        </span>
+                        <div class="sce-level-btn-grid">
+                          @for (lvl of levels(); track lvl.level_number) {
+                            <button class="sce-level-btn"
+                                    [class.sce-level-btn--active]="p.selectedLevel === lvl.level_number"
+                                    [class.sce-level-btn--suggested]="p.suggestedLevel?.level_number === lvl.level_number && p.selectedLevel !== lvl.level_number"
+                                    (click)="setPendingLevel(i, lvl.level_number)">
+                              <span class="sce-level-btn__roman">{{ lvl.roman }}</span>
+                              <span class="sce-level-btn__age">{{ lvl.age_label }}</span>
+                              @if (p.suggestedLevel?.level_number === lvl.level_number) {
+                                <span class="sce-level-btn__tag">Sugerido</span>
+                              }
+                            </button>
+                          }
+                        </div>
+                      </div>
+                      <!-- Grupo (visible solo si hay nivel elegido) -->
+                      @if (p.selectedLevel) {
+                        <div class="wz-p-inline-panel__section">
+                          <span class="wz-p-inline-panel__label">
+                            <span class="material-symbols-outlined">groups</span> Selecciona el grupo
+                            <span class="wz-p-inline-panel__optional">(opcional)</span>
+                          </span>
+                          <div class="wz-p-inline-panel__groups">
+                            @for (g of groupsForLevel(p.selectedLevel); track g.id) {
+                              <button class="wz-p-inline-panel__grp-btn"
+                                      [class.wz-p-inline-panel__grp-btn--active]="p.selectedGroupId === g.id"
+                                      (click)="setPendingGroup(i, g.id, g.alias)">
+                                <span class="material-symbols-outlined" style="font-size:14px">group</span>
+                                {{ g.alias }}
+                                @if (p.selectedGroupId === g.id) {
+                                  <span class="material-symbols-outlined" style="font-size:13px;color:#4f46e5">check</span>
+                                }
+                              </button>
+                            }
+                            @if (!groupsForLevel(p.selectedLevel).length) {
+                              <span class="wz-p-inline-panel__empty">
+                                <span class="material-symbols-outlined" style="font-size:14px">info</span>
+                                Sin grupos configurados para este nivel
+                              </span>
+                            }
+                          </div>
+                        </div>
+                      }
+                      <button class="wz-p-inline-panel__close" (click)="pendingExpandIdx.set(-1)">
+                        <span class="material-symbols-outlined">check</span> Listo
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+
             </div>
           }
         </div>
@@ -560,7 +697,14 @@
                     </div>
                   </td>
                   <td>
-                    @if (p.suggestedLevel) {
+                    @if (p.selectedLevel; as lvlNum) {
+                      <span class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvlNum }}" style="cursor:default">
+                        <span class="sce-assign-badge__roman">Niv. {{ levelByNumber(lvlNum)?.roman }}</span>
+                      </span>
+                      @if (p.selectedGroupAlias) {
+                        <span style="display:block; font-size:.72rem; color:#475569; margin-top:2px">{{ p.selectedGroupAlias }}</span>
+                      }
+                    } @else if (p.suggestedLevel) {
                       <span class="wz-level-pill wz-level-pill--{{ p.suggestedLevel.level_number }}">
                         {{ p.suggestedLevel.roman }}
                       </span>
@@ -640,6 +784,61 @@
               </div>
             }
           }
+          <!-- ── Asignar nivel / grupo ─────────────────────────────── -->
+          @if (doneParticipants().length) {
+            <div class="wz-done__assign-section">
+              <div class="wz-done__assign-title">
+                <span class="material-symbols-outlined">school</span>
+                Asignar nivel y grupo
+              </div>
+              @for (dp of doneParticipants(); track dp.enrollmentId) {
+                <div class="wz-done__assign-row">
+                  <div class="wz-done__assign-name">
+                    <div class="wz-p-avatar wz-p-avatar--sm">{{ dp.participantName.charAt(0) }}</div>
+                    <div>
+                      <span>{{ dp.participantName }}</span>
+                      @if (dp.suggestedLevel && !dp.assignedLevel) {
+                        <span class="wz-level-pill wz-level-pill--{{ dp.suggestedLevel }}" style="margin-left:6px">
+                          Sugerido: {{ levelByNumber(dp.suggestedLevel)?.roman }}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                  <div class="sce-assign-actions">
+                    @if (levelByNumber(dp.assignedLevel ?? undefined); as lvl) {
+                      <button class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}"
+                              (click)="openLevelModalFromDone(dp)">
+                        <span class="sce-assign-badge__roman">Niv. {{ lvl.roman }}</span>
+                        <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                      </button>
+                    } @else {
+                      <button class="sce-assign-btn sce-assign-btn--level" (click)="openLevelModalFromDone(dp)">
+                        <span class="material-symbols-outlined">school</span> Asignar nivel
+                      </button>
+                    }
+                    @if (dp.assignedLevel) {
+                      @if (dp.groupId) {
+                        <button class="sce-assign-badge sce-assign-badge--group" (click)="openGroupModalFromDone(dp)">
+                          <span class="material-symbols-outlined">groups</span>
+                          {{ dp.groupAlias ?? 'Grupo' }}
+                          <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                        </button>
+                      } @else {
+                        <button class="sce-assign-btn sce-assign-btn--group" (click)="openGroupModalFromDone(dp)">
+                          <span class="material-symbols-outlined">groups</span> Asignar grupo
+                        </button>
+                      }
+                    } @else {
+                      <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled>
+                        <span class="material-symbols-outlined">groups</span> Sin grupo
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          }
+
           <button class="sce-btn sce-btn--primary wz-done__cta" (click)="closeWizard()">
             <span class="material-symbols-outlined">close</span>
             Cerrar
@@ -654,6 +853,97 @@
   } <!-- /!loading -->
 
 </div>
+
+<!-- ── Modal Asignar Nivel ───────────────────────────────────────────────── -->
+@if (lvlModalOpen()) {
+  <div class="sce-modal-overlay" (click)="closeLevelModal()">
+    <div class="sce-modal sce-modal--sm" (click)="$event.stopPropagation()">
+      <div class="sce-modal__header">
+        <span class="material-symbols-outlined">school</span>
+        <h2>Asignar nivel</h2>
+        <button class="sce-modal__close" (click)="closeLevelModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="sce-modal__body">
+        <p class="sce-modal__hint">Selecciona el nivel para este participante.</p>
+        <div class="sce-level-btn-grid">
+          @for (lvl of levels(); track lvl.level_number) {
+            <button class="sce-level-btn"
+                    [class.sce-level-btn--active]="lvlModalValue() === lvl.level_number"
+                    (click)="lvlModalValue.set(lvl.level_number)">
+              <span class="sce-level-btn__roman">{{ lvl.roman }}</span>
+              <span class="sce-level-btn__age">{{ lvl.age_label }}</span>
+            </button>
+          }
+        </div>
+        <div class="sce-form-field" style="margin-top:16px">
+          <label class="sce-form-label">Notas <span class="sce-form-optional">(opcional)</span></label>
+          <textarea class="sce-form-textarea" rows="2" placeholder="Observaciones sobre el nivel..."
+                    [value]="lvlModalNotes()"
+                    (input)="lvlModalNotes.set($any($event.target).value)"></textarea>
+        </div>
+      </div>
+      <div class="sce-modal__footer">
+        <button class="sce-btn sce-btn--ghost" (click)="closeLevelModal()" [disabled]="lvlModalSaving()">Cancelar</button>
+        <button class="sce-btn sce-btn--primary" (click)="saveLevelModal()" [disabled]="lvlModalSaving()">
+          @if (lvlModalSaving()) {
+            <div class="sce-spinner sce-spinner--sm sce-spinner--white"></div> Guardando...
+          } @else {
+            <span class="material-symbols-outlined">check_circle</span> Guardar nivel
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Modal Asignar Grupo ───────────────────────────────────────────────── -->
+@if (grpModalOpen() && grpModalTarget()) {
+  <div class="sce-modal-overlay" (click)="closeGroupModal()">
+    <div class="sce-modal sce-modal--sm" (click)="$event.stopPropagation()">
+      <div class="sce-modal__header">
+        <span class="material-symbols-outlined">groups</span>
+        <h2>Asignar grupo</h2>
+        <button class="sce-modal__close" (click)="closeGroupModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="sce-modal__body">
+        @if (levelByNumber(grpModalTarget()!.assigned_level); as lvl) {
+          <p class="sce-modal__hint">Grupos disponibles para <strong>Nivel {{ lvl.roman }}</strong> ({{ lvl.age_label }}).</p>
+        }
+        <div class="sce-form-field">
+          <label class="sce-form-label">Grupo</label>
+          <select class="sce-form-input"
+                  [value]="grpModalValue() ?? ''"
+                  (change)="grpModalValue.set($any($event.target).value ? +$any($event.target).value : null)">
+            <option value="">— Sin grupo —</option>
+            @for (g of groupsForLevel(grpModalTarget()!.assigned_level); track g.id) {
+              <option [value]="g.id">{{ g.alias }} (cap. {{ g.capacity }})</option>
+            }
+          </select>
+          @if (!groupsForLevel(grpModalTarget()!.assigned_level).length) {
+            <p class="sce-modal__hint" style="color:var(--text-muted);margin-top:8px">
+              <span class="material-symbols-outlined" style="font-size:14px;vertical-align:middle">info</span>
+              No hay grupos creados para este nivel todavía.
+            </p>
+          }
+        </div>
+      </div>
+      <div class="sce-modal__footer">
+        <button class="sce-btn sce-btn--ghost" (click)="closeGroupModal()" [disabled]="grpModalSaving()">Cancelar</button>
+        <button class="sce-btn sce-btn--primary" (click)="saveGroupModal()" [disabled]="grpModalSaving()">
+          @if (grpModalSaving()) {
+            <div class="sce-spinner sce-spinner--sm sce-spinner--white"></div> Guardando...
+          } @else {
+            <span class="material-symbols-outlined">check_circle</span> Guardar grupo
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
 
 <!-- ── Modal Entrega de Kit (por familia) ──────────────────────────────── -->
 @if (kitModalOpen() && kitModalGroup()) {

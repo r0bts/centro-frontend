@@ -9,6 +9,7 @@ import {
   CreateScEnrollmentRequest,
   UpdateScEnrollmentRequest,
   AssignLevelRequest,
+  AssignGroupRequest,
 } from '../../models/summer-course/summer-course.model';
 
 @Injectable({ providedIn: 'root' })
@@ -17,8 +18,10 @@ export class ScEnrollmentsService {
 
   constructor(private http: HttpClient) {}
 
-  getFormData(): Observable<ScEnrollmentFormDataResponse> {
-    return this.http.get<ScEnrollmentFormDataResponse>(`${this.base}/form-data`);
+  getFormData(courseId?: number): Observable<ScEnrollmentFormDataResponse> {
+    let params = new HttpParams();
+    if (courseId) params = params.set('course_id', courseId);
+    return this.http.get<ScEnrollmentFormDataResponse>(`${this.base}/form-data`, { params });
   }
 
   getAll(filters: { course_id?: number; status?: string; level?: number } = {}): Observable<ScEnrollmentListResponse> {
@@ -47,5 +50,9 @@ export class ScEnrollmentsService {
 
   assignLevel(id: number, data: AssignLevelRequest): Observable<ScEnrollmentResponse> {
     return this.http.patch<ScEnrollmentResponse>(`${this.base}/${id}/level`, data);
+  }
+
+  assignGroup(id: number, data: AssignGroupRequest): Observable<ScEnrollmentResponse> {
+    return this.http.patch<ScEnrollmentResponse>(`${this.base}/${id}/group`, data);
   }
 }

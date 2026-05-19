@@ -13,11 +13,13 @@ import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 import { ScRegistrationsService }   from '../../../services/summer-course/sc-registrations.service';
 import { ScCoursesService }         from '../../../services/summer-course/sc-courses.service';
 import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
+import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
 import {
   ScCourse,
   ScLevel,
   ScGuest,
   ScRegistrationGroup,
+  ScRegisteredParticipant,
   ScSocioSearchResult,
   ScRegistrationParticipant,
   ScCostWithTotal,
@@ -26,6 +28,26 @@ import {
   ScKitDeliverySummary,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
+
+interface LevelGroupFD {
+  id: number;
+  level_id: number;
+  roman: string;
+  alias: string;
+  capacity: number;
+}
+
+interface LvlModalTarget {
+  enrollment_id: number;
+  titular_id: string | null;
+  current_level: number | null;
+}
+
+interface GrpModalTarget {
+  enrollment_id: number;
+  titular_id: string | null;
+  assigned_level: number;
+}
 
 type WizardStep = 'search' | 'participants' | 'confirm' | 'done';
 
@@ -41,6 +63,20 @@ interface PendingParticipant {
   suggestedLevel: ScLevel | null;
   outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
   guest_db_id?: number; // ID real en summer_course_guests (solo para invitados)
+  // Nivel/grupo elegido antes de inscribir
+  selectedLevel:      number | null;
+  selectedGroupId:    number | null;
+  selectedGroupAlias: string | null;
+}
+
+interface DoneParticipant {
+  enrollmentId:    number;
+  participantName: string;
+  accessCode:      string;
+  suggestedLevel:  number | null;
+  assignedLevel:   number | null;
+  groupId:         number | null;
+  groupAlias:      string | null;
 }
 
 @Component({
@@ -52,9 +88,10 @@ interface PendingParticipant {
   styleUrl: './summer-course-enrollments.scss',
 })
 export class SummerCourseEnrollmentsComponent implements OnInit {
-  private svc        = inject(ScRegistrationsService);
-  private coursesSvc = inject(ScCoursesService);
-  private kitSvc     = inject(ScKitDeliveriesService);
+  private svc          = inject(ScRegistrationsService);
+  private coursesSvc   = inject(ScCoursesService);
+  private kitSvc       = inject(ScKitDeliveriesService);
+  private enrollSvc    = inject(ScEnrollmentsService);
 
   // ── Global ────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -94,6 +131,23 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   kitNotes        = signal('');
   kitSaving       = signal(false);
 
+  // ── Level / Group assignment ──────────────────────────────────────────────
+  levelGroupsFD     = signal<LevelGroupFD[]>([]);
+
+  lvlModalOpen      = signal(false);
+  lvlModalTarget    = signal<LvlModalTarget | null>(null);
+  lvlModalValue     = signal<number>(1);
+  lvlModalNotes     = signal('');
+  lvlModalSaving    = signal(false);
+
+  grpModalOpen      = signal(false);
+  grpModalTarget    = signal<GrpModalTarget | null>(null);
+  grpModalValue     = signal<number | null>(null);
+  grpModalSaving    = signal(false);
+
+  // índice del PendingParticipant cuyo panel inline está abierto (-1 = ninguno)
+  pendingExpandIdx   = signal<number>(-1);
+
   // ── Wizard ────────────────────────────────────────────────────────────────
   wizardOpen         = signal(false);
   wizardStep         = signal<WizardStep>('search');
@@ -110,6 +164,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   levels             = signal<ScLevel[]>([]);
   saving             = signal(false);
   registrationResult = signal<any>(null);
+  doneParticipants   = signal<DoneParticipant[]>([]);
 
   // ── Guest modal ───────────────────────────────────────────────────────────
   guestModalOpen     = signal(false);
@@ -143,6 +198,12 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
+    this.svc.getLevels().subscribe({
+      next: res => this.levels.set(res.data ?? []),
+      error: () => {},
+    });
+
     this.coursesSvc.getAll({ status: 'active' }).subscribe({
       next: res => {
         const list = res.data?.courses ?? [];
@@ -151,6 +212,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           this.selectedCourse.set(list[0]);
           this._loadRegistrations(list[0].id);
           this._loadKits(list[0].id);
+          this._loadLevelGroups(list[0].id);
         }
         this.loading.set(false);
       },
@@ -178,6 +240,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     if (c) {
       this._loadRegistrations(c.id);
       this._loadKits(c.id);
+      this._loadLevelGroups(c.id);
     }
   }
 
@@ -218,6 +281,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.selectedTitular.set(null);
     this.pendingParticipants.set([]);
     this.registrationResult.set(null);
+    this.doneParticipants.set([]);
     this._loadCosts();
   }
 
@@ -257,6 +321,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
+      selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
     const family: PendingParticipant[] = s.family.map(f => ({
       socio_id: f.id, fullName: f.fullName, type: 'member' as const,
@@ -264,6 +329,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
       suggestedLevel: this._getLevelForAge(f.age),
       outOfRange: this._isOutOfRange(f.age),
+      selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     }));
     this.pendingParticipants.set([titular, ...family]);
     this.wizardStep.set('participants');
@@ -400,6 +466,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         weeks:           p.weeks,
         birth_date:      p.birth_date,
         suggested_level: p.suggestedLevel?.level_number ?? null,
+        assigned_level:  p.selectedLevel,
+        group_id:        p.selectedGroupId,
       })),
     };
 
@@ -407,6 +475,18 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       next: res => {
         this.saving.set(false);
         this.registrationResult.set(res.data);
+        // Construir lista de participantes del step done para asignar nivel/grupo
+        const tokens: Array<{participantId:string; participantName:string; accessCode:string; enrollmentId:number; suggestedLevel:number|null}>
+          = res.data?.pick_up_tokens ?? [];
+        this.doneParticipants.set(tokens.map(t => ({
+          enrollmentId:    t.enrollmentId,
+          participantName: t.participantName,
+          accessCode:      t.accessCode,
+          suggestedLevel:  t.suggestedLevel ?? null,
+          assignedLevel:   null,
+          groupId:         null,
+          groupAlias:      null,
+        })));
         this.wizardStep.set('done');
         this.refreshTable();
       },
@@ -462,7 +542,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       alreadyEnrolled: false,
       suggestedLevel:  this._getLevelForAge(age),
       outOfRange:      this._isOutOfRange(age),
-      guest_db_id:     guest.id,  // ID real en summer_course_guests
+      guest_db_id:     guest.id,
+      selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
 
     if (this.wizardMode() === 'colaborador') {
@@ -471,6 +552,153 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
     this.pendingParticipants.update(list => [...list, participant]);
     this.showToast(`${guest.full_name} agregado como invitado`, 'success');
+  }
+
+  // ── Level/Group assignment ────────────────────────────────────────────────
+
+  /** Abre/cierra el panel inline de nivel∕grupo del wizard (step 2) */
+  togglePendingExpand(idx: number): void {
+    this.pendingExpandIdx.set(this.pendingExpandIdx() === idx ? -1 : idx);
+  }
+
+  /** Establece el nivel elegido para un pending participant (inline, sin API) */
+  setPendingLevel(idx: number, levelNum: number): void {
+    this.pendingParticipants.update(list => list.map((p, i) =>
+      i === idx ? { ...p, selectedLevel: levelNum, selectedGroupId: null, selectedGroupAlias: null } : p
+    ));
+    // Cargar grupos si no están cargados aún
+    const cId = this.selectedCourse()?.id;
+    if (cId) this._loadLevelGroups(cId);
+  }
+
+  /** Establece el grupo elegido para un pending participant (inline, sin API) */
+  setPendingGroup(idx: number, groupId: number | null, alias: string | null): void {
+    this.pendingParticipants.update(list => list.map((p, i) =>
+      i === idx ? { ...p, selectedGroupId: groupId, selectedGroupAlias: alias } : p
+    ));
+    this.pendingExpandIdx.set(-1); // cerrar panel al elegir grupo
+  }
+
+  private _loadLevelGroups(courseId: number): void {
+    this.enrollSvc.getFormData(courseId).subscribe({
+      next: res => this.levelGroupsFD.set(res.data?.level_groups ?? []),
+      error: () => {},
+    });
+  }
+
+  groupsForLevel(levelId: number): LevelGroupFD[] {
+    return this.levelGroupsFD().filter(g => g.level_id === levelId);
+  }
+
+  openLevelModal(p: ScRegisteredParticipant, titularId: string | null): void {
+    this.lvlModalTarget.set({ enrollment_id: p.enrollment_id, titular_id: titularId, current_level: p.assigned_level ?? null });
+    this.lvlModalValue.set(p.assigned_level ?? 1);
+    this.lvlModalNotes.set('');
+    this.lvlModalOpen.set(true);
+  }
+
+  closeLevelModal(): void { this.lvlModalOpen.set(false); }
+
+  saveLevelModal(): void {
+    // ── Contexto tabla: llamar API ─────────────────────────────────────────
+    const target = this.lvlModalTarget();
+    if (!target) return;
+    this.lvlModalSaving.set(true);
+    this.enrollSvc.assignLevel(target.enrollment_id, {
+      assigned_level: this.lvlModalValue(),
+      level_notes: this.lvlModalNotes() || undefined,
+    }).subscribe({
+      next: res => {
+        const newLevel = res.data?.assigned_level ?? this.lvlModalValue();
+        this._patchParticipant(target.titular_id, target.enrollment_id, p => ({
+          ...p, assigned_level: newLevel, group_id: null, group_alias: null,
+        }));
+        this.patchDoneLevel(target.enrollment_id, newLevel);
+        this.lvlModalSaving.set(false);
+        this.lvlModalOpen.set(false);
+        this.showToast('Nivel asignado correctamente ✓', 'success');
+      },
+      error: err => {
+        this.lvlModalSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al asignar nivel', 'danger');
+      },
+    });
+  }
+
+  openGroupModal(p: ScRegisteredParticipant, titularId: string | null): void {
+    if (!p.assigned_level) return;
+    this.grpModalTarget.set({ enrollment_id: p.enrollment_id, titular_id: titularId, assigned_level: p.assigned_level });
+    this.grpModalValue.set(p.group_id ?? null);
+    this.grpModalOpen.set(true);
+  }
+
+  closeGroupModal(): void { this.grpModalOpen.set(false); }
+
+  saveGroupModal(): void {
+    // ── Contexto tabla: llamar API ─────────────────────────────────────────
+    const target = this.grpModalTarget();
+    if (!target) return;
+    this.grpModalSaving.set(true);
+    this.enrollSvc.assignGroup(target.enrollment_id, { group_id: this.grpModalValue() }).subscribe({
+      next: res => {
+        const newGroupId   = res.data?.group_id ?? this.grpModalValue();
+        const matchedGroup = this.levelGroupsFD().find(g => g.id === newGroupId);
+        this._patchParticipant(target.titular_id, target.enrollment_id, p => ({
+          ...p, group_id: newGroupId ?? null, group_alias: matchedGroup?.alias ?? null,
+        }));
+        this.patchDoneGroup(target.enrollment_id, newGroupId ?? null, matchedGroup?.alias ?? null);
+        this.grpModalSaving.set(false);
+        this.grpModalOpen.set(false);
+        this.showToast(newGroupId ? 'Grupo asignado correctamente ✓' : 'Grupo removido', 'success');
+      },
+      error: err => {
+        this.grpModalSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al asignar grupo', 'danger');
+      },
+    });
+  }
+
+  private _patchParticipant(
+    titularId: string | null,
+    enrollmentId: number,
+    patcher: (p: ScRegisteredParticipant) => ScRegisteredParticipant,
+  ): void {
+    this.registrations.update(groups =>
+      groups.map(g => {
+        if ((g.titular_id ?? '__none__') !== (titularId ?? '__none__')) return g;
+        return { ...g, participants: g.participants.map(p =>
+          p.enrollment_id === enrollmentId ? patcher(p) : p
+        )};
+      })
+    );
+  }
+
+  // ── Level/Group assignment desde step DONE ───────────────────────────────
+  openLevelModalFromDone(dp: DoneParticipant): void {
+    this.lvlModalTarget.set({ enrollment_id: dp.enrollmentId, titular_id: null, current_level: dp.assignedLevel });
+    this.lvlModalValue.set(dp.assignedLevel ?? dp.suggestedLevel ?? 1);
+    this.lvlModalNotes.set('');
+    this.lvlModalOpen.set(true);
+  }
+
+  openGroupModalFromDone(dp: DoneParticipant): void {
+    const level = dp.assignedLevel;
+    if (!level) return;
+    this.grpModalTarget.set({ enrollment_id: dp.enrollmentId, titular_id: null, assigned_level: level });
+    this.grpModalValue.set(dp.groupId);
+    this.grpModalOpen.set(true);
+  }
+
+  patchDoneLevel(enrollmentId: number, newLevel: number): void {
+    this.doneParticipants.update(list => list.map(d =>
+      d.enrollmentId === enrollmentId ? { ...d, assignedLevel: newLevel, groupId: null, groupAlias: null } : d
+    ));
+  }
+
+  patchDoneGroup(enrollmentId: number, groupId: number | null, groupAlias: string | null): void {
+    this.doneParticipants.update(list => list.map(d =>
+      d.enrollmentId === enrollmentId ? { ...d, groupId, groupAlias } : d
+    ));
   }
 
   // ── Kit delivery ─────────────────────────────────────────────────────────

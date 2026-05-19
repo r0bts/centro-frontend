@@ -70,6 +70,7 @@ export interface ScEnrollment {
   participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
   suggested_level?: number | null;    // integer 1-8
   assigned_level?: number | null;     // integer 1-8
+  group_id?: number | null;
   level_notes?: string | null;
   enrollment_date: string;            // DATE YYYY-MM-DD
   payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
@@ -404,7 +405,8 @@ export interface CreateScActivityRequest {
 export interface ScEnrollmentFormDataResponse {
   success: boolean;
   data: {
-    courses: Array<{ id: number; name: string; weeks?: any[] }>;
+    courses:       Array<{ id: number; name: string; weeks?: any[] }>;
+    level_groups:  Array<{ id: number; level_id: number; roman: string; alias: string; capacity: number }>;
     payment_statuses: string[];
     participant_types: string[];
   };
@@ -439,6 +441,10 @@ export interface UpdateScEnrollmentRequest {
 export interface AssignLevelRequest {
   assigned_level: number;
   level_notes?: string;
+}
+
+export interface AssignGroupRequest {
+  group_id: number | null;
 }
 
 // ── Instructors ─────────────────────────────────────────────────────
@@ -535,9 +541,11 @@ export interface ScRegistrationResponse {
     registration_id: number;
     master_token: string;
     pick_up_tokens: Array<{
-      participantId: string;
+      participantId:   string;
       participantName: string;
-      accessCode: string;
+      accessCode:      string;
+      enrollmentId:    number;
+      suggestedLevel:  number | null;
     }>;
   };
 }
@@ -557,6 +565,8 @@ export interface ScRegisteredParticipant {
   access_code:      string | null;
   assigned_level?:  number | null;
   suggested_level?: number | null;
+  group_id?:        number | null;
+  group_alias?:     string | null;
 }
 
 /** Grupo de inscripción agrupado por titular */

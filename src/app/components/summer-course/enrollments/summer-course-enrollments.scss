@@ -1,3 +1,5 @@
+@use 'sass:list';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Summer Course Enrollments — Component Styles
 // ─────────────────────────────────────────────────────────────────────────────
@@ -266,8 +268,12 @@ $level-colors: (
   &:last-child { border-bottom: none; }
   &:hover { background: #f8fafc; }
 
-  &__left { display: flex; align-items: center; gap: 10px; }
-  &__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  &__left { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
+  &__right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+}
+
+.sce-assign-actions {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px;
 }
 
 .sce-participant-icon {
@@ -312,8 +318,8 @@ $level-colors: (
 @each $n, $colors in $level-colors {
   .sce-level-badge--#{$n},
   .wz-level-pill--#{$n} {
-    background: nth($colors, 1);
-    color: nth($colors, 2);
+    background: list.nth($colors, 1);
+    color: list.nth($colors, 2);
   }
 }
 
@@ -547,23 +553,85 @@ $level-colors: (
 .wz-week-header-spacer { font-size: .72rem; color: $c-neutral; font-weight: 700; text-transform: uppercase; }
 .wz-week-header-cell { font-size: .72rem; text-align: center; color: $c-neutral; font-weight: 700; text-transform: uppercase; }
 
-.wz-participants-grid {
-  border: 1.5px solid #e2e8f0; border-radius: $radius-lg;
-  overflow: hidden; overflow-x: auto;
+.wz-participants-list {
+  display: flex; flex-direction: column; gap: 8px;
   margin-bottom: 16px;
 }
 
-.wz-p-row {
-  display: grid;
-  grid-template-columns: 210px repeat(5, 56px) 36px auto;
-  align-items: center; gap: 4px;
-  padding: 10px 8px; border-bottom: 1px solid #f1f5f9;
-  transition: background .1s;
-  &:last-child { border-bottom: none; }
-  &:hover { background: #f8fafc; }
-  &--enrolled    { background: #fffbeb; opacity: .85; }
-  &--out-of-range { background: #fff5f5; opacity: .75; cursor: not-allowed; }
-  &__info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.wz-p-card {
+  border: 1.5px solid #e2e8f0; border-radius: $radius-lg;
+  background: #fff; overflow: hidden;
+  transition: border-color .15s, box-shadow .15s;
+
+  &:hover { border-color: #cbd5e1; }
+  &--expanded { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
+  &--enrolled  { background: #fffbeb; opacity: .85; }
+  &--out-of-range { background: #fff5f5; opacity: .75; }
+
+  // Cabecera: avatar + nombre + badges de estado + botón quitar
+  &__head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 12px;
+  }
+
+  // Badges de nivel/grupo asignados (en la cabecera)
+  &__status {
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap; flex: 1;
+    justify-content: flex-end;
+  }
+
+  // Sección interna (semanas / nivel)
+  &__section {
+    border-top: 1px solid #f1f5f9;
+    padding: 8px 12px 10px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+
+  &__section--level { padding-top: 0; border-top: 1px dashed #e2e8f0; }
+
+  // Label de sección con número de paso
+  &__section-label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+    font-weight: 700; color: $c-neutral; padding: 6px 0 2px;
+
+    &--btn {
+      background: none; border: none; cursor: pointer; width: 100%;
+      text-align: left; padding: 8px 0 4px;
+      &:hover { color: #4f46e5; }
+    }
+  }
+
+  // Número de paso circular
+  &__step-num {
+    width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+    background: #e2e8f0; color: #64748b; font-size: .65rem;
+    font-weight: 800; display: flex; align-items: center; justify-content: center;
+    &--done { background: #d1fae5; color: #065f46; }
+  }
+
+  // Texto de nivel sugerido al lado del label
+  &__suggested {
+    font-size: .68rem; font-weight: 400; text-transform: none; letter-spacing: 0;
+    background: #eff6ff; color: #2563eb; border-radius: 10px;
+    padding: 1px 7px; margin-left: 4px;
+  }
+
+  // Chevron expand/collapse
+  &__chevron {
+    font-size: 18px; margin-left: auto; transition: transform .2s; color: #94a3b8;
+    &--open { transform: rotate(180deg); color: #6366f1; }
+  }
+
+  // Chips de semanas
+  &__weeks {
+    display: flex; flex-wrap: wrap; gap: 4px;
+  }
+
+  // Costo del participante
+  &__cost {
+    display: flex; align-items: baseline; gap: 6px; padding-top: 2px;
+  }
 }
 
 .wz-p-avatar {
@@ -613,6 +681,51 @@ $level-colors: (
   &__list   { text-decoration: line-through; color: #94a3b8; font-size: .7rem; }
   &__discount { color: $c-success; font-size: .7rem; }
   &__total  { font-weight: 700; color: #1e293b; font-size: .82rem; }
+}
+
+// Panel inline de selección de nivel y grupo (dentro de la tarjeta)
+.wz-p-inline-panel {
+  grid-column: 1 / -1;
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: $radius-md;
+  padding: 12px 14px; margin: 4px 0 4px 48px;
+  display: flex; flex-direction: column; gap: 12px;
+
+  &__section { display: flex; flex-direction: column; gap: 6px; }
+
+  &__label {
+    display: flex; align-items: center; gap: 4px;
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .05em;
+    font-weight: 700; color: $c-neutral;
+    .material-symbols-outlined { font-size: 14px; }
+  }
+
+  &__optional { font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: 4px; }
+
+  &__grid { max-width: 360px; }  // reutiliza .sce-level-btn-grid
+
+  &__groups {
+    display: flex; flex-wrap: wrap; gap: 6px;
+  }
+
+  &__grp-btn {
+    padding: 5px 12px; border-radius: 20px; border: 1.5px solid #e2e8f0;
+    background: #fff; font-size: .8rem; font-weight: 500; cursor: pointer;
+    color: #334155; transition: all .15s;
+    &:hover { border-color: #6366f1; color: #4f46e5; background: #eef2ff; }
+    &--active { border-color: #6366f1; background: #eef2ff; color: #4f46e5; font-weight: 700; }
+  }
+
+  &__empty { font-size: .78rem; color: $c-neutral; font-style: italic; }
+
+  &__close {
+    align-self: flex-end;
+    display: flex; align-items: center; gap: 4px;
+    padding: 5px 14px; border-radius: $radius-sm;
+    background: #0f172a; color: #fff; border: none; cursor: pointer;
+    font-size: .78rem; font-weight: 600;
+    .material-symbols-outlined { font-size: 15px; }
+    &:hover { background: #1e293b; }
+  }
 }
 
 .wz-step2-footer {
@@ -704,6 +817,33 @@ $level-colors: (
   &__title { font-size: 1.4rem; font-weight: 800; color: #0f172a; margin: 0 0 6px; }
   &__sub { color: $c-neutral; font-size: .875rem; margin: 0 0 20px; }
   &__cta { margin-top: 20px; }
+
+  &__assign-section {
+    text-align: left; max-width: 480px; margin: 20px auto 0;
+    background: #f8fafc; border-radius: $radius-md;
+    border: 1px solid #e2e8f0; overflow: hidden;
+  }
+
+  &__assign-title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: .75rem; text-transform: uppercase; letter-spacing: .06em;
+    color: $c-neutral; font-weight: 700; padding: 10px 14px 8px;
+    border-bottom: 1px solid #f1f5f9;
+    .material-symbols-outlined { font-size: 16px; }
+  }
+
+  &__assign-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; padding: 8px 12px; border-bottom: 1px solid #f1f5f9;
+    &:last-child { border-bottom: none; }
+  }
+
+  &__assign-name {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .85rem; font-weight: 600; color: #1e293b;
+    min-width: 0; flex: 1;
+    > div:last-child { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; min-width: 0; }
+  }
 }
 
 @keyframes popIn {
@@ -1011,3 +1151,96 @@ $level-colors: (
 }
 .sce-form-textarea { resize: vertical; font-family: inherit; }
 
+// ── Modal --sm variant ────────────────────────────────────────────────────────
+.sce-modal--sm { max-width: 420px; }
+
+.sce-modal__hint {
+  font-size: .85rem; color: #64748b; margin: 0 0 12px;
+}
+
+// ── Level button grid (modal) ──────────────────────────────────────────────────
+.sce-level-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.sce-level-btn {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 10px 6px; border: 2px solid #e2e8f0;
+  border-radius: 10px; background: #f8fafc; cursor: pointer;
+  transition: border-color .15s, transform .1s, background .15s;
+  font-family: inherit;
+
+  &__roman { font-size: .95rem; font-weight: 800; color: #1e293b; }
+  &__age   { font-size: .65rem; color: #64748b; text-align: center; line-height: 1.2; }
+  &__tag   { font-size: .58rem; color: #2563eb; font-weight: 700; background: #dbeafe;
+             border-radius: 4px; padding: 1px 4px; margin-top: 1px; }
+
+  &:hover { border-color: #93c5fd; background: #eff6ff; transform: translateY(-1px); }
+
+  &--suggested { border-color: #bfdbfe; background: #eff6ff; }
+
+  &--active {
+    border-color: #3b82f6 !important;
+    background: #eff6ff !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.15);
+    .sce-level-btn__roman { color: #2563eb; }
+  }
+}
+
+// ── Assign buttons / badges in participant row ────────────────────────────────
+.sce-assign-btn {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: .75rem; font-weight: 600; padding: 4px 10px;
+  border-radius: 20px; border: 1.5px dashed;
+  background: transparent; cursor: pointer;
+  transition: background .15s, border-color .15s;
+  font-family: inherit;
+  white-space: nowrap;
+
+  .material-symbols-outlined { font-size: 14px; }
+
+  &--level {
+    border-color: #93c5fd; color: #2563eb;
+    &:hover { background: #eff6ff; }
+  }
+  &--group {
+    border-color: #86efac; color: #15803d;
+    &:hover { background: #f0fdf4; }
+  }
+  &--disabled {
+    border-color: #e2e8f0 !important; color: #94a3b8 !important;
+    cursor: default; opacity: .7;
+  }
+}
+
+.sce-assign-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: .75rem; font-weight: 700; padding: 4px 9px;
+  border-radius: 20px; border: 1.5px solid transparent;
+  cursor: pointer; transition: filter .15s, box-shadow .15s;
+  font-family: inherit; white-space: nowrap;
+
+  &__edit { font-size: 12px; opacity: 0; transition: opacity .15s; }
+
+  &:hover {
+    filter: brightness(.93);
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    .sce-assign-badge__edit { opacity: 1; }
+  }
+
+  &--group {
+    background: #dcfce7; color: #15803d;
+    border-color: #bbf7d0;
+    .material-symbols-outlined { font-size: 14px; }
+  }
+
+  // level colors inherit from level-colors map
+  @each $n, $colors in $level-colors {
+    &--lvl-#{$n} {
+      background: list.nth($colors, 1);
+      color: list.nth($colors, 2);
+    }
+  }
+}
