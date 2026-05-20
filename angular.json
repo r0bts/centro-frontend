@@ -49,6 +49,33 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "1MB",
+                  "maximumError": "2MB"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "35kB",
+                  "maximumError": "45kB"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "pruebas": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.pruebas.ts"
+                }
+              ],
               "budgets": [
                 {
                   "type": "initial",
