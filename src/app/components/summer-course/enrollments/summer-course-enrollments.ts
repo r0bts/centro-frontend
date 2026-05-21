@@ -455,8 +455,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     if (!titular || !course || !this.activePending.length) return;
 
     this.saving.set(true);
+    // Si el buscado no es el titular real, buscar al titular en su familia
+    const realTitularId = titular.family?.find(f => f.memberType === 'Titular')?.id ?? titular.id;
     const payload = {
-      titular_id:   titular.id,
+      titular_id:   realTitularId,
       course_id:    course.id,
       total_amount: this.totalAmount(),
       participants: this.activePending.map(p => ({
@@ -814,15 +816,15 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       const courseWeek = this.courseWeeks.find(cw => cw.week_number === w.week_number);
       const dates = courseWeek
         ? this._fmtWeekRange(courseWeek.start_date, courseWeek.end_date)
-        : '';
+        : (w.label ?? '');
       return { short: `Sem ${w.week_number}`, dates };
     });
   }
 
   private _fmtWeekRange(start: string, end: string): string {
     const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-    const s = new Date(start + 'T12:00:00');
-    const e = new Date(end   + 'T12:00:00');
+    const s = new Date(start.substring(0, 10) + 'T12:00:00');
+    const e = new Date(end.substring(0, 10)   + 'T12:00:00');
     const dS = s.getDate();
     const dE = e.getDate();
     const mS = months[s.getMonth()];

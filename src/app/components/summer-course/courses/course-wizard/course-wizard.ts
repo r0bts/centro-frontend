@@ -120,8 +120,8 @@ export class CourseWizardComponent implements OnInit, OnDestroy {
     if (this.editCourse) {
       const c = this.editCourse;
       this.name.set(c.name);
-      this.start_date.set(c.start_date);
-      this.end_date.set(c.end_date);
+      this.start_date.set(c.start_date?.substring(0, 10) ?? '');
+      this.end_date.set(c.end_date?.substring(0, 10) ?? '');
       this.status.set(c.status);
       this.description.set(c.description ?? '');
       // Cargar costos como matriz desde sc_costs
