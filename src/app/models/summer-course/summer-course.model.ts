@@ -495,6 +495,7 @@ export interface ScSocioFamilyMember {
   birth_date: string | null;
   age: number | null;
   enrolled: boolean;
+  isinactive?: boolean;         // true si la membresía está inactiva en NS
 }
 
 /** Participante a inscribir (paso 2 del wizard) */

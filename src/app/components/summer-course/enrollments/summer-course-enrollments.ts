@@ -456,7 +456,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
     this.saving.set(true);
     // Si el buscado no es el titular real, buscar al titular en su familia
-    const realTitularId = titular.family?.find(f => f.memberType === 'Titular')?.id ?? titular.id;
+    // Preferir el titular ACTIVO (isinactive=false) si hay más de uno
+    const realTitularId = (
+      titular.family?.find(f => f.memberType === 'Titular' && !f.isinactive) ??
+      titular.family?.find(f => f.memberType === 'Titular')
+    )?.id ?? titular.id;
     const payload = {
       titular_id:   realTitularId,
       course_id:    course.id,
