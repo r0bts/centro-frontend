@@ -8,6 +8,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { MenuService } from '../../services/menu.service';
 import { MenuItem } from '../../models/auth.model';
+import { NotificationService, AppNotification } from '../../services/notification.service';
 import { filter } from 'rxjs/operators';
 
 /** Módulo ID de Configuración — se separa del nav principal al engranaje */
@@ -44,11 +45,15 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   /** Estado dropdown avatar */
   isAvatarOpen = signal(false);
 
+  /** Estado panel notificaciones */
+  isNotifOpen = signal(false);
+
   constructor(
     private authService: AuthService,
     private menuService: MenuService,
     private router: Router,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    public notifService: NotificationService
   ) {
     this.authService.permissions$.subscribe(() => {
       this.loadMenu();
@@ -68,6 +73,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.loadMenu();
     this.updateActiveStates();
+    this.notifService.startPolling();
   }
 
   ngAfterViewInit(): void {
@@ -83,6 +89,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.notifService.stopPolling();
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
@@ -286,6 +293,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
       this.closeAllDropdowns();
       this.isGearOpen.set(false);
       this.isAvatarOpen.set(false);
+      this.isNotifOpen.set(false);
       this.cdr.markForCheck();
     }
   }
@@ -327,6 +335,29 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
       } catch { /* ignore */ }
     }
     return this.activeSection === sectionId;
+  }
+
+  // ── Notificaciones ───────────────────────────
+  toggleNotif(event: Event): void {
+    event.stopPropagation();
+    this.isNotifOpen.update(v => !v);
+    if (this.isNotifOpen()) {
+      this.isGearOpen.set(false);
+    }
+  }
+
+  navigateFromNotif(n: AppNotification): void {
+    this.isNotifOpen.set(false);
+    switch (n.type) {
+      case 'solicitado':
+        this.router.navigate(['/requisicion/confirmacion']);
+        break;
+      case 'autorizado':
+      case 'listo_recoger':
+      case 'entregado':
+        this.router.navigate(['/requisicion', n.requisition_id]);
+        break;
+    }
   }
 
   onLogout(): void {
