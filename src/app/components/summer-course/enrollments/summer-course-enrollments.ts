@@ -13,6 +13,7 @@ import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 import { ScRegistrationsService }   from '../../../services/summer-course/sc-registrations.service';
 import { ScCoursesService }         from '../../../services/summer-course/sc-courses.service';
 import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
+import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
 import {
   ScCourse,
@@ -26,6 +27,8 @@ import {
   SC_PARTICIPANT_TYPES,
   ScKitDeliveryItem,
   ScKitDeliverySummary,
+  ScCredentialDeliveryItem,
+  ScCredentialPreview,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 
@@ -91,6 +94,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private svc          = inject(ScRegistrationsService);
   private coursesSvc   = inject(ScCoursesService);
   private kitSvc       = inject(ScKitDeliveriesService);
+  private credSvc      = inject(ScCredentialDeliveriesService);
   private enrollSvc    = inject(ScEnrollmentsService);
 
   // ── Global ────────────────────────────────────────────────────────────────
@@ -130,6 +134,24 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   kitReceivedBy   = signal('');
   kitNotes        = signal('');
   kitSaving       = signal(false);
+
+  // ── Foto de perfil ────────────────────────────────────────────────────────
+  photoModalOpen        = signal(false);
+  photoModalParticipant = signal<ScRegisteredParticipant | null>(null);
+  photoModalGroupTitular = signal<ScRegistrationGroup | null>(null);
+  photoPreviewUrl       = signal<string | null>(null);   // base64 capturado antes de guardar
+  photoSaving           = signal(false);
+  photoCameraStream     = signal<MediaStream | null>(null);
+  photoCameraMode       = signal<'camera' | 'file'>('camera');
+
+  // ── Credencial ────────────────────────────────────────────────────────────
+  credItems         = signal<ScCredentialDeliveryItem[]>([]);
+  credLoading       = signal(false);
+  credModalOpen     = signal(false);
+  credModalData     = signal<ScCredentialPreview | null>(null);
+  credModalLoading  = signal(false);
+  credSaving        = signal(false);
+  credNotes         = signal('');
 
   // ── Level / Group assignment ──────────────────────────────────────────────
   levelGroupsFD     = signal<LevelGroupFD[]>([]);
@@ -212,6 +234,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           this.selectedCourse.set(list[0]);
           this._loadRegistrations(list[0].id);
           this._loadKits(list[0].id);
+          this._loadCredentials(list[0].id);
           this._loadLevelGroups(list[0].id);
         }
         this.loading.set(false);
@@ -240,6 +263,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     if (c) {
       this._loadRegistrations(c.id);
       this._loadKits(c.id);
+      this._loadCredentials(c.id);
       this._loadLevelGroups(c.id);
     }
   }
@@ -851,5 +875,290 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   levelByNumber(n: number | null | undefined): ScLevel | null {
     if (n == null) return null;
     return this.levels().find(l => l.level_number === n) ?? null;
+  }
+
+  // ── Credenciales ──────────────────────────────────────────────────────────
+
+  private _loadCredentials(courseId: number): void {
+    this.credLoading.set(true);
+    this.credSvc.getStatus(courseId).subscribe({
+      next: res => {
+        this.credItems.set(res.data?.items ?? []);
+        this.credLoading.set(false);
+      },
+      error: () => this.credLoading.set(false),
+    });
+  }
+
+  /** Retorna el item de credencial para un enrollment_id */
+  credForEnrollment(enrollmentId: number): ScCredentialDeliveryItem | undefined {
+    return this.credItems().find(i => i.enrollment_id === enrollmentId);
+  }
+
+  /** Items de credencial para todos los participantes del grupo */
+  credGroupItems(group: ScRegistrationGroup): ScCredentialDeliveryItem[] {
+    const ids = new Set(group.participants.map(p => p.enrollment_id));
+    return this.credItems().filter(i => ids.has(i.enrollment_id));
+  }
+
+  /** Cuántos participantes del grupo ya tienen foto */
+  photoGroupCount(group: ScRegistrationGroup): number {
+    return this.credGroupItems(group).filter(i => i.has_photo).length;
+  }
+
+  /** Estado de fotos del grupo: none | partial | all */
+  photoGroupStatus(group: ScRegistrationGroup): 'none' | 'partial' | 'all' {
+    const items = this.credGroupItems(group);
+    if (!items.length) return 'none';
+    const count = items.filter(i => i.has_photo).length;
+    if (count === 0) return 'none';
+    if (count === items.length) return 'all';
+    return 'partial';
+  }
+
+  /** Cuántas credenciales entregadas en el grupo */
+  credGroupCount(group: ScRegistrationGroup): number {
+    return this.credGroupItems(group).filter(i => i.credential_delivered).length;
+  }
+
+  /** Estado de credenciales del grupo: none | partial | all */
+  credGroupStatus(group: ScRegistrationGroup): 'none' | 'partial' | 'all' {
+    const items = this.credGroupItems(group);
+    if (!items.length) return 'none';
+    const count = items.filter(i => i.credential_delivered).length;
+    if (count === 0) return 'none';
+    if (count === items.length) return 'all';
+    return 'partial';
+  }
+
+  /** Abre el modal de foto del primer participante sin foto del grupo */
+  openPhotoModalGroup(group: ScRegistrationGroup, event: Event): void {
+    event.stopPropagation();
+    const items   = this.credGroupItems(group);
+    const pending = group.participants.find(p => {
+      const ci = items.find(i => i.enrollment_id === p.enrollment_id);
+      return !ci?.has_photo;
+    }) ?? group.participants[0];
+    if (pending) this.openPhotoModal(pending, group, event);
+  }
+
+  /** Abre el modal de credencial del primer participante con foto pero sin credencial entregada */
+  openCredentialModalGroup(group: ScRegistrationGroup, event: Event): void {
+    event.stopPropagation();
+    const items   = this.credGroupItems(group);
+    const pending = group.participants.find(p => {
+      const ci = items.find(i => i.enrollment_id === p.enrollment_id);
+      return ci?.has_photo && !ci?.credential_delivered;
+    }) ?? group.participants.find(p => {
+      const ci = items.find(i => i.enrollment_id === p.enrollment_id);
+      return ci?.has_photo;
+    }) ?? group.participants[0];
+    if (pending) this.openCredentialModal(pending, event);
+  }
+
+  // ── Modal de Fotografía ───────────────────────────────────────────────────
+
+  openPhotoModal(p: ScRegisteredParticipant, group: ScRegistrationGroup, event: Event): void {
+    event.stopPropagation();
+    this.photoModalParticipant.set(p);
+    this.photoModalGroupTitular.set(group);
+    this.photoPreviewUrl.set(null);
+    this.photoCameraMode.set('camera');
+    this.photoModalOpen.set(true);
+  }
+
+  closePhotoModal(): void {
+    this._stopCamera();
+    this.photoModalOpen.set(false);
+    this.photoModalParticipant.set(null);
+    this.photoPreviewUrl.set(null);
+  }
+
+  async startCamera(videoEl: HTMLVideoElement): Promise<void> {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      this.photoCameraStream.set(stream);
+      videoEl.srcObject = stream;
+    } catch {
+      this.showToast('No se pudo acceder a la cámara', 'danger');
+      this.photoCameraMode.set('file');
+    }
+  }
+
+  capturePhoto(videoEl: HTMLVideoElement): void {
+    const canvas = document.createElement('canvas');
+    canvas.width  = videoEl.videoWidth  || 640;
+    canvas.height = videoEl.videoHeight || 480;
+    canvas.getContext('2d')!.drawImage(videoEl, 0, 0);
+    this.photoPreviewUrl.set(canvas.toDataURL('image/jpeg', 0.85));
+    this._stopCamera();
+  }
+
+  onFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => this.photoPreviewUrl.set(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  savePhoto(): void {
+    const base64 = this.photoPreviewUrl();
+    const p      = this.photoModalParticipant();
+    if (!base64 || !p) return;
+
+    this.photoSaving.set(true);
+    this.credSvc.uploadPhoto(p.participant_id, base64).subscribe({
+      next: () => {
+        this.photoSaving.set(false);
+        this.closePhotoModal();
+        this.showToast('Fotografía guardada correctamente ✓', 'success');
+        const courseId = this.selectedCourse()!.id;
+        this._loadCredentials(courseId);
+      },
+      error: err => {
+        this.photoSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al guardar la fotografía', 'danger');
+      },
+    });
+  }
+
+  _stopCamera(): void {
+    this.photoCameraStream()?.getTracks().forEach(t => t.stop());
+    this.photoCameraStream.set(null);
+  }
+
+  // ── Modal de Credencial ───────────────────────────────────────────────────
+
+  openCredentialModal(p: ScRegisteredParticipant, event: Event): void {
+    event.stopPropagation();
+    this.credModalOpen.set(true);
+    this.credModalData.set(null);
+    this.credModalLoading.set(true);
+    this.credNotes.set('');
+
+    const courseId = this.selectedCourse()!.id;
+    this.credSvc.getPreview(p.participant_id, courseId).subscribe({
+      next: res => {
+        this.credModalData.set(res.data);
+        this.credModalLoading.set(false);
+      },
+      error: () => {
+        this.credModalLoading.set(false);
+        this.showToast('Error al cargar datos de la credencial', 'danger');
+      },
+    });
+  }
+
+  closeCredentialModal(): void {
+    this.credModalOpen.set(false);
+    this.credModalData.set(null);
+  }
+
+  /** Base URL para archivos estáticos del webroot */
+  photoBaseUrl(): string { return '/'; }
+
+  printCredential(): void {
+    const data = this.credModalData();
+    const card = document.querySelector('.credential-card') as HTMLElement | null;
+    if (!card) return;
+
+    const openPrintWindow = (cardHtml: string) => {
+      const win = window.open('', '_blank', 'width=250,height=400');
+      if (!win) return;
+      win.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: 54mm 85mm; margin: 0; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+  .credential-card { width: 54mm; height: 85mm; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
+  .cred-header { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-bottom: 1px solid #f3f4f6; }
+  .cred-header__logo { flex: 0 0 auto; }
+  .cred-header__punch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .cred-logo { height: 26px; }
+  .cred-punch-label { font-size: 7px; color: #9ca3af; font-weight: 700; letter-spacing: .4px; }
+  .cred-punch-line { width: 100%; height: 2px; background: repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 3px, transparent 3px, transparent 6px); }
+  .cred-badge-type { background: #f97316; color: #fff; font-size: 8px; font-weight: 700; letter-spacing: .4px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; }
+  .cred-course-logo { text-align: center; padding: 2px 0; }
+  .cred-course-logo img { height: 38px; }
+  .cred-media { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 8px; }
+  .cred-photo-wrap { flex: 0 0 32mm; }
+  .cred-photo { width: 32mm; height: 30mm; object-fit: cover; border-radius: 4px; border: 2.5px solid #f97316; display: block; }
+  .cred-photo--empty { width: 32mm; height: 30mm; display: flex; align-items: center; justify-content: center; background: #f9fafb; border: 2.5px dashed #f97316; border-radius: 4px; }
+  .cred-qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 0; }
+  .cred-qr { width: 22mm; height: 22mm; border-radius: 4px; border: 2px solid #1e3a5f; }
+  .cred-qr-label { font-size: 7px; font-weight: 700; letter-spacing: .4px; background: #1e3a5f; color: #fff; padding: 2px 4px; border-radius: 3px; text-align: center; }
+  .cred-fields { display: grid; grid-template-columns: 1fr auto; gap: 3px 6px; padding: 3px 8px; flex: 1; }
+  .cred-field { display: flex; flex-direction: column; gap: 1px; }
+  .cred-field--full { grid-column: 1 / -1; }
+  .cred-field--small { min-width: 50px; }
+  .cred-field__label { font-size: 7px; font-weight: 700; letter-spacing: .4px; color: #1e3a5f; text-transform: uppercase; }
+  .cred-field__label--orange { color: #f97316; }
+  .cred-field__value { font-size: 9px; font-weight: 600; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 1px; min-height: 12px; }
+  .cred-footer { background: #1e3a5f; color: #fff; text-align: center; font-size: 8px; font-weight: 700; letter-spacing: .4px; padding: 3px 4px; margin-top: auto; }
+  .material-symbols-outlined { display: none; }
+</style>
+</head>
+<body>${cardHtml}</body>
+</html>`);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 600);
+    };
+
+    const toBase64 = (url: string): Promise<string> =>
+      fetch(url)
+        .then(r => r.blob())
+        .then(blob => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }));
+
+    const logoUrl = '/assets/images/ARZ_SUITE_HORIZONTAL.png';
+    const photoUrl = data?.photo_url ? '/' + data.photo_url : null;
+
+    const logoP = toBase64(logoUrl).catch(() => null);
+    const photoP = photoUrl ? toBase64(photoUrl).catch(() => null) : Promise.resolve(null);
+
+    Promise.all([logoP, photoP]).then(([logoB64, photoB64]) => {
+      let html = card.outerHTML;
+      // Reemplazar logos (ambas instancias)
+      if (logoB64) {
+        html = html.replace(/src="\/assets\/images\/ARZ_SUITE_HORIZONTAL\.png"/g, `src="${logoB64}"`);
+      }
+      // Reemplazar foto del participante
+      if (photoB64) {
+        html = html.replace(/src="[^"]*uploads\/summer-course\/[^"]*"/, `src="${photoB64}"`);
+      }
+      openPrintWindow(html);
+    });
+  }
+
+  markCredentialDelivered(): void {
+    const data = this.credModalData();
+    if (!data?.enrollment_id) return;
+
+    this.credSaving.set(true);
+    this.credSvc.deliver({
+      enrollment_id: data.enrollment_id,
+      notes: this.credNotes() || undefined,
+    }).subscribe({
+      next: () => {
+        this.credSaving.set(false);
+        this.closeCredentialModal();
+        this.showToast('Credencial marcada como entregada ✓', 'success');
+        this._loadCredentials(this.selectedCourse()!.id);
+      },
+      error: err => {
+        this.credSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
   }
 }
