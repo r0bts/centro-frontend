@@ -7,7 +7,7 @@ import { environment } from '../../environments/environment';
 
 export interface AppNotification {
   id: number;
-  type: 'autorizado' | 'listo_recoger' | 'entregado';
+  type: 'solicitado' | 'autorizado' | 'listo_recoger' | 'entregado';
   title: string;
   body: string | null;
   is_read: boolean;
@@ -124,6 +124,7 @@ export class NotificationService {
 
   chipColor(type: AppNotification['type']): string {
     switch (type) {
+      case 'solicitado':    return '#f59e0b'; // naranja
       case 'autorizado':    return '#3b82f6'; // azul
       case 'listo_recoger': return '#22c55e'; // verde
       case 'entregado':     return '#6b7280'; // gris
@@ -132,6 +133,7 @@ export class NotificationService {
 
   chipIcon(type: AppNotification['type']): string {
     switch (type) {
+      case 'solicitado':    return 'bi-send-fill';
       case 'autorizado':    return 'bi-check-circle-fill';
       case 'listo_recoger': return 'bi-bag-check-fill';
       case 'entregado':     return 'bi-box-seam-fill';
@@ -140,6 +142,7 @@ export class NotificationService {
 
   chipLabel(type: AppNotification['type']): string {
     switch (type) {
+      case 'solicitado':    return 'Solicitado';
       case 'autorizado':    return 'Autorizado';
       case 'listo_recoger': return 'Listo';
       case 'entregado':     return 'Entregado';
