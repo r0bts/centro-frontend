@@ -6,7 +6,7 @@ import {
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ScCoursesService } from '../../../services/summer-course/sc-courses.service';
 import { ScCourse, SC_COURSE_STATUSES } from '../../../models/summer-course/summer-course.model';
 import { CourseWizardComponent } from './course-wizard/course-wizard';
@@ -15,7 +15,7 @@ import { CourseWizardComponent } from './course-wizard/course-wizard';
   selector: 'app-summer-course-courses',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, CourseWizardComponent],
+  imports: [CommonModule, CourseWizardComponent, RouterModule],
   templateUrl: './summer-course-courses.html',
   styleUrl: './summer-course-courses.scss',
 })

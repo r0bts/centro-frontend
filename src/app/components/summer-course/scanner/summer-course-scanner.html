@@ -1,0 +1,119 @@
+<div class="container py-4 scanner-container">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      
+      <!-- HEADER -->
+      <div class="d-flex align-items-center justify-content-between mb-4">
+        <h3 class="mb-0">
+          <i class="bi bi-qr-code-scan text-primary me-2"></i>
+          Validar Pase de Salida
+        </h3>
+        <button class="btn btn-outline-secondary" routerLink="/summer-course/pickup-history">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <!-- ERROR ALERT -->
+      <div *ngIf="cameraError" class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2 fs-4"></i>
+        <div>
+          {{ cameraError }}
+        </div>
+      </div>
+
+      <!-- SCANNER MODE -->
+      <div class="card shadow-sm border-0 rounded-4 mb-4" *ngIf="isScanning">
+        <div class="card-body p-0 overflow-hidden rounded-4">
+          <div id="qr-reader" class="w-100"></div>
+        </div>
+        <div class="card-footer bg-light text-center py-3">
+          <p class="text-muted mb-3">Apunta la cámara al código QR del pase de salida</p>
+          
+          <div class="input-group px-3">
+            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+            <input type="text" class="form-control" placeholder="O ingresa el token manualmente..." 
+                   [(ngModel)]="manualToken" (keyup.enter)="submitManualToken()" autofocus>
+            <button class="btn btn-primary" type="button" (click)="submitManualToken()">Validar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOADING OVERLAY -->
+      <div *ngIf="isLoading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+          <span class="visually-hidden">Validando...</span>
+        </div>
+        <p class="mt-3 text-muted fw-bold">Verificando pase en el sistema...</p>
+      </div>
+
+      <!-- RESULT MODE -->
+      <div *ngIf="scannedPass && !isScanning && !isLoading" class="result-card animate__animated animate__fadeInUp">
+        
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 border-top border-success border-5">
+          <div class="card-body p-4 text-center">
+            
+            <div class="success-icon mb-3">
+              <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+            </div>
+            
+            <h4 class="fw-bold text-success mb-4">Pase Válido</h4>
+            
+            <!-- Participant Info -->
+            <div class="participant-info p-3 bg-light rounded-4 mb-4 text-start">
+              <div class="d-flex align-items-center mb-3">
+                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                  {{ scannedPass?.participant?.first_name ? scannedPass.participant.first_name.charAt(0) : 'P' }}
+                </div>
+                <div>
+                  <h5 class="mb-1 fw-bold">{{ scannedPass?.participant?.first_name }} {{ scannedPass?.participant?.last_name }}</h5>
+                  <p class="text-muted mb-0">ID: #{{ scannedPass?.participant?.id }}</p>
+                </div>
+              </div>
+              
+              <div *ngIf="scannedPass?.can_leave_alone" class="alert alert-warning d-flex align-items-center fw-bold fs-5 shadow-sm rounded-4 border border-warning" role="alert">
+                <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-3 fs-3"></i>
+                <div>
+                  ¡ATENCIÓN! Este menor tiene autorización para salir solo.
+                </div>
+              </div>
+
+              <hr>
+              
+              <div class="row g-3">
+                <div class="col-12">
+                  <small class="text-muted text-uppercase fw-bold">Persona Autorizada</small>
+                  <p class="mb-0 fs-5 fw-medium text-dark">
+                    <i class="bi bi-person-badge text-primary me-2"></i>
+                    {{ scannedPass?.authorized_name }}
+                  </p>
+                </div>
+                <div class="col-12">
+                  <small class="text-muted text-uppercase fw-bold">Socio Titular</small>
+                  <p class="mb-0 text-dark">
+                    {{ scannedPass?.titular?.first_name }} {{ scannedPass?.titular?.last_name }} 
+                    (Socio #{{ scannedPass?.titular?.entityid }})
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- ACTION BUTTON -->
+            <button class="btn btn-success btn-lg w-100 rounded-pill fw-bold py-3 shadow-sm" (click)="processPass()" [disabled]="isProcessing">
+              <span *ngIf="!isProcessing"><i class="bi bi-door-open-fill me-2"></i> REGISTRAR SALIDA</span>
+              <span *ngIf="isProcessing">
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Procesando...
+              </span>
+            </button>
+            
+            <button class="btn btn-link text-muted mt-3 w-100" (click)="startScanner()" [disabled]="isProcessing">
+              Cancelar y escanear otro
+            </button>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
