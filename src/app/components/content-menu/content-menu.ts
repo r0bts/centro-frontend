@@ -73,7 +73,9 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.loadMenu();
     this.updateActiveStates();
-    this.notifService.startPolling();
+    if (this.notifService.canReceiveNotifications()) {
+      this.notifService.startPolling();
+    }
   }
 
   ngAfterViewInit(): void {
@@ -288,14 +290,27 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    // Si el clic no es dentro del nav, cerrar todo
     if (!target.closest('app-content-menu')) {
+      // Clic fuera del nav completo → cerrar todo
       this.closeAllDropdowns();
       this.isGearOpen.set(false);
       this.isAvatarOpen.set(false);
       this.isNotifOpen.set(false);
-      this.cdr.markForCheck();
+    } else {
+      // Clic dentro del nav pero fuera del panel de notificaciones → cerrarlo
+      if (!target.closest('.topnav-notif-wrapper')) {
+        this.isNotifOpen.set(false);
+      }
+      // Clic dentro del nav pero fuera del engranaje → cerrarlo
+      if (!target.closest('.topnav-gear-wrapper')) {
+        this.isGearOpen.set(false);
+      }
+      // Clic dentro del nav pero fuera del avatar → cerrarlo
+      if (!target.closest('.topnav-avatar-wrapper')) {
+        this.isAvatarOpen.set(false);
+      }
     }
+    this.cdr.markForCheck();
   }
 
   // ── Buscar item por ID ────────────────────────
@@ -343,6 +358,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     this.isNotifOpen.update(v => !v);
     if (this.isNotifOpen()) {
       this.isGearOpen.set(false);
+      this.notifService.loadAll(); // cargar lista al abrir el panel
     }
   }
 
@@ -350,12 +366,23 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     this.isNotifOpen.set(false);
     switch (n.type) {
       case 'solicitado':
-        this.router.navigate(['/requisicion/confirmacion']);
+        this.router.navigate(
+          ['/requisicion/confirmacion'],
+          { queryParams: { id: n.requisition_id, mode: 'edit' } }
+        );
         break;
       case 'autorizado':
+        this.router.navigate(
+          ['/almacen/surtir'],
+          { queryParams: { id: n.requisition_id } }
+        );
+        break;
       case 'listo_recoger':
       case 'entregado':
-        this.router.navigate(['/requisicion', n.requisition_id]);
+        this.router.navigate(
+          ['/requisicion/confirmacion'],
+          { queryParams: { id: n.requisition_id, mode: 'view' } }
+        );
         break;
     }
   }

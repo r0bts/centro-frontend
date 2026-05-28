@@ -162,6 +162,14 @@ export class NotificationService {
     return new Date(isoString).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   }
 
+  // ── Permisos — solo activo para usuarios del módulo de requisiciones ──────
+
+  canReceiveNotifications(): boolean {
+    return this.authService.hasPermission('requisition', 'create')
+        || this.authService.hasPermission('requisition_confirmation', 'authorize')
+        || this.authService.hasPermission('requisition_list', 'supply');
+  }
+
   // ── Privado ───────────────────────────────────────────────────────────────
 
   private authHeaders(): HttpHeaders | null {
