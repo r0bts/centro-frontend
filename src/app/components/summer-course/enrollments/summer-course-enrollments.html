@@ -256,10 +256,10 @@
                       @if (!credLoading()) {
                         @if (credForEnrollment(p.enrollment_id); as ci) {
                           @if (ci.has_photo) {
-                            <span class="sce-kit-badge sce-kit-badge--done">
+                            <button class="sce-kit-badge sce-kit-badge--done" style="cursor: pointer;" (click)="openPhotoModal(p, group, $event)">
                               <span class="material-symbols-outlined">photo_camera</span>
                               Foto ✓
-                            </span>
+                            </button>
                           } @else {
                             <button class="sce-kit-btn" (click)="openPhotoModal(p, group, $event)">
                               <span class="material-symbols-outlined">add_a_photo</span>
@@ -1117,17 +1117,94 @@
           </div>
 
           <!-- Panel derecho: previsualización -->
-          <div class="photo-area__preview">
-            <p class="photo-preview-label">Vista previa</p>
-            @if (photoPreviewUrl()) {
-              <img [src]="photoPreviewUrl()" class="photo-preview-img" alt="preview">
+          <div class="photo-area__preview" style="background: transparent; border: none; align-items: center; justify-content: center; padding: 0;">
+            @if (photoModalCredLoading()) {
+              <span class="sce-btn-spinner" style="border-color: #3b82f6; border-top-color: transparent; width: 24px; height: 24px;"></span>
             } @else {
-              <div class="photo-preview-empty">
-                <span class="material-symbols-outlined">person</span>
+              @if (photoModalCredData(); as cd) {
+                <div class="credential-card credential-card--preview" style="transform: scale(0.9); transform-origin: center;">
+                <div class="cred-wrapper">
+                  <div class="cred-top-row">
+                    <div class="cred-logo-block">
+                      <img src="/assets/images/logo-centro-libanes.png" alt="Centro Libanés" class="cred-logo-main" />
+                    </div>
+                    <div class="cred-punch-area">
+                      <div class="cred-punch-oval"></div>
+                      <span class="cred-punch-label">ZONA DE PERFORACIÓN</span>
+                    </div>
+                    <div class="cred-badge-type">PARTICIPANTE</div>
+                  </div>
+
+                  <div class="cred-body-bg">
+                    <div class="cred-course-logo-wrapper">
+                      <img src="/assets/images/logocurso2026.webp" alt="Curso de Verano 2026" class="cred-course-logo-img" />
+                    </div>
+
+                    <div class="cred-media-row">
+                      <div class="cred-media-box cred-media-box--photo">
+                        <div class="cred-photo-inner">
+                          @if (photoPreviewUrl() || cd.photo_url) {
+                            <img [src]="photoPreviewUrl() || (photoBaseUrl() + cd.photo_url)" class="cred-photo-img" />
+                          } @else {
+                            <div class="cred-photo-empty">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="cred-avatar-svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                              </svg>
+                              <span class="cred-photo-text">FOTO</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                      
+                      <div class="cred-media-box cred-media-box--qr">
+                        <div class="cred-qr-inner">
+                          <img [src]="'https://quickchart.io/qr?size=150&margin=0&text=' + cd.qr_token" class="cred-qr-img" crossorigin="anonymous" />
+                        </div>
+                        <div class="cred-qr-label">RECEPCIÓN/ENTREGA</div>
+                      </div>
+                    </div>
+
+                    <div class="cred-data-fields">
+                      <div class="cred-field cred-field--full">
+                        <div class="cred-label cred-label--blue">NOMBRE</div>
+                        <div class="cred-value">{{ cd.full_name }}</div>
+                      </div>
+                      
+                      <div class="cred-field-row-split">
+                        <div class="cred-field cred-field--grow">
+                          <div class="cred-label cred-label--orange">NO. SOCIO</div>
+                          <div class="cred-value">{{ cd.socio_entityid || '-' }}</div>
+                        </div>
+                        <div class="cred-field cred-field--small">
+                          <div class="cred-label cred-label--gold">EDAD</div>
+                          <div class="cred-value">{{ cd.age !== null ? cd.age + ' años' : '' }}</div>
+                        </div>
+                      </div>
+                      
+                      <div class="cred-field cred-field--full">
+                        <div class="cred-label cred-label--dark">NOMBRE DEL TITULAR</div>
+                        <div class="cred-value">{{ cd.full_name }}</div>
+                      </div>
+                      
+                      <div class="cred-field cred-field--full">
+                        <div class="cred-label cred-label--orange">TEL. EMERGENCIA</div>
+                        <div class="cred-value">{{ cd.emergency_phone || '-' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="cred-footer-area">
+                    <div class="cred-footer-line"></div>
+                    <div class="cred-footer-bar">
+                      CENTRO LIBANÉS - CURSO DE VERANO 2026
+                    </div>
+                  </div>
+                </div>
               </div>
             }
-          </div>
+          }
         </div>
+      </div>
       </div>
 
       <div class="sce-modal__footer">
@@ -1169,102 +1246,127 @@
         } @else {
           @if (credModalData(); as cd) {
 
-          <!-- ── Credencial imprimible ─────────────────────────────────── -->
-          <div class="credential-card print-target">
-
-            <!-- Encabezado -->
-            <div class="cred-header">
-              <div class="cred-header__logo">
-                <img src="/assets/images/ARZ_SUITE_HORIZONTAL.png" alt="Centro Libanés" class="cred-logo"
-                     onerror="this.style.display='none'">
-              </div>
-              <div class="cred-header__punch">
-                <span class="cred-punch-label">ZONA DE PERFORACIÓN</span>
-                <div class="cred-punch-line"></div>
-              </div>
-              <div class="cred-badge-type">PARTICIPANTE</div>
-            </div>
-
-            <!-- Logo curso -->
-            <div class="cred-course-logo">
-              <img src="/assets/images/ARZ_SUITE_HORIZONTAL.png" alt="Curso de Verano 2026"
-                   onerror="this.style.visibility='hidden'">
-            </div>
-
-            <!-- Foto + QR -->
-            <div class="cred-media">
-              <div class="cred-photo-wrap">
-                @if (cd.photo_url) {
-                  <img [src]="photoBaseUrl() + cd.photo_url" class="cred-photo" alt="foto">
-                } @else {
-                  <div class="cred-photo cred-photo--empty">
-                    <span class="material-symbols-outlined">person</span>
+          <!-- ── Layout de 2 columnas ─────────────────────────────────── -->
+          <div class="cred-modal-layout">
+            <div class="cred-modal-left">
+              <!-- ── Credencial imprimible ─────────────────────────────────── -->
+              <div class="credential-card print-target">
+                <div class="cred-wrapper">
+                  
+                  <!-- Top Row: Logo + text, Punch oval, Badge -->
+                  <div class="cred-top-row">
+                    <div class="cred-logo-block">
+                      <img src="/assets/images/logo-centro-libanes.png" alt="Centro Libanés" class="cred-logo-main" />
+                    </div>
+                    <div class="cred-punch-area">
+                      <div class="cred-punch-oval"></div>
+                      <span class="cred-punch-label">ZONA DE PERFORACIÓN</span>
+                    </div>
+                    <div class="cred-badge-type">PARTICIPANTE</div>
                   </div>
+
+                  <div class="cred-body-bg">
+                    <!-- Course Logo -->
+                    <div class="cred-course-logo-wrapper">
+                      <img src="/assets/images/logocurso2026.webp" alt="Curso de Verano 2026" class="cred-course-logo-img" />
+                    </div>
+
+                    <!-- Media Row: Photo and QR -->
+                    <div class="cred-media-row">
+                      <div class="cred-media-box cred-media-box--photo">
+                        <div class="cred-photo-inner">
+                          @if (cd.photo_url) {
+                            <img [src]="photoBaseUrl() + cd.photo_url" class="cred-photo-img" />
+                          } @else {
+                            <div class="cred-photo-empty">
+                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="cred-avatar-svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                              </svg>
+                              <span class="cred-photo-text">FOTO</span>
+                            </div>
+                          }
+                        </div>
+                      </div>
+                      
+                      <div class="cred-media-box cred-media-box--qr">
+                        <div class="cred-qr-inner">
+                          <img [src]="'https://quickchart.io/qr?size=150&margin=0&text=' + cd.qr_token" class="cred-qr-img" crossorigin="anonymous" />
+                        </div>
+                        <div class="cred-qr-label">RECEPCIÓN/ENTREGA</div>
+                      </div>
+                    </div>
+
+                    <!-- Data Fields -->
+                    <div class="cred-data-fields">
+                      <div class="cred-field cred-field--full">
+                        <div class="cred-label cred-label--blue">NOMBRE</div>
+                        <div class="cred-value">{{ cd.full_name }}</div>
+                      </div>
+                      
+                      <div class="cred-field-row-split">
+                        <div class="cred-field cred-field--grow">
+                          <div class="cred-label cred-label--orange">NO. SOCIO</div>
+                          <div class="cred-value">{{ cd.socio_entityid || '-' }}</div>
+                        </div>
+                        <div class="cred-field cred-field--small">
+                          <div class="cred-label cred-label--gold">EDAD</div>
+                          <div class="cred-value">{{ cd.age !== null ? cd.age + ' años' : '' }}</div>
+                        </div>
+                      </div>
+                      
+                      <div class="cred-field cred-field--full">
+                        <div class="cred-label cred-label--dark">NOMBRE DEL TITULAR</div>
+                        <div class="cred-value">{{ cd.full_name }}</div>
+                      </div>
+                      
+                      <div class="cred-field cred-field--full">
+                        <div class="cred-label cred-label--orange">TEL. EMERGENCIA</div>
+                        <div class="cred-value">{{ cd.emergency_phone || '-' }}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Footer -->
+                  <div class="cred-footer-area">
+                    <div class="cred-footer-line"></div>
+                    <div class="cred-footer-bar">
+                      CENTRO LIBANÉS - CURSO DE VERANO 2026
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- /credential-card -->
+            </div>
+            <!-- /cred-modal-left -->
+
+            <div class="cred-modal-right no-print">
+              <!-- Estado y notas (no se imprimen) -->
+              <div class="cred-status">
+                @if (cd.credential_delivered) {
+                  <span class="cred-status-badge cred-status-badge--delivered">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Credencial entregada · {{ cd.credential_delivery?.delivered_at | date:'dd/MM/yyyy HH:mm' }}
+                  </span>
+                } @else {
+                  <span class="cred-status-badge cred-status-badge--pending">
+                    <span class="material-symbols-outlined">pending</span>
+                    Pendiente de entrega
+                  </span>
                 }
               </div>
-              <div class="cred-qr-wrap">
-                @if (cd.qr_token) {
-                  <img [src]="'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + cd.qr_token"
-                       class="cred-qr" alt="QR">
-                }
-                <span class="cred-qr-label">RECEPCIÓN/ENTREGA</span>
-              </div>
-            </div>
 
-            <!-- Datos -->
-            <div class="cred-fields">
-              <div class="cred-field cred-field--full">
-                <span class="cred-field__label">NOMBRE</span>
-                <span class="cred-field__value">{{ cd.full_name }}</span>
-              </div>
-              <div class="cred-field">
-                <span class="cred-field__label cred-field__label--orange">NO. SOCIO</span>
-                <span class="cred-field__value">{{ cd.socio_entityid ?? '—' }}</span>
-              </div>
-              <div class="cred-field cred-field--small">
-                <span class="cred-field__label">EDAD</span>
-                <span class="cred-field__value">{{ cd.age != null ? (cd.age + ' años') : '—' }}</span>
-              </div>
-              <div class="cred-field cred-field--full">
-                <span class="cred-field__label">NOMBRE DEL TITULAR DEL TEL. EMERGENCIA</span>
-                <span class="cred-field__value">{{ cd.titular_name ?? '—' }}</span>
-              </div>
-              <div class="cred-field cred-field--full">
-                <span class="cred-field__label cred-field__label--orange">TEL. EMERGENCIA</span>
-                <span class="cred-field__value">{{ cd.emergency_phone ?? '—' }}</span>
-              </div>
+              @if (!cd.credential_delivered) {
+                <div class="cred-notes-row">
+                  <label class="sce-field-label">Notas (opcional)</label>
+                  <textarea class="sce-input" rows="4" placeholder="Ej: recogió la mamá..."
+                         [value]="credNotes()"
+                         (input)="credNotes.set($any($event.target).value)"></textarea>
+                </div>
+              }
             </div>
-
-            <!-- Pie -->
-            <div class="cred-footer">
-              CENTRO LIBANÉS - CURSO DE VERANO 2026
-            </div>
+            <!-- /cred-modal-right -->
           </div>
-          <!-- /credential-card -->
-
-          <!-- Estado y notas (no se imprimen) -->
-          <div class="cred-status no-print">
-            @if (cd.credential_delivered) {
-              <span class="cred-status-badge cred-status-badge--delivered">
-                <span class="material-symbols-outlined">check_circle</span>
-                Credencial entregada · {{ cd.credential_delivery?.delivered_at | date:'dd/MM/yyyy HH:mm' }}
-              </span>
-            } @else {
-              <span class="cred-status-badge cred-status-badge--pending">
-                <span class="material-symbols-outlined">pending</span>
-                Pendiente de entrega
-              </span>
-            }
-          </div>
-
-          @if (!cd.credential_delivered) {
-            <div class="cred-notes-row no-print">
-              <label class="sce-field-label">Notas (opcional)</label>
-              <input type="text" class="sce-input" placeholder="Ej: recogió la mamá..."
-                     [value]="credNotes()"
-                     (input)="credNotes.set($any($event.target).value)">
-            </div>
-          }
+          <!-- /cred-modal-layout -->
 
           } <!-- /if credModalData -->
         } <!-- /else -->

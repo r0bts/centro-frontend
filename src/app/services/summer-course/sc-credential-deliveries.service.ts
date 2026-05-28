@@ -25,7 +25,9 @@ export class ScCredentialDeliveriesService {
 
   /** GET /api/deportivo/summer-course/participants/{id}/credential-preview?course_id= */
   getPreview(participantId: number, courseId: number): Observable<ScCredentialPreviewResponse> {
-    const params = new HttpParams().set('course_id', courseId);
+    const params = new HttpParams()
+      .set('course_id', courseId)
+      .set('_t', Date.now().toString());
     return this.http.get<ScCredentialPreviewResponse>(
       `${this.baseDepo}/participants/${participantId}/credential-preview`, { params }
     );
