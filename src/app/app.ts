@@ -1,8 +1,10 @@
 import { Component, signal, OnInit } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { Title } from '@angular/platform-browser';
 import { AuthService } from './services/auth.service';
 import { Loading } from './components/loading/loading';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -13,10 +15,14 @@ import { Loading } from './components/loading/loading';
 export class App implements OnInit {
   protected readonly title = signal('centro-frontend');
   isAuthChecking = signal(true);
+  readonly isPruebas = environment.apiUrl.includes('pruebas');
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private titleService: Title) {}
 
   ngOnInit(): void {
+    if (this.isPruebas) {
+      this.titleService.setTitle('[PRUEBAS] Centro Libanés - Sistema de Requisiciones');
+    }
     // Esperar a que se inicialice el estado de autenticación
     setTimeout(() => {
       this.isAuthChecking.set(false);
