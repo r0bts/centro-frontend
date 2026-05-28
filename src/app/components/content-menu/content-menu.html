@@ -61,8 +61,7 @@
         <div class="topnav-actions">
 
         <!-- Campana de Notificaciones -->
-        <div class="topnav-notif-wrapper" [class.open]="isNotifOpen()"
-             *ngIf="notifService.canReceiveNotifications()">
+        <div class="topnav-notif-wrapper" [class.open]="isNotifOpen()">
           <button class="topnav-action-btn"
                   [class.active]="isNotifOpen()"
                   title="Notificaciones"

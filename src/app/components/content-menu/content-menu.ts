@@ -73,9 +73,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   ngOnInit(): void {
     this.loadMenu();
     this.updateActiveStates();
-    if (this.notifService.canReceiveNotifications()) {
-      this.notifService.startPolling();
-    }
+    this.notifService.startPolling();
   }
 
   ngAfterViewInit(): void {
