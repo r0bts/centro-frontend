@@ -787,3 +787,79 @@ export interface ScKitDeliverResponse {
   };
 }
 
+// ── Fotografías y Credenciales ──────────────────────────────────────────────
+
+export interface ScCredentialDeliveryItem {
+  enrollment_id:         number;
+  participant_id:        number;
+  full_name:             string;
+  participant_type:      string;
+  titular_socio_id:      number | null;
+  membership_no:         number | null;
+  has_photo:             boolean;
+  photo_url:             string | null;
+  credential_delivered:  boolean;
+  delivered_by_name:     string | null;
+  delivered_at:          string | null;
+  notes:                 string | null;
+}
+
+export interface ScCredentialStatusResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items:   ScCredentialDeliveryItem[];
+    summary: { total: number; delivered: number; pending: number };
+  };
+}
+
+export interface ScCredentialPreview {
+  participant_id:       number;
+  full_name:            string;
+  birth_date:           string | null;
+  age:                  number | null;
+  socio_entityid:       string | null;
+  photo_url:            string | null;
+  has_photo:            boolean;
+  titular_name:         string | null;
+  emergency_phone:      string | null;
+  qr_token:             string | null;
+  enrollment_id:        number | null;
+  credential_delivered: boolean;
+  credential_delivery:  { delivered_at: string; notes: string | null } | null;
+}
+
+export interface ScCredentialPreviewResponse {
+  success: boolean;
+  message: string;
+  data:    ScCredentialPreview;
+}
+
+export interface ScCredentialDeliverRequest {
+  enrollment_id?:    number;
+  titular_socio_id?: number;
+  course_id?:        number;
+  notes?:            string;
+}
+
+export interface ScCredentialDeliverResponse {
+  success: boolean;
+  message: string;
+  data: {
+    delivered:          { enrollment_id: number; participant_id: number; full_name: string; delivered_at: string }[];
+    skipped:            { enrollment_id: number; full_name: string; reason: string }[];
+    summary:            { delivered_count: number; skipped_count: number };
+    already_delivered?: boolean;
+    no_photo?:          boolean;
+    delivered_at?:      string;
+  };
+}
+
+export interface ScPhotoUploadResponse {
+  success:  boolean;
+  message:  string;
+  data: {
+    photo_url:         string;
+    photo_uploaded_at: string;
+  };
+}

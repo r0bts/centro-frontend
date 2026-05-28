@@ -159,11 +159,13 @@
                     {{ group.master_token }}
                   </div>
                 }
+
+                <!-- Botón Kit -->
                 @if (!kitLoading()) {
                   @if (kitGroupStatus(group) === 'all') {
                     <span class="sce-kit-badge sce-kit-badge--done">
                       <span class="material-symbols-outlined">card_giftcard</span>
-                      Entregado
+                      Kit ✓
                     </span>
                   } @else if (kitGroupStatus(group) === 'partial') {
                     <button class="sce-kit-btn sce-kit-btn--partial" (click)="openKitModal(group, $event)">
@@ -177,6 +179,7 @@
                     </button>
                   }
                 }
+
                 <span class="sce-chevron material-symbols-outlined">
                   {{ isExpanded(group.titular_id) ? 'expand_less' : 'expand_more' }}
                 </span>
@@ -248,6 +251,39 @@
                       </div>
                     </div>
                     <div class="sce-participant-row__right">
+
+                      <!-- Botón Foto / Credencial individual -->
+                      @if (!credLoading()) {
+                        @if (credForEnrollment(p.enrollment_id); as ci) {
+                          @if (ci.has_photo) {
+                            <span class="sce-kit-badge sce-kit-badge--done">
+                              <span class="material-symbols-outlined">photo_camera</span>
+                              Foto ✓
+                            </span>
+                          } @else {
+                            <button class="sce-kit-btn" (click)="openPhotoModal(p, group, $event)">
+                              <span class="material-symbols-outlined">add_a_photo</span>
+                              Foto
+                            </button>
+                          }
+                          @if (ci.credential_delivered) {
+                            <span class="sce-kit-badge sce-kit-badge--done">
+                              <span class="material-symbols-outlined">badge</span>
+                              Credencial ✓
+                            </span>
+                          } @else {
+                            <button class="sce-kit-btn"
+                                    [class.sce-kit-btn--disabled]="!ci.has_photo"
+                                    [disabled]="!ci.has_photo"
+                                    [title]="!ci.has_photo ? 'Primero captura la fotografía' : 'Entregar credencial'"
+                                    (click)="openCredentialModal(p, $event)">
+                              <span class="material-symbols-outlined">badge</span>
+                              Credencial
+                            </button>
+                          }
+                        }
+                      }
+
                       <div class="sce-weeks-chips">
                         @for (chip of weekChips(p.weeks); track chip.short) {
                           <span class="sce-week-chip">
@@ -280,7 +316,7 @@
 
 <!-- WIZARD -->
 @if (wizardOpen()) {
-  <div class="wz-overlay" (click)="closeWizard()"></div>
+  <div class="wz-overlay">
   <div class="wz-modal">
 
     <div class="wz-header">
@@ -848,6 +884,7 @@
 
     </div>
   </div>
+  </div>
 }
 
   } <!-- /!loading -->
@@ -1014,4 +1051,245 @@
     [enrolledGuestIds]="guestIds()"
     (guestSelected)="onGuestSelected($event)"
     (closed)="closeGuestModal()" />
+}
+
+<!-- ── Modal Fotografía ──────────────────────────────────────────────────── -->
+@if (photoModalOpen() && photoModalParticipant()) {
+  <div class="sce-modal-overlay" (click)="closePhotoModal()">
+    <div class="sce-modal sce-photo-modal" (click)="$event.stopPropagation()">
+      <div class="sce-modal__header">
+        <h2>
+          <span class="material-symbols-outlined">photo_camera</span>
+          Fotografía — {{ photoModalParticipant()!.full_name }}
+        </h2>
+        <button class="sce-modal__close" (click)="closePhotoModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="sce-modal__body">
+        <!-- Tabs cámara / archivo -->
+        <div class="photo-tabs">
+          <button class="photo-tab" [class.photo-tab--active]="photoCameraMode() === 'camera'"
+                  (click)="photoCameraMode.set('camera')">
+            <span class="material-symbols-outlined">videocam</span> Cámara
+          </button>
+          <button class="photo-tab" [class.photo-tab--active]="photoCameraMode() === 'file'"
+                  (click)="photoCameraMode.set('file'); _stopCamera()">
+            <span class="material-symbols-outlined">upload_file</span> Subir archivo
+          </button>
+        </div>
+
+        <div class="photo-area">
+          <!-- Panel izquierdo: cámara o selector de archivo -->
+          <div class="photo-area__source">
+            @if (photoCameraMode() === 'camera') {
+              <video #videoEl autoplay playsinline class="photo-video"
+                     [style.display]="photoCameraStream() ? 'block' : 'none'"></video>
+              @if (!photoCameraStream()) {
+                <div class="photo-video photo-video--placeholder">
+                  <span class="material-symbols-outlined">videocam_off</span>
+                  <p>Cámara no iniciada</p>
+                </div>
+              }
+              <div class="photo-area__actions">
+                @if (!photoCameraStream()) {
+                  <button class="sce-btn sce-btn--ghost" (click)="startCamera(videoEl)">
+                    <span class="material-symbols-outlined">play_circle</span>
+                    Iniciar cámara
+                  </button>
+                } @else {
+                  <button class="sce-btn sce-btn--primary" (click)="capturePhoto(videoEl)">
+                    <span class="material-symbols-outlined">camera</span>
+                    Tomar foto
+                  </button>
+                }
+              </div>
+            } @else {
+              <label class="photo-file-drop">
+                <span class="material-symbols-outlined">add_photo_alternate</span>
+                <span>Selecciona una imagen</span>
+                <small>JPG, PNG o WEBP · máx 5 MB</small>
+                <input type="file" accept="image/jpeg,image/png,image/webp"
+                       style="display:none" (change)="onFileSelected($event)">
+              </label>
+            }
+          </div>
+
+          <!-- Panel derecho: previsualización -->
+          <div class="photo-area__preview">
+            <p class="photo-preview-label">Vista previa</p>
+            @if (photoPreviewUrl()) {
+              <img [src]="photoPreviewUrl()" class="photo-preview-img" alt="preview">
+            } @else {
+              <div class="photo-preview-empty">
+                <span class="material-symbols-outlined">person</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="sce-modal__footer">
+        <button class="sce-btn sce-btn--ghost" (click)="closePhotoModal()" [disabled]="photoSaving()">
+          Cancelar
+        </button>
+        <button class="sce-btn sce-btn--primary" (click)="savePhoto()"
+                [disabled]="!photoPreviewUrl() || photoSaving()">
+          @if (photoSaving()) {
+            <span class="sce-btn-spinner"></span> Guardando...
+          } @else {
+            <span class="material-symbols-outlined">save</span> Guardar foto
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Modal Credencial ──────────────────────────────────────────────────── -->
+@if (credModalOpen()) {
+  <div class="sce-modal-overlay">
+    <div class="sce-modal sce-credential-modal" (click)="$event.stopPropagation()">
+      <div class="sce-modal__header no-print">
+        <h2>
+          <span class="material-symbols-outlined">badge</span>
+          Credencial
+        </h2>
+        <button class="sce-modal__close" (click)="closeCredentialModal()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <div class="sce-modal__body">
+        @if (credModalLoading()) {
+          <div class="sce-loading-row">
+            <span class="sce-spinner"></span> Cargando datos...
+          </div>
+        } @else {
+          @if (credModalData(); as cd) {
+
+          <!-- ── Credencial imprimible ─────────────────────────────────── -->
+          <div class="credential-card print-target">
+
+            <!-- Encabezado -->
+            <div class="cred-header">
+              <div class="cred-header__logo">
+                <img src="/assets/images/ARZ_SUITE_HORIZONTAL.png" alt="Centro Libanés" class="cred-logo"
+                     onerror="this.style.display='none'">
+              </div>
+              <div class="cred-header__punch">
+                <span class="cred-punch-label">ZONA DE PERFORACIÓN</span>
+                <div class="cred-punch-line"></div>
+              </div>
+              <div class="cred-badge-type">PARTICIPANTE</div>
+            </div>
+
+            <!-- Logo curso -->
+            <div class="cred-course-logo">
+              <img src="/assets/images/ARZ_SUITE_HORIZONTAL.png" alt="Curso de Verano 2026"
+                   onerror="this.style.visibility='hidden'">
+            </div>
+
+            <!-- Foto + QR -->
+            <div class="cred-media">
+              <div class="cred-photo-wrap">
+                @if (cd.photo_url) {
+                  <img [src]="photoBaseUrl() + cd.photo_url" class="cred-photo" alt="foto">
+                } @else {
+                  <div class="cred-photo cred-photo--empty">
+                    <span class="material-symbols-outlined">person</span>
+                  </div>
+                }
+              </div>
+              <div class="cred-qr-wrap">
+                @if (cd.qr_token) {
+                  <img [src]="'https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=' + cd.qr_token"
+                       class="cred-qr" alt="QR">
+                }
+                <span class="cred-qr-label">RECEPCIÓN/ENTREGA</span>
+              </div>
+            </div>
+
+            <!-- Datos -->
+            <div class="cred-fields">
+              <div class="cred-field cred-field--full">
+                <span class="cred-field__label">NOMBRE</span>
+                <span class="cred-field__value">{{ cd.full_name }}</span>
+              </div>
+              <div class="cred-field">
+                <span class="cred-field__label cred-field__label--orange">NO. SOCIO</span>
+                <span class="cred-field__value">{{ cd.socio_entityid ?? '—' }}</span>
+              </div>
+              <div class="cred-field cred-field--small">
+                <span class="cred-field__label">EDAD</span>
+                <span class="cred-field__value">{{ cd.age != null ? (cd.age + ' años') : '—' }}</span>
+              </div>
+              <div class="cred-field cred-field--full">
+                <span class="cred-field__label">NOMBRE DEL TITULAR DEL TEL. EMERGENCIA</span>
+                <span class="cred-field__value">{{ cd.titular_name ?? '—' }}</span>
+              </div>
+              <div class="cred-field cred-field--full">
+                <span class="cred-field__label cred-field__label--orange">TEL. EMERGENCIA</span>
+                <span class="cred-field__value">{{ cd.emergency_phone ?? '—' }}</span>
+              </div>
+            </div>
+
+            <!-- Pie -->
+            <div class="cred-footer">
+              CENTRO LIBANÉS - CURSO DE VERANO 2026
+            </div>
+          </div>
+          <!-- /credential-card -->
+
+          <!-- Estado y notas (no se imprimen) -->
+          <div class="cred-status no-print">
+            @if (cd.credential_delivered) {
+              <span class="cred-status-badge cred-status-badge--delivered">
+                <span class="material-symbols-outlined">check_circle</span>
+                Credencial entregada · {{ cd.credential_delivery?.delivered_at | date:'dd/MM/yyyy HH:mm' }}
+              </span>
+            } @else {
+              <span class="cred-status-badge cred-status-badge--pending">
+                <span class="material-symbols-outlined">pending</span>
+                Pendiente de entrega
+              </span>
+            }
+          </div>
+
+          @if (!cd.credential_delivered) {
+            <div class="cred-notes-row no-print">
+              <label class="sce-field-label">Notas (opcional)</label>
+              <input type="text" class="sce-input" placeholder="Ej: recogió la mamá..."
+                     [value]="credNotes()"
+                     (input)="credNotes.set($any($event.target).value)">
+            </div>
+          }
+
+          } <!-- /if credModalData -->
+        } <!-- /else -->
+      </div>
+
+      <div class="sce-modal__footer no-print">
+        <button class="sce-btn sce-btn--ghost" (click)="closeCredentialModal()">
+          Cerrar
+        </button>
+        <button class="sce-btn sce-btn--secondary" (click)="printCredential()">
+          <span class="material-symbols-outlined">print</span>
+          Imprimir
+        </button>
+        @if (credModalData() && !credModalData()!.credential_delivered) {
+          <button class="sce-btn sce-btn--primary" (click)="markCredentialDelivered()"
+                  [disabled]="credSaving()">
+            @if (credSaving()) {
+              <span class="sce-btn-spinner"></span> Guardando...
+            } @else {
+              <span class="material-symbols-outlined">check_circle</span>
+              Marcar como entregada
+            }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
 }
