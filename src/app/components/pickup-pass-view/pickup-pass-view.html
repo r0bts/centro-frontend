@@ -1,0 +1,61 @@
+<div class="pickup-pass-container min-vh-100 d-flex flex-column align-items-center justify-content-center py-5 bg-light">
+  
+  <div class="pass-card shadow-lg bg-white rounded-4 overflow-hidden position-relative">
+    
+    <!-- Top Decoration -->
+    <div class="pass-header text-center py-4 bg-primary text-white">
+      <h2 class="m-0 fw-bold fs-4">Pase de Salida</h2>
+      <p class="m-0 text-white-50 small mt-1">Curso de Verano</p>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="text-muted mt-3">Verificando pase...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="!loading && error" class="text-center py-5 px-4 text-danger">
+      <i class="bi bi-x-circle-fill display-4 mb-3"></i>
+      <h4 class="fw-bold">Pase Inválido</h4>
+      <p class="mb-0">{{ error }}</p>
+    </div>
+
+    <!-- Valid Pass State -->
+    <div *ngIf="!loading && passInfo" class="pass-body text-center p-4 p-md-5">
+      
+      <div class="qr-wrapper mb-4 p-3 bg-white border rounded-4 d-inline-block shadow-sm">
+        <qrcode 
+          [qrdata]="passInfo.token" 
+          [width]="200" 
+          [errorCorrectionLevel]="'M'"
+          [margin]="1">
+        </qrcode>
+      </div>
+
+      <div class="info-group mb-3">
+        <span class="d-block text-muted small text-uppercase fw-semibold mb-1">Autorizado para recoger:</span>
+        <h3 class="fs-5 fw-bold text-dark m-0">{{ passInfo.participant_name }}</h3>
+      </div>
+
+      <hr class="my-4 border-light border-2">
+
+      <div class="info-group mb-3">
+        <span class="d-block text-muted small text-uppercase fw-semibold mb-1">Presentado por:</span>
+        <h4 class="fs-6 fw-semibold text-secondary m-0">{{ passInfo.authorized_name }}</h4>
+      </div>
+
+      <div class="info-group mt-4 p-3 bg-light rounded-3">
+        <span class="d-block text-muted small mb-1"><i class="bi bi-clock-history me-1"></i>Válido hasta:</span>
+        <span class="fw-medium text-danger">{{ passInfo.expires_at | date:'medium' }}</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="mt-4 text-muted small text-center">
+    Muestra este código al instructor del curso para recoger al niño.
+  </div>
+</div>

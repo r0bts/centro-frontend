@@ -121,7 +121,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     this.menuService.updateActiveState(this.menuItems(), currentRoute);
     this.menuItems.update(items => [...items]);
     this.cdr.markForCheck();
-    setTimeout(() => this.updateIndicator(), 50);
+    setTimeout(() => this.updateIndicator(), 100);
   }
 
   // ── Actualizar indicador deslizante ──────────
@@ -227,6 +227,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   toggleGear(event: Event): void {
     event.stopPropagation();
     this.isGearOpen.update(v => !v);
+    this.isAvatarOpen.set(false);
     // Cerrar dropdowns del nav
     this.closeAllDropdowns();
   }
@@ -257,6 +258,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     } else {
       this.activeSection = sectionId;
       this.sectionChange.emit(sectionId);
+      setTimeout(() => this.updateIndicator(), 100);
     }
   }
 
@@ -272,6 +274,9 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
       item.isExpanded = next;
       return [...items];
     });
+
+    this.isGearOpen.set(false);
+    this.isAvatarOpen.set(false);
 
     this.cdr.markForCheck();
   }

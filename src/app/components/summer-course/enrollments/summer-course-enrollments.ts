@@ -15,6 +15,7 @@ import { ScCoursesService }         from '../../../services/summer-course/sc-cou
 import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
 import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
+import { environment } from '../../../../environments/environment';
 import {
   ScCourse,
   ScLevel,
@@ -388,6 +389,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   backToSearch(): void { this.wizardStep.set('search'); this.selectedTitular.set(null); }
+
+  // ── Utils ─────────────────────────────────────────────────────────────────
+  photoBaseUrl(): string { 
+    return environment.apiUrl.replace('/api', '/'); 
+  }
 
   // ── Step 2 ────────────────────────────────────────────────────────────────
   get courseWeeks() { return this.selectedCourse()?.sc_weeks ?? []; }
@@ -958,6 +964,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Modal de Fotografía ───────────────────────────────────────────────────
 
+  photoModalCredData = signal<any>(null);
+  photoModalCredLoading = signal<boolean>(false);
+
   openPhotoModal(p: ScRegisteredParticipant, group: ScRegistrationGroup, event: Event): void {
     event.stopPropagation();
     this.photoModalParticipant.set(p);
@@ -965,6 +974,25 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.photoPreviewUrl.set(null);
     this.photoCameraMode.set('camera');
     this.photoModalOpen.set(true);
+    
+    // Cargar previsualización de credencial
+    this.photoModalCredLoading.set(true);
+    this.photoModalCredData.set(null);
+    this.credSvc.getPreview(p.participant_id, this.selectedCourse()!.id).subscribe({
+      next: res => {
+        this.photoModalCredData.set(res.data);
+        this.photoModalCredLoading.set(false);
+      },
+      error: () => this.photoModalCredLoading.set(false)
+    });
+    
+    // Iniciar cámara automáticamente
+    setTimeout(() => {
+      const videoEl = document.querySelector('video.photo-video') as HTMLVideoElement;
+      if (videoEl) {
+        this.startCamera(videoEl);
+      }
+    }, 50);
   }
 
   closePhotoModal(): void {
@@ -1056,54 +1084,42 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   /** Base URL para archivos estáticos del webroot */
-  photoBaseUrl(): string { return '/'; }
-
   printCredential(): void {
     const data = this.credModalData();
     const card = document.querySelector('.credential-card') as HTMLElement | null;
     if (!card) return;
 
     const openPrintWindow = (cardHtml: string) => {
-      const win = window.open('', '_blank', 'width=250,height=400');
+      const win = window.open('', '_blank', 'width=350,height=550');
       if (!win) return;
+      
+      let stylesHtml = '';
+      document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+        stylesHtml += el.outerHTML;
+      });
+
       win.document.write(`
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<title>Credencial - ${data?.full_name || ''}</title>
+${stylesHtml}
 <style>
   @page { size: 54mm 85mm; margin: 0; }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-  .credential-card { width: 54mm; height: 85mm; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
-  .cred-header { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-bottom: 1px solid #f3f4f6; }
-  .cred-header__logo { flex: 0 0 auto; }
-  .cred-header__punch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .cred-logo { height: 26px; }
-  .cred-punch-label { font-size: 7px; color: #9ca3af; font-weight: 700; letter-spacing: .4px; }
-  .cred-punch-line { width: 100%; height: 2px; background: repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 3px, transparent 3px, transparent 6px); }
-  .cred-badge-type { background: #f97316; color: #fff; font-size: 8px; font-weight: 700; letter-spacing: .4px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; }
-  .cred-course-logo { text-align: center; padding: 2px 0; }
-  .cred-course-logo img { height: 38px; }
-  .cred-media { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 8px; }
-  .cred-photo-wrap { flex: 0 0 32mm; }
-  .cred-photo { width: 32mm; height: 30mm; object-fit: cover; border-radius: 4px; border: 2.5px solid #f97316; display: block; }
-  .cred-photo--empty { width: 32mm; height: 30mm; display: flex; align-items: center; justify-content: center; background: #f9fafb; border: 2.5px dashed #f97316; border-radius: 4px; }
-  .cred-qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 0; }
-  .cred-qr { width: 22mm; height: 22mm; border-radius: 4px; border: 2px solid #1e3a5f; }
-  .cred-qr-label { font-size: 7px; font-weight: 700; letter-spacing: .4px; background: #1e3a5f; color: #fff; padding: 2px 4px; border-radius: 3px; text-align: center; }
-  .cred-fields { display: grid; grid-template-columns: 1fr auto; gap: 3px 6px; padding: 3px 8px; flex: 1; }
-  .cred-field { display: flex; flex-direction: column; gap: 1px; }
-  .cred-field--full { grid-column: 1 / -1; }
-  .cred-field--small { min-width: 50px; }
-  .cred-field__label { font-size: 7px; font-weight: 700; letter-spacing: .4px; color: #1e3a5f; text-transform: uppercase; }
-  .cred-field__label--orange { color: #f97316; }
-  .cred-field__value { font-size: 9px; font-weight: 600; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 1px; min-height: 12px; }
-  .cred-footer { background: #1e3a5f; color: #fff; text-align: center; font-size: 8px; font-weight: 700; letter-spacing: .4px; padding: 3px 4px; margin-top: auto; }
-  .material-symbols-outlined { display: none; }
+  body { margin: 0; padding: 0; background: white; display: flex; justify-content: center; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .credential-card {
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+  }
 </style>
 </head>
-<body>${cardHtml}</body>
+<body>
+  ${cardHtml}
+</body>
 </html>`);
       win.document.close();
       win.focus();
@@ -1121,20 +1137,25 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         }));
 
     const logoUrl = '/assets/images/ARZ_SUITE_HORIZONTAL.png';
-    const photoUrl = data?.photo_url ? '/' + data.photo_url : null;
+    const courseLogoUrl = '/assets/images/logocurso2026.webp';
+    const photoUrl = data?.photo_url ? this.photoBaseUrl() + data.photo_url : null;
 
     const logoP = toBase64(logoUrl).catch(() => null);
+    const courseLogoP = toBase64(courseLogoUrl).catch(() => null);
     const photoP = photoUrl ? toBase64(photoUrl).catch(() => null) : Promise.resolve(null);
 
-    Promise.all([logoP, photoP]).then(([logoB64, photoB64]) => {
+    Promise.all([logoP, courseLogoP, photoP]).then(([logoB64, courseLogoB64, photoB64]) => {
       let html = card.outerHTML;
-      // Reemplazar logos (ambas instancias)
       if (logoB64) {
         html = html.replace(/src="\/assets\/images\/ARZ_SUITE_HORIZONTAL\.png"/g, `src="${logoB64}"`);
       }
-      // Reemplazar foto del participante
+      if (courseLogoB64) {
+        html = html.replace(/src="\/assets\/images\/logocurso2026\.webp"/g, `src="${courseLogoB64}"`);
+      }
       if (photoB64) {
-        html = html.replace(/src="[^"]*uploads\/summer-course\/[^"]*"/, `src="${photoB64}"`);
+        html = html.replace(/<img[^>]*class="cred-photo-img"[^>]*src="([^"]+)"[^>]*>/, (match, p1) => {
+          return match.replace(p1, photoB64);
+        });
       }
       openPrintWindow(html);
     });

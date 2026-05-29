@@ -13,6 +13,10 @@ export const routes: Routes = [
     canActivate: [loginGuard]
   },
   {
+    path: 'pase-salida/:token',
+    loadComponent: () => import('./components/pickup-pass-view/pickup-pass-view').then(m => m.PickupPassViewComponent)
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./components/dashboard/dashboard').then(m => m.Dashboard),
     canActivate: [authGuard]
@@ -249,6 +253,26 @@ export const routes: Routes = [
         path: 'catalog',
         loadComponent: () =>
           import('./components/summer-course/catalog/summer-course-catalog').then(m => m.SummerCourseCatalogComponent)
+      },
+      {
+        path: 'scanner',
+        loadComponent: () =>
+          import('./components/summer-course/scanner/summer-course-scanner').then(m => m.SummerCourseScannerComponent)
+      },
+      {
+        path: 'checkin-scanner',
+        loadComponent: () =>
+          import('./components/summer-course/checkin-scanner/summer-course-checkin-scanner').then(m => m.SummerCourseCheckinScannerComponent)
+      },
+      {
+        path: 'pickup-history',
+        loadComponent: () =>
+          import('./components/summer-course/pickup-history/summer-course-pickup-history').then(m => m.SummerCoursePickupHistoryComponent)
+      },
+      {
+        path: 'checkin-history',
+        loadComponent: () =>
+          import('./components/summer-course/checkin-history/summer-course-checkin-history').then(m => m.SummerCourseCheckinHistoryComponent)
       },
       {
         path: '',

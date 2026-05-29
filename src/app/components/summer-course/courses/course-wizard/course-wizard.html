@@ -253,7 +253,7 @@
                         <span class="input-group-text px-1">$</span>
                         <input type="number" class="form-control text-end px-1" min="0" step="100"
                                style="min-width:60px"
-                               [value]="cost.costs[w] ?? 0"
+                               [value]="cost.costs[w]"
                                (input)="updateCostCell(cost.participant_type, w, +$any($event.target).value)">
                       </div>
                     </td>
