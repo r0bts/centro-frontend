@@ -7,14 +7,14 @@ import { SummerCourseScannerService } from '../../../services/summer-course/sc-s
 import Swal from 'sweetalert2';
 
 @Component({
-  selector: 'app-summer-course-scanner',
+  selector: 'app-summer-course-checkin-scanner',
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule],
-  templateUrl: './summer-course-scanner.html',
-  styleUrls: ['./summer-course-scanner.scss'],
+  templateUrl: './summer-course-checkin-scanner.html',
+  styleUrls: ['./summer-course-checkin-scanner.scss'],
   encapsulation: ViewEncapsulation.None
 })
-export class SummerCourseScannerComponent implements OnInit, OnDestroy {
+export class SummerCourseCheckinScannerComponent implements OnInit, OnDestroy {
   html5QrCode: Html5Qrcode | null = null;
   isScanning = false;
   isLoading = false;
@@ -22,8 +22,8 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
   cameraError: string | null = null;
   manualToken: string = '';
   
-  // Scanned Pass state
-  scannedPass: any = null;
+  // Scanned Checkin state
+  scannedData: any = null;
 
   constructor(
     private summerCourseApi: SummerCourseScannerService,
@@ -48,13 +48,13 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
     this.isScanning = true;
     this.isLoading = false;
     this.isProcessing = false;
-    this.scannedPass = null;
+    this.scannedData = null;
     this.manualToken = '';
     this.cameraError = null;
     
     // Slight delay to allow DOM to render the reader div
     setTimeout(() => {
-      this.html5QrCode = new Html5Qrcode('qr-reader');
+      this.html5QrCode = new Html5Qrcode('qr-reader-checkin');
       const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
       const tryStart = (facingMode: string) => {
@@ -99,21 +99,18 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
   }
 
   onScanSuccess(decodedText: string) {
-    if (this.isLoading) return;
+    if (this.isLoading || this.isProcessing) return;
     
     this.stopScanner();
-    this.validateToken(decodedText);
+    this.processToken(decodedText);
   }
 
-  validateToken(token: string) {
-    this.isLoading = true;
+  processToken(token: string) {
+    this.isProcessing = true;
     this.cdr.detectChanges(); // Force UI update
     
     // Extraer token si es URL
-    if (token.includes('/pase-salida/')) {
-      const parts = token.split('/pase-salida/');
-      token = parts[parts.length - 1];
-    } else if (token.includes('/credencial/')) {
+    if (token.includes('/credencial/')) {
       const parts = token.split('/credencial/');
       token = parts[parts.length - 1];
     } else if (token.includes('=')) {
@@ -122,73 +119,51 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
         token = parts[parts.length - 1];
     }
     
-    this.summerCourseApi.validatePickupPass(token).subscribe({
-      next: (res: any) => {
-        this.isLoading = false;
-        
-        if (res.success) {
-          this.playSuccessSound();
-          this.scannedPass = res.data;
-          this.scannedPass.token = token; // store for processing
-        } else {
-          this.showError(res.message || 'Pase inválido');
-        }
-        this.cdr.detectChanges(); // Force UI update AFTER state is fully updated
-      },
-      error: (err) => {
-        this.isLoading = false;
-        
-        const msg = err.error?.message || 'Error al validar el pase.';
-        this.showError(msg);
-        this.cdr.detectChanges(); // Force UI update
-      }
-    });
-  }
-
-  processPass() {
-    if (!this.scannedPass || !this.scannedPass.token || this.isProcessing) return;
-    
-    this.isProcessing = true;
-    this.cdr.detectChanges(); // Force UI update
-    
-    this.summerCourseApi.processPickupPass(this.scannedPass.token).subscribe({
+    this.summerCourseApi.processCheckin(token).subscribe({
       next: (res: any) => {
         this.isProcessing = false;
         
         if (res.success) {
+          // Guardamos data para mostrarla en pantalla
+          this.scannedData = res.data;
+          this.scannedData.success = true;
+          this.cdr.detectChanges();
+          
           this.playSuccessSound();
           
           Swal.fire({
             toast: true,
             position: 'top-end',
             icon: 'success',
-            title: '¡Salida Registrada!',
+            title: '¡Registrado: ' + this.scannedData.participant.first_name + '!',
             showConfirmButton: false,
             timer: 1500
           });
           
-          // Do not navigate away. Just restart scanner to be ready for the next one.
-          this.scannedPass = null;
-          this.startScanner();
+          // Flash success screen briefly, then restart
+          setTimeout(() => {
+             this.startScanner();
+          }, 1500); // Muestra la foto por 1.5 segundos
+          
         } else {
-          this.showError(res.message);
+          this.showError(res.message || 'Token inválido');
         }
-        this.cdr.detectChanges(); // Force UI update
       },
       error: (err) => {
         this.isProcessing = false;
-        this.showError(err.error?.message || 'Error al procesar.');
-        this.cdr.detectChanges(); // Force UI update
+        const msg = err.error?.message || 'Error al procesar check-in.';
+        this.showError(msg);
       }
     });
   }
 
   showError(message: string) {
     Swal.fire({
-      title: 'Pase Inválido',
+      title: 'Validación',
       text: message,
-      icon: 'error',
+      icon: 'warning',
       confirmButtonText: 'Escanear de Nuevo'
+    }).then(() => {
     }).then(() => {
       this.startScanner();
     });

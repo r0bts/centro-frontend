@@ -87,6 +87,11 @@
                     {{ scannedPass?.authorized_name }}
                   </p>
                 </div>
+                <div class="col-12 text-center my-3" *ngIf="scannedPass?.authorized_photo_url">
+                  <small class="text-muted text-uppercase d-block fw-bold mb-2">Fotografía de la Persona Autorizada</small>
+                  <img [src]="scannedPass.authorized_photo_url" alt="Foto Autorizado" 
+                       class="img-thumbnail rounded-4 shadow-sm" style="max-width: 180px; max-height: 180px; object-fit: cover;">
+                </div>
                 <div class="col-12">
                   <small class="text-muted text-uppercase fw-bold">Socio Titular</small>
                   <p class="mb-0 text-dark">

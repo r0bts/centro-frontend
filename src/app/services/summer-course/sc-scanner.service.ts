@@ -18,7 +18,27 @@ export class SummerCourseScannerService {
     return this.http.post(`${this.apiUrl}/process-pickup-pass`, { token });
   }
 
-  getPickupPassHistory() {
-    return this.http.get(`${this.apiUrl}/get-pickup-pass-history`);
+  getPickupPassHistory(dateFilter: string = '') {
+    let url = `${this.apiUrl}/get-pickup-pass-history`;
+    if (dateFilter) {
+      url += `?date=${dateFilter}`;
+    }
+    return this.http.get(url);
+  }
+
+  getCheckinHistory(dateFilter: string = '') {
+    let url = `${this.apiUrl}/get-checkin-history`;
+    if (dateFilter) {
+      url += `?date=${dateFilter}`;
+    }
+    return this.http.get(url);
+  }
+
+  validateCheckin(token: string) {
+    return this.http.post(`${this.apiUrl}/validate-checkin`, { token });
+  }
+
+  processCheckin(token: string) {
+    return this.http.post(`${this.apiUrl}/process-checkin`, { token });
   }
 }

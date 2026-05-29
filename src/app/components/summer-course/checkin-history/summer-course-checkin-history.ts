@@ -3,27 +3,27 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SummerCourseScannerService } from '../../../services/summer-course/sc-scanner.service';
 
-interface PickupHistoryRecord {
+interface CheckinHistoryRecord {
   id: number;
   participant_name: string;
   participant_photo_url?: string;
-  authorized_name: string;
-  scanned_at: string | null;
-  scanned_by_name: string;
-  can_leave_alone: boolean;
+  checked_in_at: string | null;
+  checked_in_by_name: string;
 }
 
 @Component({
-  selector: 'app-summer-course-pickup-history',
+  selector: 'app-summer-course-checkin-history',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterModule],
-  templateUrl: './summer-course-pickup-history.html',
-  styleUrl: './summer-course-pickup-history.scss',
+  templateUrl: './summer-course-checkin-history.html',
+  styleUrl: './summer-course-checkin-history.scss',
 })
-export class SummerCoursePickupHistoryComponent implements OnInit {
+export class SummerCourseCheckinHistoryComponent implements OnInit {
+  private scannerService = inject(SummerCourseScannerService);
+
   courseName = signal<string>('Curso de Verano');
-  history = signal<PickupHistoryRecord[]>([]);
+  history = signal<CheckinHistoryRecord[]>([]);
   loading = signal<boolean>(false);
   error = signal<string | null>(null);
   selectedDate = signal<string>(
@@ -37,7 +37,7 @@ export class SummerCoursePickupHistoryComponent implements OnInit {
     let records = this.history();
 
     if (date) {
-      records = records.filter(r => r.scanned_at && r.scanned_at.startsWith(date));
+      records = records.filter(r => r.checked_in_at && r.checked_in_at.startsWith(date));
     }
 
     if (term) {
@@ -46,8 +46,6 @@ export class SummerCoursePickupHistoryComponent implements OnInit {
 
     return records;
   });
-
-  private scannerService = inject(SummerCourseScannerService);
 
   ngOnInit() {
     this.refresh();
@@ -61,7 +59,7 @@ export class SummerCoursePickupHistoryComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.scannerService.getPickupPassHistory('all').subscribe({
+    this.scannerService.getCheckinHistory('all').subscribe({
       next: (res: any) => {
         if (res.success) {
           this.courseName.set(res.data.course_name || 'Curso de Verano');
@@ -72,7 +70,7 @@ export class SummerCoursePickupHistoryComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        this.error.set(err.error?.message || 'Error al cargar el historial de salidas.');
+        this.error.set(err.error?.message || 'Error al cargar el historial de entradas.');
         this.loading.set(false);
       }
     });

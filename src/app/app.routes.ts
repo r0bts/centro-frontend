@@ -260,9 +260,19 @@ export const routes: Routes = [
           import('./components/summer-course/scanner/summer-course-scanner').then(m => m.SummerCourseScannerComponent)
       },
       {
+        path: 'checkin-scanner',
+        loadComponent: () =>
+          import('./components/summer-course/checkin-scanner/summer-course-checkin-scanner').then(m => m.SummerCourseCheckinScannerComponent)
+      },
+      {
         path: 'pickup-history',
         loadComponent: () =>
           import('./components/summer-course/pickup-history/summer-course-pickup-history').then(m => m.SummerCoursePickupHistoryComponent)
+      },
+      {
+        path: 'checkin-history',
+        loadComponent: () =>
+          import('./components/summer-course/checkin-history/summer-course-checkin-history').then(m => m.SummerCourseCheckinHistoryComponent)
       },
       {
         path: '',

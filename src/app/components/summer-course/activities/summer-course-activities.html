@@ -250,7 +250,7 @@
 
 @if (pendingCopyWeek()) {
   <app-sc-schedule-copy-week-modal
-    [currentWeekId]="currentWeek()?.id || 0"
+    [currentWeekId]="currentWeek().id || 0"
     [weeks]="currentWeeks()"
     (confirmed)="onCopyWeekConfirm($event)"
     (cancelled)="onCopyWeekCancel()">
