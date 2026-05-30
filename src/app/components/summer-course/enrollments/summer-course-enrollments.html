@@ -286,9 +286,17 @@
 
                       <div class="sce-weeks-chips">
                         @for (chip of weekChips(p.weeks); track chip.short) {
-                          <span class="sce-week-chip">
-                            <span class="material-symbols-outlined">date_range</span>
+                          <span class="sce-week-chip" [class.sce-week-chip--intensive]="!!chip.intensiveActivityId" style="display: inline-flex; align-items: center; gap: 4px;">
+                            <span class="material-symbols-outlined" style="font-size: 14px;">date_range</span>
                             {{ chip.short }}@if (chip.dates) {: {{ chip.dates }}}
+                            <select 
+                              style="margin-left: 4px; padding: 2px 4px; border-radius: 4px; border: 1px solid #cbd5e1; background: #fff; font-size: 0.7rem; color: #334155; outline: none; cursor: pointer; max-width: 100px;"
+                              (change)="changeWeekIntensiveActivity(chip.enrollmentWeekId, $any($event.target).value)">
+                              <option value="" [selected]="!chip.intensiveActivityId">Regular</option>
+                              @for (act of intensiveActivities(); track act.id) {
+                                <option [value]="act.id" [selected]="chip.intensiveActivityId === act.id">{{ act.name }}</option>
+                              }
+                            </select>
                           </span>
                         }
                         @if (!p.weeks.length) {
@@ -560,12 +568,29 @@
                   </span>
                   <div class="wz-p-card__weeks">
                     @for (w of courseWeeks; track w.id) {
-                      <button class="wz-week-chip"
-                              [class.wz-week-chip--on]="isWeekSelected(i, w.week_number)"
-                              (click)="toggleWeek(i, w.week_number)"
-                              [title]="w.label">
-                        {{ w.week_number }}
-                      </button>
+                      @if (isWeekSelected(i, w.week_number)) {
+                        <div class="wz-week-selected-pill">
+                          <button class="wz-week-chip wz-week-chip--on"
+                                  (click)="toggleWeek(i, w.week_number)"
+                                  [title]="w.label">
+                            {{ w.week_number }}
+                          </button>
+                          <select class="wz-week-select"
+                                  [ngModel]="getWeekIntensiveActivity(i, w.week_number)"
+                                  (change)="setWeekIntensiveActivity(i, w.week_number, $any($event.target).value)">
+                            <option [value]="null">Normal</option>
+                            @for (act of intensiveActivities(); track act.id) {
+                              <option [value]="act.id">{{ act.name }}</option>
+                            }
+                          </select>
+                        </div>
+                      } @else {
+                        <button class="wz-week-chip"
+                                (click)="toggleWeek(i, w.week_number)"
+                                [title]="w.label">
+                          {{ w.week_number }}
+                        </button>
+                      }
                     }
                     @if (!courseWeeks.length) {
                       <span style="font-size:.75rem;color:#94a3b8">Sin semanas configuradas</span>
@@ -747,7 +772,7 @@
                     } @else { — }
                   </td>
                   <td>{{ typeLabel(p.type) }}</td>
-                  <td><span class="wz-weeks-count" style="font-size: 0.85rem;">Sem: {{ p.weeks.join(', ') }}</span></td>
+                  <td><span class="wz-weeks-count" style="font-size: 0.85rem;">Sem: {{ formatPendingWeeks(p.weeks) }}</span></td>
                   <td class="ta-right wz-cost">
                     @if (participantDiscount(p) > 0) {
                       <span class="wz-list-price">{{ currency(participantListPrice(p)) }}</span>
