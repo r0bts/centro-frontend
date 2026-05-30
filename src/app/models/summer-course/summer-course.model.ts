@@ -39,6 +39,14 @@ export interface ScWeek {
   sort_order: number;
 }
 
+export interface ScIntensiveActivity {
+  id: number;
+  name: string;
+  description: string | null;
+  extra_cost: number;
+  active: boolean;
+}
+
 export interface ScCost {
   id: number;
   course_id?: number;
@@ -503,7 +511,7 @@ export interface ScRegistrationParticipant {
   socio_id: string | null;
   fullName: string;
   type: 'member' | 'guest' | 'staff' | 'staff_guest';
-  weeks: number[];              // week_numbers seleccionados
+  weeks: { week_number: number; intensive_activity_id: number | null }[]; // week_numbers seleccionados con su modalidad
   birth_date?: string | null;
   suggested_level?: number | null;
 }
@@ -518,7 +526,7 @@ export interface ScEnrolledParticipant {
   guest_id:         number | null;
   invited_by:       string | null;  // nombre del titular que lo invitó (solo guests)
   birth_date:       string | null;
-  weeks:            { week_number: number; label: string }[];
+  weeks:            { week_number: number; label: string; intensive_activity_id?: number | null }[];
   payment_status:   string;
   access_code:      string | null;
   assigned_level:   number | null;
@@ -561,7 +569,7 @@ export interface ScRegisteredParticipant {
   guest_id:         number | null;
   invited_by:       string | null;  // nombre del titular que lo invitó (solo guests)
   birth_date:       string | null;
-  weeks:            Array<{ week_number: number; label: string }>;
+  weeks:            Array<{ week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number }>;
   payment_status:   'pending' | 'paid' | 'partial' | 'cancelled';
   access_code:      string | null;
   assigned_level?:  number | null;

@@ -30,6 +30,7 @@ import {
   ScKitDeliverySummary,
   ScCredentialDeliveryItem,
   ScCredentialPreview,
+  ScIntensiveActivity,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 
@@ -59,7 +60,7 @@ interface PendingParticipant {
   socio_id: string | null;
   fullName: string;
   type: 'member' | 'guest' | 'staff' | 'staff_guest';
-  weeks: number[];
+  weeks: { week_number: number; intensive_activity_id: number | null }[];
   birth_date: string | null;
   age: number | null;
   memberType: string;
@@ -185,6 +186,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   pendingParticipants = signal<PendingParticipant[]>([]);
   costs              = signal<ScCostWithTotal[]>([]);
   levels             = signal<ScLevel[]>([]);
+  intensiveActivities = signal<ScIntensiveActivity[]>([]);
   saving             = signal(false);
   registrationResult = signal<any>(null);
   doneParticipants   = signal<DoneParticipant[]>([]);
@@ -197,7 +199,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   totalAmount = computed(() =>
     this.pendingParticipants()
       .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
-      .reduce((sum, p) => sum + this._getCost(p.type, p.weeks.length), 0)
+      .reduce((sum, p) => sum + this.participantCost(p), 0)
   );
 
   /** IDs de invitados ya agregados al wizard — se pasa al GuestModalComponent */
@@ -224,6 +226,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
       next: res => this.levels.set(res.data ?? []),
+      error: () => {},
+    });
+
+    this.svc.getIntensiveActivities().subscribe({
+      next: res => this.intensiveActivities.set(res.data ?? []),
       error: () => {},
     });
 
@@ -403,17 +410,41 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     if (p?.alreadyEnrolled || p?.outOfRange) return;
     this.pendingParticipants.update(list => {
       const updated = [...list];
-      const p = { ...updated[pIdx] };
-      const s = new Set(p.weeks);
-      if (s.has(weekNum)) s.delete(weekNum); else s.add(weekNum);
-      p.weeks = Array.from(s).sort((a, b) => a - b);
-      updated[pIdx] = p;
+      const participant = { ...updated[pIdx] };
+      const idx = participant.weeks.findIndex(w => w.week_number === weekNum);
+      if (idx !== -1) {
+        participant.weeks = participant.weeks.filter(w => w.week_number !== weekNum);
+      } else {
+        participant.weeks = [...participant.weeks, { week_number: weekNum, intensive_activity_id: null }];
+        participant.weeks.sort((a, b) => a.week_number - b.week_number);
+      }
+      updated[pIdx] = participant;
       return updated;
     });
   }
 
   isWeekSelected(pIdx: number, weekNum: number): boolean {
-    return this.pendingParticipants()[pIdx]?.weeks.includes(weekNum) ?? false;
+    return this.pendingParticipants()[pIdx]?.weeks.some(w => w.week_number === weekNum) ?? false;
+  }
+
+  setWeekIntensiveActivity(pIdx: number, weekNum: number, intensiveId: string | null): void {
+    const parsedId = intensiveId === null || intensiveId === 'null' || intensiveId === '' ? null : parseInt(intensiveId, 10);
+    this.pendingParticipants.update(list => {
+      const updated = [...list];
+      const participant = { ...updated[pIdx] };
+      const idx = participant.weeks.findIndex(w => w.week_number === weekNum);
+      if (idx !== -1) {
+        participant.weeks = [...participant.weeks];
+        participant.weeks[idx] = { ...participant.weeks[idx], intensive_activity_id: parsedId };
+      }
+      updated[pIdx] = participant;
+      return updated;
+    });
+  }
+
+  getWeekIntensiveActivity(pIdx: number, weekNum: number): number | null {
+    const w = this.pendingParticipants()[pIdx]?.weeks.find(w => w.week_number === weekNum);
+    return w?.intensive_activity_id ?? null;
   }
 
   removeParticipant(idx: number): void {
@@ -447,22 +478,51 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return weekly ? weekly.cost_per_week * weeksCount : 0;
   }
 
+  formatPendingWeeks(weeks: {week_number: number, intensive_activity_id: number | null}[]): string {
+    const sorted = [...weeks].sort((a, b) => a.week_number - b.week_number);
+    return sorted.map(w => {
+      let lbl = `${w.week_number}`;
+      if (w.intensive_activity_id) {
+         const act = this.intensiveActivities().find(a => a.id === w.intensive_activity_id);
+         if (act) lbl += ` (${act.name})`;
+      }
+      return lbl;
+    }).join(', ');
+  }
+
+  /** Total extra de intensivos seleccionados por el participante */
+  private _getIntensiveExtraCost(p: PendingParticipant): number {
+    const activities = this.intensiveActivities();
+    return p.weeks.reduce((sum, w) => {
+      if (w.intensive_activity_id) {
+        const act = activities.find(a => a.id === w.intensive_activity_id);
+        if (act) return sum + act.extra_cost;
+      }
+      return sum;
+    }, 0);
+  }
+
   /** Precio lista (sin descuento) para el participante según tipo y semanas */
   participantListPrice(p: PendingParticipant): number {
     const costs = this.costs();
     const match = costs.find(c => c.participant_type === p.type && c.weeks_count === p.weeks.length);
-    if (match) return match.list_price ?? match.total;
-    const weekly = costs.find(c => c.participant_type === p.type && c.weeks_count === 1);
-    return weekly ? weekly.cost_per_week * p.weeks.length : 0;
+    let base = 0;
+    if (match) {
+      base = match.list_price ?? match.total;
+    } else {
+      const weekly = costs.find(c => c.participant_type === p.type && c.weeks_count === 1);
+      base = weekly ? weekly.cost_per_week * p.weeks.length : 0;
+    }
+    return base + this._getIntensiveExtraCost(p);
   }
 
   /** Descuento absoluto del participante (0 si no hay descuento) */
   participantDiscount(p: PendingParticipant): number {
-    return Math.max(0, this.participantListPrice(p) - this._getCost(p.type, p.weeks.length));
+    return Math.max(0, this.participantListPrice(p) - this.participantCost(p));
   }
 
   participantCost(p: PendingParticipant): number {
-    return this._getCost(p.type, p.weeks.length);
+    return this._getCost(p.type, p.weeks.length) + this._getIntensiveExtraCost(p);
   }
 
   /** Total de descuentos de todos los participantes activos */
@@ -844,14 +904,26 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.participantTypes.find(x => x.value === t)?.label ?? t;
   }
 
-  weekChips(weeks: Array<{week_number: number; label: string}>): Array<{short: string; dates: string}> {
+  changeWeekIntensiveActivity(enrollmentWeekId: number | undefined, activityIdStr: string): void {
+    if (!enrollmentWeekId) return;
+    const newActivityId = activityIdStr ? parseInt(activityIdStr, 10) : null;
+    this.svc.updateWeekIntensiveActivity(enrollmentWeekId, newActivityId).subscribe({
+      next: () => {
+        this.showToast('Actividad intensiva actualizada', 'success');
+        this._loadRegistrations(this.selectedCourse()!.id);
+      },
+      error: () => this.showToast('Error al actualizar la actividad', 'danger')
+    });
+  }
+
+  weekChips(weeks: Array<{week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number}>): Array<{short: string; dates: string; intensiveActivityId?: number | null; intensiveActivityName?: string | null; enrollmentWeekId?: number}> {
     if (!weeks.length) return [];
     return weeks.map(w => {
       const courseWeek = this.courseWeeks.find(cw => cw.week_number === w.week_number);
       const dates = courseWeek
         ? this._fmtWeekRange(courseWeek.start_date, courseWeek.end_date)
         : (w.label ?? '');
-      return { short: `Sem ${w.week_number}`, dates };
+      return { short: `Sem ${w.week_number}`, dates, intensiveActivityId: w.intensive_activity_id, intensiveActivityName: w.intensive_activity_name, enrollmentWeekId: w.enrollment_week_id };
     });
   }
 

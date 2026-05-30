@@ -659,9 +659,44 @@ $level-colors: (
   color: $c-neutral; font-weight: 700; font-size: .8rem;
   cursor: pointer; transition: all .13s; display: flex;
   align-items: center; justify-content: center;
+  flex-shrink: 0;
   &--on { background: $c-primary; border-color: $c-primary; color: #fff; box-shadow: 0 2px 6px rgba(59,130,246,.35); }
   &:hover:not(:disabled):not(.wz-week-chip--on) { border-color: $c-primary; color: $c-primary; }
   &:disabled { opacity: .4; cursor: not-allowed; }
+}
+
+.wz-week-selected-pill {
+  display: inline-flex; align-items: center;
+  background: $c-primary; border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(59,130,246,.35);
+  margin-right: 4px; overflow: hidden; padding-right: 6px;
+
+  /* Hacemos que el botón del número parezca una pastilla/círculo blanco interactivo */
+  .wz-week-chip--on {
+    border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    background: #fff; color: $c-primary;
+    border-radius: 50%; width: 28px; height: 28px;
+    margin: 3px 4px 3px 3px; flex-shrink: 0;
+    transition: transform .15s, background .15s;
+
+    &:hover {
+      background: #f1f5f9;
+      transform: scale(1.05);
+    }
+  }
+
+  .wz-week-select {
+    background: rgba(255,255,255,0.2); border: none; border-radius: 14px;
+    color: #fff; font-size: .72rem; font-weight: 600;
+    padding: 3px 20px 3px 8px; outline: none; cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat; background-position: right 2px center; background-size: 16px;
+    transition: background .15s;
+
+    &:hover { background: rgba(255,255,255,0.3); }
+    option { color: #1e293b; background: #fff; }
+  }
 }
 
 .wz-remove-btn {
