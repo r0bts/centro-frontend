@@ -2,9 +2,10 @@
   <nav class="topnav-bar">
 
     <!-- Pill 1: Marca y Toggler -->
-    <div class="topnav-pill topnav-pill--brand">
+    <div class="topnav-pill topnav-pill--brand" [class.is-pruebas]="isPruebas()">
       <div class="topnav-brand">
         <img src="/assets/images/ARZ_SUITE_HORIZONTAL.png" alt="ARZ Suite" class="topnav-logo">
+        <div *ngIf="isPruebas()" class="pruebas-badge">ENTORNO DE PRUEBAS</div>
       </div>
       <button class="topnav-toggler" (click)="toggleMobileMenu()" [attr.aria-expanded]="isMobileMenuOpen()">
         <i [class]="isMobileMenuOpen() ? 'bi bi-x-lg' : 'bi bi-list'"></i>
@@ -15,7 +16,7 @@
     <div class="topnav-collapse" [class.open]="isMobileMenuOpen()">
 
       <!-- Pill 2: Items de navegación -->
-      <div class="topnav-pill topnav-pill--nav">
+      <div class="topnav-pill topnav-pill--nav" [class.is-pruebas]="isPruebas()">
         <ul class="topnav-list" #navList>
           
           <!-- Indicador deslizante -->
@@ -57,7 +58,7 @@
       </div>
 
       <!-- Pill 3: Acciones -->
-      <div class="topnav-pill topnav-pill--actions">
+      <div class="topnav-pill topnav-pill--actions" [class.is-pruebas]="isPruebas()">
         <div class="topnav-actions">
 
         <!-- Campana de Notificaciones -->
