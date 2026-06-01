@@ -124,10 +124,10 @@ export class NotificationService {
 
   chipColor(type: AppNotification['type']): string {
     switch (type) {
-      case 'solicitado':    return '#f59e0b'; // naranja
-      case 'autorizado':    return '#3b82f6'; // azul
-      case 'listo_recoger': return '#22c55e'; // verde
-      case 'entregado':     return '#6b7280'; // gris
+      case 'solicitado':    return '#F4D35E'; // --bs-warning del sistema
+      case 'autorizado':    return '#43B581'; // --bs-success del sistema
+      case 'listo_recoger': return '#406eba'; // --primary-color del sistema
+      case 'entregado':     return '#6c757d'; // gris Bootstrap estándar
     }
   }
 
