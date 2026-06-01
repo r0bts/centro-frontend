@@ -15,14 +15,12 @@ import { environment } from '../environments/environment';
 export class App implements OnInit {
   protected readonly title = signal('centro-frontend');
   isAuthChecking = signal(true);
-  readonly isPruebas = environment.apiUrl.includes('pruebas');
+
 
   constructor(private authService: AuthService, private titleService: Title) {}
 
   ngOnInit(): void {
-    if (this.isPruebas) {
-      this.titleService.setTitle('[PRUEBAS] Centro Libanés - Sistema de Requisiciones');
-    }
+
     // Esperar a que se inicialice el estado de autenticación
     setTimeout(() => {
       this.isAuthChecking.set(false);

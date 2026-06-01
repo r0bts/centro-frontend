@@ -11,6 +11,8 @@ import { MenuItem } from '../../models/auth.model';
 import { NotificationService, AppNotification } from '../../services/notification.service';
 import { filter } from 'rxjs/operators';
 
+import { environment } from '../../../environments/environment';
+
 /** Módulo ID de Configuración — se separa del nav principal al engranaje */
 const CONFIG_MODULE_ID = 'configuracion';
 
@@ -23,6 +25,8 @@ const CONFIG_MODULE_ID = 'configuracion';
   styleUrls: ['./content-menu.scss']
 })
 export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
+  readonly isPruebas = signal(!environment.production || environment.apiUrl.includes('pruebas'));
+
   @Input() activeSection: string = '';
   @Output() sectionChange = new EventEmitter<string>();
 
