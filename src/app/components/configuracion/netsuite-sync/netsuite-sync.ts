@@ -4,7 +4,7 @@ import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -144,6 +144,11 @@ export class NetsuiteSyncComponent implements OnInit {
     },
     evaluacion_batch: {
       type: 'evaluacion_batch',
+      isLoading: false,
+      recordCount: 0
+    },
+    summer_payments: {
+      type: 'summer_payments',
       isLoading: false,
       recordCount: 0
     }
@@ -451,6 +456,96 @@ export class NetsuiteSyncComponent implements OnInit {
           confirmButtonText: 'Aceptar'
         });
       }
+    });
+  }
+
+  syncSummerPayments(): void {
+    const type = 'summer_payments';
+    console.log('🔄 Iniciando sincronización de pagos Curso de Verano...');
+
+    Swal.fire({
+      title: '¿Sincronizar pagos del Curso de Verano?',
+      html: `
+        <div class="text-start">
+          <p class="mb-2">Se consultará el estado de cada Sales Order en NetSuite y se actualizarán las inscripciones con:</p>
+          <ul class="small mb-0">
+            <li><strong>fullyBilled</strong> → pagado</li>
+            <li><strong>partiallyBilled</strong> → parcial</li>
+            <li><strong>cancelled</strong> → cancelado</li>
+          </ul>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, sincronizar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#198754'
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      this.syncStatus[type].isLoading = true;
+
+      Swal.fire({
+        title: 'Sincronizando pagos',
+        html: 'Consultando órdenes de venta en NetSuite...<br><small class="text-muted">Esto puede tomar unos segundos</small>',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+      });
+
+      this.netsuiteSyncService.syncSummerPayments().subscribe({
+        next: (response: any) => {
+          console.log('✅ Sync pagos Curso de Verano completado:', response);
+          this.syncStatus[type].isLoading  = false;
+          this.syncStatus[type].lastSync   = new Date();
+          this.syncStatus[type].recordCount = response.data?.processed || 0;
+
+          const d = response.data || {};
+          const errorRows = (d.error_details || [])
+            .map((e: string) => `<li class="small text-danger">${e}</li>`)
+            .join('');
+
+          Swal.fire({
+            icon: d.errors > 0 && d.updated === 0 ? 'warning' : 'success',
+            title: 'Sincronización completada',
+            html: `
+              <div class="text-start">
+                <table class="table table-sm table-borderless">
+                  <tbody>
+                    <tr><td class="text-muted">Total inscripciones:</td><td class="text-end"><strong>${d.total_enrollments ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Procesadas:</td><td class="text-end"><strong>${d.processed ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Actualizadas:</td><td class="text-end"><strong class="text-success">${d.updated ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Marcadas pagadas:</td><td class="text-end"><strong class="text-success">${d.paid ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Canceladas:</td><td class="text-end"><strong class="text-warning">${d.cancelled ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Errores NS:</td><td class="text-end"><strong class="text-danger">${d.errors ?? 0}</strong></td></tr>
+                    <tr><td class="text-muted">Duración:</td><td class="text-end"><strong>${d.duration_seconds ?? 0}s</strong></td></tr>
+                  </tbody>
+                </table>
+                ${errorRows ? `<p class="mb-1 fw-bold small text-danger">Detalle de errores:</p><ul class="ps-3">${errorRows}</ul>` : ''}
+              </div>
+            `,
+            confirmButtonText: 'Aceptar',
+            width: '480px'
+          });
+        },
+        error: (error: any) => {
+          console.error('❌ Error sync pagos Curso de Verano:', error);
+          this.syncStatus[type].isLoading = false;
+
+          let errorMessage = 'Error al sincronizar los pagos del Curso de Verano';
+          if (error.status === 403) {
+            errorMessage = error.error?.message || 'No tienes permiso para ejecutar esta sincronización';
+          } else if (error.error?.message) {
+            errorMessage = error.error.message;
+          }
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error de sincronización',
+            html: `<div class="text-start"><p class="mb-0">${errorMessage}</p></div>`,
+            confirmButtonText: 'Aceptar'
+          });
+        }
+      });
     });
   }
 

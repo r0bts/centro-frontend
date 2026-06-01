@@ -368,6 +368,21 @@ export class NetsuiteSyncService {
   }
 
   /**
+   * Sincroniza el estado de pago de las inscripciones del Curso de Verano
+   * contra las Sales Orders en NetSuite.
+   * POST /api/summer-course/sync-payments
+   * Permiso: configuracion > netsuite_sync > sync_summer_payments
+   * Independiente de otros pasos de sync.
+   */
+  syncSummerPayments(): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/summer-course/sync-payments`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
    * Sincroniza todos los recursos desde NetSuite
    * POST /api/netsuite/sync-all
    * Sincroniza: usuarios, categorías, subcategorías, departamentos, áreas, 
