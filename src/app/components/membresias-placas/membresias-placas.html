@@ -1,0 +1,178 @@
+<div class="container-fluid bg-light">
+  <!-- Content Menu Component -->
+  <app-content-menu></app-content-menu>
+
+  <!-- Placas Socio Content -->
+  <div class="page-wrap">
+
+    <!-- ── BARRA DE BÚSQUEDA ─────────────────────────────────────────── -->
+    <div class="search-bar">
+      <div class="search-wrap">
+        <i class="bi bi-search search-icon"></i>
+        <input
+          id="q"
+          type="text"
+          placeholder="Buscar por placa, nombre de socio o número de socio…"
+          [(ngModel)]="query"
+          (ngModelChange)="onQueryChange()"
+          (keyup.enter)="buscar()"
+          autocomplete="off"
+        />
+      </div>
+      <button class="btn-search" (click)="buscar()">
+        <i class="bi bi-search"></i> Buscar
+      </button>
+    </div>
+
+    <!-- ── ESTADO: inicial ───────────────────────────────────────────── -->
+    @if (estado === 'initial') {
+      <div class="search-state">
+        <span class="big-icon"><i class="bi bi-car-front-fill"></i></span>
+        <p>Busca por <strong>número de placa</strong>, nombre del socio o número de socio para ver los vehículos registrados.</p>
+      </div>
+    }
+
+    <!-- ── ESTADO: cargando ──────────────────────────────────────────── -->
+    @if (estado === 'loading') {
+      <div class="search-state">
+        <span class="spin"><i class="bi bi-arrow-repeat"></i></span>
+        <p>Buscando vehículos…</p>
+      </div>
+    }
+
+    <!-- ── ESTADO: sin resultados ────────────────────────────────────── -->
+    @if (estado === 'empty') {
+      <div class="search-state">
+        <span class="big-icon"><i class="bi bi-car-front"></i></span>
+        <p>No se encontraron vehículos con ese criterio.</p>
+        <p style="font-size:12px">Verifica la placa o nombre e intenta nuevamente.</p>
+      </div>
+    }
+
+    <!-- ── ESTADO: resultados ────────────────────────────────────────── -->
+    @if (estado === 'results') {
+      @for (grupo of grupos; track grupo.membershipId) {
+        <div class="card">
+          <!-- Encabezado de membresía -->
+          <div class="card-title">
+            <i class="bi bi-people-fill"></i> Membresía {{ grupo.membershipId }}
+          </div>
+
+          <!-- Lista de socios con vehículos -->
+          @for (item of grupo.socios; track item.socio.id) {
+            <!-- Fila de socio -->
+            <div class="socio-row" [class.expanded]="isExpanded(item.socio.id)">
+              <div class="socio-info">
+                <button
+                  class="btn-expand"
+                  [class.open]="isExpanded(item.socio.id)"
+                  (click)="toggleSocio(item.socio.id)"
+                  title="Ver vehículos"
+                >
+                  <i class="bi" [class.bi-chevron-down]="!isExpanded(item.socio.id)" [class.bi-chevron-up]="isExpanded(item.socio.id)"></i>
+                </button>
+                <div class="socio-main">
+                  <span class="socio-entityid">{{ item.socio.entityid }}</span>
+                  <span class="socio-nombre">{{ item.socio.fullname }}</span>
+                  @if (item.socio.isSpecial) {
+                    <span class="badge special" title="Socio con 2 accesos de estacionamiento">
+                      <i class="bi bi-star-fill"></i> Especial
+                    </span>
+                  }
+                </div>
+                <div class="socio-stats">
+                  <span class="stat-pill" title="Vehículos activos">
+                    <i class="bi bi-car-front-fill"></i>
+                    {{ vehiculosActivos(item.vehicles) }}/{{ item.vehicles.length }}
+                  </span>
+                </div>
+              </div>
+              <button class="btn-add" (click)="openAddModal(item.socio)" title="Registrar nuevo vehículo">
+                <i class="bi bi-plus-circle"></i> Agregar
+              </button>
+            </div>
+
+            <!-- Vehículos del socio (expandible) -->
+            @if (isExpanded(item.socio.id)) {
+              <div class="vehicles-wrap">
+                @if (item.vehicles.length === 0) {
+                  <div class="vehicles-empty">Este socio no tiene vehículos registrados.</div>
+                } @else {
+                  <table class="vehicles-table">
+                    <thead>
+                      <tr>
+                        <th>Placa</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th>Color</th>
+                        <th>Acceso</th>
+                        <th>Estacionamiento</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (v of item.vehicles; track v.id) {
+                        <tr [class.inactive]="!v.isActive">
+                          <td class="plates-cell">{{ v.plates }}</td>
+                          <td>{{ v.make || '—' }}</td>
+                          <td>{{ v.model || '—' }}</td>
+                          <td>{{ v.color || '—' }}</td>
+                          <td class="center">{{ item.socio.isSpecial ? v.accessNumber : '—' }}</td>
+                          <td class="center">
+                            @if (v.isInParking) {
+                              <span class="badge parking">
+                                <i class="bi bi-p-circle-fill"></i> Dentro
+                              </span>
+                            } @else {
+                              <span class="badge out">Fuera</span>
+                            }
+                          </td>
+                          <td class="center">
+                            @if (v.isActive) {
+                              <span class="badge activo">Activo</span>
+                            } @else {
+                              <span class="badge baja">Inactivo</span>
+                            }
+                          </td>
+                          <td class="actions-cell">
+                            @if (v.isActive) {
+                              <button class="btn-action edit" (click)="openEditModal(item.socio, v)" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                              </button>
+                              <button class="btn-action disable" (click)="disableVehicle(v)" title="Deshabilitar">
+                                <i class="bi bi-slash-circle"></i>
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+    }
+
+  </div><!-- /page-wrap -->
+
+  <!-- ── MODAL ──────────────────────────────────────────────────────── -->
+  @if (modalVisible && modalData) {
+    <app-vehicle-modal
+      [mode]="modalMode"
+      [data]="modalData"
+      [isSpecial]="modalSocio?.isSpecial ?? false"
+      (save)="onModalSave($event)"
+      (cancel)="onModalCancel()"
+    ></app-vehicle-modal>
+  }
+
+  <!-- ── TOAST ─────────────────────────────────────────────────────── -->
+  <div class="toast" [class.show]="toastVisible" [style.background]="toastColor">
+    {{ toastMsg }}
+  </div>
+
+</div>

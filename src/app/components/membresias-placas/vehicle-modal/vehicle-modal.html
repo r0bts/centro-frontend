@@ -1,0 +1,112 @@
+<div class="modal-overlay" (click)="onOverlayClick($event)">
+  <div class="modal-box">
+
+    <!-- Encabezado -->
+    <div class="modal-header">
+      <div class="modal-title">
+        <i class="bi bi-car-front-fill"></i> {{ title }}
+      </div>
+      <button class="modal-close" (click)="onCancel()" title="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <!-- Socio (solo informativo) -->
+    @if (data.socioName) {
+      <div class="modal-socio">
+        <i class="bi bi-person-fill"></i>
+        <span>{{ data.socioName }}</span>
+        @if (isSpecial) {
+          <span class="badge-special"><i class="bi bi-star-fill"></i> Especial</span>
+        }
+      </div>
+    }
+
+    <!-- Cuerpo del formulario -->
+    <form (ngSubmit)="onSubmit()" #f="ngForm" novalidate>
+      <div class="modal-body">
+
+        <!-- Número de placa -->
+        <div class="form-group">
+          <label for="plates">Número de placa <span class="required">*</span></label>
+          <input
+            id="plates"
+            type="text"
+            [(ngModel)]="form.plates"
+            name="plates"
+            placeholder="Ej. ABC-123"
+            autocomplete="off"
+            style="text-transform: uppercase"
+          />
+        </div>
+
+        <!-- Marca y Modelo en la misma fila -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="make">Marca</label>
+            <input id="make" type="text" [(ngModel)]="form.make" name="make" placeholder="Toyota" />
+          </div>
+          <div class="form-group">
+            <label for="model">Modelo</label>
+            <input id="model" type="text" [(ngModel)]="form.model" name="model" placeholder="Corolla" />
+          </div>
+        </div>
+
+        <!-- Color -->
+        <div class="form-group">
+          <label for="color">Color</label>
+          <input id="color" type="text" [(ngModel)]="form.color" name="color" placeholder="Blanco" />
+        </div>
+
+        <!-- Número de acceso (solo para socios especiales) -->
+        @if (isSpecial) {
+          <div class="form-group">
+            <label for="accessNumber">Número de acceso <span class="required">*</span></label>
+            <select id="accessNumber" [(ngModel)]="form.accessNumber" name="accessNumber">
+              <option [value]="1">Acceso 1</option>
+              <option [value]="2">Acceso 2</option>
+            </select>
+            <span class="field-hint">Este socio tiene 2 accesos de estacionamiento independientes.</span>
+          </div>
+        }
+
+        <!-- ¿Está en estacionamiento? -->
+        <div class="form-group form-check">
+          <label class="check-label">
+            <input
+              type="checkbox"
+              [(ngModel)]="form.isInParking"
+              name="isInParking"
+            />
+            <span>¿El vehículo está actualmente en el estacionamiento?</span>
+          </label>
+          <span class="field-hint">Marcar esto desactivará el indicador de otros vehículos del mismo acceso.</span>
+        </div>
+
+        <!-- Error -->
+        @if (error) {
+          <div class="form-error">
+            <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+          </div>
+        }
+
+      </div><!-- /modal-body -->
+
+      <!-- Pie del modal -->
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" (click)="onCancel()" [disabled]="saving">
+          Cancelar
+        </button>
+        <button type="submit" class="btn-save" [disabled]="saving">
+          @if (saving) {
+            <span class="spin"><i class="bi bi-arrow-repeat"></i></span> Guardando…
+          } @else {
+            <i class="bi bi-check-circle"></i>
+            {{ mode === 'add' ? 'Registrar' : 'Guardar cambios' }}
+          }
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

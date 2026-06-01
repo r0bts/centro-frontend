@@ -1,0 +1,255 @@
+// ── Variables ──────────────────────────────────────────────────────────────
+$card-border:  #e5e7eb;
+$card-border2: #d1d5db;
+$text:         #111827;
+$text-2:       #374151;
+$text-3:       #6b7280;
+$blue:         #2563eb;
+$blue-bg:      #eff6ff;
+$green:        #16a34a;
+$red:          #dc2626;
+$red-bg:       #fee2e2;
+$amber:        #d97706;
+$amber-bg:     #fffbeb;
+$r:            6px;
+$r-lg:         10px;
+
+// ── Overlay de fondo ───────────────────────────────────────────────────────
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Caja del modal ─────────────────────────────────────────────────────────
+.modal-box {
+  background: #fff;
+  border-radius: $r-lg;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+// ── Encabezado ─────────────────────────────────────────────────────────────
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid $card-border;
+  background: #f9fafb;
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: $text;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: $text-3;
+  font-size: 16px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $r;
+  transition: 0.15s;
+
+  &:hover {
+    background: $red-bg;
+    color: $red;
+  }
+}
+
+// ── Banner de socio ────────────────────────────────────────────────────────
+.modal-socio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: $blue-bg;
+  border-bottom: 1px solid #dbeafe;
+  font-size: 13px;
+  font-weight: 600;
+  color: $blue;
+}
+
+.badge-special {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: $amber-bg;
+  color: $amber;
+  border-radius: 20px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+// ── Cuerpo del modal ───────────────────────────────────────────────────────
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+// ── Grupos de formulario ───────────────────────────────────────────────────
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  label {
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-2;
+
+    .required { color: $red; margin-left: 2px; }
+  }
+
+  input, select {
+    border: 1.5px solid $card-border2;
+    border-radius: $r;
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    color: $text;
+    outline: none;
+    transition: border-color 0.18s, box-shadow 0.18s;
+
+    &:focus {
+      border-color: $blue;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    &::placeholder { color: $text-3; }
+  }
+
+  select { cursor: pointer; }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+// ── Checkbox ───────────────────────────────────────────────────────────────
+.form-check {
+  .check-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: $text-2;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+      padding: 0;
+      border: 1.5px solid $card-border2;
+    }
+  }
+}
+
+.field-hint {
+  font-size: 11px;
+  color: $text-3;
+  line-height: 1.5;
+}
+
+// ── Error ──────────────────────────────────────────────────────────────────
+.form-error {
+  background: $red-bg;
+  color: $red;
+  border-radius: $r;
+  padding: 10px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ── Pie del modal ──────────────────────────────────────────────────────────
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid $card-border;
+  background: #f9fafb;
+}
+
+.btn-cancel,
+.btn-save {
+  border-radius: $r;
+  padding: 9px 18px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+
+  &:disabled { opacity: 0.55; cursor: not-allowed; }
+}
+
+.btn-cancel {
+  background: #fff;
+  border: 1.5px solid $card-border2;
+  color: $text-2;
+
+  &:hover:not(:disabled) { background: #f3f4f6; }
+}
+
+.btn-save {
+  background: $blue;
+  border: none;
+  color: #fff;
+
+  &:hover:not(:disabled) { opacity: 0.85; }
+}
+
+// ── Spin ───────────────────────────────────────────────────────────────────
+.spin {
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
