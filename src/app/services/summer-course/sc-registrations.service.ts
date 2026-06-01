@@ -67,11 +67,27 @@ export class ScRegistrationsService {
   }
 
   /**
+   * Obtiene las actividades intensivas.
+   */
+  getIntensiveActivities(): Observable<{ success: boolean; data: any[] }> {
+    return this.http.get<{ success: boolean; data: any[] }>(`${this.base}/intensive-activities`);
+  }
+
+  /**
    * Verificar si un titular ya tiene inscripción activa en el curso.
    */
   getActiveRegistration(userId: number | string, courseId?: number): Observable<any> {
     let params = new HttpParams().set('user_id', userId.toString());
     if (courseId) params = params.set('course_id', courseId.toString());
     return this.http.get(`${this.base}/active-registration`, { params });
+  }
+
+  /**
+   * Actualizar actividad intensiva de una semana específica inscrita.
+   */
+  updateWeekIntensiveActivity(enrollmentWeekId: number, intensiveActivityId: number | null): Observable<any> {
+    return this.http.patch(`${this.base}/update-week-intensive-activity/${enrollmentWeekId}`, {
+      intensive_activity_id: intensiveActivityId
+    });
   }
 }

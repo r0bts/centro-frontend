@@ -659,9 +659,44 @@ $level-colors: (
   color: $c-neutral; font-weight: 700; font-size: .8rem;
   cursor: pointer; transition: all .13s; display: flex;
   align-items: center; justify-content: center;
+  flex-shrink: 0;
   &--on { background: $c-primary; border-color: $c-primary; color: #fff; box-shadow: 0 2px 6px rgba(59,130,246,.35); }
   &:hover:not(:disabled):not(.wz-week-chip--on) { border-color: $c-primary; color: $c-primary; }
   &:disabled { opacity: .4; cursor: not-allowed; }
+}
+
+.wz-week-selected-pill {
+  display: inline-flex; align-items: center;
+  background: $c-primary; border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(59,130,246,.35);
+  margin-right: 4px; overflow: hidden; padding-right: 6px;
+
+  /* Hacemos que el botón del número parezca una pastilla/círculo blanco interactivo */
+  .wz-week-chip--on {
+    border: none; box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    background: #fff; color: $c-primary;
+    border-radius: 50%; width: 28px; height: 28px;
+    margin: 3px 4px 3px 3px; flex-shrink: 0;
+    transition: transform .15s, background .15s;
+
+    &:hover {
+      background: #f1f5f9;
+      transform: scale(1.05);
+    }
+  }
+
+  .wz-week-select {
+    background: rgba(255,255,255,0.2); border: none; border-radius: 14px;
+    color: #fff; font-size: .72rem; font-weight: 600;
+    padding: 3px 20px 3px 8px; outline: none; cursor: pointer;
+    appearance: none;
+    background-image: url('data:image/svg+xml;utf8,<svg fill="%23ffffff" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat; background-position: right 2px center; background-size: 16px;
+    transition: background .15s;
+
+    &:hover { background: rgba(255,255,255,0.3); }
+    option { color: #1e293b; background: #fff; }
+  }
 }
 
 .wz-remove-btn {
@@ -941,7 +976,6 @@ $level-colors: (
   border-radius: 20px;
   font-size: .75rem;
   font-weight: 600;
-  pointer-events: none;
 
   .material-symbols-outlined { font-size: 15px; }
 
@@ -1335,106 +1369,320 @@ $level-colors: (
 }
 
 // ── Modal Credencial ──────────────────────────────────────────────────────
-.sce-credential-modal { max-width: 520px; }
+.sce-credential-modal { max-width: 760px !important; width: 95vw; }
+
+.cred-modal-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 32px;
+  align-items: flex-start;
+  @media (max-width: 640px) {
+    flex-direction: column !important;
+    align-items: center;
+  }
+}
+
+.cred-modal-left {
+  flex: 0 0 calc(54mm * 1.4);
+  width: calc(54mm * 1.4);
+  height: calc(85mm * 1.4);
+}
+
+
+.cred-modal-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
 
 // ── Credencial — tamaño físico 54 mm × 85 mm (vertical) ─────────────────
 .credential-card {
   width: 54mm;
   height: 85mm;
-  background: #fff;
-  border: 1.5px solid #e5e7eb;
-  border-radius: 10px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0,0,0,.08);
-  font-family: 'Arial', sans-serif;
+  position: relative;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+  transform: scale(1.4);
+  transform-origin: top left;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.cred-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 3mm 3mm 0 3mm;
+}
+
+// ── Top row ──────────────────────────────────
+.cred-top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.5mm;
+  margin-bottom: 2mm;
+  padding: 0;
+}
+
+.cred-logo-block {
+  display: flex;
+  align-items: flex-start;
+}
+
+.cred-logo-main {
+  height: 8mm;
+  object-fit: contain;
+  max-width: 100%;
+}
+
+.cred-punch-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-self: center;
+}
+
+.cred-punch-oval {
+  width: 15.5mm;
+  height: 3.5mm;
+  border: 1px dashed #c8a000;
+  border-radius: 10px;
+  margin-bottom: 1.5px;
+}
+
+.cred-punch-label {
+  font-size: 3.8px;
+  color: #0f172a;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.cred-badge-type {
+  justify-self: flex-end;
+  background: #f05a28;
+  color: white;
+  font-size: 5px;
+  font-weight: 800;
+  padding: 2.5px 5px;
+  border-radius: 10px;
+  letter-spacing: 0.2px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+// ── Course logo and Body BG ─────────
+.cred-body-bg {
+  background: #f8fafc;
+  border-radius: 10px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 3mm 2mm 3mm;
+  margin: 0 1mm 2mm 1mm;
+  position: relative;
+}
+
+.cred-course-logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: -3mm;
+  margin-bottom: 2mm;
+  z-index: 2;
+}
+
+.cred-course-logo-img {
+  height: 16mm;
+  filter: drop-shadow(0 0 1mm white) drop-shadow(0 0 2mm white);
+}
+
+// ── Media row: Photo + QR ────────────────────
+.cred-media-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+  margin-bottom: 3mm;
+  padding: 0 1mm;
+}
+
+.cred-media-box {
+  flex: 1;
+  aspect-ratio: 1.15;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 1.5mm;
+}
+
+.cred-photo-inner {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #f05a28;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  padding: 1.5px;
+  box-sizing: border-box;
+}
+
+.cred-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.cred-photo-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #94a3b8;
+  padding-bottom: 1.5mm;
+}
+
+.cred-avatar-svg {
+  width: 14mm;
+  height: 14mm;
+  color: #cbd5e1;
+  margin-bottom: 1mm;
+}
+
+.cred-photo-text {
+  font-size: 5px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  color: #94a3b8;
+}
+
+.cred-qr-inner {
+  width: 100%;
+  height: 100%;
+  border: 1px solid #0f172a;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1mm;
+}
+
+.cred-qr-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cred-qr-label {
+  background: #0f172a;
+  color: white;
+  font-size: 4.5px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 8px;
+  position: absolute;
+  bottom: -1.5mm;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+// ── Data fields ──────────────────────────────
+.cred-data-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5mm;
+  padding: 0 1mm;
+}
+
+.cred-field-row-split {
+  display: flex;
+  gap: 1mm;
+}
+
+.cred-field {
   display: flex;
   flex-direction: column;
 }
 
-.cred-header {
-  display: flex; align-items: center; gap: 4px;
-  padding: 3px 6px;
-  border-bottom: 1px solid #f3f4f6;
-  &__logo { flex: 0 0 auto; }
-  &__punch {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  }
+.cred-field--full { width: 100%; }
+.cred-field--grow { flex: 2.2; }
+.cred-field--small { flex: 1; }
+
+.cred-label {
+  font-size: 5px;
+  font-weight: 800;
+  margin-bottom: 1px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
 }
-.cred-logo { height: 26px; }
-.cred-punch-label { font-size: 7px; color: #9ca3af; font-weight: 700; letter-spacing: .4px; }
-.cred-punch-line {
-  width: 100%; height: 2px;
-  background: repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 3px, transparent 3px, transparent 6px);
-}
-.cred-badge-type {
-  background: #f97316; color: #fff;
-  font-size: 8px; font-weight: 700; letter-spacing: .4px;
-  padding: 3px 7px; border-radius: 4px;
+
+.cred-label--blue { color: #3b82f6; }
+.cred-label--orange { color: #ea580c; }
+.cred-label--gold { color: #b48600; }
+.cred-label--dark { color: #0f172a; }
+
+.cred-value {
+  font-size: 6px;
+  font-weight: 700;
+  color: #0f172a;
+  background: #f1f5f9;
+  border: 0.5px solid #e2e8f0;
+  border-radius: 2px;
+  padding: 0 5px;
+  height: 15px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.cred-course-logo {
-  text-align: center; padding: 2px 0;
-  img { height: 38px; }
-}
-
-.cred-media {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 2px 8px;
-}
-.cred-photo-wrap {
-  flex: 0 0 32mm;
-  .cred-photo {
-    width: 32mm; height: 30mm; object-fit: cover;
-    border-radius: 4px; border: 2.5px solid #f97316;
-    &--empty {
-      display: flex; align-items: center; justify-content: center;
-      background: #f9fafb; color: #d1d5db;
-      border: 2.5px dashed #f97316;
-      .material-symbols-outlined { font-size: 28px; }
-    }
-  }
-}
-.cred-qr-wrap {
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding-top: 0;
-  .cred-qr { width: 22mm; height: 22mm; border-radius: 4px; border: 2px solid #1e3a5f; }
-}
-.cred-qr-label {
-  font-size: 7px; font-weight: 700; letter-spacing: .4px;
-  background: #1e3a5f; color: #fff;
-  padding: 2px 6px; border-radius: 3px;
-  text-align: center;
-}
-
-.cred-fields {
-  display: grid; grid-template-columns: 1fr auto;
-  gap: 3px 6px; padding: 3px 8px;
-  flex: 1;
-}
-.cred-field {
-  display: flex; flex-direction: column; gap: 1px;
-  &--full { grid-column: 1 / -1; }
-  &--small { min-width: 50px; }
-  &__label {
-    font-size: 7px; font-weight: 700; letter-spacing: .4px;
-    color: #1e3a5f; text-transform: uppercase;
-    &--orange { color: #f97316; }
-  }
-  &__value {
-    font-size: 9px; font-weight: 600; color: #111827;
-    border-bottom: 1px solid #e5e7eb; padding-bottom: 1px;
-    min-height: 12px;
-  }
-}
-
-.cred-footer {
-  background: #1e3a5f; color: #fff;
-  text-align: center; font-size: 8px; font-weight: 700;
-  letter-spacing: .4px; padding: 3px 4px;
+// ── Footer ───────────────────────────────────
+.cred-footer-area {
   margin-top: auto;
+  padding: 0 2mm 3mm 2mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
+.cred-footer-line {
+  height: 1px;
+  background: #c8a000;
+  width: 100%;
+  margin-bottom: 1.5mm;
+}
+
+.cred-footer-bar {
+  background: #0f172a;
+  color: white;
+  text-align: center;
+  font-size: 5px;
+  font-weight: 800;
+  padding: 3px 0;
+  border-radius: 10px;
+  width: 100%;
+  letter-spacing: 0.2px;
+}
+
+// ── Status + Notes (modal right column) ──────
 .cred-status {
   display: flex; align-items: center; justify-content: center;
   padding: 10px 0 4px;
@@ -1448,9 +1696,22 @@ $level-colors: (
   .material-symbols-outlined { font-size: 16px; }
 }
 
+.sce-input {
+  border: 1.5px solid #e2e8f0; border-radius: 8px;
+  padding: 9px 12px; font-size: .875rem; color: #1e293b;
+  outline: none; transition: border-color .15s;
+  background: #fff; width: 100%; box-sizing: border-box;
+  font-family: inherit; resize: vertical;
+  &:focus { border-color: #2563eb; }
+  &::placeholder { color: #94a3b8; }
+}
+
 .cred-notes-row {
   padding: 4px 0 8px;
-  .sce-field-label { font-size: 12px; color: #6b7280; display: block; margin-bottom: 4px; }
+  .sce-field-label { 
+    font-size: 12px; font-weight: 600; color: #64748b; 
+    display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
 }
 
 // ── Print ─────────────────────────────────────────────────────────────────
@@ -1489,5 +1750,10 @@ $level-colors: (
     border-radius: 0 !important;
     box-shadow: none !important;
     page-break-inside: avoid;
+    transform: none !important; /* Deshabilitar escala al imprimir */
+    
+    * {
+      box-shadow: none !important;
+    }
   }
 }

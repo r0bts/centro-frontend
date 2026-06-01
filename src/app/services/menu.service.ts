@@ -34,6 +34,53 @@ export class MenuService {
           menuItems.push(moduleItem);
         }
       }
+    } // End of sortedModules loop
+
+    // Inject pickup-history if summer-course exists
+    for (const item of menuItems) {
+      if (item.id === 'curso_verano' || item.id === 'curso-verano' || item.id === 'summer_course' || item.id === 'summer-course' || (item.route && item.route.includes('summer-course'))) {
+        if (item.children) {
+          const existsPickup = item.children.find(c => c.id === 'sc-pickup-history');
+          if (!existsPickup) {
+            item.children.push({
+              id: 'sc-pickup-history',
+              label: 'Historial Salidas',
+              icon: 'bi-clock-history',
+              route: '/summer-course/pickup-history',
+              active: false
+            });
+          }
+          const existsCheckin = item.children.find(c => c.id === 'sc-checkin-history');
+          if (!existsCheckin) {
+            item.children.push({
+              id: 'sc-checkin-history',
+              label: 'Historial Entradas',
+              icon: 'bi-box-arrow-in-right',
+              route: '/summer-course/checkin-history',
+              active: false
+            });
+          }
+        } else {
+            // Si no tiene children pero es el item, lo convertimos en padre
+            item.children = [
+              {
+                id: 'sc-pickup-history',
+                label: 'Historial Salidas',
+                icon: 'bi-clock-history',
+                route: '/summer-course/pickup-history',
+                active: false
+              },
+              {
+                id: 'sc-checkin-history',
+                label: 'Historial Entradas',
+                icon: 'bi-box-arrow-in-right',
+                route: '/summer-course/checkin-history',
+                active: false
+              }
+            ];
+            item.isParent = true;
+        }
+      }
     }
 
     return menuItems;

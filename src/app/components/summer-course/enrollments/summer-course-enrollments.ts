@@ -15,6 +15,7 @@ import { ScCoursesService }         from '../../../services/summer-course/sc-cou
 import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
 import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
+import { environment } from '../../../../environments/environment';
 import {
   ScCourse,
   ScLevel,
@@ -29,6 +30,7 @@ import {
   ScKitDeliverySummary,
   ScCredentialDeliveryItem,
   ScCredentialPreview,
+  ScIntensiveActivity,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 
@@ -58,7 +60,7 @@ interface PendingParticipant {
   socio_id: string | null;
   fullName: string;
   type: 'member' | 'guest' | 'staff' | 'staff_guest';
-  weeks: number[];
+  weeks: { week_number: number; intensive_activity_id: number | null }[];
   birth_date: string | null;
   age: number | null;
   memberType: string;
@@ -184,6 +186,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   pendingParticipants = signal<PendingParticipant[]>([]);
   costs              = signal<ScCostWithTotal[]>([]);
   levels             = signal<ScLevel[]>([]);
+  intensiveActivities = signal<ScIntensiveActivity[]>([]);
   saving             = signal(false);
   registrationResult = signal<any>(null);
   doneParticipants   = signal<DoneParticipant[]>([]);
@@ -196,7 +199,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   totalAmount = computed(() =>
     this.pendingParticipants()
       .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
-      .reduce((sum, p) => sum + this._getCost(p.type, p.weeks.length), 0)
+      .reduce((sum, p) => sum + this.participantCost(p), 0)
   );
 
   /** IDs de invitados ya agregados al wizard — se pasa al GuestModalComponent */
@@ -223,6 +226,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
       next: res => this.levels.set(res.data ?? []),
+      error: () => {},
+    });
+
+    this.svc.getIntensiveActivities().subscribe({
+      next: res => this.intensiveActivities.set(res.data ?? []),
       error: () => {},
     });
 
@@ -389,6 +397,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   backToSearch(): void { this.wizardStep.set('search'); this.selectedTitular.set(null); }
 
+  // ── Utils ─────────────────────────────────────────────────────────────────
+  photoBaseUrl(): string { 
+    return environment.apiUrl.replace('/api', '/'); 
+  }
+
   // ── Step 2 ────────────────────────────────────────────────────────────────
   get courseWeeks() { return this.selectedCourse()?.sc_weeks ?? []; }
 
@@ -397,17 +410,41 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     if (p?.alreadyEnrolled || p?.outOfRange) return;
     this.pendingParticipants.update(list => {
       const updated = [...list];
-      const p = { ...updated[pIdx] };
-      const s = new Set(p.weeks);
-      if (s.has(weekNum)) s.delete(weekNum); else s.add(weekNum);
-      p.weeks = Array.from(s).sort((a, b) => a - b);
-      updated[pIdx] = p;
+      const participant = { ...updated[pIdx] };
+      const idx = participant.weeks.findIndex(w => w.week_number === weekNum);
+      if (idx !== -1) {
+        participant.weeks = participant.weeks.filter(w => w.week_number !== weekNum);
+      } else {
+        participant.weeks = [...participant.weeks, { week_number: weekNum, intensive_activity_id: null }];
+        participant.weeks.sort((a, b) => a.week_number - b.week_number);
+      }
+      updated[pIdx] = participant;
       return updated;
     });
   }
 
   isWeekSelected(pIdx: number, weekNum: number): boolean {
-    return this.pendingParticipants()[pIdx]?.weeks.includes(weekNum) ?? false;
+    return this.pendingParticipants()[pIdx]?.weeks.some(w => w.week_number === weekNum) ?? false;
+  }
+
+  setWeekIntensiveActivity(pIdx: number, weekNum: number, intensiveId: string | null): void {
+    const parsedId = intensiveId === null || intensiveId === 'null' || intensiveId === '' ? null : parseInt(intensiveId, 10);
+    this.pendingParticipants.update(list => {
+      const updated = [...list];
+      const participant = { ...updated[pIdx] };
+      const idx = participant.weeks.findIndex(w => w.week_number === weekNum);
+      if (idx !== -1) {
+        participant.weeks = [...participant.weeks];
+        participant.weeks[idx] = { ...participant.weeks[idx], intensive_activity_id: parsedId };
+      }
+      updated[pIdx] = participant;
+      return updated;
+    });
+  }
+
+  getWeekIntensiveActivity(pIdx: number, weekNum: number): number | null {
+    const w = this.pendingParticipants()[pIdx]?.weeks.find(w => w.week_number === weekNum);
+    return w?.intensive_activity_id ?? null;
   }
 
   removeParticipant(idx: number): void {
@@ -441,22 +478,51 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return weekly ? weekly.cost_per_week * weeksCount : 0;
   }
 
+  formatPendingWeeks(weeks: {week_number: number, intensive_activity_id: number | null}[]): string {
+    const sorted = [...weeks].sort((a, b) => a.week_number - b.week_number);
+    return sorted.map(w => {
+      let lbl = `${w.week_number}`;
+      if (w.intensive_activity_id) {
+         const act = this.intensiveActivities().find(a => a.id === w.intensive_activity_id);
+         if (act) lbl += ` (${act.name})`;
+      }
+      return lbl;
+    }).join(', ');
+  }
+
+  /** Total extra de intensivos seleccionados por el participante */
+  private _getIntensiveExtraCost(p: PendingParticipant): number {
+    const activities = this.intensiveActivities();
+    return p.weeks.reduce((sum, w) => {
+      if (w.intensive_activity_id) {
+        const act = activities.find(a => a.id === w.intensive_activity_id);
+        if (act) return sum + act.extra_cost;
+      }
+      return sum;
+    }, 0);
+  }
+
   /** Precio lista (sin descuento) para el participante según tipo y semanas */
   participantListPrice(p: PendingParticipant): number {
     const costs = this.costs();
     const match = costs.find(c => c.participant_type === p.type && c.weeks_count === p.weeks.length);
-    if (match) return match.list_price ?? match.total;
-    const weekly = costs.find(c => c.participant_type === p.type && c.weeks_count === 1);
-    return weekly ? weekly.cost_per_week * p.weeks.length : 0;
+    let base = 0;
+    if (match) {
+      base = match.list_price ?? match.total;
+    } else {
+      const weekly = costs.find(c => c.participant_type === p.type && c.weeks_count === 1);
+      base = weekly ? weekly.cost_per_week * p.weeks.length : 0;
+    }
+    return base + this._getIntensiveExtraCost(p);
   }
 
   /** Descuento absoluto del participante (0 si no hay descuento) */
   participantDiscount(p: PendingParticipant): number {
-    return Math.max(0, this.participantListPrice(p) - this._getCost(p.type, p.weeks.length));
+    return Math.max(0, this.participantListPrice(p) - this.participantCost(p));
   }
 
   participantCost(p: PendingParticipant): number {
-    return this._getCost(p.type, p.weeks.length);
+    return this._getCost(p.type, p.weeks.length) + this._getIntensiveExtraCost(p);
   }
 
   /** Total de descuentos de todos los participantes activos */
@@ -838,14 +904,26 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.participantTypes.find(x => x.value === t)?.label ?? t;
   }
 
-  weekChips(weeks: Array<{week_number: number; label: string}>): Array<{short: string; dates: string}> {
+  changeWeekIntensiveActivity(enrollmentWeekId: number | undefined, activityIdStr: string): void {
+    if (!enrollmentWeekId) return;
+    const newActivityId = activityIdStr ? parseInt(activityIdStr, 10) : null;
+    this.svc.updateWeekIntensiveActivity(enrollmentWeekId, newActivityId).subscribe({
+      next: () => {
+        this.showToast('Actividad intensiva actualizada', 'success');
+        this._loadRegistrations(this.selectedCourse()!.id);
+      },
+      error: () => this.showToast('Error al actualizar la actividad', 'danger')
+    });
+  }
+
+  weekChips(weeks: Array<{week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number}>): Array<{short: string; dates: string; intensiveActivityId?: number | null; intensiveActivityName?: string | null; enrollmentWeekId?: number}> {
     if (!weeks.length) return [];
     return weeks.map(w => {
       const courseWeek = this.courseWeeks.find(cw => cw.week_number === w.week_number);
       const dates = courseWeek
         ? this._fmtWeekRange(courseWeek.start_date, courseWeek.end_date)
         : (w.label ?? '');
-      return { short: `Sem ${w.week_number}`, dates };
+      return { short: `Sem ${w.week_number}`, dates, intensiveActivityId: w.intensive_activity_id, intensiveActivityName: w.intensive_activity_name, enrollmentWeekId: w.enrollment_week_id };
     });
   }
 
@@ -958,6 +1036,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Modal de Fotografía ───────────────────────────────────────────────────
 
+  photoModalCredData = signal<any>(null);
+  photoModalCredLoading = signal<boolean>(false);
+
   openPhotoModal(p: ScRegisteredParticipant, group: ScRegistrationGroup, event: Event): void {
     event.stopPropagation();
     this.photoModalParticipant.set(p);
@@ -965,6 +1046,25 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.photoPreviewUrl.set(null);
     this.photoCameraMode.set('camera');
     this.photoModalOpen.set(true);
+    
+    // Cargar previsualización de credencial
+    this.photoModalCredLoading.set(true);
+    this.photoModalCredData.set(null);
+    this.credSvc.getPreview(p.participant_id, this.selectedCourse()!.id).subscribe({
+      next: res => {
+        this.photoModalCredData.set(res.data);
+        this.photoModalCredLoading.set(false);
+      },
+      error: () => this.photoModalCredLoading.set(false)
+    });
+    
+    // Iniciar cámara automáticamente
+    setTimeout(() => {
+      const videoEl = document.querySelector('video.photo-video') as HTMLVideoElement;
+      if (videoEl) {
+        this.startCamera(videoEl);
+      }
+    }, 50);
   }
 
   closePhotoModal(): void {
@@ -1056,54 +1156,42 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   /** Base URL para archivos estáticos del webroot */
-  photoBaseUrl(): string { return '/'; }
-
   printCredential(): void {
     const data = this.credModalData();
     const card = document.querySelector('.credential-card') as HTMLElement | null;
     if (!card) return;
 
     const openPrintWindow = (cardHtml: string) => {
-      const win = window.open('', '_blank', 'width=250,height=400');
+      const win = window.open('', '_blank', 'width=350,height=550');
       if (!win) return;
+      
+      let stylesHtml = '';
+      document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+        stylesHtml += el.outerHTML;
+      });
+
       win.document.write(`
 <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
+<title>Credencial - ${data?.full_name || ''}</title>
+${stylesHtml}
 <style>
   @page { size: 54mm 85mm; margin: 0; }
-  * { box-sizing: border-box; }
-  body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-  .credential-card { width: 54mm; height: 85mm; background: #fff; overflow: hidden; display: flex; flex-direction: column; }
-  .cred-header { display: flex; align-items: center; gap: 4px; padding: 3px 6px; border-bottom: 1px solid #f3f4f6; }
-  .cred-header__logo { flex: 0 0 auto; }
-  .cred-header__punch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .cred-logo { height: 26px; }
-  .cred-punch-label { font-size: 7px; color: #9ca3af; font-weight: 700; letter-spacing: .4px; }
-  .cred-punch-line { width: 100%; height: 2px; background: repeating-linear-gradient(to right, #d1d5db 0, #d1d5db 3px, transparent 3px, transparent 6px); }
-  .cred-badge-type { background: #f97316; color: #fff; font-size: 8px; font-weight: 700; letter-spacing: .4px; padding: 3px 7px; border-radius: 4px; white-space: nowrap; }
-  .cred-course-logo { text-align: center; padding: 2px 0; }
-  .cred-course-logo img { height: 38px; }
-  .cred-media { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 2px 8px; }
-  .cred-photo-wrap { flex: 0 0 32mm; }
-  .cred-photo { width: 32mm; height: 30mm; object-fit: cover; border-radius: 4px; border: 2.5px solid #f97316; display: block; }
-  .cred-photo--empty { width: 32mm; height: 30mm; display: flex; align-items: center; justify-content: center; background: #f9fafb; border: 2.5px dashed #f97316; border-radius: 4px; }
-  .cred-qr-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 0; }
-  .cred-qr { width: 22mm; height: 22mm; border-radius: 4px; border: 2px solid #1e3a5f; }
-  .cred-qr-label { font-size: 7px; font-weight: 700; letter-spacing: .4px; background: #1e3a5f; color: #fff; padding: 2px 4px; border-radius: 3px; text-align: center; }
-  .cred-fields { display: grid; grid-template-columns: 1fr auto; gap: 3px 6px; padding: 3px 8px; flex: 1; }
-  .cred-field { display: flex; flex-direction: column; gap: 1px; }
-  .cred-field--full { grid-column: 1 / -1; }
-  .cred-field--small { min-width: 50px; }
-  .cred-field__label { font-size: 7px; font-weight: 700; letter-spacing: .4px; color: #1e3a5f; text-transform: uppercase; }
-  .cred-field__label--orange { color: #f97316; }
-  .cred-field__value { font-size: 9px; font-weight: 600; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 1px; min-height: 12px; }
-  .cred-footer { background: #1e3a5f; color: #fff; text-align: center; font-size: 8px; font-weight: 700; letter-spacing: .4px; padding: 3px 4px; margin-top: auto; }
-  .material-symbols-outlined { display: none; }
+  body { margin: 0; padding: 0; background: white; display: flex; justify-content: center; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .credential-card {
+    transform: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+  }
 </style>
 </head>
-<body>${cardHtml}</body>
+<body>
+  ${cardHtml}
+</body>
 </html>`);
       win.document.close();
       win.focus();
@@ -1121,20 +1209,25 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         }));
 
     const logoUrl = '/assets/images/ARZ_SUITE_HORIZONTAL.png';
-    const photoUrl = data?.photo_url ? '/' + data.photo_url : null;
+    const courseLogoUrl = '/assets/images/logocurso2026.webp';
+    const photoUrl = data?.photo_url ? this.photoBaseUrl() + data.photo_url : null;
 
     const logoP = toBase64(logoUrl).catch(() => null);
+    const courseLogoP = toBase64(courseLogoUrl).catch(() => null);
     const photoP = photoUrl ? toBase64(photoUrl).catch(() => null) : Promise.resolve(null);
 
-    Promise.all([logoP, photoP]).then(([logoB64, photoB64]) => {
+    Promise.all([logoP, courseLogoP, photoP]).then(([logoB64, courseLogoB64, photoB64]) => {
       let html = card.outerHTML;
-      // Reemplazar logos (ambas instancias)
       if (logoB64) {
         html = html.replace(/src="\/assets\/images\/ARZ_SUITE_HORIZONTAL\.png"/g, `src="${logoB64}"`);
       }
-      // Reemplazar foto del participante
+      if (courseLogoB64) {
+        html = html.replace(/src="\/assets\/images\/logocurso2026\.webp"/g, `src="${courseLogoB64}"`);
+      }
       if (photoB64) {
-        html = html.replace(/src="[^"]*uploads\/summer-course\/[^"]*"/, `src="${photoB64}"`);
+        html = html.replace(/<img[^>]*class="cred-photo-img"[^>]*src="([^"]+)"[^>]*>/, (match, p1) => {
+          return match.replace(p1, photoB64);
+        });
       }
       openPrintWindow(html);
     });

@@ -1,0 +1,48 @@
+.scanner-container {
+  max-width: 100%;
+  
+  #qr-reader {
+    border: none !important;
+    
+    // Hide the default html5-qrcode UI elements we don't want
+    #qr-reader__dashboard_section_csr {
+      padding: 1rem;
+      button {
+        background-color: var(--bs-primary);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        margin-top: 0.5rem;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background-color 0.2s;
+        
+        &:hover {
+          background-color: var(--bs-primary-dark, #0d6efd);
+        }
+      }
+      
+      select {
+        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+        border-radius: 0.375rem;
+        border: 1px solid #ced4da;
+        margin-bottom: 0.5rem;
+        width: 100%;
+      }
+    }
+    
+    #qr-reader__dashboard_section_swaplink {
+      display: none !important; // Hide "Scan an Image File" link
+    }
+  }
+
+  .result-card {
+    .avatar {
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    .participant-info {
+      border: 1px solid rgba(0,0,0,0.05);
+    }
+  }
+}
