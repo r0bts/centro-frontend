@@ -449,9 +449,10 @@
           <!-- COLABORADOR -->
           <p class="wz-hint">Ingresa los datos del colaborador. Los colaboradores solo pueden inscribir invitados.</p>
           <div style="display:flex; gap: 16px; margin-top: 16px; margin-bottom: 24px;">
-            <div class="sce-form-field" style="flex:1;">
+            <div class="sce-form-field" style="flex:1; position: relative;">
                <label class="sce-form-label">Número de empleado</label>
-               <input class="sce-form-input" type="text" [value]="colaboradorNo()" (input)="colaboradorNo.set($any($event.target).value)" placeholder="Ej. 1234">
+               <input class="sce-form-input" type="text" [value]="colaboradorNo()" (input)="onColaboradorNoInput($any($event.target).value)" placeholder="Ej. 1234">
+               @if (colaboradorLoading()) { <div class="wz-search-spinner" style="position:absolute; right:10px; top:35px;"></div> }
             </div>
             <div class="sce-form-field" style="flex:2;">
                <label class="sce-form-label">Nombre del empleado <span style="font-weight: normal; color: var(--text-muted); font-size: 0.85em;">(opcional)</span></label>
@@ -512,11 +513,11 @@
                   <span class="wz-p-name">{{ p.fullName }}</span>
                   <div class="wz-p-meta">
                     @if (p.age !== null) { <span>{{ p.age }} años</span> }
-                    @if (p.type === 'guest' || p.type === 'staff_guest') {
+                    @if (p.type === 'guest' || p.type === 'staff_guest' || (p.type === 'staff' && p.memberType === 'Invitado')) {
                       @if (wizardMode() === 'colaborador') {
                         <select class="sce-form-input" style="padding:2px 8px;font-size:11px;height:auto" [value]="p.type" (change)="changeGuestType(i, $any($event.target).value)">
-                          <option value="staff_guest">Invitado colaborador</option>
-                          <option value="guest">Amigo / Conocido</option>
+                          <option value="staff">Familiar directo (Tarifa: Colaborador)</option>
+                          <option value="staff_guest">Amigo / Conocido (Tarifa: Invitado colaborador)</option>
                         </select>
                       } @else {
                         <span class="wz-chip wz-chip--guest wz-chip--xs">

@@ -16,6 +16,7 @@ import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit
 import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
 import { environment } from '../../../../environments/environment';
+import { UserService } from '../../../services/user.service';
 import {
   ScCourse,
   ScLevel,
@@ -98,6 +99,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private kitSvc       = inject(ScKitDeliveriesService);
   private credSvc      = inject(ScCredentialDeliveriesService);
   private enrollSvc    = inject(ScEnrollmentsService);
+  private userSvc      = inject(UserService);
 
   // ── Global ────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -195,6 +197,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   guestModalOpen     = signal(false);
 
   private search$ = new Subject<string>();
+  private colabSearch$ = new Subject<string>();
+  colaboradorLoading = signal(false);
 
   totalAmount = computed(() =>
     this.pendingParticipants()
@@ -261,6 +265,33 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     ).subscribe({
       next: (res: any) => { this.searchResults.set(res?.data ?? []); this.searching.set(false); },
       error: () => this.searching.set(false),
+    });
+
+    this.colabSearch$.pipe(
+      debounceTime(400),
+      distinctUntilChanged(),
+      switchMap(q => {
+        if (q.length < 1) {
+          this.colaboradorName.set('');
+          this.colaboradorLoading.set(false);
+          return [];
+        }
+        this.colaboradorLoading.set(true);
+        return this.userSvc.getAllUsers(10, 1, q);
+      })
+    ).subscribe({
+      next: (users) => {
+        this.colaboradorLoading.set(false);
+        if (users && users.length > 0) {
+          const u = users[0];
+          this.colaboradorName.set(`${u.firstName} ${u.lastName}`.trim());
+        } else {
+          this.colaboradorName.set('');
+        }
+      },
+      error: () => {
+        this.colaboradorLoading.set(false);
+      }
     });
   }
 
@@ -331,9 +362,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     });
   }
 
-  onSearchInput(val: string): void {
-    this.searchQuery.set(val);
-    this.search$.next(val);
+  onSearchInput(q: string): void {
+    this.searchQuery.set(q);
+    this.search$.next(q);
+  }
+
+  onColaboradorNoInput(q: string): void {
+    this.colaboradorNo.set(q);
+    this.colabSearch$.next(q);
   }
 
   _getLevelForAge(age: number | null): ScLevel | null {
@@ -451,7 +487,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.pendingParticipants.update(list => list.filter((_, i) => i !== idx));
   }
 
-  changeGuestType(idx: number, newType: 'guest' | 'staff_guest'): void {
+  changeGuestType(idx: number, newType: 'guest' | 'staff_guest' | 'staff'): void {
     this.pendingParticipants.update(list => {
       const updated = [...list];
       updated[idx] = { ...updated[idx], type: newType };
@@ -643,7 +679,12 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     };
 
     if (this.wizardMode() === 'colaborador') {
-      participant.type = 'staff_guest'; // Default para colaboradores es familiar
+      const rel = (guest.relationship || '').toLowerCase();
+      if (rel.startsWith('hijo') || rel.startsWith('sobrino') || rel.startsWith('nieto')) {
+        participant.type = 'staff';
+      } else {
+        participant.type = 'staff_guest';
+      }
     }
 
     this.pendingParticipants.update(list => [...list, participant]);
