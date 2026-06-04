@@ -137,6 +137,11 @@ export const routes: Routes = [
     loadComponent: () => import('./components/membresias-reglas-ver/membresias-reglas-ver').then(m => m.MembresiasReglasVerComponent),
     canActivate: [authGuard]
   },
+  {
+    path: 'membresias/placas',
+    loadComponent: () => import('./components/membresias-placas/membresias-placas').then(m => m.MembresiasPlacasComponent),
+    canActivate: [authGuard]
+  },
   // =====================================================================
   // DEPORTIVO — Módulos 6-13
   // Shell con rutas hijas lazy-loaded para cada sección.
