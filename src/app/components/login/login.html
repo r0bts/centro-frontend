@@ -7,8 +7,14 @@
       <div class="row justify-content-center">
         <div class="col-11 col-sm-8 col-md-6 col-lg-5 col-xl-4">
           
+          <!-- Banner de Pruebas -->
+          <div *ngIf="isPruebas()" class="pruebas-banner">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            SERVIDOR DE PRUEBAS — LOS DATOS AQUÍ NO SON DE PRODUCCIÓN
+          </div>
+
           <!-- Card del formulario -->
-          <div class="login-card">
+          <div class="login-card" [class.is-pruebas]="isPruebas()">
             <!-- Header con logo/título -->
             <div class="login-header text-center mb-4">
               <div class="logo-container mb-3">

@@ -271,3 +271,35 @@
     0 0 0 3px rgba(52, 152, 219, 0.3);
 }
 
+// ── Entorno de Pruebas ──
+.login-card.is-pruebas {
+  border: 3px solid #fdba74 !important;
+  box-shadow: 0 0 20px rgba(253, 186, 116, 0.4) !important;
+}
+
+.pruebas-banner {
+  background-color: #ffedd5;
+  color: #ea580c;
+  text-align: center;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  font-size: 0.9rem;
+  border: 2px solid #fdba74;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.5s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

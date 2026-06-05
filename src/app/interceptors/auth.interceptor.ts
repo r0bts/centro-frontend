@@ -21,6 +21,19 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                          req.url.includes('/auth/refresh') ||
                          req.url.includes('/auth/login');
 
+  // Ignorar peticiones exclusivas de Tutor Portal (el portal tiene su propio token)
+  if (req.url.includes('/api/tutor-portal')) {
+    const tutorToken = localStorage.getItem('tutor_token');
+    if (tutorToken) {
+      req = req.clone({
+        setHeaders: {
+          'Authorization': `Bearer ${tutorToken}`
+        }
+      });
+    }
+    return next(req); // Bypasses handle401Error para tutores
+  }
+
   return next(req).pipe(
     catchError(error => {
       if (error instanceof HttpErrorResponse && error.status === 401 && !isAuthEndpoint) {

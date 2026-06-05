@@ -25,7 +25,7 @@ const CONFIG_MODULE_ID = 'configuracion';
   styleUrls: ['./content-menu.scss']
 })
 export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
-  readonly isPruebas = signal(!environment.production || environment.apiUrl.includes('pruebas'));
+  readonly isPruebas = signal(typeof window !== 'undefined' ? window.location.hostname !== 'arzsuite.centrolibanes.org.mx' : false);
 
   @Input() activeSection: string = '';
   @Output() sectionChange = new EventEmitter<string>();

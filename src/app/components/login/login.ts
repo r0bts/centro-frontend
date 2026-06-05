@@ -12,6 +12,7 @@ import { AuthService, LoginRequest } from '../../services/auth.service';
   styleUrl: './login.scss'
 })
 export class Login {
+  readonly isPruebas = signal(typeof window !== 'undefined' ? window.location.hostname !== 'arzsuite.centrolibanes.org.mx' : false);
   loginForm: FormGroup;
   isLoading = signal(false);
   errorMessage = signal('');

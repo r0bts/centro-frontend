@@ -1,0 +1,135 @@
+<div class="vh-100 bg-light overflow-auto">
+  <nav class="navbar navbar-light bg-white shadow-sm px-3 px-md-4">
+    <div class="container-fluid d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center">
+        <img class="d-inline-block align-text-top" style="height: 2.5rem;" src="assets/logo.png" alt="Logo" onerror="this.src='https://arzsuite.com/assets/images/logo.png'">
+        <span class="ms-3 fs-5 fw-bold text-secondary">Mi Portal</span>
+      </div>
+      <div>
+        <button (click)="logout()" class="btn btn-link text-muted text-decoration-none fw-medium">Cerrar Sesión</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4 py-md-5">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="text-center py-5">
+      <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="mt-3 text-muted">Cargando información...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && children.length === 0" class="text-center py-5 bg-white rounded shadow-sm">
+      <p class="text-muted fs-5 mb-0">No se encontraron inscripciones asociadas a tu número ({{phone}}).</p>
+    </div>
+
+    <!-- Children List -->
+    <div *ngIf="!isLoading && children.length > 0" class="d-flex flex-column gap-4">
+      <div *ngFor="let child of children" class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        
+        <!-- Child Header -->
+        <div class="card-header bg-white border-bottom p-3 p-md-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="bg-primary text-white d-flex align-items-center justify-content-center rounded-circle fw-bold fs-4 overflow-hidden" style="width: 3.5rem; height: 3.5rem;">
+              <img *ngIf="child.photo_url" [src]="child.photo_url" class="w-100 h-100" style="object-fit: cover;">
+              <span *ngIf="!child.photo_url">{{child.first_name.charAt(0)}}</span>
+            </div>
+            <div>
+              <h3 class="h5 mb-0 fw-bold text-dark">{{child.first_name}} {{child.last_name}}</h3>
+              <p class="mb-0 text-muted small">Participante ID: #{{child.id}}</p>
+            </div>
+          </div>
+          <button (click)="openAddModal(child.id)" class="btn btn-primary fw-bold text-white shadow-sm">
+            + Autorizar Persona
+          </button>
+        </div>
+
+        <!-- Pickups List -->
+        <div class="card-body p-3 p-md-4 bg-light">
+          <h4 class="h6 fw-bold text-muted text-uppercase mb-3">Personas Autorizadas para Salida</h4>
+          
+          <div *ngIf="getPickupsForChild(child.id).length === 0" class="text-muted small fst-italic">
+            No hay personas autorizadas registradas. Agrega una para poder generar pases de salida.
+          </div>
+
+          <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+            <div *ngFor="let pickup of getPickupsForChild(child.id)" class="col">
+              <div class="card h-100 border-0 shadow-sm rounded-3">
+                <div class="card-body d-flex align-items-center gap-3">
+                  <img [src]="pickup.photo_url" class="rounded-circle" style="width: 3rem; height: 3rem; object-fit: cover;">
+                  <div class="flex-grow-1 min-w-0">
+                    <h5 class="h6 mb-0 text-dark text-truncate">{{pickup.name}}</h5>
+                    <p class="mb-2 text-muted small text-truncate">{{pickup.relationship || 'Familiar'}}</p>
+                    <div class="d-flex gap-2">
+                      <button (click)="generatePass(child.id, pickup.id)" class="btn btn-sm btn-secondary text-white py-1 px-2" style="font-size: 0.75rem;">
+                        Generar QR
+                      </button>
+                      <button (click)="removePickup(pickup.id)" class="btn btn-sm btn-outline-danger py-1 px-2" style="font-size: 0.75rem;">
+                        Quitar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Agregar -->
+<div *ngIf="showAddModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">Agregar Persona Autorizada</h5>
+        <button type="button" class="btn-close" (click)="closeAddModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label text-muted small fw-bold">Nombre Completo</label>
+          <input type="text" [(ngModel)]="newPickup.name" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-muted small fw-bold">Parentesco / Relación</label>
+          <input type="text" [(ngModel)]="newPickup.relationship" class="form-control">
+        </div>
+        <div class="mb-3">
+          <label class="form-label text-muted small fw-bold">Fotografía Clara (obligatorio)</label>
+          <input type="file" accept="image/*" (change)="onPhotoUpload($event)" class="form-control">
+          <div *ngIf="newPickup.photo_url" class="mt-3">
+            <img [src]="newPickup.photo_url" class="rounded object-cover" style="width: 5rem; height: 5rem; object-fit: cover;">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer border-0 pt-0 flex-nowrap">
+        <button type="button" (click)="closeAddModal()" class="btn btn-light w-50 fw-bold">Cancelar</button>
+        <button type="button" (click)="addPickup()" class="btn btn-primary text-white w-50 fw-bold">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal QR -->
+<div *ngIf="showQrModal" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.85);">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content border-0 shadow-lg rounded-4 text-center p-4">
+      <h3 class="h4 fw-bold text-dark mb-1">Pase de Salida</h3>
+      <p class="text-muted small mb-4">{{qrData?.authorized_name}}</p>
+      
+      <div class="d-inline-block p-3 bg-white border border-secondary border-opacity-25 rounded-3 mb-3 mx-auto" style="border-style: dashed !important;">
+        <qrcode *ngIf="qrData?.token" [qrdata]="qrData.token" [width]="220" [errorCorrectionLevel]="'M'"></qrcode>
+      </div>
+      
+      <p class="small text-muted mb-4">Presenta este código al guardia para permitir la salida del menor.</p>
+      
+      <button type="button" (click)="closeQrModal()" class="btn btn-secondary text-white w-100 py-2 fw-bold rounded-3">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>

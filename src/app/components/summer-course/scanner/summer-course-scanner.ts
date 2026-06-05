@@ -24,6 +24,9 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
   
   // Scanned Pass state
   scannedPass: any = null;
+  statusColor: 'green' | 'yellow' | 'red' | null = null;
+  statusMessage: string = '';
+  selectedPickupName: string | null = null;
 
   constructor(
     private summerCourseApi: SummerCourseScannerService,
@@ -49,9 +52,14 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
     this.isLoading = false;
     this.isProcessing = false;
     this.scannedPass = null;
+    this.statusColor = null;
+    this.statusMessage = '';
+    this.selectedPickupName = null;
     this.manualToken = '';
     this.cameraError = null;
     
+    this.cdr.detectChanges(); // Forzar actualización de UI para cerrar el modal de pase
+
     // Slight delay to allow DOM to render the reader div
     setTimeout(() => {
       this.html5QrCode = new Html5Qrcode('qr-reader');
@@ -126,20 +134,37 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.isLoading = false;
         
-        if (res.success) {
-          this.playSuccessSound();
-          this.scannedPass = res.data;
-          this.scannedPass.token = token; // store for processing
+        // El API retorna 200 tanto para Verde (success=true) como para Amarillo (success=false)
+        if (res.success || res.status_color === 'yellow' || (res.data && res.data.status_color === 'yellow')) {
+          const data = res.data || res; // dependiendo si usó this->ok o this->set
+          this.statusColor = data.status_color;
+          this.statusMessage = data.message;
+          this.scannedPass = data;
+          this.scannedPass.token = token;
+          
+          if (this.statusColor === 'green') {
+             this.playSuccessSound();
+             // Si hay varios autorizados, resetear selección. Si hay 1, autoseleccionar.
+             if (data.is_dynamic && data.authorized_pickups && data.authorized_pickups.length === 1) {
+                this.selectedPickupName = data.authorized_pickups[0].name;
+             }
+          }
         } else {
           this.showError(res.message || 'Pase inválido');
         }
-        this.cdr.detectChanges(); // Force UI update AFTER state is fully updated
+        this.cdr.detectChanges(); // Force UI update
       },
       error: (err) => {
         this.isLoading = false;
         
-        const msg = err.error?.message || 'Error al validar el pase.';
-        this.showError(msg);
+        const res = err.error || {};
+        const msg = res.message || 'Error al validar el pase.';
+        
+        if (res.status_color === 'red') {
+          this.showError(msg);
+        } else {
+          this.showError(msg);
+        }
         this.cdr.detectChanges(); // Force UI update
       }
     });
@@ -147,11 +172,26 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
 
   processPass() {
     if (!this.scannedPass || !this.scannedPass.token || this.isProcessing) return;
+    if (this.statusColor !== 'green') return; // Solo procesar si está en verde
     
+    // Si es dinámico y hay múltiples opciones, validar selección
+    if (this.scannedPass.is_dynamic && this.scannedPass.authorized_pickups && this.scannedPass.authorized_pickups.length > 1) {
+      if (!this.selectedPickupName) {
+        Swal.fire('Selección requerida', 'Debes confirmar visualmente qué persona autorizada está recogiendo al menor.', 'warning');
+        return;
+      }
+    }
+
     this.isProcessing = true;
     this.cdr.detectChanges(); // Force UI update
     
-    this.summerCourseApi.processPickupPass(this.scannedPass.token).subscribe({
+    // Pasar el token y opcionalmente el nombre confirmado
+    const payload = {
+      token: this.scannedPass.token,
+      confirmed_pickup_name: this.selectedPickupName
+    };
+    
+    this.summerCourseApi.processPickupPass(payload as any).subscribe({
       next: (res: any) => {
         this.isProcessing = false;
         
@@ -167,8 +207,6 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
             timer: 1500
           });
           
-          // Do not navigate away. Just restart scanner to be ready for the next one.
-          this.scannedPass = null;
           this.startScanner();
         } else {
           this.showError(res.message);
@@ -181,6 +219,53 @@ export class SummerCourseScannerComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges(); // Force UI update
       }
     });
+  }
+
+  reportMismatch() {
+    if (!this.scannedPass || !this.scannedPass.token || this.isProcessing) return;
+
+    Swal.fire({
+      title: '¿Alerta de Seguridad?',
+      text: '¿Confirmas que la persona no coincide? Se bloqueará el pase y se notificará inmediatamente al titular.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      confirmButtonText: 'Sí, emitir alerta',
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.isProcessing = true;
+        this.cdr.detectChanges();
+        
+        // Disparar petición en segundo plano sin bloquear el UI
+        this.summerCourseApi.processPickupPassMismatch(this.scannedPass.token).subscribe({
+          next: (res: any) => {
+            console.log('Alerta enviada exitosamente en segundo plano.');
+          },
+          error: (err) => {
+            console.error('Error procesando alerta en segundo plano', err);
+          }
+        });
+
+        // Respuesta inmediata al guardia para que pueda seguir escaneando
+        this.isProcessing = false;
+        
+        Swal.fire({
+          title: 'Alerta Activada',
+          text: 'El pase ha sido denegado y el titular está siendo notificado.',
+          icon: 'error',
+          timer: 2000,
+          showConfirmButton: false
+        }).then(() => {
+          this.startScanner(); // Regresar a escanear el siguiente en la fila de inmediato
+        });
+      }
+    });
+  }
+
+  selectPickup(name: string) {
+    this.selectedPickupName = name;
   }
 
   showError(message: string) {

@@ -34,6 +34,7 @@ import {
   ScIntensiveActivity,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
+import { AuthorizedPickupsModalComponent } from './authorized-pickups-modal/authorized-pickups-modal';
 
 interface LevelGroupFD {
   id: number;
@@ -89,7 +90,7 @@ interface DoneParticipant {
   selector: 'app-summer-course-enrollments',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, GuestModalComponent],
+  imports: [CommonModule, FormsModule, GuestModalComponent, AuthorizedPickupsModalComponent],
   templateUrl: './summer-course-enrollments.html',
   styleUrl: './summer-course-enrollments.scss',
 })
@@ -142,6 +143,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Foto de perfil ────────────────────────────────────────────────────────
   photoModalOpen        = signal(false);
   photoModalParticipant = signal<ScRegisteredParticipant | null>(null);
+  
+  // Authorized Pickups modal
+  authorizedPickupsParticipant = signal<any | null>(null);
+  
+  credParticipant = signal<ScRegisteredParticipant | null>(null);
   photoModalGroupTitular = signal<ScRegistrationGroup | null>(null);
   photoPreviewUrl       = signal<string | null>(null);   // base64 capturado antes de guardar
   photoSaving           = signal(false);
@@ -508,10 +514,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   _getCost(type: string, weeksCount: number): number {
     const costs = this.costs();
     const match = costs.find(c => c.participant_type === type && c.weeks_count === weeksCount);
-    if (match) return match.total;
+    if (match) return Number(match.total) || 0;
     // Fallback: tarifa W1 × semanas (sin descuento)
     const weekly = costs.find(c => c.participant_type === type && c.weeks_count === 1);
-    return weekly ? weekly.cost_per_week * weeksCount : 0;
+    return weekly ? (Number(weekly.cost_per_week) || 0) * weeksCount : 0;
   }
 
   formatPendingWeeks(weeks: {week_number: number, intensive_activity_id: number | null}[]): string {
@@ -532,7 +538,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return p.weeks.reduce((sum, w) => {
       if (w.intensive_activity_id) {
         const act = activities.find(a => a.id === w.intensive_activity_id);
-        if (act) return sum + act.extra_cost;
+        if (act) return sum + (Number(act.extra_cost) || 0);
       }
       return sum;
     }, 0);
@@ -1173,6 +1179,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   openCredentialModal(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
+    this.credParticipant.set(p);
     this.credModalOpen.set(true);
     this.credModalData.set(null);
     this.credModalLoading.set(true);
@@ -1189,6 +1196,17 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.showToast('Error al cargar datos de la credencial', 'danger');
       },
     });
+  }
+
+  openAuthorizedPickupsModal(p: ScRegisteredParticipant, event: Event): void {
+    event.stopPropagation();
+    const participantInfo = {
+       id: p.participant_id,
+       full_name: p.full_name,
+       socio_id: p.socio_id,
+       titular_id: p.titular_id
+    };
+    this.authorizedPickupsParticipant.set(participantInfo as any);
   }
 
   closeCredentialModal(): void {

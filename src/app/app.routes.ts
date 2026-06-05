@@ -13,6 +13,19 @@ export const routes: Routes = [
     canActivate: [loginGuard]
   },
   {
+    path: 'tutor-portal/login',
+    loadComponent: () => import('./components/tutor-portal/login/login.component').then(m => m.LoginComponent)
+  },
+  {
+    path: 'tutor-portal/dashboard',
+    loadComponent: () => import('./components/tutor-portal/dashboard/dashboard.component').then(m => m.DashboardComponent)
+  },
+  {
+    path: 'tutor-portal',
+    redirectTo: '/tutor-portal/login',
+    pathMatch: 'full'
+  },
+  {
     path: 'pase-salida/:token',
     loadComponent: () => import('./components/pickup-pass-view/pickup-pass-view').then(m => m.PickupPassViewComponent)
   },

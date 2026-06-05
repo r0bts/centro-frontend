@@ -14,8 +14,12 @@ export class SummerCourseScannerService {
     return this.http.post(`${this.apiUrl}/validate-pickup-pass`, { token });
   }
 
-  processPickupPass(token: string) {
-    return this.http.post(`${this.apiUrl}/process-pickup-pass`, { token });
+  processPickupPass(payload: any) {
+    return this.http.post(`${this.apiUrl}/process-pickup-pass`, payload);
+  }
+
+  processPickupPassMismatch(token: string) {
+    return this.http.post(`${this.apiUrl}/process-pickup-pass-mismatch`, { token });
   }
 
   getPickupPassHistory(dateFilter: string = '') {

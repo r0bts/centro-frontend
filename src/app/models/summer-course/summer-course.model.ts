@@ -566,6 +566,7 @@ export interface ScRegisteredParticipant {
   full_name:        string;
   participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
   socio_id:         number | null;
+  titular_id?:      string | number | null;
   guest_id:         number | null;
   invited_by:       string | null;  // nombre del titular que lo invitó (solo guests)
   birth_date:       string | null;

@@ -1,0 +1,195 @@
+<div class="sce-modal-overlay">
+  <div class="sce-modal sce-modal--md">
+    <div class="sce-modal__header">
+      <div class="sce-modal__title">
+        <span class="material-symbols-outlined text-primary">family_restroom</span>
+        Terceros Autorizados para Salida
+      </div>
+      <button class="sce-modal__close" (click)="onClose()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+
+    <div class="sce-modal__body">
+      <div class="alert alert-info d-flex align-items-center rounded-3 mb-4">
+        <span class="material-symbols-outlined me-2 text-info">info</span>
+        <div>
+          <strong class="d-block">Regla de Seguridad</strong>
+          Por seguridad, solo se permite un máximo de <strong>3 personas autorizadas</strong> por menor.
+        </div>
+      </div>
+
+      <!-- Participante Info -->
+      <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-3">
+        <div class="avatar bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 50px; height: 50px; font-size: 1.2rem;">
+          {{ participant.full_name.charAt(0) }}
+        </div>
+        <div>
+          <h5 class="mb-0 fw-bold">{{ participant.full_name }}</h5>
+          <span class="text-muted small">Módulo de Seguridad Visual</span>
+        </div>
+      </div>
+
+      <div *ngIf="error" class="alert alert-danger mb-3">{{ error }}</div>
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <div class="mt-2 text-muted">Cargando autorizados...</div>
+      </div>
+
+      <!-- Delete Confirmation -->
+      <div *ngIf="pickupToDelete" class="border rounded-3 p-4 bg-white border-danger shadow-sm mb-4 text-center">
+        <span class="material-symbols-outlined text-danger mb-2" style="font-size: 3rem;">warning</span>
+        <h5 class="fw-bold">¿Eliminar Autorizado?</h5>
+        <p class="text-muted mb-4">Estás a punto de eliminar a <strong>{{ pickupToDelete.name }}</strong> de la lista de personas autorizadas. Esta acción no se puede deshacer.</p>
+        
+        <div class="d-flex justify-content-center gap-2">
+          <button class="btn btn-light px-4" (click)="cancelDelete()" [disabled]="deleting">Cancelar</button>
+          <button class="btn btn-danger px-4" (click)="executeDelete()" [disabled]="deleting">
+            <span *ngIf="deleting" class="spinner-border spinner-border-sm me-1"></span>
+            Sí, eliminar
+          </button>
+        </div>
+      </div>
+
+      <!-- List of Pickups -->
+      <div *ngIf="!loading && !showForm && !showFamilySelection && !pickupToDelete" class="pickups-list">
+        <div *ngIf="pickups.length === 0" class="text-center py-4 text-muted">
+          <span class="material-symbols-outlined d-block mb-2" style="font-size: 3rem; color: #cbd5e1;">person_off</span>
+          No hay personas autorizadas configuradas aún.
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-12" *ngFor="let p of pickups">
+            <div class="card border border-light-subtle shadow-sm">
+              <div class="card-body d-flex align-items-center p-3">
+                <img [src]="p.photo_url" class="rounded-circle me-3 border" style="width: 60px; height: 60px; object-fit: cover;" alt="Foto">
+                <div class="flex-grow-1">
+                  <h6 class="mb-1 fw-bold text-dark">{{ p.name }}</h6>
+                  <span class="badge bg-secondary mb-1">{{ p.relationship }}</span>
+                  <div class="small text-muted d-flex gap-1 mt-1">
+                    <span class="badge bg-success" *ngIf="p.allowed_days.lunes">Lu</span>
+                    <span class="badge bg-success" *ngIf="p.allowed_days.martes">Ma</span>
+                    <span class="badge bg-success" *ngIf="p.allowed_days.miercoles">Mi</span>
+                    <span class="badge bg-success" *ngIf="p.allowed_days.jueves">Ju</span>
+                    <span class="badge bg-success" *ngIf="p.allowed_days.viernes">Vi</span>
+                    <span class="badge bg-success" *ngIf="p.allowed_days.sabado">Sa</span>
+                    <span class="badge bg-success" *ngIf="p.allowed_days.domingo">Do</span>
+                  </div>
+                </div>
+                <button class="btn btn-outline-danger btn-sm rounded-circle p-2" (click)="confirmDelete(p)" title="Eliminar">
+                  <span class="material-symbols-outlined fs-6 d-block">delete</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-center" *ngIf="pickups.length < 3">
+          <button class="btn btn-primary" (click)="startAddFlow()">
+            <span class="material-symbols-outlined align-middle me-1">add_circle</span>
+            Agregar Autorizado ({{ pickups.length }}/3)
+          </button>
+        </div>
+        <div class="text-center" *ngIf="pickups.length >= 3">
+          <span class="text-danger fw-bold"><i class="bi bi-x-octagon"></i> Límite de 3 personas alcanzado</span>
+        </div>
+      </div>
+
+      <!-- Family Selection -->
+      <div *ngIf="showFamilySelection" class="border rounded-3 p-3 bg-light">
+        <h6 class="fw-bold mb-3">Seleccionar Familiar</h6>
+        
+        <div *ngIf="loadingFamily" class="text-center py-4">
+          <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+          <div class="mt-2 text-muted small">Cargando familia...</div>
+        </div>
+
+        <div *ngIf="!loadingFamily" class="list-group mb-3">
+          <button *ngFor="let m of familyMembers" type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" (click)="selectFamilyMember(m)">
+            <div>
+              <div class="fw-bold text-primary">{{ m.fullName }}</div>
+              <small class="text-muted">{{ m.memberType }}</small>
+            </div>
+            <span class="material-symbols-outlined text-muted">chevron_right</span>
+          </button>
+        </div>
+
+        <div class="text-center mt-3 d-flex flex-column gap-2">
+          <button class="btn btn-outline-primary w-100" (click)="skipFamilySelection()">
+            <span class="material-symbols-outlined align-middle me-1">person_add</span>
+            Agregar a otra persona manualmente
+          </button>
+          <button class="btn btn-light w-100" (click)="showFamilySelection = false">
+            Cancelar
+          </button>
+        </div>
+      </div>
+
+      <!-- Add Form -->
+      <div *ngIf="showForm" class="add-form border rounded-3 p-3 bg-light">
+        <h6 class="fw-bold mb-3">Registrar Nueva Persona</h6>
+        
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Nombre Completo <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" [(ngModel)]="newPickup.name" placeholder="Ej. Ana García López">
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold small">Parentesco <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" [(ngModel)]="newPickup.relationship" placeholder="Ej. Abuela, Tío, Chófer">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold small">Teléfono (opcional)</label>
+            <input type="tel" class="form-control" [(ngModel)]="newPickup.phone" placeholder="10 dígitos">
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label fw-bold small">Días Permitidos (Semanario) <span class="text-danger">*</span></label>
+          <div class="d-flex flex-wrap gap-2">
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.lunes">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.lunes"> Lu
+            </label>
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.martes">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.martes"> Ma
+            </label>
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.miercoles">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.miercoles"> Mi
+            </label>
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.jueves">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.jueves"> Ju
+            </label>
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.viernes">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.viernes"> Vi
+            </label>
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.sabado">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.sabado"> Sa
+            </label>
+            <label class="day-pill" [class.active]="newPickup.allowed_days!.domingo">
+              <input type="checkbox" class="d-none" [(ngModel)]="newPickup.allowed_days!.domingo"> Do
+            </label>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-bold small">Fotografía para Validación Visual <span class="text-danger">*</span></label>
+          <input class="form-control" type="file" accept="image/jpeg, image/png, image/webp" (change)="onFileChange($event)">
+          <div class="mt-2 text-center" *ngIf="photoPreview">
+            <img [src]="photoPreview" class="img-thumbnail rounded-3 shadow-sm" style="max-height: 150px;">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+          <button class="btn btn-outline-secondary" (click)="showForm = false; resetForm()">Cancelar</button>
+          <button class="btn btn-success" (click)="savePickup()" [disabled]="saving">
+            <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
+            Guardar Autorizado
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
