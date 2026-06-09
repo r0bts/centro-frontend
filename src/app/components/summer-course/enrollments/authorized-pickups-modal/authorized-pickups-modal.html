@@ -1,4 +1,4 @@
-<div class="sce-modal-overlay">
+<div class="sce-modal-overlay" (click)="onOverlayClick($event)">
   <div class="sce-modal sce-modal--md">
     <div class="sce-modal__header">
       <div class="sce-modal__title">
@@ -78,9 +78,14 @@
                     <span class="badge bg-success" *ngIf="p.allowed_days.domingo">Do</span>
                   </div>
                 </div>
-                <button class="btn btn-outline-danger btn-sm rounded-circle p-2" (click)="confirmDelete(p)" title="Eliminar">
-                  <span class="material-symbols-outlined fs-6 d-block">delete</span>
-                </button>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-outline-primary btn-sm rounded-circle p-2" (click)="startEditFlow(p)" title="Editar">
+                    <span class="material-symbols-outlined fs-6 d-block">edit</span>
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm rounded-circle p-2" (click)="confirmDelete(p)" title="Eliminar">
+                    <span class="material-symbols-outlined fs-6 d-block">delete</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -129,7 +134,7 @@
 
       <!-- Add Form -->
       <div *ngIf="showForm" class="add-form border rounded-3 p-3 bg-light">
-        <h6 class="fw-bold mb-3">Registrar Nueva Persona</h6>
+        <h6 class="fw-bold mb-3">{{ editingPickupId ? 'Editar Persona' : 'Registrar Nueva Persona' }}</h6>
         
         <div class="mb-3">
           <label class="form-label fw-bold small">Nombre Completo <span class="text-danger">*</span></label>
@@ -186,7 +191,7 @@
           <button class="btn btn-outline-secondary" (click)="showForm = false; resetForm()">Cancelar</button>
           <button class="btn btn-success" (click)="savePickup()" [disabled]="saving">
             <span *ngIf="saving" class="spinner-border spinner-border-sm me-1"></span>
-            Guardar Autorizado
+            {{ editingPickupId ? 'Guardar Cambios' : 'Guardar Autorizado' }}
           </button>
         </div>
       </div>

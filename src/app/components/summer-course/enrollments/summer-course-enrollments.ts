@@ -1209,6 +1209,16 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.authorizedPickupsParticipant.set(participantInfo as any);
   }
 
+  copyPortalLink(event: Event): void {
+    event.stopPropagation();
+    const url = window.location.origin + '/tutor-portal/login';
+    navigator.clipboard.writeText(url).then(() => {
+      this.showToast('Liga del portal copiada al portapapeles', 'success');
+    }).catch(() => {
+      this.showToast('Error al copiar la liga', 'danger');
+    });
+  }
+
   closeCredentialModal(): void {
     this.credModalOpen.set(false);
     this.credModalData.set(null);

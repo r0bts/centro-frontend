@@ -1,18 +1,12 @@
 {
   "/api": {
-    "target": "http://127.0.0.1",
+    "target": "http://ecosistema-centro.ddev.site",
     "secure": false,
-    "changeOrigin": true,
-    "headers": {
-      "Host": "centro.ddev.site"
-    }
+    "changeOrigin": true
   },
   "/uploads": {
-    "target": "http://127.0.0.1",
+    "target": "http://ecosistema-centro.ddev.site",
     "secure": false,
-    "changeOrigin": true,
-    "headers": {
-      "Host": "centro.ddev.site"
-    }
+    "changeOrigin": true
   }
 }

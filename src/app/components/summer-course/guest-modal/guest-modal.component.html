@@ -194,10 +194,17 @@
                    (input)="updateForm('email', $any($event.target).value)" />
           </div>
           <div class="gm-field">
-            <label class="gm-label">Teléfono <span class="gm-opt">(opcional)</span></label>
+            <label class="gm-label">Teléfono
+              @if (isEmp()) {
+                <span class="gm-req">*</span>
+              } @else {
+                <span class="gm-opt">(opcional)</span>
+              }
+            </label>
             <input class="gm-input" type="tel" placeholder="55 1234 5678"
                    [value]="form().phone"
-                   (input)="updateForm('phone', $any($event.target).value)" />
+                   (input)="updateForm('phone', $any($event.target).value)"
+                   [required]="isEmp()" />
           </div>
         </div>
 

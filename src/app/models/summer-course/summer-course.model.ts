@@ -492,6 +492,8 @@ export interface ScSocioSearchResult {
   membershipNumber: string;
   birth_date: string | null;
   age: number | null;
+  email?: string | null;
+  phone?: string | null;
   enrolled: boolean;            // ya inscrito en el curso seleccionado
   family: ScSocioFamilyMember[];
 }
@@ -502,6 +504,8 @@ export interface ScSocioFamilyMember {
   memberType: string;           // Parentesco
   birth_date: string | null;
   age: number | null;
+  email?: string | null;
+  phone?: string | null;
   enrolled: boolean;
   isinactive?: boolean;         // true si la membresía está inactiva en NS
 }

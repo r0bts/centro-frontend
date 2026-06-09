@@ -290,6 +290,12 @@
                         <span class="material-symbols-outlined">family_restroom</span>
                         Autorizados
                       </button>
+                      
+                      <!-- Botón Copiar Liga Portal -->
+                      <button class="sce-kit-btn" style="margin-left: 6px;" (click)="copyPortalLink($event)" title="Copiar liga del Portal Externo">
+                        <span class="material-symbols-outlined">content_copy</span>
+                        Copiar liga
+                      </button>
 
                       <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}" style="margin-left: 6px;">
                         {{ paymentLabel(p.payment_status) }}
