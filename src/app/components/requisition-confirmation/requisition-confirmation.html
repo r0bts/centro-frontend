@@ -328,6 +328,16 @@
                 </button>
               </div>
 
+              <!-- Botón Cerrar Entrega Parcial - visible en view Y edit cuando tiene permiso y status correcto -->
+              <div class="mt-3" *ngIf="isFromList && canClosePartial && requisitionStatus === 'Parcialmente Entregado'">
+                <button
+                  class="btn btn-danger"
+                  (click)="closePartialRequisition()">
+                  <i class="bi bi-x-circle me-1"></i>
+                  Cerrar Entrega Parcial
+                </button>
+              </div>
+
               <!-- Botones para modo edición - Panel derecho -->
               <!-- Mostrar botones según el estado de la requisición -->
               <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList && viewMode === 'edit'">

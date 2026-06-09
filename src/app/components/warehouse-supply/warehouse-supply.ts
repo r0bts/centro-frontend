@@ -212,6 +212,13 @@ export class WarehouseSupplyComponent implements OnInit {
     return result;
   });
 
+  canClosePartial = computed(() => {
+    const req = this.requisition();
+    if (!req) return false;
+    // Solo checa status — el backend valida el permiso close_partial (perm_id=45) en el endpoint
+    return req.statusRaw === 'parcialmente_entregado';
+  });
+
   /** Todos los productos consolidados — se muestran en el modal de devolución completo */
   allProductsForModal = computed(() => {
     const req = this.requisition();
@@ -1317,5 +1324,77 @@ export class WarehouseSupplyComponent implements OnInit {
 
   onSectionChange(section: string): void {
     this.activeSection = section;
+  }
+
+  /**
+   * Cerrar entrega parcial — sin PIN, sin NetSuite, sin notificación.
+   * Solo disponible para usuarios con permiso close_partial (perm_id=45).
+   * POST /api/requisitions/{id}/close-partial
+   */
+  closePartialDelivery(): void {
+    const req = this.requisition();
+    if (!req) return;
+
+    Swal.fire({
+      title: '¿Cerrar entrega parcial?',
+      html: `
+        <div class="text-start">
+          <p>Se marcará la requisición <strong>${req.id}</strong> como entregada definitivamente.</p>
+          <div class="alert alert-warning mt-3 mb-0">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            <strong>Atención:</strong> Los productos no entregados quedarán sin surtir.
+            Esta acción no se puede deshacer.
+          </div>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar entrega',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      width: '550px'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: 'Procesando...',
+          text: 'Cerrando la entrega parcial...',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        this.requisitionService.closePartial(req.id).subscribe({
+          next: (response) => {
+            if (response.success) {
+              const data = response.data;
+              Swal.fire({
+                icon: 'success',
+                title: '¡Entrega Cerrada!',
+                html: `
+                  <div class="text-start">
+                    <p><strong>ID:</strong> ${data.id}</p>
+                    <p><strong>Estado:</strong> <span class="badge bg-success">Entregado</span></p>
+                  </div>
+                `,
+                confirmButtonText: 'Continuar',
+                confirmButtonColor: '#28a745'
+              }).then(() => {
+                this.goBackToList();
+              });
+            }
+          },
+          error: (error) => {
+            const errorMessage = error.message || 'No se pudo cerrar la entrega parcial';
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: errorMessage,
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#dc3545'
+            });
+          }
+        });
+      }
+    });
   }
 }
