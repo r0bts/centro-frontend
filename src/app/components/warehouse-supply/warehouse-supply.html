@@ -532,6 +532,17 @@
                     Procesar Devoluciones
                   </button>
                   
+                  <!-- Botón: Cerrar Entrega Parcial (requiere permiso close_partial) -->
+                  <button
+                    *ngIf="canClosePartial()"
+                    type="button"
+                    class="btn btn-danger"
+                    title="Cierra la requisición como entregada sin surtir los productos faltantes"
+                    (click)="closePartialDelivery()">
+                    <i class="bi bi-x-circle me-1"></i>
+                    Cerrar Entrega
+                  </button>
+                  
                   <!-- Mensaje: Requisición completada (entregado sin devoluciones pendientes) -->
                   <div *ngIf="requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return" 
                        class="alert alert-success mb-0 d-flex align-items-center">

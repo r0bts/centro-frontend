@@ -652,4 +652,16 @@ export class RequisitionService {
       catchError(this.handleError)
     );
   }
+
+  /**
+   * Cerrar entrega parcial — cambia entrega_parcial → entregado sin PIN ni NetSuite.
+   * Requiere permiso close_partial (submodule_id=7, permission_id=45).
+   * Endpoint: POST /api/requisitions/{id}/close-partial
+   */
+  closePartial(id: string): Observable<any> {
+    return this.http.post(`${this.API_URL}/requisitions/${id}/close-partial`, {}).pipe(
+      tap(response => console.log('✅ Entrega parcial cerrada:', response)),
+      catchError(this.handleError)
+    );
+  }
 }
