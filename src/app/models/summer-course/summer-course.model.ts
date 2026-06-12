@@ -559,6 +559,8 @@ export interface ScRegistrationResponse {
       accessCode:      string;
       enrollmentId:    number;
       suggestedLevel:  number | null;
+      assignedLevel:   number | null;
+      groupId:         number | null;
     }>;
   };
 }

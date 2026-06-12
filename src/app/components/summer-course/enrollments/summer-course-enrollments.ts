@@ -17,6 +17,7 @@ import { ScCredentialDeliveriesService } from '../../../services/summer-course/s
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
 import { environment } from '../../../../environments/environment';
 import { UserService } from '../../../services/user.service';
+import { AuthService } from '../../../services/auth.service';
 import {
   ScCourse,
   ScLevel,
@@ -101,6 +102,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private credSvc      = inject(ScCredentialDeliveriesService);
   private enrollSvc    = inject(ScEnrollmentsService);
   private userSvc      = inject(UserService);
+  private authSvc      = inject(AuthService);
 
   // ── Global ────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -164,6 +166,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credNotes         = signal('');
 
   // ── Level / Group assignment ──────────────────────────────────────────────
+  canReasignar      = signal<boolean>(false);
   levelGroupsFD     = signal<LevelGroupFD[]>([]);
 
   lvlModalOpen      = signal(false);
@@ -233,6 +236,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
+
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
       next: res => this.levels.set(res.data ?? []),
@@ -253,7 +258,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           this._loadRegistrations(list[0].id);
           this._loadKits(list[0].id);
           this._loadCredentials(list[0].id);
-          this._loadLevelGroups(list[0].id);
+          this._loadLevelGroups();
         }
         this.loading.set(false);
       },
@@ -283,7 +288,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           return [];
         }
         this.colaboradorLoading.set(true);
-        return this.userSvc.getAllUsers(10, 1, q);
+        // Búsqueda exacta por número de empleado — evita falsos positivos con LIKE
+        return this.userSvc.getAllUsers(2, 1, q, true);
       })
     ).subscribe({
       next: (users) => {
@@ -309,7 +315,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       this._loadRegistrations(c.id);
       this._loadKits(c.id);
       this._loadCredentials(c.id);
-      this._loadLevelGroups(c.id);
+      this._loadLevelGroups();
     }
   }
 
@@ -614,15 +620,15 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.saving.set(false);
         this.registrationResult.set(res.data);
         // Construir lista de participantes del step done para asignar nivel/grupo
-        const tokens: Array<{participantId:string; participantName:string; accessCode:string; enrollmentId:number; suggestedLevel:number|null}>
+        const tokens: Array<{participantId:string; participantName:string; accessCode:string; enrollmentId:number; suggestedLevel:number|null; assignedLevel:number|null; groupId:number|null}>
           = res.data?.pick_up_tokens ?? [];
         this.doneParticipants.set(tokens.map(t => ({
           enrollmentId:    t.enrollmentId,
           participantName: t.participantName,
           accessCode:      t.accessCode,
           suggestedLevel:  t.suggestedLevel ?? null,
-          assignedLevel:   null,
-          groupId:         null,
+          assignedLevel:   t.assignedLevel  ?? null,
+          groupId:         t.groupId        ?? null,
           groupAlias:      null,
         })));
         this.wizardStep.set('done');
@@ -709,9 +715,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.pendingParticipants.update(list => list.map((p, i) =>
       i === idx ? { ...p, selectedLevel: levelNum, selectedGroupId: null, selectedGroupAlias: null } : p
     ));
-    // Cargar grupos si no están cargados aún
-    const cId = this.selectedCourse()?.id;
-    if (cId) this._loadLevelGroups(cId);
+    // Cargar grupos globales si no están cargados aún
+    if (this.levelGroupsFD().length === 0) this._loadLevelGroups();
   }
 
   /** Establece el grupo elegido para un pending participant (inline, sin API) */
@@ -722,8 +727,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.pendingExpandIdx.set(-1); // cerrar panel al elegir grupo
   }
 
-  private _loadLevelGroups(courseId: number): void {
-    this.enrollSvc.getFormData(courseId).subscribe({
+  private _loadLevelGroups(): void {
+    this.enrollSvc.getFormData().subscribe({
       next: res => this.levelGroupsFD.set(res.data?.level_groups ?? []),
       error: () => {},
     });

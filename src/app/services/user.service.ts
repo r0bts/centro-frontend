@@ -96,13 +96,16 @@ export class UserService {
   /**
    * Obtener todos los usuarios
    */
-  getAllUsers(limit: number = 1000, page: number = 1, search?: string): Observable<User[]> {
+  getAllUsers(limit: number = 1000, page: number = 1, search?: string, employeeExact?: boolean): Observable<User[]> {
     const params: any = { 
       limit: limit.toString(), 
       page: page.toString() 
     };
     if (search) {
       params.search = search;
+    }
+    if (employeeExact) {
+      params.employee_exact = 'true';
     }
 
     return this.http.get<any>(`${this.API_URL}/users`, { params }).pipe(
