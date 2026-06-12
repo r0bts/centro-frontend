@@ -90,4 +90,11 @@ export class ScRegistrationsService {
       intensive_activity_id: intensiveActivityId
     });
   }
+
+  /**
+   * Envía la liga del portal externo por WhatsApp.
+   */
+  sendPortalLinkWhatsapp(enrollmentId: number, phone: string | null, url: string): Observable<any> {
+    return this.http.post(`${this.base}/send-portal-link`, { enrollment_id: enrollmentId, phone, url });
+  }
 }

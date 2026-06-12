@@ -583,6 +583,7 @@ export interface ScRegisteredParticipant {
   suggested_level?: number | null;
   group_id?:        number | null;
   group_alias?:     string | null;
+  phone?:           string | null;
 }
 
 /** Grupo de inscripción agrupado por titular */

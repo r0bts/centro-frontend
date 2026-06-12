@@ -1214,13 +1214,23 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.authorizedPickupsParticipant.set(participantInfo as any);
   }
 
-  copyPortalLink(event: Event): void {
+  sendPortalLink(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
     const url = window.location.origin + '/tutor-portal/login';
-    navigator.clipboard.writeText(url).then(() => {
-      this.showToast('Liga del portal copiada al portapapeles', 'success');
-    }).catch(() => {
-      this.showToast('Error al copiar la liga', 'danger');
+    const phoneToUse = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/-/g, '') : null;
+    
+    if (!phoneToUse) {
+      this.showToast('El participante no tiene un número de teléfono válido registrado.', 'danger');
+      return;
+    }
+
+    this.svc.sendPortalLinkWhatsapp(p.enrollment_id, phoneToUse, url).subscribe({
+      next: () => {
+        this.showToast('Liga enviada por WhatsApp exitosamente', 'success');
+      },
+      error: () => {
+        this.showToast('Error al enviar liga por WhatsApp', 'danger');
+      }
     });
   }
 
