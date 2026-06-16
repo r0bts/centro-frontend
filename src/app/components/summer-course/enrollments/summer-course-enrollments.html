@@ -406,13 +406,16 @@
             Buscar titular
           </div>
           <div style="display:flex; gap: 8px;">
-            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'socio'" [class.sce-btn--ghost]="wizardMode() !== 'socio'" (click)="wizardMode.set('socio')">Socio</button>
-            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador'" (click)="wizardMode.set('colaborador')">Colaborador</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'socio'" [class.sce-btn--ghost]="wizardMode() !== 'socio'" (click)="setWizardMode('socio')">Socio</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador'" (click)="setWizardMode('colaborador')">Colaborador</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador_externo'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador_externo'" (click)="setWizardMode('colaborador_externo')">Colaborador externo</button>
           </div>
         </div>
 
-        @if (wizardMode() === 'socio') {
-          <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.</p>
+        @if (wizardMode() === 'socio' || wizardMode() === 'colaborador_externo') {
+          <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.
+            @if(wizardMode() === 'colaborador_externo') { (Solo se mostrarán los que comiencen con "CL") }
+          </p>
         <div class="wz-search-field" [class.wz-search-field--loading]="searching()">
           <span class="material-symbols-outlined">search</span>
           <input type="text" placeholder="Ej: Juan García o membresía 10005..."
@@ -460,6 +463,15 @@
               </div>
             }
           </div>
+          @if (wizardMode() === 'colaborador_externo' && searchResults().length) {
+            <div style="margin-top: 16px; padding: 16px; background: var(--surface-alt); border-radius: 8px; border: 1px solid var(--border-color);">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: var(--text-color);">
+                <input type="checkbox" [checked]="createNsOrder()" (change)="createNsOrder.set(!createNsOrder())" style="width: 18px; height: 18px; cursor: pointer;">
+                Crear orden de venta en NetSuite
+              </label>
+              <p class="wz-hint" style="margin-top: 6px; margin-bottom: 0;">Si desmarcas esta opción, no se generará una orden de venta en NetSuite y se guardará como colaborador.</p>
+            </div>
+          }
         } @else if (searchQuery().length >= 2 && !searching()) {
           <div class="wz-no-results">
             <span class="material-symbols-outlined">person_search</span>
@@ -535,7 +547,7 @@
                   <div class="wz-p-meta">
                     @if (p.age !== null) { <span>{{ p.age }} años</span> }
                     @if (p.type === 'guest' || p.type === 'staff_guest' || (p.type === 'staff' && p.memberType === 'Invitado')) {
-                      @if (wizardMode() === 'colaborador') {
+                      @if (wizardMode() === 'colaborador' || wizardMode() === 'colaborador_externo') {
                         <select class="sce-form-input" style="padding:2px 8px;font-size:11px;height:auto" [value]="p.type" (change)="changeGuestType(i, $any($event.target).value)">
                           <option value="staff">Familiar directo (Tarifa: Colaborador)</option>
                           <option value="staff_guest">Amigo / Conocido (Tarifa: Invitado colaborador)</option>
