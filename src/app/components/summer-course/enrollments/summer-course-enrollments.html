@@ -303,6 +303,18 @@
                       <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}" style="margin-left: 6px;">
                         {{ paymentLabel(p.payment_status) }}
                       </span>
+                      @if (canVerPagos()) {
+                        <span class="sce-cost-chip" style="margin-left: 6px; display:inline-flex; align-items:center; gap:4px; font-size:.78rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px;">
+                          <span class="material-symbols-outlined" style="font-size:1rem; color:#64748b;">payments</span>
+                          @if (enrolledDiscount(p) > 0) {
+                            <span style="text-decoration:line-through; color:#94a3b8;">{{ currency(enrolledListPrice(p)) }}</span>
+                            <span style="font-weight:600; color:#0f172a;">{{ currency(enrolledCost(p)) }}</span>
+                            <span style="color:#16a34a; font-size:.72rem;">(−{{ currency(enrolledDiscount(p)) }})</span>
+                          } @else {
+                            <span style="font-weight:600; color:#0f172a;">{{ currency(enrolledCost(p)) }}</span>
+                          }
+                        </span>
+                      }
                       @if (p.access_code) {
                         <span class="sce-access-code" style="margin-left: 6px;">
                           <span class="material-symbols-outlined">qr_code_2</span>

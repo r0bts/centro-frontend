@@ -167,6 +167,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Level / Group assignment ──────────────────────────────────────────────
   canReasignar      = signal<boolean>(false);
+  canVerPagos       = signal<boolean>(false);
   levelGroupsFD     = signal<LevelGroupFD[]>([]);
 
   lvlModalOpen      = signal(false);
@@ -238,6 +239,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
+    this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
 
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
@@ -1011,6 +1013,21 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   currency(val: number): string {
     return '$' + val.toLocaleString('es-MX', { minimumFractionDigits: 0 });
+  }
+
+  /** Precio lista (sin descuento) del inscrito en la tabla admin */
+  enrolledListPrice(p: ScRegisteredParticipant): number {
+    return p.list_price ?? 0;
+  }
+
+  /** Descuento absoluto del inscrito (0 si no hay descuento) */
+  enrolledDiscount(p: ScRegisteredParticipant): number {
+    return p.discount_amount ?? 0;
+  }
+
+  /** Monto final pagado / a pagar del inscrito */
+  enrolledCost(p: ScRegisteredParticipant): number {
+    return p.amount_paid ?? 0;
   }
 
   showToast(msg: string, type: 'success'|'danger'|'info' = 'success'): void {
