@@ -492,6 +492,8 @@ export interface ScSocioSearchResult {
   membershipNumber: string;
   birth_date: string | null;
   age: number | null;
+  email?: string | null;
+  phone?: string | null;
   enrolled: boolean;            // ya inscrito en el curso seleccionado
   family: ScSocioFamilyMember[];
 }
@@ -502,6 +504,8 @@ export interface ScSocioFamilyMember {
   memberType: string;           // Parentesco
   birth_date: string | null;
   age: number | null;
+  email?: string | null;
+  phone?: string | null;
   enrolled: boolean;
   isinactive?: boolean;         // true si la membresía está inactiva en NS
 }
@@ -555,6 +559,8 @@ export interface ScRegistrationResponse {
       accessCode:      string;
       enrollmentId:    number;
       suggestedLevel:  number | null;
+      assignedLevel:   number | null;
+      groupId:         number | null;
     }>;
   };
 }
@@ -573,10 +579,14 @@ export interface ScRegisteredParticipant {
   weeks:            Array<{ week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number }>;
   payment_status:   'pending' | 'paid' | 'partial' | 'cancelled';
   access_code:      string | null;
-  assigned_level?:  number | null;
-  suggested_level?: number | null;
-  group_id?:        number | null;
-  group_alias?:     string | null;
+  assigned_level?:    number | null;
+  suggested_level?:   number | null;
+  group_id?:          number | null;
+  group_alias?:       string | null;
+  phone?:             string | null;
+  list_price?:        number | null;
+  discount_amount?:   number | null;
+  amount_paid?:       number | null;
 }
 
 /** Grupo de inscripción agrupado por titular */

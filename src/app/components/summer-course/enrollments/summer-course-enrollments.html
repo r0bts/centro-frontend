@@ -200,55 +200,58 @@
                         <span class="sce-participant-name">{{ p.full_name }}</span>
                         <div class="sce-participant-meta">
                           <span class="sce-participant-type">{{ typeLabel(p.participant_type) }}</span>
-                          @if (p.participant_type === 'guest' && p.invited_by) {
-                            <span class="sce-guest-badge">
-                              <span class="material-symbols-outlined">person_pin</span>
-                              Invitado de {{ p.invited_by }}
+
+                          @if (p.phone) {
+                            <span class="sce-guest-badge" style="background: #f1f5f9; color: #475569; border-color: #e2e8f0;">
+                              <span class="material-symbols-outlined">call</span>
+                              {{ p.phone }}
                             </span>
                           }
                         </div>
                         <!-- Assign level / group actions -->
-                        <div class="sce-assign-actions">
-                          @if (levelByNumber(p.assigned_level); as lvl) {
-                            <button class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}"
-                                    (click)="openLevelModal(p, group.titular_id)"
-                                    [title]="'Cambiar nivel · ' + lvl.age_label">
-                              <span class="sce-assign-badge__roman">Niv. {{ lvl.roman }}</span>
-                              <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
-                            </button>
-                          } @else {
-                            <button class="sce-assign-btn sce-assign-btn--level"
-                                    (click)="openLevelModal(p, group.titular_id)"
-                                    title="Asignar nivel">
-                              <span class="material-symbols-outlined">school</span>
-                              Asignar nivel
-                            </button>
-                          }
-                          @if (p.assigned_level) {
-                            @if (p.group_id) {
-                              <button class="sce-assign-badge sce-assign-badge--group"
-                                      (click)="openGroupModal(p, group.titular_id)"
-                                      title="Cambiar grupo">
-                                <span class="material-symbols-outlined">groups</span>
-                                {{ p.group_alias ?? 'Grupo' }}
+                        @if (canReasignar()) {
+                          <div class="sce-assign-actions">
+                            @if (levelByNumber(p.assigned_level); as lvl) {
+                              <button class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}"
+                                      (click)="openLevelModal(p, group.titular_id)"
+                                      [title]="'Cambiar nivel · ' + lvl.age_label">
+                                <span class="sce-assign-badge__roman">Niv. {{ lvl.roman }}</span>
                                 <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
                               </button>
                             } @else {
-                              <button class="sce-assign-btn sce-assign-btn--group"
-                                      (click)="openGroupModal(p, group.titular_id)"
-                                      title="Asignar grupo">
-                                <span class="material-symbols-outlined">groups</span>
-                                Asignar grupo
+                              <button class="sce-assign-btn sce-assign-btn--level"
+                                      (click)="openLevelModal(p, group.titular_id)"
+                                      title="Asignar nivel">
+                                <span class="material-symbols-outlined">school</span>
+                                Asignar nivel
                               </button>
                             }
-                          } @else {
-                            <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled
-                                    title="Primero asigna un nivel">
-                              <span class="material-symbols-outlined">groups</span>
-                              Sin grupo
-                            </button>
-                          }
-                        </div>
+                            @if (p.assigned_level) {
+                              @if (p.group_id) {
+                                <button class="sce-assign-badge sce-assign-badge--group"
+                                        (click)="openGroupModal(p, group.titular_id)"
+                                        title="Cambiar grupo">
+                                  <span class="material-symbols-outlined">groups</span>
+                                  {{ p.group_alias ?? 'Grupo' }}
+                                  <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                                </button>
+                              } @else {
+                                <button class="sce-assign-btn sce-assign-btn--group"
+                                        (click)="openGroupModal(p, group.titular_id)"
+                                        title="Asignar grupo">
+                                  <span class="material-symbols-outlined">groups</span>
+                                  Asignar grupo
+                                </button>
+                              }
+                            } @else {
+                              <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled
+                                      title="Primero asigna un nivel">
+                                <span class="material-symbols-outlined">groups</span>
+                                Sin grupo
+                              </button>
+                            }
+                          </div>
+                        }
                       </div>
                     </div>
                     <div class="sce-participant-row__actions">
@@ -290,10 +293,28 @@
                         <span class="material-symbols-outlined">family_restroom</span>
                         Autorizados
                       </button>
+                      
+                      <!-- Botón Enviar Liga Portal -->
+                      <button class="sce-kit-btn" style="margin-left: 6px;" (click)="sendPortalLink(p, $event)" title="Enviar liga por WhatsApp">
+                        <span class="material-symbols-outlined">send_to_mobile</span>
+                        Enviar liga
+                      </button>
 
                       <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}" style="margin-left: 6px;">
                         {{ paymentLabel(p.payment_status) }}
                       </span>
+                      @if (canVerPagos()) {
+                        <span class="sce-cost-chip" style="margin-left: 6px; display:inline-flex; align-items:center; gap:4px; font-size:.78rem; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:2px 8px;">
+                          <span class="material-symbols-outlined" style="font-size:1rem; color:#64748b;">payments</span>
+                          @if (enrolledDiscount(p) > 0) {
+                            <span style="text-decoration:line-through; color:#94a3b8;">{{ currency(enrolledListPrice(p)) }}</span>
+                            <span style="font-weight:600; color:#0f172a;">{{ currency(enrolledCost(p)) }}</span>
+                            <span style="color:#16a34a; font-size:.72rem;">(−{{ currency(enrolledDiscount(p)) }})</span>
+                          } @else {
+                            <span style="font-weight:600; color:#0f172a;">{{ currency(enrolledCost(p)) }}</span>
+                          }
+                        </span>
+                      }
                       @if (p.access_code) {
                         <span class="sce-access-code" style="margin-left: 6px;">
                           <span class="material-symbols-outlined">qr_code_2</span>
@@ -397,13 +418,16 @@
             Buscar titular
           </div>
           <div style="display:flex; gap: 8px;">
-            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'socio'" [class.sce-btn--ghost]="wizardMode() !== 'socio'" (click)="wizardMode.set('socio')">Socio</button>
-            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador'" (click)="wizardMode.set('colaborador')">Colaborador</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'socio'" [class.sce-btn--ghost]="wizardMode() !== 'socio'" (click)="setWizardMode('socio')">Socio</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador'" (click)="setWizardMode('colaborador')">Colaborador</button>
+            <button class="sce-btn sce-btn--sm" [class.sce-btn--primary]="wizardMode() === 'colaborador_externo'" [class.sce-btn--ghost]="wizardMode() !== 'colaborador_externo'" (click)="setWizardMode('colaborador_externo')">Colaborador externo</button>
           </div>
         </div>
 
-        @if (wizardMode() === 'socio') {
-          <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.</p>
+        @if (wizardMode() === 'socio' || wizardMode() === 'colaborador_externo') {
+          <p class="wz-hint">Escribe el nombre o número de membresía del titular de la inscripción.
+            @if(wizardMode() === 'colaborador_externo') { (Solo se mostrarán los que comiencen con "CL") }
+          </p>
         <div class="wz-search-field" [class.wz-search-field--loading]="searching()">
           <span class="material-symbols-outlined">search</span>
           <input type="text" placeholder="Ej: Juan García o membresía 10005..."
@@ -451,6 +475,15 @@
               </div>
             }
           </div>
+          @if (wizardMode() === 'colaborador_externo' && searchResults().length) {
+            <div style="margin-top: 16px; padding: 16px; background: var(--surface-alt); border-radius: 8px; border: 1px solid var(--border-color);">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; color: var(--text-color);">
+                <input type="checkbox" [checked]="createNsOrder()" (change)="createNsOrder.set(!createNsOrder())" style="width: 18px; height: 18px; cursor: pointer;">
+                Crear orden de venta en NetSuite
+              </label>
+              <p class="wz-hint" style="margin-top: 6px; margin-bottom: 0;">Si desmarcas esta opción, no se generará una orden de venta en NetSuite y se guardará como colaborador.</p>
+            </div>
+          }
         } @else if (searchQuery().length >= 2 && !searching()) {
           <div class="wz-no-results">
             <span class="material-symbols-outlined">person_search</span>
@@ -526,7 +559,7 @@
                   <div class="wz-p-meta">
                     @if (p.age !== null) { <span>{{ p.age }} años</span> }
                     @if (p.type === 'guest' || p.type === 'staff_guest' || (p.type === 'staff' && p.memberType === 'Invitado')) {
-                      @if (wizardMode() === 'colaborador') {
+                      @if (wizardMode() === 'colaborador' || wizardMode() === 'colaborador_externo') {
                         <select class="sce-form-input" style="padding:2px 8px;font-size:11px;height:auto" [value]="p.type" (change)="changeGuestType(i, $any($event.target).value)">
                           <option value="staff">Familiar directo (Tarifa: Colaborador)</option>
                           <option value="staff_guest">Amigo / Conocido (Tarifa: Invitado colaborador)</option>
@@ -878,36 +911,38 @@
                       }
                     </div>
                   </div>
-                  <div class="sce-assign-actions">
-                    @if (levelByNumber(dp.assignedLevel ?? undefined); as lvl) {
-                      <button class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}"
-                              (click)="openLevelModalFromDone(dp)">
-                        <span class="sce-assign-badge__roman">Niv. {{ lvl.roman }}</span>
-                        <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
-                      </button>
-                    } @else {
-                      <button class="sce-assign-btn sce-assign-btn--level" (click)="openLevelModalFromDone(dp)">
-                        <span class="material-symbols-outlined">school</span> Asignar nivel
-                      </button>
-                    }
-                    @if (dp.assignedLevel) {
-                      @if (dp.groupId) {
-                        <button class="sce-assign-badge sce-assign-badge--group" (click)="openGroupModalFromDone(dp)">
-                          <span class="material-symbols-outlined">groups</span>
-                          {{ dp.groupAlias ?? 'Grupo' }}
+                  @if (canReasignar()) {
+                    <div class="sce-assign-actions">
+                      @if (levelByNumber(dp.assignedLevel ?? undefined); as lvl) {
+                        <button class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}"
+                                (click)="openLevelModalFromDone(dp)">
+                          <span class="sce-assign-badge__roman">Niv. {{ lvl.roman }}</span>
                           <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
                         </button>
                       } @else {
-                        <button class="sce-assign-btn sce-assign-btn--group" (click)="openGroupModalFromDone(dp)">
-                          <span class="material-symbols-outlined">groups</span> Asignar grupo
+                        <button class="sce-assign-btn sce-assign-btn--level" (click)="openLevelModalFromDone(dp)">
+                          <span class="material-symbols-outlined">school</span> Asignar nivel
                         </button>
                       }
-                    } @else {
-                      <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled>
-                        <span class="material-symbols-outlined">groups</span> Sin grupo
-                      </button>
-                    }
-                  </div>
+                      @if (dp.assignedLevel) {
+                        @if (dp.groupId) {
+                          <button class="sce-assign-badge sce-assign-badge--group" (click)="openGroupModalFromDone(dp)">
+                            <span class="material-symbols-outlined">groups</span>
+                            {{ dp.groupAlias ?? 'Grupo' }}
+                            <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                          </button>
+                        } @else {
+                          <button class="sce-assign-btn sce-assign-btn--group" (click)="openGroupModalFromDone(dp)">
+                            <span class="material-symbols-outlined">groups</span> Asignar grupo
+                          </button>
+                        }
+                      } @else {
+                        <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled>
+                          <span class="material-symbols-outlined">groups</span> Sin grupo
+                        </button>
+                      }
+                    </div>
+                  }
                 </div>
               }
             </div>

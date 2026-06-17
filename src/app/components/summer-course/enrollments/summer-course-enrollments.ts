@@ -17,6 +17,7 @@ import { ScCredentialDeliveriesService } from '../../../services/summer-course/s
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
 import { environment } from '../../../../environments/environment';
 import { UserService } from '../../../services/user.service';
+import { AuthService } from '../../../services/auth.service';
 import {
   ScCourse,
   ScLevel,
@@ -101,6 +102,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private credSvc      = inject(ScCredentialDeliveriesService);
   private enrollSvc    = inject(ScEnrollmentsService);
   private userSvc      = inject(UserService);
+  private authSvc      = inject(AuthService);
 
   // ── Global ────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -164,6 +166,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credNotes         = signal('');
 
   // ── Level / Group assignment ──────────────────────────────────────────────
+  canReasignar      = signal<boolean>(false);
+  canVerPagos       = signal<boolean>(false);
   levelGroupsFD     = signal<LevelGroupFD[]>([]);
 
   lvlModalOpen      = signal(false);
@@ -183,7 +187,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Wizard ────────────────────────────────────────────────────────────────
   wizardOpen         = signal(false);
   wizardStep         = signal<WizardStep>('search');
-  wizardMode         = signal<'socio'|'colaborador'>('socio');
+  wizardMode         = signal<'socio'|'colaborador'|'colaborador_externo'>('socio');
+  createNsOrder      = signal(true);
   colaboradorNo      = signal('');
   colaboradorName    = signal('');
 
@@ -233,6 +238,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
+    this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
+
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
       next: res => this.levels.set(res.data ?? []),
@@ -253,7 +261,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           this._loadRegistrations(list[0].id);
           this._loadKits(list[0].id);
           this._loadCredentials(list[0].id);
-          this._loadLevelGroups(list[0].id);
+          this._loadLevelGroups();
         }
         this.loading.set(false);
       },
@@ -269,7 +277,17 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         return this.svc.searchSocios(q, this.selectedCourse()?.id);
       }),
     ).subscribe({
-      next: (res: any) => { this.searchResults.set(res?.data ?? []); this.searching.set(false); },
+      next: (res: any) => {
+        let results: ScSocioSearchResult[] = res?.data ?? [];
+        if (this.wizardMode() === 'colaborador_externo') {
+          results = results.filter(s => 
+            s.membershipNumber?.toUpperCase().startsWith('CL') || 
+            s.fullName.toUpperCase().startsWith('CL')
+          );
+        }
+        this.searchResults.set(results); 
+        this.searching.set(false); 
+      },
       error: () => this.searching.set(false),
     });
 
@@ -283,7 +301,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           return [];
         }
         this.colaboradorLoading.set(true);
-        return this.userSvc.getAllUsers(10, 1, q);
+        // Búsqueda exacta por número de empleado — evita falsos positivos con LIKE
+        return this.userSvc.getAllUsers(2, 1, q, true);
       })
     ).subscribe({
       next: (users) => {
@@ -309,7 +328,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       this._loadRegistrations(c.id);
       this._loadKits(c.id);
       this._loadCredentials(c.id);
-      this._loadLevelGroups(c.id);
+      this._loadLevelGroups();
     }
   }
 
@@ -342,16 +361,21 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   openWizard(): void {
     this.wizardOpen.set(true);
     this.wizardStep.set('search');
-    this.wizardMode.set('socio');
+    this.setWizardMode('socio');
+    this.pendingParticipants.set([]);
+    this.registrationResult.set(null);
+    this.doneParticipants.set([]);
+    this._loadCosts();
+  }
+
+  setWizardMode(mode: 'socio'|'colaborador'|'colaborador_externo'): void {
+    this.wizardMode.set(mode);
     this.colaboradorNo.set('');
     this.colaboradorName.set('');
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.selectedTitular.set(null);
-    this.pendingParticipants.set([]);
-    this.registrationResult.set(null);
-    this.doneParticipants.set([]);
-    this._loadCosts();
+    this.createNsOrder.set(true);
   }
 
   closeWizard(): void { this.wizardOpen.set(false); }
@@ -389,8 +413,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.selectedTitular.set(s);
     this.searchResults.set([]);
 
+    const tType = this.wizardMode() === 'colaborador_externo' ? 'staff' : 'member';
+
     const titular: PendingParticipant = {
-      socio_id: s.id, fullName: s.fullName, type: 'member',
+      socio_id: s.id, fullName: s.fullName, type: tType,
       weeks: [], birth_date: s.birth_date, age: s.age,
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
       suggestedLevel: this._getLevelForAge(s.age),
@@ -398,7 +424,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
     const family: PendingParticipant[] = s.family.map(f => ({
-      socio_id: f.id, fullName: f.fullName, type: 'member' as const,
+      socio_id: f.id, fullName: f.fullName, type: tType as 'member'|'staff',
       weeks: [], birth_date: f.birth_date, age: f.age,
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
       suggestedLevel: this._getLevelForAge(f.age),
@@ -597,6 +623,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       titular_id:   realTitularId,
       course_id:    course.id,
       total_amount: this.totalAmount(),
+      create_ns_order: this.wizardMode() === 'colaborador_externo' ? this.createNsOrder() : true,
       participants: this.activePending.map(p => ({
         socio_id:        p.socio_id,
         guest_db_id:     p.guest_db_id ?? null,
@@ -614,15 +641,15 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.saving.set(false);
         this.registrationResult.set(res.data);
         // Construir lista de participantes del step done para asignar nivel/grupo
-        const tokens: Array<{participantId:string; participantName:string; accessCode:string; enrollmentId:number; suggestedLevel:number|null}>
+        const tokens: Array<{participantId:string; participantName:string; accessCode:string; enrollmentId:number; suggestedLevel:number|null; assignedLevel:number|null; groupId:number|null}>
           = res.data?.pick_up_tokens ?? [];
         this.doneParticipants.set(tokens.map(t => ({
           enrollmentId:    t.enrollmentId,
           participantName: t.participantName,
           accessCode:      t.accessCode,
           suggestedLevel:  t.suggestedLevel ?? null,
-          assignedLevel:   null,
-          groupId:         null,
+          assignedLevel:   t.assignedLevel  ?? null,
+          groupId:         t.groupId        ?? null,
           groupAlias:      null,
         })));
         this.wizardStep.set('done');
@@ -684,7 +711,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
 
-    if (this.wizardMode() === 'colaborador') {
+    if (this.wizardMode() === 'colaborador' || this.wizardMode() === 'colaborador_externo') {
       const rel = (guest.relationship || '').toLowerCase();
       if (rel.startsWith('hijo') || rel.startsWith('sobrino') || rel.startsWith('nieto')) {
         participant.type = 'staff';
@@ -709,9 +736,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.pendingParticipants.update(list => list.map((p, i) =>
       i === idx ? { ...p, selectedLevel: levelNum, selectedGroupId: null, selectedGroupAlias: null } : p
     ));
-    // Cargar grupos si no están cargados aún
-    const cId = this.selectedCourse()?.id;
-    if (cId) this._loadLevelGroups(cId);
+    // Cargar grupos globales si no están cargados aún
+    if (this.levelGroupsFD().length === 0) this._loadLevelGroups();
   }
 
   /** Establece el grupo elegido para un pending participant (inline, sin API) */
@@ -722,8 +748,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.pendingExpandIdx.set(-1); // cerrar panel al elegir grupo
   }
 
-  private _loadLevelGroups(courseId: number): void {
-    this.enrollSvc.getFormData(courseId).subscribe({
+  private _loadLevelGroups(): void {
+    this.enrollSvc.getFormData().subscribe({
       next: res => this.levelGroupsFD.set(res.data?.level_groups ?? []),
       error: () => {},
     });
@@ -989,6 +1015,21 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return '$' + val.toLocaleString('es-MX', { minimumFractionDigits: 0 });
   }
 
+  /** Precio lista (sin descuento) del inscrito en la tabla admin */
+  enrolledListPrice(p: ScRegisteredParticipant): number {
+    return p.list_price ?? 0;
+  }
+
+  /** Descuento absoluto del inscrito (0 si no hay descuento) */
+  enrolledDiscount(p: ScRegisteredParticipant): number {
+    return p.discount_amount ?? 0;
+  }
+
+  /** Monto final pagado / a pagar del inscrito */
+  enrolledCost(p: ScRegisteredParticipant): number {
+    return p.amount_paid ?? 0;
+  }
+
   showToast(msg: string, type: 'success'|'danger'|'info' = 'success'): void {
     this.toast.set(msg);
     this.toastType.set(type);
@@ -1207,6 +1248,26 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
        titular_id: p.titular_id
     };
     this.authorizedPickupsParticipant.set(participantInfo as any);
+  }
+
+  sendPortalLink(p: ScRegisteredParticipant, event: Event): void {
+    event.stopPropagation();
+    const url = window.location.origin + '/tutor-portal/login';
+    const phoneToUse = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/-/g, '') : null;
+    
+    if (!phoneToUse) {
+      this.showToast('El participante no tiene un número de teléfono válido registrado.', 'danger');
+      return;
+    }
+
+    this.svc.sendPortalLinkWhatsapp(p.enrollment_id, phoneToUse, url).subscribe({
+      next: () => {
+        this.showToast('Liga enviada por WhatsApp exitosamente', 'success');
+      },
+      error: () => {
+        this.showToast('Error al enviar liga por WhatsApp', 'danger');
+      }
+    });
   }
 
   closeCredentialModal(): void {
