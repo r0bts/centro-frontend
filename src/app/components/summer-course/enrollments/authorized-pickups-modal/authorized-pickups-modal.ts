@@ -25,6 +25,7 @@ export class AuthorizedPickupsModalComponent implements OnInit {
   familyMembers: any[] = [];
   pickupToDelete: ScAuthorizedPickup | null = null;
   deleting = false;
+  editingPickupId: number | null = null;
 
   newPickup: Partial<ScAuthorizedPickup> = {
     name: '',
@@ -110,19 +111,35 @@ export class AuthorizedPickupsModalComponent implements OnInit {
     this.error = null;
     this.newPickup.participant_id = this.participant.id;
 
-    this.api.add(this.newPickup).subscribe({
-      next: () => {
-        this.saving = false;
-        this.showForm = false;
-        this.resetForm();
-        this.loadPickups();
-      },
-      error: (err) => {
-        this.saving = false;
-        this.error = err.error?.message || 'Error al guardar el tercero autorizado.';
-        this.cdr.markForCheck();
-      }
-    });
+    if (this.editingPickupId) {
+      this.api.edit(this.editingPickupId, this.newPickup).subscribe({
+        next: () => {
+          this.saving = false;
+          this.showForm = false;
+          this.resetForm();
+          this.loadPickups();
+        },
+        error: (err) => {
+          this.saving = false;
+          this.error = err.error?.message || 'Error al actualizar el tercero autorizado.';
+          this.cdr.markForCheck();
+        }
+      });
+    } else {
+      this.api.add(this.newPickup).subscribe({
+        next: () => {
+          this.saving = false;
+          this.showForm = false;
+          this.resetForm();
+          this.loadPickups();
+        },
+        error: (err) => {
+          this.saving = false;
+          this.error = err.error?.message || 'Error al guardar el tercero autorizado.';
+          this.cdr.markForCheck();
+        }
+      });
+    }
   }
 
   startAddFlow() {
@@ -133,7 +150,10 @@ export class AuthorizedPickupsModalComponent implements OnInit {
       this.loadingFamily = true;
       this.registrationsService.getFamily(fetchId).subscribe({
         next: (res) => {
-          this.familyMembers = res.data || [];
+          let members = res.data || [];
+          // Filtrar miembros inactivos
+          this.familyMembers = members.filter((m: any) => !m.isinactive);
+          
           this.loadingFamily = false;
           // Si no hay familia, saltar directo al form
           if (this.familyMembers.length === 0) {
@@ -156,6 +176,22 @@ export class AuthorizedPickupsModalComponent implements OnInit {
 
   skipFamilySelection() {
     this.showFamilySelection = false;
+    this.showForm = true;
+  }
+
+  startEditFlow(pickup: ScAuthorizedPickup) {
+    this.error = null;
+    this.editingPickupId = pickup.id!;
+    this.newPickup = {
+      name: pickup.name,
+      relationship: pickup.relationship,
+      phone: pickup.phone || '',
+      allowed_days: pickup.allowed_days ? { ...pickup.allowed_days } : {
+        lunes: false, martes: false, miercoles: false, jueves: false,
+        viernes: false, sabado: false, domingo: false
+      }
+    };
+    this.photoPreview = pickup.photo_url || null;
     this.showForm = true;
   }
 
@@ -213,6 +249,13 @@ export class AuthorizedPickupsModalComponent implements OnInit {
     };
     this.photoPreview = null;
     this.error = null;
+    this.editingPickupId = null;
+  }
+
+  onOverlayClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('sce-modal-overlay')) {
+      this.onClose();
+    }
   }
 
   onClose() {

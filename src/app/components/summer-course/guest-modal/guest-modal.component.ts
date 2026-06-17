@@ -23,6 +23,10 @@ export class GuestModalComponent implements OnInit {
   readonly socioId = input.required<number | string>();
   /** Nombre del socio para mostrar en el header */
   readonly socioName = input<string>('');
+  
+  /** Datos del socio para autocompletado */
+  readonly socioEmail = input<string>('');
+  readonly socioPhone = input<string>('');
 
   /** IDs de invitados ya agregados al wizard (para marcarlos como 'Ya agregado') */
   readonly enrolledGuestIds = input<number[]>([]);
@@ -64,6 +68,11 @@ export class GuestModalComponent implements OnInit {
     return null;
   });
 
+  readonly isEmp = computed(() => {
+    const sId = this.socioId();
+    return typeof sId === 'string' && sId.startsWith('EMP-');
+  });
+
   readonly relationships = [
     'Hijo(a)',
     'Sobrino(a)',
@@ -74,12 +83,23 @@ export class GuestModalComponent implements OnInit {
 
   readonly formValid = computed(() => {
     const f = this.form();
-    return f.first_name.trim() && f.last_name.trim() && f.birth_date && f.relationship.trim();
+    const isBaseValid = f.first_name.trim() && f.last_name.trim() && f.birth_date && f.relationship.trim();
+    if (this.isEmp()) {
+      return isBaseValid && f.phone.trim() !== '';
+    }
+    return isBaseValid;
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadGuests();
+    if (!this.isEmp()) {
+      this.form.update(f => ({
+        ...f,
+        email: this.socioEmail() || '',
+        phone: this.socioPhone() || '',
+      }));
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

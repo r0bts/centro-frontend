@@ -4,25 +4,14 @@
   <div class="page-header d-flex align-items-center justify-content-between mb-4">
     <div>
       <h4 class="mb-0 fw-bold">
-        <span class="me-2">�</span>Grupos por nivel
+        <span class="me-2">🏊</span>Grupos por nivel
       </h4>
-      <small class="text-muted">Gestiona los grupos de natación para cada nivel del curso</small>
+      <small class="text-muted">23 grupos fijos · 8 niveles · Curso de Verano V2</small>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <select class="form-select form-select-sm w-auto"
-              [value]="filterCourse()"
-              (change)="filterCourse.set(+$any($event.target).value)">
-        <option value="0">— Seleccionar curso —</option>
-        @for (c of courses(); track c.id) {
-          <option [value]="c.id">{{ c.name }}</option>
-        }
-      </select>
-      @if (filterCourse() > 0) {
-        <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
-                (click)="openGroupModal()">
-          <i class="bi bi-plus-lg"></i> Nuevo grupo
-        </button>
-      }
+      <button class="btn btn-sm btn-outline-secondary" (click)="loadData()" title="Recargar grupos">
+        <i class="bi bi-arrow-clockwise"></i>
+      </button>
     </div>
   </div>
 
@@ -55,15 +44,6 @@
     <div class="d-flex justify-content-center py-5">
       <div class="spinner-border text-primary"></div>
     </div>
-  } @else if (filterCourse() === 0) {
-    <div class="text-center text-muted py-5 groups-hint">
-      <i class="bi bi-funnel fs-2 d-block mb-2 opacity-25"></i>
-      <p class="mb-0">Selecciona un curso para gestionar sus grupos.</p>
-    </div>
-  } @else if (groupsLoading()) {
-    <div class="d-flex justify-content-center py-4">
-      <div class="spinner-border spinner-border-sm text-primary"></div>
-    </div>
   } @else {
     <div class="groups-panel">
       @for (lvl of levelList; track lvl) {
@@ -73,18 +53,10 @@
             <span class="groups-level-roman">{{ levelLabels[lvl].roman }}</span>
             <span class="groups-level-age">{{ levelLabels[lvl].age }}</span>
             <span class="badge text-bg-secondary ms-1">{{ lvlGroups.length }}</span>
-            <button class="btn btn-xs btn-outline-primary ms-auto"
-                    title="Agregar grupo para nivel {{ levelLabels[lvl].roman }}"
-                    (click)="openGroupModal(lvl)">
-              <i class="bi bi-plus"></i>
-            </button>
           </div>
 
           @if (lvlGroups.length === 0) {
-            <div class="groups-empty">
-              Sin grupos —
-              <span class="groups-empty-link" (click)="openGroupModal(lvl)">crear uno</span>
-            </div>
+            <div class="groups-empty">Sin grupos para este nivel.</div>
           } @else {
             <div class="groups-list">
               @for (g of lvlGroups; track g.id) {
@@ -95,15 +67,6 @@
                       <span class="group-teacher">
                         <i class="bi bi-person-fill me-1"></i>{{ g.teacher_name }}
                       </span>
-                    }
-                    @if (g.auxiliaries && g.auxiliaries.length > 0) {
-                      <div class="group-aux-list">
-                        @for (a of g.auxiliaries; track a.id) {
-                          <span class="group-aux-chip">
-                            <i class="bi bi-person me-1"></i>{{ a.full_name }}
-                          </span>
-                        }
-                      </div>
                     }
                   </div>
                   <div class="group-item-meta">
@@ -120,14 +83,9 @@
                   </div>
                   <div class="group-item-actions">
                     <button class="btn btn-xs btn-outline-secondary"
-                            title="Editar grupo"
-                            (click)="openGroupModal(lvl, g)">
+                            title="Editar profesor y cupo"
+                            (click)="openGroupModal(g)">
                       <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-xs btn-outline-danger"
-                            title="Eliminar grupo"
-                            (click)="deleteGroup(g)">
-                      <i class="bi bi-trash"></i>
                     </button>
                   </div>
                 </div>
@@ -139,7 +97,7 @@
     </div>
   }
 
-  <!-- ── Group Modal ── -->
+  <!-- ── Modal edición V2: solo teacher + capacity ── -->
   @if (groupModal()) {
     <div class="modal-backdrop fade show"></div>
     <div class="modal fade show d-block" tabindex="-1">
@@ -147,34 +105,15 @@
         <div class="modal-content">
           <div class="modal-header border-0">
             <h5 class="modal-title">
-              <i class="bi bi-people-fill me-2"></i>
-              {{ groupEditTarget() ? 'Editar grupo' : 'Nuevo grupo' }}
+              <i class="bi bi-pencil-fill me-2"></i>
+              Editar grupo — {{ groupEditTarget()?.alias }}
+              <small class="text-muted ms-2">
+                {{ levelLabels[groupEditTarget()?.level_id ?? 1].roman }}
+              </small>
             </h5>
             <button class="btn-close" (click)="closeGroupModal()"></button>
           </div>
           <div class="modal-body">
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Nivel *</label>
-              <div class="level-selector">
-                @for (n of levelList; track n) {
-                  <button class="level-btn"
-                          [class.active]="groupLevel() === n"
-                          (click)="groupLevel.set(n)">
-                    <span class="roman">{{ levelLabels[n].roman }}</span>
-                    <span class="age">{{ levelLabels[n].age }}</span>
-                  </button>
-                }
-              </div>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Nombre del grupo *</label>
-              <input type="text" class="form-control"
-                     placeholder="Ej: Grupo A — Lun/Mié"
-                     [value]="groupAlias()"
-                     (input)="groupAlias.set($any($event.target).value)">
-            </div>
 
             <div class="mb-3">
               <label class="form-label fw-semibold">Profesor titular</label>
@@ -184,31 +123,6 @@
                 <option value="">Sin asignar</option>
                 @for (u of sportsUsers(); track u.id) {
                   <option [value]="u.id">{{ u.full_name }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Auxiliares</label>
-              <!-- Chips de auxiliares ya seleccionados -->
-              @if (groupAuxIds().length > 0) {
-                <div class="aux-chips mb-2">
-                  @for (id of groupAuxIds(); track id) {
-                    <span class="aux-chip">
-                      {{ auxName(id) }}
-                      <button type="button" class="aux-chip-remove"
-                              (click)="removeAux(id)">&times;</button>
-                    </span>
-                  }
-                </div>
-              }
-              <select class="form-select form-select-sm"
-                      (change)="toggleAux(+$any($event.target).value); $any($event.target).value = ''">
-                <option value="">+ Agregar auxiliar…</option>
-                @for (u of sportsUsers(); track u.id) {
-                  @if (!isAuxSelected(u.id)) {
-                    <option [value]="u.id">{{ u.full_name }}</option>
-                  }
                 }
               </select>
             </div>
@@ -229,9 +143,9 @@
             </button>
             <button class="btn btn-success d-flex align-items-center gap-2"
                     (click)="saveGroup()"
-                    [disabled]="groupSaving() || !groupAlias().trim()">
+                    [disabled]="groupSaving()">
               @if (groupSaving()) { <span class="spinner-border spinner-border-sm"></span> }
-              {{ groupEditTarget() ? 'Guardar cambios' : 'Crear grupo' }}
+              Guardar cambios
             </button>
           </div>
         </div>

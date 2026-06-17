@@ -41,4 +41,8 @@ export class ScAuthorizedPickupsService {
   delete(id: number): Observable<any> {
     return this.http.delete(`${this.apiUrl}/delete/${id}`);
   }
+
+  edit(id: number, data: Partial<ScAuthorizedPickup>): Observable<any> {
+    return this.http.post(`${this.apiUrl}/edit/${id}`, data);
+  }
 }

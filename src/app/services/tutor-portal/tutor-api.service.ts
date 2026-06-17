@@ -27,7 +27,19 @@ export class TutorApiService {
     return this.http.delete(`${this.baseUrl}/pickups/${id}`);
   }
 
-  generatePass(participantId: number, authorizedId: number): Observable<any> {
-    return this.http.post(`${this.baseUrl}/generate-pass`, { participant_id: participantId, authorized_id: authorizedId });
+  generatePass(participantId: number, authorizedId: number, expirationMinutes: number = 15): Observable<any> {
+    return this.http.post(`${this.baseUrl}/generate-pass`, { 
+      participant_id: participantId, 
+      authorized_id: authorizedId,
+      expiration_minutes: expirationMinutes 
+    });
+  }
+
+  getFamilyOptions(participantId: number): Observable<any> {
+    return this.http.get(`${this.baseUrl}/family-options/${participantId}`);
+  }
+
+  updateParticipantProfile(participantId: number, data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/participant/${participantId}/profile`, data);
   }
 }

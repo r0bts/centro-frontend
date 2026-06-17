@@ -26,6 +26,11 @@ export class ScLevelGroupsService {
     return this.http.get<ScLevelGroupListResponse>(this.base, { params });
   }
 
+  /** GET /level-groups — V2: grupos globales sin filtro de curso */
+  getAll(): Observable<ScLevelGroupListResponse> {
+    return this.http.get<ScLevelGroupListResponse>(this.base);
+  }
+
   create(data: CreateScLevelGroupRequest): Observable<ScLevelGroupResponse> {
     return this.http.post<ScLevelGroupResponse>(this.base, data);
   }

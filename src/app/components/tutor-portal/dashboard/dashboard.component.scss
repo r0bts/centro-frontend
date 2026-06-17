@@ -1,0 +1,25 @@
+
+.day-pill {
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  user-select: none;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+
+  &.active {
+    background: #4f46e5; /* Primary color of tutor portal */
+    color: #ffffff;
+    border-color: #4338ca;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.25);
+  }
+}
+
