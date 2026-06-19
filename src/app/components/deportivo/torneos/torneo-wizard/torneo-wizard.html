@@ -86,14 +86,16 @@
           <!-- Sede -->
           <div class="mb-3">
             <label class="form-label fw-semibold">Sede</label>
-            <input
-              type="text"
-              class="form-control"
+            <select
+              class="form-select"
               [(ngModel)]="sede"
               name="sede"
-              placeholder="Ej. Cancha Principal"
-              maxlength="200"
-            />
+            >
+              <option value="">-- Seleccionar Sede --</option>
+              @for (s of formData()?.sedes; track s.id) {
+                <option [value]="s.nombre">{{ s.nombre }}</option>
+              }
+            </select>
           </div>
 
           <!-- Fechas -->
@@ -131,6 +133,152 @@
               Torneo activo desde el inicio
             </label>
           </div>
+
+          <!-- Actividad -->
+          <div class="mb-3 mt-3">
+            <label class="form-label fw-semibold">Deporte / Actividad</label>
+            <select class="form-select" [(ngModel)]="actividad_id" name="actividad_id">
+              <option [ngValue]="null">-- Seleccionar Deporte (Reglas Base) --</option>
+              @for (act of formData()?.actividades; track act.id) {
+                <option [ngValue]="act.id">{{ act.nombre }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Edades (Opcional) -->
+          <div class="mb-3 mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label fw-semibold mb-0">Rango de Edades Permitidas <small class="text-muted fw-normal">(Opcional)</small></label>
+              <button type="button" class="btn btn-sm btn-outline-secondary py-0" (click)="edad_minima = null; edad_maxima = null" *ngIf="edad_minima !== null || edad_maxima !== null">
+                Quitar límite
+              </button>
+            </div>
+            
+            <div class="pb-2">
+              <div class="d-flex justify-content-between mb-1">
+                <span class="small fw-bold" [ngClass]="edad_minima !== null ? 'text-primary' : 'text-muted'">
+                  {{ edad_minima !== null ? 'Min: ' + edad_minima + ' años' : 'Min: Sin límite' }}
+                </span>
+                <span class="small fw-bold" [ngClass]="edad_maxima !== null ? 'text-primary' : 'text-muted'">
+                  {{ edad_maxima !== null ? 'Max: ' + edad_maxima + ' años' : 'Max: Sin límite' }}
+                </span>
+              </div>
+              
+              <style>
+                .dual-range-wrapper {
+                  position: relative;
+                  width: 100%;
+                  height: 40px;
+                }
+                .dual-range-wrapper input[type="range"] {
+                  position: absolute;
+                  width: 100%;
+                  pointer-events: none;
+                  -webkit-appearance: none;
+                  appearance: none;
+                  background: transparent;
+                  outline: none;
+                  top: 50%;
+                  transform: translateY(-50%);
+                  margin: 0;
+                }
+                .dual-range-wrapper input[type="range"]:focus {
+                  outline: none;
+                }
+                .dual-range-wrapper input.range-track::-webkit-slider-runnable-track {
+                  width: 100%;
+                  height: 6px;
+                  background: #dee2e6;
+                  border-radius: 3px;
+                }
+                .dual-range-wrapper input.range-track::-moz-range-track {
+                  width: 100%;
+                  height: 6px;
+                  background: #dee2e6;
+                  border-radius: 3px;
+                }
+                .dual-range-wrapper input.range-top::-webkit-slider-runnable-track {
+                  background: transparent;
+                  border: none;
+                }
+                .dual-range-wrapper input.range-top::-moz-range-track {
+                  background: transparent;
+                  border: none;
+                }
+                .dual-range-wrapper input[type="range"]::-webkit-slider-thumb {
+                  pointer-events: auto;
+                  -webkit-appearance: none;
+                  height: 20px;
+                  width: 20px;
+                  border-radius: 50%;
+                  background: #0d6efd;
+                  cursor: pointer;
+                  margin-top: -7px;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                  position: relative;
+                  z-index: 2;
+                }
+                .dual-range-wrapper input[type="range"]::-moz-range-thumb {
+                  pointer-events: auto;
+                  height: 20px;
+                  width: 20px;
+                  border: none;
+                  border-radius: 50%;
+                  background: #0d6efd;
+                  cursor: pointer;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                  position: relative;
+                  z-index: 2;
+                }
+                .dual-range-wrapper input[type="range"]:active::-webkit-slider-thumb {
+                  z-index: 3;
+                }
+                .dual-range-wrapper input[type="range"]:active::-moz-range-thumb {
+                  z-index: 3;
+                }
+              </style>
+
+              <div class="dual-range-wrapper">
+                <input type="range" class="range-track" min="3" max="99" 
+                       [ngModel]="edad_minima || 3" 
+                       (ngModelChange)="edad_minima = $event > (edad_maxima || 99) ? (edad_maxima || 99) : $event" 
+                       name="edad_minima">
+                
+                <input type="range" class="range-top" min="3" max="99" 
+                       [ngModel]="edad_maxima || 99" 
+                       (ngModelChange)="edad_maxima = $event < (edad_minima || 3) ? (edad_minima || 3) : $event" 
+                       name="edad_maxima">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tipo Torneo / Race -->
+          <div class="mb-3 p-3 bg-light rounded border">
+            <div class="form-check form-switch mb-2">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [ngModel]="tipo_torneo === 'RACE_ETAPA'"
+                (ngModelChange)="tipo_torneo = $event ? 'RACE_ETAPA' : 'UNICO'"
+                name="is_race"
+                id="is_race_toggle"
+              />
+              <label class="form-check-label fw-bold" for="is_race_toggle">
+                ¿Es una etapa de circuito Race?
+              </label>
+            </div>
+            @if (tipo_torneo === 'RACE_ETAPA') {
+              <div class="mt-2">
+                <label class="form-label fw-semibold small">Circuito Race Asociado</label>
+                <select class="form-select form-select-sm" [(ngModel)]="circuito_race_id" name="circuito_race_id">
+                  <option [ngValue]="null">-- Seleccionar Circuito --</option>
+                  @for (c of formData()?.circuitos_race; track c.id) {
+                    <option [ngValue]="c.id">{{ c.nombre }}</option>
+                  }
+                </select>
+              </div>
+            }
+          </div>
         </div>
       }
 
@@ -162,6 +310,55 @@
               </button>
             }
           </div>
+
+          <!-- ── Configuración de Divisiones ─────────────────────────── -->
+          @if (formato === 'divisiones') {
+            <div class="divisiones-config">
+              <h6 class="divisiones-config__title">
+                <i class="bi bi-gear me-1"></i>Configuración de Grupos
+              </h6>
+
+              <div class="divisiones-config__row">
+                <label class="divisiones-config__label">Equipos por grupo</label>
+                <div class="divisiones-config__options">
+                  @for (size of [3, 4, 5, 6]; track size) {
+                    <button
+                      type="button"
+                      class="divisiones-config__option"
+                      [class.active]="div_equipos_por_grupo === size"
+                      (click)="div_equipos_por_grupo = size"
+                    >{{ size }}</button>
+                  }
+                </div>
+              </div>
+
+              <div class="divisiones-config__row">
+                <label class="divisiones-config__label">Equipos que clasifican</label>
+                <div class="divisiones-config__options">
+                  @for (n of [4, 8, 16]; track n) {
+                    <button
+                      type="button"
+                      class="divisiones-config__option"
+                      [class.active]="div_equipos_clasifican === n"
+                      (click)="div_equipos_clasifican = n"
+                    >{{ n }}</button>
+                  }
+                </div>
+              </div>
+
+              @if (divisionesPreview(); as prev) {
+                <div class="divisiones-config__preview">
+                  <i class="bi bi-info-circle me-1"></i>
+                  <span>
+                    Grupos de <strong>{{ prev.equiposPorGrupo }}</strong> equipos ·
+                    {{ prev.rondasGrupo }} rondas de grupo ·
+                    Top <strong>{{ prev.clasifican }}</strong> pasan a eliminación ·
+                    <strong>{{ prev.totalJornadas }}</strong> jornadas en total
+                  </span>
+                </div>
+              }
+            </div>
+          }
         </div>
       }
 
@@ -184,6 +381,9 @@
                 <span class="resumen-label"><i class="bi" [ngClass]="meta.icon"></i> Formato</span>
                 <span class="resumen-value">
                   <span class="badge" [ngClass]="meta.badgeClass">{{ meta.label }}</span>
+                  @if (tipo_torneo === 'RACE_ETAPA') {
+                    <span class="badge bg-danger ms-1"><i class="bi bi-flag-fill"></i> Etapa Race</span>
+                  }
                   <small class="ms-2 text-muted">{{ meta.descripcion }}</small>
                 </span>
               </div>

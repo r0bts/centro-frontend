@@ -18,7 +18,12 @@ export interface Torneo {
   nombre: string;
   descripcion?: string | null;
   formato: TorneoFormato;
+  tipo_torneo?: 'UNICO' | 'RACE_ETAPA';
+  circuito_race_id?: number | null;
+  reglas_custom_json?: any | null;
   sede?: string | null;
+  edad_minima?: number | null;
+  edad_maxima?: number | null;
   is_active: boolean;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
@@ -30,6 +35,7 @@ export interface Torneo {
   jornadas?: Jornada[];
   inscripciones?: Inscripcion[];
   partidos?: Partido[];
+  campeon?: { inscripcion_id: number; nombre: string } | null;
 }
 
 export interface Jornada {
@@ -40,6 +46,7 @@ export interface Jornada {
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   estado: JornadaEstado;
+  fase?: 'grupos' | 'eliminacion';
   partidos?: Partido[];
   num_partidos?: number;
   created_at?: string;
@@ -60,6 +67,7 @@ export interface Inscripcion {
   goles_favor: number;
   goles_contra: number;
   division: number;
+  grupo?: number | null;
   is_active: boolean;
   torneo_equipo_id?: number | null;
   torneo_equipo?: { id: number; nombre: string; color?: string | null };
@@ -71,14 +79,22 @@ export interface Partido {
   id: number;
   torneo_id: number;
   jornada_id?: number | null;
-  equipo_local_id: number;
-  rival_nombre: string;
+  equipo_local_id?: number | null;
+  equipo_visitante_id?: number | null;
+  inscripcion_local_id?: number | null;
+  inscripcion_visitante_id?: number | null;
+  inscripcion_local?: Inscripcion;
+  inscripcion_visitante?: Inscripcion;
+  rival_nombre?: string | null;
   fecha: string;
   lugar?: string | null;
   url_ubicacion?: string | null;
+  fase_id?: number | null;
+  grupo_id?: number | null;
   es_local: boolean;
-  goles_local?: number | null;
-  goles_visitante?: number | null;
+  marcador_local?: number | null;
+  marcador_visitante?: number | null;
+  marcador_detalle?: any | null;
   estado: PartidoEstado;
   motivo_cancelacion?: string | null;
   mensaje_coach?: string | null;
@@ -94,10 +110,16 @@ export interface CreateTorneoRequest {
   nombre: string;
   descripcion?: string | null;
   formato: TorneoFormato;
+  actividad_id?: number | null;
+  tipo_torneo?: 'UNICO' | 'RACE_ETAPA';
+  circuito_race_id?: number | null;
   sede?: string | null;
+  edad_minima?: number | null;
+  edad_maxima?: number | null;
   fecha_inicio?: string | null;
   fecha_fin?: string | null;
   is_active: boolean;
+  reglas_custom_json?: any | null;
 }
 
 export type UpdateTorneoRequest = Partial<CreateTorneoRequest>;
@@ -107,6 +129,9 @@ export type UpdateTorneoRequest = Partial<CreateTorneoRequest>;
 export interface TorneoFormData {
   formatos: TorneoFormato[];
   torneos_equipos: { id: number; nombre: string; color?: string | null }[];
+  actividades?: { id: number; nombre: string }[];
+  circuitos_race?: { id: number; nombre: string }[];
+  sedes?: { id: number; nombre: string }[];
 }
 
 // ─── Response Wrappers ────────────────────────────────────────────────────────

@@ -158,6 +158,25 @@
     margin: 0 0.85rem 0.15rem;
   }
 
+  &__campeon {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.35rem 0.85rem 0.25rem;
+    padding: 0.35rem 0.65rem;
+    background: linear-gradient(135deg, #fef9e7, #fdf2d1);
+    border: 1px solid #f0d060;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #7d6608;
+
+    i {
+      font-size: 0.9rem;
+      color: #d4a017;
+    }
+  }
+
   &__fechas {
     display: flex;
     align-items: center;

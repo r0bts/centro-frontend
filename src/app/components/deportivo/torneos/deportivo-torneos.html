@@ -108,6 +108,14 @@
               </p>
             }
 
+            <!-- Campeón -->
+            @if (t.campeon) {
+              <div class="torneo-card__campeon">
+                <i class="bi bi-trophy-fill"></i>
+                <span>{{ t.campeon.nombre }}</span>
+              </div>
+            }
+
             <!-- Fechas -->
             <div class="torneo-card__fechas">
               <span><i class="bi bi-calendar-event me-1"></i>{{ formatFecha(t.fecha_inicio) }}</span>

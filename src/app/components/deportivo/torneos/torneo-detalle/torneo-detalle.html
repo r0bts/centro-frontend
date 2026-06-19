@@ -187,6 +187,11 @@
           @if (inscripciones().length < 2) {
             <small class="text-muted">Necesitas al menos 2 participantes</small>
           }
+          @if (jornadas().length > 0) {
+            <a class="btn btn-sm btn-primary ms-2" [routerLink]="['/deportivo/torneos', torneo.id, 'marcadores']" (click)="close()">
+              <i class="bi bi-display me-1"></i>Panel de Marcadores
+            </a>
+          }
         </div>
 
         @if (loadingJorn()) {
@@ -259,9 +264,104 @@
                   }
                 </div>
               </div>
+              
+              <!-- Lista de Partidos de la Jornada -->
+              @if (j.partidos && j.partidos.length > 0) {
+                <div class="match-list">
+                  <div class="match-list__header">
+                    <i class="bi bi-trophy"></i>
+                    <span>Enfrentamientos</span>
+                    <span class="match-list__count">{{ j.partidos.length }}</span>
+                  </div>
+
+                  @for (p of j.partidos; track p.id) {
+                    <!-- Bye match: one team, finalized without real opponent -->
+                    @if (p.estado === 'finalizado' && (!p.inscripcion_local || !p.inscripcion_visitante)) {
+                      <div class="match-row match-row--bye">
+                        <div class="match-row__team" style="text-align: center;">
+                          <span class="match-row__team-name">
+                            @if (p.inscripcion_local) {
+                              {{ nombreInscripcion(p.inscripcion_local) }}
+                            } @else if (p.inscripcion_visitante) {
+                              {{ nombreInscripcion(p.inscripcion_visitante) }}
+                            }
+                          </span>
+                        </div>
+                        <div class="match-row__score">
+                          <span class="match-row__bye-badge">Pase directo</span>
+                        </div>
+                        <div class="match-row__team"></div>
+                        <div class="match-row__action">
+                          <span class="match-row__badge-bye"><i class="bi bi-arrow-right-circle-fill"></i></span>
+                        </div>
+                      </div>
+                    } @else {
+                      <!-- Normal match -->
+                      <div class="match-row" [class.match-row--finished]="p.estado === 'finalizado'" [class.match-row--pending]="!p.inscripcion_local || !p.inscripcion_visitante">
+                      
+                        <!-- Equipo Local -->
+                        <div class="match-row__team match-row__team--local">
+                          <span class="match-row__team-name">
+                            @if (p.inscripcion_local) {
+                              {{ nombreInscripcion(p.inscripcion_local) }}
+                            } @else {
+                              <span class="match-row__tbd">Por definir</span>
+                            }
+                          </span>
+                        </div>
+
+                        <!-- Marcador / VS -->
+                        <div class="match-row__score">
+                          @if (p.estado === 'finalizado') {
+                            <span class="match-row__score-val">{{ p.marcador_local }}</span>
+                            <span class="match-row__score-sep">–</span>
+                            <span class="match-row__score-val">{{ p.marcador_visitante }}</span>
+                          } @else {
+                            <span class="match-row__vs">VS</span>
+                          }
+                        </div>
+
+                        <!-- Equipo Visitante -->
+                        <div class="match-row__team match-row__team--visitante">
+                          <span class="match-row__team-name">
+                            @if (p.inscripcion_visitante) {
+                              {{ nombreInscripcion(p.inscripcion_visitante) }}
+                            } @else {
+                              <span class="match-row__tbd">Por definir</span>
+                            }
+                          </span>
+                        </div>
+
+                        <!-- Acción -->
+                        <div class="match-row__action">
+                          @if (p.estado === 'finalizado') {
+                            <span class="match-row__badge-done"><i class="bi bi-check-circle-fill"></i></span>
+                          } @else if (p.inscripcion_local && p.inscripcion_visitante) {
+                            <button class="match-row__btn" (click)="openCapturarMarcador(p)" title="Capturar marcador">
+                              <i class="bi bi-pencil-square"></i>
+                            </button>
+                          }
+                        </div>
+
+                      </div>
+                    }
+                  }
+                </div>
+              }
             }
           </div>
         }
+      }
+
+      <!-- ════════════════ TAB PLAYOFFS ════════════════ -->
+      @if (tab() === 'playoffs') {
+        <div class="td-section">
+          <app-torneo-bracket
+            [torneoId]="torneo.id"
+            [faseId]="1"
+            [inscripciones]="inscripciones()"
+          ></app-torneo-bracket>
+        </div>
       }
 
       <!-- ════════════════ TAB POSICIONES ════════════════ -->
@@ -273,6 +373,33 @@
           <div class="td-empty">
             <i class="bi bi-bar-chart display-6 text-muted"></i>
             <p class="mt-2 text-muted">Sin datos de posiciones</p>
+          </div>
+        } @else if (torneo.formato === 'divisiones') {
+          <!-- Bracket podium view -->
+          <div class="td-section">
+            <div class="td-list">
+              @for (insc of inscripcionesOrdenadas(); track insc.id; let idx = $index) {
+                <div class="insc-item" [class.table-success]="idx === 0" [class.table-warning]="idx === 1">
+                  <span class="insc-item__pos" [style.background]="idx === 0 ? '#ffd700' : idx === 1 ? '#c0c0c0' : idx === 2 ? '#cd7f32' : ''" [style.color]="idx < 3 ? '#fff' : ''">
+                    @if (idx === 0) { 🏆 } @else { {{ idx + 1 }} }
+                  </span>
+                  <span class="insc-item__nombre">
+                    {{ nombreInscripcion(insc) }}
+                  </span>
+                  <span class="insc-item__pts">
+                    @if (idx === 0) {
+                      <span class="badge bg-success">Campeón</span>
+                    } @else if (idx === 1) {
+                      <span class="badge bg-secondary">Subcampeón</span>
+                    } @else if (idx < 4) {
+                      <span class="badge bg-warning text-dark">Semifinalista</span>
+                    } @else {
+                      <span class="badge bg-light text-muted">Eliminado</span>
+                    }
+                  </span>
+                </div>
+              }
+            </div>
           </div>
         } @else {
           <div class="td-section p-0">
@@ -337,6 +464,51 @@
       (confirmed)="executeConfirm()"
       (cancelled)="confirmDialog.set(null)"
     />
+  }
+
+  <!-- ── Modal Capturar Marcador ─────────────────────────────────────────────── -->
+  @if (editPartido(); as p) {
+    <div class="modal-backdrop show" style="z-index: 1060;"></div>
+    <div class="modal show d-block" tabindex="-1" style="z-index: 1065;" aria-modal="true" role="dialog">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header py-2">
+            <h6 class="modal-title mb-0">Capturar Marcador</h6>
+            <button type="button" class="btn-close btn-sm" aria-label="Close" (click)="cancelCapturarMarcador()"></button>
+          </div>
+          <div class="modal-body">
+            @if (error()) {
+              <div class="alert alert-danger py-1 px-2 mb-3 small">{{ error() }}</div>
+            }
+            <div class="d-flex align-items-center justify-content-between mb-3 text-center">
+              <div class="flex-grow-1">
+                <label class="form-label small fw-bold mb-1">
+                  {{ p.inscripcion_local ? nombreInscripcion(p.inscripcion_local) : 'Local' }}
+                </label>
+                <input type="number" class="form-control form-control-lg text-center" [(ngModel)]="marcadorLocal" min="0" />
+              </div>
+              <div class="px-3 fw-bold text-muted">VS</div>
+              <div class="flex-grow-1">
+                <label class="form-label small fw-bold mb-1">
+                  {{ p.inscripcion_visitante ? nombreInscripcion(p.inscripcion_visitante) : 'Visitante' }}
+                </label>
+                <input type="number" class="form-control form-control-lg text-center" [(ngModel)]="marcadorVisitante" min="0" />
+              </div>
+            </div>
+            <div class="text-muted small text-center mb-0">
+              Captura el resultado global (ej. Sets ganados o Goles totales). Al guardar, el partido finalizará.
+            </div>
+          </div>
+          <div class="modal-footer py-2">
+            <button type="button" class="btn btn-sm btn-secondary" (click)="cancelCapturarMarcador()">Cancelar</button>
+            <button type="button" class="btn btn-sm btn-primary" (click)="guardarMarcador()" [disabled]="guardandoMarcador()">
+              @if (guardandoMarcador()) { <span class="spinner-border spinner-border-sm me-1"></span> }
+              Guardar Resultado
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   }
 
 </div>

@@ -1,0 +1,317 @@
+<div class="tm">
+
+  <!-- ── Header ────────────────────────────────────────────────────────────── -->
+  <header class="tm-header">
+    <div class="tm-header__left">
+      <button class="tm-header__back" (click)="goBack()" title="Volver a torneos">
+        <i class="bi bi-arrow-left"></i>
+      </button>
+      @if (torneo(); as t) {
+        <div class="tm-header__info">
+          @if (meta(); as m) {
+            <span class="badge tm-header__badge" [ngClass]="m.badgeClass">
+              <i class="bi me-1" [ngClass]="m.icon"></i>{{ m.label }}
+            </span>
+          }
+          <h1 class="tm-header__title">{{ t.nombre }}</h1>
+        </div>
+      }
+    </div>
+    <div class="tm-header__right">
+      @if (!loading() && totalCount() > 0) {
+        <div class="tm-header__stats">
+          <span class="tm-header__stat">
+            <i class="bi bi-check-circle-fill text-success me-1"></i>{{ completedCount() }}/{{ totalCount() }}
+          </span>
+        </div>
+      }
+    </div>
+  </header>
+
+  <!-- ── Progress bar ──────────────────────────────────────────────────────── -->
+  @if (!loading() && totalCount() > 0) {
+    <div class="tm-progress">
+      <div class="tm-progress__bar">
+        <div class="tm-progress__fill" [style.width.%]="progressPercent()"></div>
+      </div>
+      <span class="tm-progress__label">{{ progressPercent() }}% completado</span>
+    </div>
+  }
+
+  <!-- ── Toast messages ────────────────────────────────────────────────────── -->
+  @if (successMsg()) {
+    <div class="tm-toast tm-toast--success">
+      <i class="bi bi-check-circle-fill"></i>{{ successMsg() }}
+    </div>
+  }
+  @if (error()) {
+    <div class="tm-toast tm-toast--error">
+      <i class="bi bi-exclamation-triangle-fill"></i>{{ error() }}
+    </div>
+  }
+
+  <!-- ── Loading state ─────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="tm-loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+      <p class="mt-3 text-muted">Cargando torneo...</p>
+    </div>
+  } @else {
+
+    <!-- ── Main content ──────────────────────────────────────────────────── -->
+    <div class="tm-content">
+
+      <!-- ════════════ LEFT PANEL — Bracket ════════════ -->
+      <div class="tm-bracket">
+        @if (jornadas().length === 0) {
+          <div class="tm-empty">
+            <i class="bi bi-calendar-x"></i>
+            <p>No hay jornadas generadas</p>
+            <small class="text-muted">Genera las jornadas desde el detalle del torneo</small>
+          </div>
+        } @else {
+          @for (jornada of jornadas(); track jornada.id) {
+            <div class="tm-jornada">
+              <div class="tm-jornada__header">
+                <span class="tm-jornada__number">R{{ jornada.numero }}</span>
+                <span class="tm-jornada__name">{{ jornadaLabel(jornada) }}</span>
+                <span class="badge tm-jornada__estado"
+                  [class.bg-secondary]="jornada.estado === 'pendiente'"
+                  [class.bg-warning]="jornada.estado === 'en_curso'"
+                  [class.text-dark]="jornada.estado === 'en_curso'"
+                  [class.bg-success]="jornada.estado === 'finalizada'"
+                >{{ jornada.estado === 'en_curso' ? 'En curso' : jornada.estado === 'finalizada' ? 'Finalizada' : 'Pendiente' }}</span>
+              </div>
+
+              @if (jornada.partidos && jornada.partidos.length > 0) {
+                <div class="tm-jornada__matches">
+                  @for (p of jornada.partidos; track p.id) {
+
+                    <!-- Bye match -->
+                    @if (isBye(p)) {
+                      <div class="tm-match tm-match--bye">
+                        <div class="tm-match__teams">
+                          <span class="tm-match__team-name tm-match__team-name--solo">
+                            @if (colorInscripcion(p.inscripcion_local ?? p.inscripcion_visitante)) {
+                              <span class="tm-match__dot" [style.background]="colorInscripcion(p.inscripcion_local ?? p.inscripcion_visitante)"></span>
+                            }
+                            {{ nombreInscripcion(p.inscripcion_local ?? p.inscripcion_visitante) }}
+                          </span>
+                        </div>
+                        <div class="tm-match__result">
+                          <span class="tm-match__bye-badge">
+                            <i class="bi bi-arrow-right-circle me-1"></i>Pase directo
+                          </span>
+                        </div>
+                      </div>
+
+                    <!-- Playable match -->
+                    } @else if (isPlayable(p)) {
+                      <div class="tm-match tm-match--playable"
+                        [class.tm-match--selected]="selectedPartidoId() === p.id"
+                        (click)="selectPartido(p)"
+                      >
+                        <div class="tm-match__teams">
+                          <div class="tm-match__team">
+                            @if (colorInscripcion(p.inscripcion_local)) {
+                              <span class="tm-match__dot" [style.background]="colorInscripcion(p.inscripcion_local)!"></span>
+                            }
+                            <span class="tm-match__team-name">{{ nombreInscripcion(p.inscripcion_local) }}</span>
+                          </div>
+                          <div class="tm-match__vs">VS</div>
+                          <div class="tm-match__team tm-match__team--right">
+                            <span class="tm-match__team-name">{{ nombreInscripcion(p.inscripcion_visitante) }}</span>
+                            @if (colorInscripcion(p.inscripcion_visitante)) {
+                              <span class="tm-match__dot" [style.background]="colorInscripcion(p.inscripcion_visitante)!"></span>
+                            }
+                          </div>
+                        </div>
+                        <div class="tm-match__result">
+                          <span class="tm-match__action-hint">
+                            <i class="bi bi-pencil-square me-1"></i>Capturar
+                          </span>
+                        </div>
+                      </div>
+
+                    <!-- Finalized match -->
+                    } @else if (p.estado === 'finalizado') {
+                      <div class="tm-match tm-match--finished">
+                        <div class="tm-match__teams">
+                          <div class="tm-match__team" [class.tm-match__team--winner]="(p.marcador_local ?? 0) > (p.marcador_visitante ?? 0)">
+                            @if (colorInscripcion(p.inscripcion_local)) {
+                              <span class="tm-match__dot" [style.background]="colorInscripcion(p.inscripcion_local)!"></span>
+                            }
+                            <span class="tm-match__team-name">{{ nombreInscripcion(p.inscripcion_local) }}</span>
+                            <span class="tm-match__score-inline">{{ p.marcador_local }}</span>
+                          </div>
+                          <div class="tm-match__score-sep">–</div>
+                          <div class="tm-match__team tm-match__team--right" [class.tm-match__team--winner]="(p.marcador_visitante ?? 0) > (p.marcador_local ?? 0)">
+                            <span class="tm-match__score-inline">{{ p.marcador_visitante }}</span>
+                            <span class="tm-match__team-name">{{ nombreInscripcion(p.inscripcion_visitante) }}</span>
+                            @if (colorInscripcion(p.inscripcion_visitante)) {
+                              <span class="tm-match__dot" [style.background]="colorInscripcion(p.inscripcion_visitante)!"></span>
+                            }
+                          </div>
+                        </div>
+                        <div class="tm-match__result">
+                          <span class="tm-match__done-icon"><i class="bi bi-check-circle-fill"></i></span>
+                        </div>
+                      </div>
+
+                    <!-- Pending (no teams yet) -->
+                    } @else {
+                      <div class="tm-match tm-match--waiting">
+                        <div class="tm-match__teams">
+                          <div class="tm-match__team">
+                            <span class="tm-match__team-name tm-match__tbd">
+                              {{ p.inscripcion_local ? nombreInscripcion(p.inscripcion_local) : 'Por definir' }}
+                            </span>
+                          </div>
+                          <div class="tm-match__vs">VS</div>
+                          <div class="tm-match__team tm-match__team--right">
+                            <span class="tm-match__team-name tm-match__tbd">
+                              {{ p.inscripcion_visitante ? nombreInscripcion(p.inscripcion_visitante) : 'Por definir' }}
+                            </span>
+                          </div>
+                        </div>
+                        <div class="tm-match__result">
+                          <span class="tm-match__waiting-badge">
+                            <i class="bi bi-hourglass-split me-1"></i>Esperando
+                          </span>
+                        </div>
+                      </div>
+                    }
+
+                  }
+                </div>
+              } @else {
+                <div class="tm-jornada__empty">
+                  <small class="text-muted">Sin partidos en esta ronda</small>
+                </div>
+              }
+            </div>
+          }
+        }
+      </div>
+
+      <!-- ════════════ RIGHT PANEL — Score capture ════════════ -->
+      <div class="tm-capture">
+        <div class="tm-capture__card">
+
+          @if (torneoCompleto()) {
+            <!-- Tournament complete state -->
+            <div class="tm-capture__complete">
+              <div class="tm-capture__trophy">🏆</div>
+              <h3 class="tm-capture__complete-title">¡Torneo completado!</h3>
+              <p class="tm-capture__complete-text">Todos los partidos han sido registrados</p>
+              @if (torneo()?.campeon; as campeon) {
+                <div class="tm-capture__champion">
+                  <span class="tm-capture__champion-label">Campeón</span>
+                  <span class="tm-capture__champion-name">{{ campeon.nombre }}</span>
+                </div>
+              }
+              <button class="btn btn-outline-primary mt-3" (click)="goBack()">
+                <i class="bi bi-arrow-left me-1"></i>Volver a torneos
+              </button>
+            </div>
+
+          } @else {
+            @if (selectedPartido(); as p) {
+              <!-- Score capture form -->
+              <div class="tm-capture__header">
+                <h4 class="tm-capture__title">Capturar Marcador</h4>
+                <span class="tm-capture__progress-label">
+                  Partido {{ currentMatchIndex() }} de {{ pendingPartidos().length }}
+                  @if (selectedJornada(); as j) {
+                    — {{ jornadaLabel(j) }}
+                  }
+                </span>
+              </div>
+
+              <div class="tm-capture__form">
+                <!-- Local team -->
+                <div class="tm-capture__team">
+                  @if (colorInscripcion(p.inscripcion_local)) {
+                    <span class="tm-capture__team-dot" [style.background]="colorInscripcion(p.inscripcion_local)!"></span>
+                  }
+                  <span class="tm-capture__team-name">{{ nombreInscripcion(p.inscripcion_local) }}</span>
+                </div>
+
+                <!-- Score inputs -->
+                <div class="tm-capture__scores">
+                  <div class="tm-capture__score-group">
+                    <input
+                      type="number"
+                      class="tm-capture__score-input"
+                      [(ngModel)]="marcadorLocal"
+                      min="0"
+                      [disabled]="saving()"
+                    />
+                  </div>
+                  <div class="tm-capture__score-divider">
+                    <span>VS</span>
+                  </div>
+                  <div class="tm-capture__score-group">
+                    <input
+                      type="number"
+                      class="tm-capture__score-input"
+                      [(ngModel)]="marcadorVisitante"
+                      min="0"
+                      [disabled]="saving()"
+                    />
+                  </div>
+                </div>
+
+                <!-- Visitante team -->
+                <div class="tm-capture__team tm-capture__team--right">
+                  @if (colorInscripcion(p.inscripcion_visitante)) {
+                    <span class="tm-capture__team-dot" [style.background]="colorInscripcion(p.inscripcion_visitante)!"></span>
+                  }
+                  <span class="tm-capture__team-name">{{ nombreInscripcion(p.inscripcion_visitante) }}</span>
+                </div>
+
+                <p class="tm-capture__hint">
+                  Captura el marcador global. El partido se finalizará automáticamente.
+                </p>
+
+                <!-- Actions -->
+                <div class="tm-capture__actions">
+                  <button
+                    class="btn btn-primary tm-capture__btn tm-capture__btn--main"
+                    (click)="guardarYSiguiente()"
+                    [disabled]="saving()"
+                  >
+                    @if (saving()) {
+                      <span class="spinner-border spinner-border-sm me-2"></span>
+                    } @else {
+                      <i class="bi bi-check2-all me-2"></i>
+                    }
+                    Guardar y Siguiente
+                  </button>
+                  <button
+                    class="btn btn-outline-secondary tm-capture__btn"
+                    (click)="guardar(false)"
+                    [disabled]="saving()"
+                  >
+                    <i class="bi bi-check2 me-1"></i>Solo Guardar
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- No match selected -->
+              <div class="tm-capture__empty">
+                <i class="bi bi-hand-index-thumb"></i>
+                <p>Selecciona un partido del bracket para capturar el marcador</p>
+              </div>
+            }
+          }
+
+        </div>
+      </div>
+
+    </div>
+  }
+
+</div>

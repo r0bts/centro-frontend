@@ -115,6 +115,18 @@ export interface SocioRaw {
   acceso: AccesoRaw;
 }
 
+export interface InvitadoRaw {
+  id: number;
+  socio_id: number;
+  first_name: string;
+  last_name: string;
+  second_last_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  birth_date?: string | null;
+  relationship?: string | null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Respuesta completa del endpoint GET /api/membresias/buscar?q=
 // El servicio mapea snake_case → camelCase antes de entregar al componente
@@ -126,7 +138,20 @@ export interface BuscarMembresiaRawResponse {
     membresia: MembresiaRaw;
     mensaje: MensajeRaw;
     socios: SocioRaw[];
+    invitados?: InvitadoRaw[];
   } | null;
+}
+
+export interface InvitadoMembresia {
+  id: number;
+  socioId: number;
+  firstName: string;
+  lastName: string;
+  secondLastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  birthDate?: string | null;
+  relationship?: string | null;
 }
 
 export interface BuscarMembresiaResponse {
@@ -136,6 +161,7 @@ export interface BuscarMembresiaResponse {
     membresia: MembresiaResumen;
     mensaje: MensajeMembresia;
     socios: SocioMembresia[];
+    invitados?: InvitadoMembresia[];
   } | null;
 }
 

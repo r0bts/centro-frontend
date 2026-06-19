@@ -1,0 +1,23 @@
+<div class="container-fluid bg-light min-vh-100 p-0">
+  <app-content-menu></app-content-menu>
+  
+  <div class="p-4 p-md-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold text-dark mb-1">Visitas Médicas</h3>
+        <p class="text-muted mb-0">Bandeja de consultas del día y signos vitales.</p>
+      </div>
+      <button class="btn btn-primary" (click)="nuevaVisita()">
+        <i class="bi bi-plus-lg me-2"></i>Nueva Visita
+      </button>
+    </div>
+
+    <div class="card border-0 shadow-sm custom-card">
+      <div class="card-body p-4 text-center">
+        <i class="bi bi-heart-pulse text-muted mb-3" style="font-size: 3rem;"></i>
+        <h5 class="fw-bold">No hay visitas registradas hoy</h5>
+        <p class="text-muted">Las consultas médicas activas aparecerán aquí.</p>
+      </div>
+    </div>
+  </div>
+</div>

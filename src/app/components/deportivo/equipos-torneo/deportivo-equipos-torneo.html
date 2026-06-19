@@ -98,7 +98,14 @@
                 </span>
                 @if (eq.num_torneos > 0) {
                   <span class="badge bg-primary">
-                    <i class="bi bi-trophy-fill me-1"></i>{{ eq.num_torneos }} torneo(s)
+                    <i class="bi bi-trophy-fill me-1"></i>
+                    @if (eq.torneos_nombres && eq.torneos_nombres.length > 0) {
+                      {{ eq.torneos_nombres.join(', ') }}
+                    } @else if (eq.num_torneos > 0) {
+                      {{ eq.num_torneos }} torneo(s)
+                    } @else {
+                      Sin torneos
+                    }
                   </span>
                 }
               </div>

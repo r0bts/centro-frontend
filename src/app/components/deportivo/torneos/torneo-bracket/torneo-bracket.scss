@@ -1,0 +1,76 @@
+.bracket-container {
+  padding: 1rem;
+}
+
+.item-list {
+  min-height: 100px;
+  background: #fdfdfd;
+  border-radius: 4px;
+  padding: 8px;
+}
+
+.slot-container {
+  min-height: 48px;
+  background: white;
+  border: 1px dashed #ccc;
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+
+  &.cdk-drop-list-receiving {
+    background: #eef5ff;
+    border-color: #0d6efd;
+  }
+}
+
+.draggable-item {
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  color: #333;
+  cursor: grab;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.cdk-drag-preview {
+  box-sizing: border-box;
+  border-radius: 6px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.3;
+}
+
+.cdk-drag-animating {
+  transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.empty-slot {
+  color: #aaa;
+  font-size: 0.85rem;
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+}
+
+.bracket-match {
+  width: 200px;
+}
+
+.bracket-spacer {
+  height: 24px;
+}

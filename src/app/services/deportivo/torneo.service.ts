@@ -108,4 +108,12 @@ export class TorneoService {
     if (jornadaId) params = params.set('jornada_id', jornadaId);
     return this.http.get<any>(`${this.base}/torneos/${torneoId}/partidos`, { params });
   }
+
+  guardarResultadoPartido(torneoId: number, partidoId: number, payload: { marcador_local: number, marcador_visitante: number }): Observable<any> {
+    return this.http.post<any>(`${this.base}/torneos/${torneoId}/partidos/${partidoId}/resultado`, payload);
+  }
+
+  saveBracket(torneoId: number, faseId: number, payload: any): Observable<any> {
+    return this.http.put<any>(`${this.base}/torneos/${torneoId}/fases/${faseId}/bracket`, payload);
+  }
 }

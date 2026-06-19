@@ -21,12 +21,15 @@ export interface TorneoEquipo {
   updated_at?: string;
   // Relación incluida en GET /{id}
   integrantes?: TorneoIntegrante[];
+  torneos_nombres?: string[];
 }
 
 export interface TorneoIntegrante {
   id: number;
   torneo_equipo_id: number;
-  socio_id: number;
+  socio_id?: number | null;
+  guest_id?: number | null;
+  is_invitado: boolean;
   numero_jersey?: string | null;
   posicion?: string | null;
   es_capitan: boolean;
@@ -34,10 +37,11 @@ export interface TorneoIntegrante {
   created_at?: string;
   socio?: {
     id: number;
-    entityid: string;
-    membership_id: string;
+    is_invitado: boolean;
+    entityid?: string | null;
+    membership_id?: string | null;
     nombre: string;
-    email: string;
+    email?: string | null;
   };
 }
 
@@ -62,12 +66,19 @@ export interface CreateEquipoRequest {
   color?: string | null;
   logo_url?: string | null;
   is_active: boolean;
+  integrantes?: AddIntegranteRequest[];
+  torneo_id?: number | null;
 }
 
 export type UpdateEquipoRequest = Partial<CreateEquipoRequest>;
 
 export interface AddIntegranteRequest {
-  socio_id: number;
+  socio_id?: number | null;
+  guest_id?: number | null;
+  is_invitado?: boolean;
+  first_name?: string; // Para invitados nuevos
+  last_name?: string;  // Para invitados nuevos
+  phone?: string;      // Para invitados nuevos
   numero_jersey?: string | null;
   posicion?: string | null;
   es_capitan?: boolean;

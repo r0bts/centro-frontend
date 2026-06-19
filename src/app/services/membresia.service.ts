@@ -81,6 +81,17 @@ export class MembresiaService {
                   reglaMensaje: s.acceso.regla_mensaje,
                 },
               })),
+              invitados: res.data.invitados ? res.data.invitados.map(i => ({
+                id: i.id,
+                socioId: i.socio_id,
+                firstName: i.first_name,
+                lastName: i.last_name,
+                secondLastName: i.second_last_name,
+                email: i.email,
+                phone: i.phone,
+                birthDate: i.birth_date,
+                relationship: i.relationship,
+              })) : [],
             },
           };
         })
