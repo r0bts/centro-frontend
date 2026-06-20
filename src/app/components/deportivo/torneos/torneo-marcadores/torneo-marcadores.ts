@@ -39,9 +39,17 @@ export class TorneoMarcadoresComponent implements OnInit {
   readonly inscripciones = signal<Inscripcion[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly notifying = signal(false);
   readonly error = signal<string | null>(null);
   readonly successMsg = signal<string | null>(null);
   readonly selectedPartidoId = signal<number | null>(null);
+  readonly currentTab = signal<'jornadas' | 'posiciones'>('jornadas');
+
+  // Notification Modal State
+  readonly showNotificarModal = signal(false);
+  notificarFecha = '';
+  notificarHora = '';
+  notificarLugar = '';
 
   // Score capture form
   marcadorLocal = 0;
@@ -119,6 +127,71 @@ export class TorneoMarcadoresComponent implements OnInit {
     return t ? FORMATO_META[t.formato] : null;
   });
 
+  /** Calculate standings dynamically from completed matches */
+  readonly standings = computed(() => {
+    const statsMap = new Map<number, any>();
+
+    for (const insc of this.inscripciones()) {
+      statsMap.set(insc.id, {
+        inscripcion: insc,
+        pj: 0,
+        g: 0,
+        e: 0,
+        p: 0,
+        gf: 0,
+        gc: 0,
+        dif: 0,
+        pts: 0
+      });
+    }
+
+    for (const match of this.allPartidos()) {
+      if (match.estado === 'finalizado' && match.inscripcion_local_id && match.inscripcion_visitante_id) {
+        const local = statsMap.get(match.inscripcion_local_id);
+        const visitor = statsMap.get(match.inscripcion_visitante_id);
+        
+        if (!local || !visitor) continue;
+
+        const ml = match.marcador_local ?? 0;
+        const mv = match.marcador_visitante ?? 0;
+
+        local.pj++;
+        local.gf += ml;
+        local.gc += mv;
+        if (ml > mv) {
+          local.g++;
+          local.pts += 3;
+        } else if (ml === mv) {
+          local.e++;
+          local.pts += 1;
+        } else {
+          local.p++;
+        }
+        local.dif = local.gf - local.gc;
+
+        visitor.pj++;
+        visitor.gf += mv;
+        visitor.gc += ml;
+        if (mv > ml) {
+          visitor.g++;
+          visitor.pts += 3;
+        } else if (mv === ml) {
+          visitor.e++;
+          visitor.pts += 1;
+        } else {
+          visitor.p++;
+        }
+        visitor.dif = visitor.gf - visitor.gc;
+      }
+    }
+
+    return Array.from(statsMap.values()).sort((a, b) => {
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      if (b.dif !== a.dif) return b.dif - a.dif;
+      return b.gf - a.gf;
+    });
+  });
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   ngOnInit(): void {
@@ -183,6 +256,96 @@ export class TorneoMarcadoresComponent implements OnInit {
   }
 
   // ── Save score ────────────────────────────────────────────────────────────
+
+  abrirNotificarModal(): void {
+    const p = this.selectedPartido();
+    if (!p) return;
+    
+    if (p.fecha) {
+      const d = new Date(p.fecha);
+      this.notificarFecha = d.toISOString().split('T')[0];
+      this.notificarHora = d.toTimeString().substring(0, 5);
+    } else {
+      this.notificarFecha = '';
+      this.notificarHora = '';
+    }
+    this.notificarLugar = p.lugar ?? '';
+    this.showNotificarModal.set(true);
+  }
+
+  cerrarNotificarModal(): void {
+    this.showNotificarModal.set(false);
+  }
+
+  getMensajeWhatsApp(): string {
+    const p = this.selectedPartido();
+    const t = this.torneo();
+    if (!p || !t) return '';
+
+    const nombreTorneo = t.nombre;
+    const rivales = `${this.nombreInscripcion(p.inscripcion_local)} vs ${this.nombreInscripcion(p.inscripcion_visitante)}`;
+    
+    return `MENSAJE SIGUIENTE PARTICIPACIÓN
+
+¡Hola! 👋
+
+Ya está todo listo para tu próxima participación en el torneo ${nombreTorneo}. Aquí tienes los detalles:
+
+🆚 Rivales / Participantes: ${rivales}
+📅 Fecha: ${this.notificarFecha || 'Por definir'}
+⏰ Hora: ${this.notificarHora || 'Por definir'}
+📍 Lugar asignado: ${this.notificarLugar || 'Por definir'}
+
+Te recomendamos llegar al menos 15 minutos antes para prepararte y registrar tu asistencia de forma correcta.
+
+¡Es momento de dar lo mejor de ti! 💪
+
+Centro Libanés | Torneos`;
+  }
+
+  copiarMensaje(): void {
+    const msg = this.getMensajeWhatsApp();
+    navigator.clipboard.writeText(msg).then(() => {
+      this.showSuccess('Mensaje copiado al portapapeles');
+      this.cerrarNotificarModal();
+    });
+  }
+
+  async enviarNotificacion(): Promise<void> {
+    const p = this.selectedPartido();
+    const t = this.torneo();
+    if (!p || !t || !this.notificarLugar?.trim()) return;
+
+    this.notifying.set(true);
+    this.error.set(null);
+    try {
+      const payload = {
+        fecha: this.notificarFecha,
+        hora: this.notificarHora,
+        lugar: this.notificarLugar,
+        rivales: `${this.nombreInscripcion(p.inscripcion_local)} vs ${this.nombreInscripcion(p.inscripcion_visitante)}`
+      };
+      
+      const res = await firstValueFrom(this.svc.notificarPartido(t.id, p.id, payload));
+      this.showSuccess(res.message || 'Notificaciones enviadas');
+      
+      // Update match locally if fecha/lugar were saved
+      if (p.estado !== 'finalizado') {
+        if (this.notificarFecha && this.notificarHora) {
+          p.fecha = `${this.notificarFecha}T${this.notificarHora}`;
+        }
+        if (this.notificarLugar) {
+          p.lugar = this.notificarLugar;
+        }
+      }
+      this.cerrarNotificarModal();
+    } catch (e: any) {
+      this.error.set(e?.error?.message ?? 'Error al enviar notificaciones');
+      this.cerrarNotificarModal();
+    } finally {
+      this.notifying.set(false);
+    }
+  }
 
   async guardarYSiguiente(): Promise<void> {
     await this.guardar(true);

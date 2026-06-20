@@ -60,8 +60,19 @@
     </div>
   } @else {
 
+    <!-- ── Tabs ────────────────────────────────────────────────────────────── -->
+    <div class="tm-tabs">
+      <button class="tm-tabs__btn" [class.tm-tabs__btn--active]="currentTab() === 'jornadas'" (click)="currentTab.set('jornadas')">
+        <i class="bi bi-calendar-range me-2"></i>Jornadas
+      </button>
+      <button class="tm-tabs__btn" [class.tm-tabs__btn--active]="currentTab() === 'posiciones'" (click)="currentTab.set('posiciones')">
+        <i class="bi bi-list-ol me-2"></i>Tabla de Posiciones
+      </button>
+    </div>
+
     <!-- ── Main content ──────────────────────────────────────────────────── -->
-    <div class="tm-content">
+    @if (currentTab() === 'jornadas') {
+      <div class="tm-content">
 
       <!-- ════════════ LEFT PANEL — Bracket ════════════ -->
       <div class="tm-bracket">
@@ -129,6 +140,11 @@
                           </div>
                         </div>
                         <div class="tm-match__result">
+                          @if (p.estado === 'en_curso') {
+                            <span class="badge bg-warning text-dark me-2">En juego</span>
+                          } @else if (p.estado === 'programado') {
+                            <span class="badge bg-info me-2">Programado</span>
+                          }
                           <span class="tm-match__action-hint">
                             <i class="bi bi-pencil-square me-1"></i>Capturar
                           </span>
@@ -276,6 +292,10 @@
                   Captura el marcador global. El partido se finalizará automáticamente.
                 </p>
 
+                <button class="btn btn-outline-success w-100 mb-4" (click)="abrirNotificarModal()">
+                  <i class="bi bi-whatsapp me-2"></i>Notificar Participantes
+                </button>
+
                 <!-- Actions -->
                 <div class="tm-capture__actions">
                   <button
@@ -312,6 +332,107 @@
       </div>
 
     </div>
+    }
+
+    @if (currentTab() === 'posiciones') {
+      <div class="tm-standings">
+        <div class="table-responsive">
+          <table class="table table-hover tm-standings-table">
+            <thead>
+              <tr>
+                <th class="text-center" style="width: 50px;">Pos</th>
+                <th>Equipo</th>
+                <th class="text-center">PJ</th>
+                <th class="text-center">G</th>
+                <th class="text-center">E</th>
+                <th class="text-center">P</th>
+                <th class="text-center">GF</th>
+                <th class="text-center">GC</th>
+                <th class="text-center">DIF</th>
+                <th class="text-center">PTS</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (stat of standings(); track stat.inscripcion.id; let idx = $index) {
+                <tr>
+                  <td class="text-center"><strong>{{ idx + 1 }}</strong></td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      @if (colorInscripcion(stat.inscripcion)) {
+                        <span class="tm-match__dot me-2" [style.background]="colorInscripcion(stat.inscripcion)!"></span>
+                      }
+                      <span class="fw-medium">{{ nombreInscripcion(stat.inscripcion) }}</span>
+                    </div>
+                  </td>
+                  <td class="text-center">{{ stat.pj }}</td>
+                  <td class="text-center text-success">{{ stat.g }}</td>
+                  <td class="text-center text-secondary">{{ stat.e }}</td>
+                  <td class="text-center text-danger">{{ stat.p }}</td>
+                  <td class="text-center">{{ stat.gf }}</td>
+                  <td class="text-center">{{ stat.gc }}</td>
+                  <td class="text-center fw-medium" [class.text-success]="stat.dif > 0" [class.text-danger]="stat.dif < 0">
+                    {{ stat.dif > 0 ? '+' + stat.dif : stat.dif }}
+                  </td>
+                  <td class="text-center"><strong>{{ stat.pts }}</strong></td>
+                </tr>
+              }
+              @if (standings().length === 0) {
+                <tr>
+                  <td colspan="10" class="text-center py-4 text-muted">
+                    No hay equipos registrados para mostrar en la tabla de posiciones.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
   }
 
+</div>
+
+<!-- Modal Notificar -->
+<div class="modal-backdrop show" style="z-index: 1060;" *ngIf="showNotificarModal()"></div>
+<div class="modal show d-block" tabindex="-1" style="z-index: 1065;" *ngIf="showNotificarModal()">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Notificar Participantes</h5>
+        <button type="button" class="btn-close" (click)="cerrarNotificarModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Fecha del Partido</label>
+          <input type="date" class="form-control" [(ngModel)]="notificarFecha">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Hora del Partido</label>
+          <input type="time" class="form-control" [(ngModel)]="notificarHora">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Lugar Asignado (Cancha / Ubicación) <span class="text-danger">*</span></label>
+          <input type="text" class="form-control" [(ngModel)]="notificarLugar" required placeholder="Ej. Cancha 1">
+        </div>
+        
+        <div class="mt-4">
+          <label class="form-label text-muted">Vista previa del mensaje</label>
+          <textarea class="form-control" rows="8" readonly [value]="getMensajeWhatsApp()"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cerrarNotificarModal()">Cancelar</button>
+        <button type="button" class="btn btn-outline-primary" (click)="copiarMensaje()">
+          <i class="bi bi-clipboard me-1"></i>Copiar Mensaje
+        </button>
+        <button type="button" class="btn btn-success" (click)="enviarNotificacion()" [disabled]="notifying() || !notificarLugar?.trim()">
+          @if (notifying()) {
+            <span class="spinner-border spinner-border-sm me-2"></span>Enviando...
+          } @else {
+            <i class="bi bi-send me-1"></i>Enviar Notificación
+          }
+        </button>
+      </div>
+    </div>
+  </div>
 </div>

@@ -113,6 +113,10 @@ export class TorneoService {
     return this.http.post<any>(`${this.base}/torneos/${torneoId}/partidos/${partidoId}/resultado`, payload);
   }
 
+  notificarPartido(torneoId: number, partidoId: number, payload: { fecha?: string, hora?: string, lugar?: string, rivales?: string }): Observable<any> {
+    return this.http.post<any>(`${this.base}/torneos/${torneoId}/partidos/${partidoId}/notificar`, payload);
+  }
+
   saveBracket(torneoId: number, faseId: number, payload: any): Observable<any> {
     return this.http.put<any>(`${this.base}/torneos/${torneoId}/fases/${faseId}/bracket`, payload);
   }

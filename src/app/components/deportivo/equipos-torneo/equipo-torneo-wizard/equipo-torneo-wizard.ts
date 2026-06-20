@@ -129,6 +129,22 @@ export class EquipoTorneoWizardComponent implements OnInit, OnDestroy {
     this.descripcion = e.descripcion ?? '';
     this.color       = e.color ?? '#0d6efd';
     this.is_active   = e.is_active;
+    if (e.torneo_id) {
+      this.torneo_id.set(e.torneo_id);
+    }
+    if (e.integrantes) {
+      const mapped = e.integrantes.map(i => ({
+        _tempId: 'db_' + i.id,
+        socio_id: i.socio_id,
+        guest_id: i.guest_id,
+        is_invitado: i.is_invitado,
+        numero_jersey: i.numero_jersey,
+        posicion: i.posicion,
+        es_capitan: i.es_capitan,
+        nombreDisplay: i.socio?.nombre || 'Desconocido',
+      }));
+      this.integrantesList.set(mapped);
+    }
   }
 
   // ── Navegación ───────────────────────────────────────────────────────────────

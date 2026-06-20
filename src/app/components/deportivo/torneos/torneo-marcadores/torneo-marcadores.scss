@@ -312,7 +312,12 @@
 
     &--winner {
       .tm-match__team-name { font-weight: 700; color: #1a1a2e; }
-      .tm-match__score-inline { color: var(--tm-success); font-weight: 800; }
+      .tm-match__score-inline { 
+        color: var(--tm-success); 
+        font-weight: 800; 
+        background: rgba(25, 135, 84, 0.1); /* tm-success with opacity */
+        box-shadow: inset 0 1px 2px rgba(25, 135, 84, 0.1);
+      }
     }
   }
 
@@ -356,11 +361,16 @@
 
   &__score-inline {
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 800;
     color: #495057;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 2px 10px;
+    border-radius: 6px;
     flex-shrink: 0;
-    min-width: 20px;
+    min-width: 32px;
     text-align: center;
+    margin: 0 6px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
   }
 
   &__result {
@@ -686,6 +696,72 @@
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
+}
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+.tm-tabs {
+  display: flex;
+  background: #fff;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--tm-border);
+  gap: 16px;
+
+  &__btn {
+    background: none;
+    border: none;
+    padding: 16px 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--tm-muted);
+    border-bottom: 3px solid transparent;
+    transition: all var(--tm-transition);
+    cursor: pointer;
+
+    &:hover {
+      color: #1a1a2e;
+    }
+
+    &--active {
+      color: var(--tm-primary);
+      border-bottom-color: var(--tm-primary);
+    }
+  }
+}
+
+// ─── Standings ────────────────────────────────────────────────────────────────
+.tm-standings {
+  padding: 24px;
+
+  .table-responsive {
+    background: #fff;
+    border-radius: var(--tm-card-radius);
+    box-shadow: var(--tm-card-shadow);
+    border: 1px solid var(--tm-border);
+    overflow: hidden;
+  }
+
+  &-table {
+    margin: 0;
+
+    thead th {
+      background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
+      border-bottom: 2px solid var(--tm-border);
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tm-muted);
+      padding: 14px 16px;
+      vertical-align: middle;
+    }
+
+    tbody td {
+      padding: 14px 16px;
+      vertical-align: middle;
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(0,0,0,0.04);
+      color: #495057;
+    }
+  }
 }
 
 // ─── Responsive ───────────────────────────────────────────────────────────────

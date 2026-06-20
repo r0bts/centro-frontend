@@ -22,6 +22,7 @@ export interface TorneoEquipo {
   // Relación incluida en GET /{id}
   integrantes?: TorneoIntegrante[];
   torneos_nombres?: string[];
+  torneo_id?: number | null;
 }
 
 export interface TorneoIntegrante {
