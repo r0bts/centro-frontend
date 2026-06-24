@@ -12,6 +12,8 @@ import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 
 import { ScRegistrationsService }   from '../../../services/summer-course/sc-registrations.service';
 import { ScCoursesService }         from '../../../services/summer-course/sc-courses.service';
+import { SummerCourseScannerService } from '../../../services/summer-course/sc-scanner.service';
+import Swal from 'sweetalert2';
 import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
 import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
@@ -103,6 +105,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private enrollSvc    = inject(ScEnrollmentsService);
   private userSvc      = inject(UserService);
   private authSvc      = inject(AuthService);
+  private scannerSvc   = inject(SummerCourseScannerService);
 
   // ── Global ────────────────────────────────────────────────────────────────
   courses        = signal<ScCourse[]>([]);
@@ -166,8 +169,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credNotes         = signal('');
 
   // ── Level / Group assignment ──────────────────────────────────────────────
-  canReasignar      = signal<boolean>(false);
-  canVerPagos       = signal<boolean>(false);
+  canReasignar          = signal<boolean>(false);
+  canVerPagos           = signal<boolean>(false);
+  syncingEnrollmentId   = signal<number | null>(null);
   levelGroupsFD     = signal<LevelGroupFD[]>([]);
 
   lvlModalOpen      = signal(false);
@@ -971,6 +975,41 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   paymentLabel(s: string): string {
     return ({ paid:'Pagado', pending:'Pendiente', partial:'Parcial', cancelled:'Cancelado' })[s] ?? s;
+  }
+
+  syncOnePayment(p: ScRegisteredParticipant, event: Event): void {
+    event.stopPropagation();
+    if (this.syncingEnrollmentId() === p.enrollment_id) return;
+    this.syncingEnrollmentId.set(p.enrollment_id);
+
+    this.scannerSvc.syncOnePayment(p.enrollment_id).subscribe({
+      next: (res: any) => {
+        this.syncingEnrollmentId.set(null);
+        if (res.success) {
+          const newStatus = res.data.payment_status as ScRegisteredParticipant['payment_status'];
+          this.registrations.update(groups =>
+            groups.map(g => ({
+              ...g,
+              participants: g.participants.map(part =>
+                part.enrollment_id === p.enrollment_id
+                  ? { ...part, payment_status: newStatus }
+                  : part
+              ),
+            }))
+          );
+          const msg = res.data.changed
+            ? `Estado actualizado: ${this.paymentLabel(newStatus)}`
+            : 'NetSuite confirma el mismo estado. Sin cambios.';
+          Swal.fire({ icon: 'success', title: 'Sincronización completada', text: msg, timer: 2000, showConfirmButton: false });
+        } else {
+          Swal.fire({ icon: 'warning', title: 'Sin cambios', text: res.message });
+        }
+      },
+      error: (err: any) => {
+        this.syncingEnrollmentId.set(null);
+        Swal.fire({ icon: 'error', title: 'Error', text: err.error?.message || 'No se pudo sincronizar con NetSuite.' });
+      },
+    });
   }
 
   typeLabel(t: string): string {

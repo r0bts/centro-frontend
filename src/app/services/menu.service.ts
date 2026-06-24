@@ -60,6 +60,16 @@ export class MenuService {
               active: false
             });
           }
+          const existsInstructorChecklist = item.children.find(c => c.id === 'sc-instructor-checklist');
+          if (!existsInstructorChecklist) {
+            item.children.push({
+              id: 'sc-instructor-checklist',
+              label: 'Lista Instructor',
+              icon: 'bi-clipboard-check',
+              route: '/summer-course/instructor-checklist',
+              active: false
+            });
+          }
         } else {
             // Si no tiene children pero es el item, lo convertimos en padre
             item.children = [
@@ -75,6 +85,13 @@ export class MenuService {
                 label: 'Historial Entradas',
                 icon: 'bi-box-arrow-in-right',
                 route: '/summer-course/checkin-history',
+                active: false
+              },
+              {
+                id: 'sc-instructor-checklist',
+                label: 'Lista Instructor',
+                icon: 'bi-clipboard-check',
+                route: '/summer-course/instructor-checklist',
                 active: false
               }
             ];

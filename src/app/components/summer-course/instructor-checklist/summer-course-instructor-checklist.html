@@ -1,0 +1,241 @@
+<!-- ============================================================ -->
+<!-- LISTA DEL INSTRUCTOR — Summer Course                        -->
+<!-- ============================================================ -->
+
+<div class="container-fluid py-3 instructor-checklist-page">
+
+  <!-- HEADER -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <h4 class="mb-0 fw-bold">Lista del Instructor</h4>
+      <small class="text-muted">{{ courseName() }}</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <input type="date" class="form-control form-control-sm"
+             [value]="selectedDate()"
+             (change)="onDateChange($event)" />
+      <button class="btn btn-outline-secondary btn-sm" (click)="refresh()" [disabled]="loading()">
+        <i class="bi bi-arrow-clockwise"></i> Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- BOTÓN ESCANEAR (lookup) -->
+  <div class="mb-3">
+    <button class="btn btn-primary" (click)="openScanner()" [disabled]="scannerMode() || scannerProcessing()">
+      <i class="bi bi-qr-code-scan me-1"></i> Escanear para identificar niño
+    </button>
+  </div>
+
+  <!-- ESCÁNER LOOKUP -->
+  @if (scannerMode()) {
+    <div class="card shadow-sm mb-3 border-primary">
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-camera me-1"></i> Apunta al QR del niño</span>
+        <button class="btn btn-sm btn-light" (click)="stopScanner()">Cancelar</button>
+      </div>
+      <div class="card-body text-center">
+        <div id="qr-lookup-reader" class="mx-auto" style="max-width: 320px;"></div>
+        <hr />
+        <div class="d-flex gap-2 justify-content-center">
+          <input type="text" class="form-control form-control-sm" style="max-width:260px;"
+                 placeholder="O pega el token manualmente"
+                 [(ngModel)]="manualLookupToken"
+                 (keydown.enter)="submitManualLookup()" />
+          <button class="btn btn-sm btn-outline-primary" (click)="submitManualLookup()">Buscar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- PROCESANDO LOOKUP -->
+  @if (scannerProcessing()) {
+    <div class="text-center py-3">
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-2 text-muted">Identificando participante…</p>
+    </div>
+  }
+
+  <!-- RESULTADO DEL LOOKUP -->
+  @if (lookupResult(); as r) {
+    <div class="card border-0 shadow mb-3 lookup-result-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          @if (r.participant.photo_url) {
+            <img [src]="r.participant.photo_url" class="rounded-circle lookup-photo" alt="foto" />
+          } @else {
+            <div class="lookup-photo-placeholder rounded-circle d-flex align-items-center justify-content-center bg-secondary text-white fs-3">
+              {{ r.participant.first_name[0] }}
+            </div>
+          }
+          <div class="flex-grow-1">
+            <h5 class="mb-1 fw-bold">{{ r.participant.first_name }} {{ r.participant.last_name }}</h5>
+            <div class="d-flex flex-wrap gap-2">
+              @if (r.level_roman) {
+                <span class="badge rounded-pill bg-primary">Nivel {{ r.level_roman }}
+                  @if (r.level_age) { <span class="fw-normal ms-1">({{ r.level_age }})</span> }
+                </span>
+              }
+              @if (r.group_alias) {
+                <span class="badge rounded-pill bg-success">{{ r.group_alias }}</span>
+              } @else {
+                <span class="badge rounded-pill bg-warning text-dark">⚠ Sin grupo asignado</span>
+              }
+              @if (r.has_checkin_today) {
+                <span class="badge rounded-pill bg-info text-dark"><i class="bi bi-check2"></i> Ya ingresó hoy</span>
+              } @else {
+                <span class="badge rounded-pill bg-secondary">No ha ingresado hoy</span>
+              }
+
+              <!-- Badge de pago + botón de sync cuando es pending/partial -->
+              @if (r.payment_status === 'paid') {
+                <span class="badge rounded-pill bg-success">✔ Pagado</span>
+              } @else if (r.payment_status === 'cancelled') {
+                <span class="badge rounded-pill bg-danger">✖ Cancelado</span>
+              } @else {
+                <span class="badge rounded-pill bg-warning text-dark">
+                  {{ r.payment_status === 'partial' ? '⚠ Pago parcial' : '⚠ Sin pago' }}
+                </span>
+                <button type="button"
+                        class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1 py-0 px-2"
+                        style="font-size:0.75rem; height:1.5rem;"
+                        [disabled]="syncingPayment()"
+                        (click)="onSyncPayment()">
+                  @if (syncingPayment()) {
+                    <span class="spinner-border" style="width:.7rem;height:.7rem;border-width:2px;"></span>
+                    <span>Verificando…</span>
+                  } @else {
+                    <i class="bi bi-arrow-repeat"></i>
+                    <span>Verificar en NetSuite</span>
+                  }
+                </button>
+              }
+            </div>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" (click)="closeLookupResult()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- CARGANDO -->
+  @if (loading()) {
+    <div class="text-center py-5">
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-2 text-muted">Cargando lista…</p>
+    </div>
+  }
+
+  <!-- ERROR -->
+  @if (!loading() && error()) {
+    <div class="alert alert-danger">{{ error() }}</div>
+  }
+
+  <!-- CONTENIDO PRINCIPAL -->
+  @if (!loading() && !error()) {
+
+    <!-- TOTALES -->
+    <div class="d-flex flex-wrap gap-2 mb-3">
+      <span class="badge bg-primary fs-6 px-3 py-2">
+        <i class="bi bi-people me-1"></i> {{ totalCheckins() }} presentes
+      </span>
+      @if (withoutGroup() > 0) {
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2">
+          <i class="bi bi-exclamation-triangle me-1"></i> {{ withoutGroup() }} sin grupo
+        </span>
+      }
+    </div>
+
+    <!-- FILTROS -->
+    <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
+      <span class="text-muted small">Filtrar:</span>
+
+      <!-- Por nivel -->
+      <button class="btn btn-sm"
+              [ngClass]="filterLevel() === null ? 'btn-primary' : 'btn-outline-primary'"
+              (click)="setLevelFilter(null)">Todos los niveles</button>
+      @for (lvl of availableLevels(); track lvl.number) {
+        <button class="btn btn-sm"
+                [ngClass]="filterLevel() === lvl.number ? 'btn-primary' : 'btn-outline-primary'"
+                (click)="setLevelFilter(lvl.number)">Nivel {{ lvl.roman }}</button>
+      }
+
+      <!-- Por grupo -->
+      @if (availableGroups().length > 0) {
+        <span class="text-muted small ms-2">|</span>
+        <button class="btn btn-sm"
+                [ngClass]="filterGroup() === null ? 'btn-success' : 'btn-outline-success'"
+                (click)="setGroupFilter(null)">Todos los grupos</button>
+        @for (grp of availableGroups(); track grp) {
+          <button class="btn btn-sm"
+                  [ngClass]="filterGroup() === grp ? 'btn-success' : 'btn-outline-success'"
+                  (click)="setGroupFilter(grp)">{{ grp }}</button>
+        }
+      }
+    </div>
+
+    <!-- LISTA -->
+    @if (filteredCheckins().length === 0) {
+      <div class="text-center text-muted py-5">
+        <i class="bi bi-inbox fs-1"></i>
+        <p class="mt-2">No hay registros con los filtros aplicados.</p>
+      </div>
+    } @else {
+      <div class="row g-2">
+        @for (item of filteredCheckins(); track item.attendance_id) {
+          <div class="col-12 col-md-6 col-xl-4">
+            <div class="card h-100 border-0 shadow-sm checkin-card"
+                 [ngClass]="{ 'border-warning': !item.has_group }">
+              <div class="card-body d-flex align-items-center gap-3 py-2">
+
+                <!-- Foto -->
+                @if (item.participant.photo_url) {
+                  <img [src]="item.participant.photo_url" class="checkin-photo rounded-circle" alt="foto" />
+                } @else {
+                  <div class="checkin-photo rounded-circle d-flex align-items-center justify-content-center bg-secondary text-white fw-bold">
+                    {{ item.participant.first_name[0] }}
+                  </div>
+                }
+
+                <!-- Info -->
+                <div class="flex-grow-1 min-w-0">
+                  <div class="fw-semibold text-truncate">
+                    {{ item.participant.first_name }} {{ item.participant.last_name }}
+                  </div>
+                  <div class="d-flex flex-wrap gap-1 mt-1">
+                    @if (item.level_roman) {
+                      <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small">
+                        Niv. {{ item.level_roman }}
+                        @if (item.level_age) { · {{ item.level_age }} }
+                      </span>
+                    } @else {
+                      <span class="badge bg-secondary-subtle text-secondary rounded-pill small">Sin nivel</span>
+                    }
+
+                    @if (item.group_alias) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill small">
+                        {{ item.group_alias }}
+                      </span>
+                    } @else {
+                      <span class="badge bg-warning text-dark rounded-pill small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Sin grupo
+                      </span>
+                    }
+                  </div>
+                  <div class="text-muted mt-1" style="font-size:0.72rem;">
+                    <i class="bi bi-clock me-1"></i>
+                    {{ item.checked_in_at | date:'HH:mm' : '' }}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+</div>
