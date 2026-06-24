@@ -1264,15 +1264,15 @@
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="text-muted small">Última sincronización:</span>
                             </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['summer_payments']?.lastSync) }}
+                            <p class="mb-1 text-muted fw-medium" style="font-size: 0.9rem;">
+                                {{ getTimeSinceLastSync(syncStatus['summer_payments'].lastSync) }}
                             </p>
                             <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['summer_payments']?.lastSync) }}
+                                {{ formatDate(syncStatus['summer_payments'].lastSync) }}
                             </p>
                             <div class="mt-2">
                                 <span class="badge bg-success bg-opacity-75">
-                                    {{ syncStatus['summer_payments']?.recordCount ?? 0 }} inscripciones procesadas
+                                    {{ syncStatus['summer_payments'].recordCount ?? 0 }} inscripciones procesadas
                                 </span>
                             </div>
                         </div>
@@ -1280,11 +1280,11 @@
                         <button
                             class="btn btn-success w-100"
                             (click)="syncSummerPayments()"
-                            [disabled]="syncStatus['summer_payments']?.isLoading">
-                            <span *ngIf="!syncStatus['summer_payments']?.isLoading">
+                            [disabled]="syncStatus['summer_payments'].isLoading">
+                            <span *ngIf="!syncStatus['summer_payments'].isLoading">
                                 <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Pagos
                             </span>
-                            <span *ngIf="syncStatus['summer_payments']?.isLoading">
+                            <span *ngIf="syncStatus['summer_payments'].isLoading">
                                 <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                                 Sincronizando...
                             </span>

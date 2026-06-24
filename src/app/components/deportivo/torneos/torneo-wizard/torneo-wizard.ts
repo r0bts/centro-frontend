@@ -66,10 +66,19 @@ export class TorneoWizardComponent implements OnInit, OnDestroy {
   sede         = '';
   fecha_inicio = '';
   fecha_fin    = '';
+  edad_minima: number | null = null;
+  edad_maxima: number | null = null;
   is_active    = true;
 
   // ── Campos del formulario ─── Paso 2 ────────────────────────────────────────
   formato: TorneoFormato | null = null;
+  actividad_id: number | null = null;
+  tipo_torneo: 'UNICO' | 'RACE_ETAPA' = 'UNICO';
+  circuito_race_id: number | null = null;
+
+  // ── Campos del formulario ─── Divisiones config ─────────────────────────
+  div_equipos_por_grupo = 4;
+  div_equipos_clasifican = 8;
 
   // ── Computed ────────────────────────────────────────────────────────────────
   progressPct = computed(() => ((this.currentStep() - 1) / (STEPS.length - 1)) * 100);
@@ -78,6 +87,21 @@ export class TorneoWizardComponent implements OnInit, OnDestroy {
   selectedFormatoMeta = computed<FormatoMeta | null>(() =>
     this.formato ? FORMATO_META[this.formato] : null
   );
+
+  divisionesPreview = computed(() => {
+    if (this.formato !== 'divisiones') return null;
+    const epg = this.div_equipos_por_grupo;
+    const ec = this.div_equipos_clasifican;
+    const rondasGrupo = epg - 1;
+    const rondasElim = Math.ceil(Math.log2(ec));
+    return {
+      equiposPorGrupo: epg,
+      clasifican: ec,
+      rondasGrupo,
+      rondasElim,
+      totalJornadas: rondasGrupo + rondasElim,
+    };
+  });
 
   // ── Lifecycle ────────────────────────────────────────────────────────────────
   ngOnInit(): void {
@@ -106,8 +130,13 @@ export class TorneoWizardComponent implements OnInit, OnDestroy {
     this.sede         = t.sede ?? '';
     this.fecha_inicio = t.fecha_inicio ?? '';
     this.fecha_fin    = t.fecha_fin ?? '';
+    this.edad_minima  = t.edad_minima ?? null;
+    this.edad_maxima  = t.edad_maxima ?? null;
     this.is_active    = t.is_active;
     this.formato      = t.formato;
+    this.actividad_id = t.actividad_id ?? null;
+    this.tipo_torneo  = t.tipo_torneo ?? 'UNICO';
+    this.circuito_race_id = t.circuito_race_id ?? null;
   }
 
   // ── Navegación ───────────────────────────────────────────────────────────────
@@ -159,11 +188,29 @@ export class TorneoWizardComponent implements OnInit, OnDestroy {
       nombre:       this.nombre.trim(),
       descripcion:  this.descripcion.trim() || null,
       formato:      this.formato,
+      actividad_id: this.actividad_id,
+      tipo_torneo:  this.tipo_torneo,
+      circuito_race_id: this.tipo_torneo === 'RACE_ETAPA' ? this.circuito_race_id : null,
       sede:         this.sede.trim() || null,
+      edad_minima:  this.edad_minima,
+      edad_maxima:  this.edad_maxima,
       fecha_inicio: this.fecha_inicio || null,
       fecha_fin:    this.fecha_fin    || null,
       is_active:    this.is_active,
     };
+
+    // Agregar config de divisiones al payload
+    if (this.formato === 'divisiones') {
+      (payload as any).reglas_custom_json = {
+        equipos_por_grupo: this.div_equipos_por_grupo,
+        equipos_clasifican: this.div_equipos_clasifican,
+        pts_victoria: 3,
+        pts_empate: 1,
+        pts_derrota: 0,
+        criterio_clasificacion: 'global',
+        permitir_empates: true,
+      };
+    }
 
     try {
       if (this.isEditing()) {

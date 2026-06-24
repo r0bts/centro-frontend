@@ -185,15 +185,32 @@
                     <span class="etd-int-item__nombre">
                       {{ int.socio?.nombre ?? 'Socio #' + int.socio_id }}
                       @if (int.es_capitan) {
-                        <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem">
+                        <span class="badge bg-warning text-dark ms-2" style="font-size:0.65rem">
                           <i class="bi bi-star-fill me-1"></i>Capitán
                         </span>
                       }
                     </span>
                     <span class="etd-int-item__meta">
-                      @if (int.numero_jersey) { <span>#{{ int.numero_jersey }}</span> }
-                      @if (int.numero_jersey && int.posicion) { <span class="mx-1">·</span> }
-                      @if (int.posicion) { <span>{{ int.posicion }}</span> }
+                      @if (int.is_invitado) {
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle py-1">Invitado Externo</span>
+                      } @else {
+                        <span><i class="bi bi-person-badge me-1"></i>Socio #{{ int.socio?.entityid || int.socio?.membership_id }}</span>
+                      }
+                      
+                      @if (int.numero_jersey || int.posicion) {
+                        <span class="text-muted mx-1">|</span>
+                      }
+                      
+                      @if (int.numero_jersey) { 
+                        <span title="Número de Jersey">
+                          <i class="bi bi-123 me-1"></i>{{ int.numero_jersey }}
+                        </span> 
+                      }
+                      @if (int.posicion) { 
+                        <span class="ms-2" title="Posición">
+                          <i class="bi bi-person-standing me-1"></i>{{ int.posicion }}
+                        </span> 
+                      }
                     </span>
                   </div>
                   <div class="etd-int-item__actions">

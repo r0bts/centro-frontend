@@ -128,10 +128,18 @@ export class DeportivoEquiposTorneoComponent implements OnInit {
     document.body.style.overflow = 'hidden';
   }
 
-  editEquipo(e: TorneoEquipo): void {
-    this.editando.set(e);
-    this.showWizard.set(true);
-    document.body.style.overflow = 'hidden';
+  async editEquipo(e: TorneoEquipo): Promise<void> {
+    try {
+      this.loading.set(true);
+      const res = await firstValueFrom(this.equipoSvc.getById(e.id));
+      this.editando.set(res.data);
+      this.showWizard.set(true);
+      document.body.style.overflow = 'hidden';
+    } catch {
+      this.error.set('Error al cargar detalles del equipo para editar.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   openDetalle(e: TorneoEquipo): void {

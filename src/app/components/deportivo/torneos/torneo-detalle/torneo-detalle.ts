@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import {
   Torneo,
@@ -19,17 +20,19 @@ import {
   Inscripcion,
   TorneoFormData,
   FORMATO_META,
+  Partido,
 } from '../../../../models/deportivo/torneo.model';
 import { TorneoService } from '../../../../services/deportivo/torneo.service';
 import { ConfirmDialogComponent } from '../../../shared/confirm-dialog/confirm-dialog';
+import { TorneoBracketComponent } from '../torneo-bracket/torneo-bracket.component';
 
-type DetallTab = 'participantes' | 'jornadas' | 'posiciones';
+type DetallTab = 'participantes' | 'jornadas' | 'posiciones' | 'playoffs';
 
 @Component({
   selector: 'app-torneo-detalle',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ConfirmDialogComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ConfirmDialogComponent, TorneoBracketComponent],
   templateUrl: './torneo-detalle.html',
   styleUrl:    './torneo-detalle.scss',
 })
@@ -68,6 +71,12 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
   editFechaInicio = '';
   editFechaFin   = '';
 
+  // Captura de Marcador
+  editPartido = signal<Partido | null>(null);
+  marcadorLocal = 0;
+  marcadorVisitante = 0;
+  guardandoMarcador = signal(false);
+
   // ── Computed ─────────────────────────────────────────────────────────────────
   readonly meta = computed(() => FORMATO_META[this.torneo.formato]);
 
@@ -76,6 +85,45 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
     const lista = [...this.inscripciones()];
     if (this.torneo.formato === 'escalera') {
       lista.sort((a, b) => (a.posicion_escalera ?? 999) - (b.posicion_escalera ?? 999));
+    } else if (this.torneo.formato === 'divisiones') {
+      // For bracket tournaments, rank by last round reached
+      const jornadas = this.jornadas();
+      // Build a map: inscripcion_id → { maxRound, isWinner }
+      const rankMap = new Map<number, { maxRound: number; isWinner: boolean }>();
+
+      for (const j of jornadas) {
+        if (!j.partidos) continue;
+        for (const p of j.partidos) {
+          const round = j.numero ?? 0;
+          const localId = p.inscripcion_local_id ?? p.inscripcion_local?.id;
+          const visitId = p.inscripcion_visitante_id ?? p.inscripcion_visitante?.id;
+
+          if (localId) {
+            const cur = rankMap.get(localId);
+            if (!cur || round > cur.maxRound) {
+              const won = p.estado === 'finalizado' && (p.marcador_local ?? 0) > (p.marcador_visitante ?? 0);
+              rankMap.set(localId, { maxRound: round, isWinner: won });
+            }
+          }
+          if (visitId) {
+            const cur = rankMap.get(visitId);
+            if (!cur || round > cur.maxRound) {
+              const won = p.estado === 'finalizado' && (p.marcador_visitante ?? 0) > (p.marcador_local ?? 0);
+              rankMap.set(visitId, { maxRound: round, isWinner: won });
+            }
+          }
+        }
+      }
+
+      lista.sort((a, b) => {
+        const ra = rankMap.get(a.id) ?? { maxRound: 0, isWinner: false };
+        const rb = rankMap.get(b.id) ?? { maxRound: 0, isWinner: false };
+        // Higher round first
+        if (rb.maxRound !== ra.maxRound) return rb.maxRound - ra.maxRound;
+        // Winner of that round first
+        if (ra.isWinner !== rb.isWinner) return ra.isWinner ? -1 : 1;
+        return 0;
+      });
     } else {
       lista.sort((a, b) => b.puntos_totales - a.puntos_totales);
     }
@@ -116,6 +164,12 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
   }
 
   // ── Carga de datos ────────────────────────────────────────────────────────────
+  async loadData(): Promise<void> {
+    await Promise.all([
+      this.loadInscripciones(),
+      this.loadJornadas()
+    ]);
+  }
   async loadInscripciones(): Promise<void> {
     this.loadingInsc.set(true);
     try {
@@ -136,7 +190,45 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
     }
   }
 
-  // ── Tabs ──────────────────────────────────────────────────────────────────────
+  // ── Captura de Marcador ──────────────────────────────────────────────────────
+  openCapturarMarcador(p: Partido): void {
+    this.editPartido.set(p);
+    this.marcadorLocal = p.marcador_local ?? 0;
+    this.marcadorVisitante = p.marcador_visitante ?? 0;
+    this.error.set(null);
+  }
+
+  cancelCapturarMarcador(): void {
+    this.editPartido.set(null);
+    this.error.set(null);
+  }
+
+  async guardarMarcador(): Promise<void> {
+    const p = this.editPartido();
+    if (!p) return;
+
+    this.guardandoMarcador.set(true);
+    this.error.set(null);
+    try {
+      const payload = {
+        marcador_local: this.marcadorLocal,
+        marcador_visitante: this.marcadorVisitante
+      };
+      await firstValueFrom(this.svc.guardarResultadoPartido(this.torneo.id, p.id, payload));
+      
+      this.showSuccess('Marcador capturado exitosamente');
+      this.editPartido.set(null);
+      
+      // Recargar datos para reflejar los cruces de la siguiente ronda y puntos
+      await this.loadData();
+    } catch (e: any) {
+      this.error.set(e?.error?.message ?? 'Error al guardar marcador');
+    } finally {
+      this.guardandoMarcador.set(false);
+    }
+  }
+
+  // ── Modales ──────────────────────────────────────────────────────────────────────
   setTab(t: DetallTab): void {
     this.tab.set(t);
     this.error.set(null);
@@ -223,7 +315,7 @@ export class TorneoDetalleComponent implements OnInit, OnDestroy {
       this.error.set(null);
       try {
         const res = await firstValueFrom(this.svc.generarJornadas(this.torneo.id));
-        this.jornadas.set(res.data.jornadas);
+        await this.loadData();
         this.showSuccess(`${res.data.total} jornadas generadas correctamente`);
       } catch (e: any) {
         this.error.set(e?.error?.message ?? 'Error al generar jornadas');

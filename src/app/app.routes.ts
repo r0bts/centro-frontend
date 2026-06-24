@@ -156,6 +156,52 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   // =====================================================================
+  // SERVICIO MÉDICO — Módulo
+  // =====================================================================
+  {
+    path: 'servicio-medico',
+    redirectTo: '/servicio-medico/dashboard',
+    pathMatch: 'full'
+  },
+  {
+    path: 'servicio-medico',
+    loadComponent: () =>
+      import('./components/servicio-medico/shell/servicio-medico-shell/servicio-medico-shell').then(m => m.ServicioMedicoShell),
+    canActivate: [authGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('./components/servicio-medico/dashboard/servicio-medico-dashboard/servicio-medico-dashboard').then(m => m.ServicioMedicoDashboard)
+      },
+      {
+        path: 'escaner',
+        loadComponent: () =>
+          import('./components/servicio-medico/scanner/servicio-medico-scanner/servicio-medico-scanner').then(m => m.ServicioMedicoScanner)
+      },
+      {
+        path: 'socios',
+        loadComponent: () =>
+          import('./components/servicio-medico/socios/servicio-medico-socios/servicio-medico-socios').then(m => m.ServicioMedicoSocios)
+      },
+      {
+        path: 'visitas',
+        loadComponent: () =>
+          import('./components/servicio-medico/visitas/servicio-medico-visitas/servicio-medico-visitas').then(m => m.ServicioMedicoVisitas)
+      },
+      {
+        path: 'preregistros',
+        loadComponent: () =>
+          import('./components/servicio-medico/preregistros/servicio-medico-preregistros/servicio-medico-preregistros').then(m => m.ServicioMedicoPreregistros)
+      },
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      }
+    ]
+  },
+  // =====================================================================
   // DEPORTIVO — Módulos 6-13
   // Shell con rutas hijas lazy-loaded para cada sección.
   // =====================================================================
@@ -197,6 +243,11 @@ export const routes: Routes = [
             path: 'equipos',
             loadComponent: () =>
               import('./components/deportivo/equipos-torneo/deportivo-equipos-torneo').then(m => m.DeportivoEquiposTorneoComponent)
+          },
+          {
+            path: ':id/marcadores',
+            loadComponent: () =>
+              import('./components/deportivo/torneos/torneo-marcadores/torneo-marcadores').then(m => m.TorneoMarcadoresComponent)
           }
         ]
       },

@@ -118,8 +118,8 @@ export class MenuService {
     ];
 
     // Obtener submódulos y ordenarlos por sort_order
-    const submodules = Object.values(module.submodules)
-      .sort((a, b) => a.sort_order - b.sort_order);
+    const submodulesList = module.submodules ? Object.values(module.submodules) : [];
+    const submodules = submodulesList.sort((a: any, b: any) => a.sort_order - b.sort_order);
 
     for (const submodule of submodules) {
       // Verificar si el usuario tiene al menos 1 permiso granted en este submódulo
@@ -168,8 +168,8 @@ export class MenuService {
    * Verificar si un submódulo tiene al menos 1 permiso granted
    */
   private hasAnyGrantedPermission(submodule: SubmodulePermissions): boolean {
-    const permissions = Object.values(submodule.permissions);
-    return permissions.some(permission => permission.granted === true);
+    const permissions = submodule.permissions ? Object.values(submodule.permissions) : [];
+    return permissions.some((permission: any) => permission.granted === true);
   }
 
   /**

@@ -1,0 +1,92 @@
+<div class="bracket-container">
+  @if (errorMsg()) {
+    <div class="alert alert-danger">{{ errorMsg() }}</div>
+  }
+  @if (successMsg()) {
+    <div class="alert alert-success">{{ successMsg() }}</div>
+  }
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0"><i class="bi bi-diagram-2"></i> Configuración de Llaves (Playoffs)</h5>
+    <button class="btn btn-primary btn-sm" [disabled]="isSaving()" (click)="saveBracket()">
+      @if (isSaving()) {
+        <span class="spinner-border spinner-border-sm"></span> Guardando...
+      } @else {
+        <i class="bi bi-save"></i> Guardar Bracket
+      }
+    </button>
+  </div>
+
+  <div class="row g-3">
+    <!-- Bolsa de Participantes -->
+    <div class="col-md-3">
+      <div class="card h-100 shadow-sm">
+        <div class="card-header bg-light fw-bold">
+          Participantes sin asignar ({{ bolsaParticipantes.length }})
+        </div>
+        <div class="card-body bg-white">
+          <div
+            id="bolsaList"
+            cdkDropList
+            [cdkDropListData]="bolsaParticipantes"
+            [cdkDropListConnectedTo]="['slot0', 'slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6', 'slot7']"
+            class="item-list"
+            (cdkDropListDropped)="drop($event)">
+            @for (item of bolsaParticipantes; track item.id) {
+              <div class="draggable-item" cdkDrag>
+                <i class="bi bi-grip-vertical text-muted me-2"></i>
+                {{ getEquipoNombre(item) }}
+              </div>
+            }
+            @if (bolsaParticipantes.length === 0) {
+              <div class="text-muted small p-2 text-center">Todos los equipos asignados</div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Árbol Bracket (Simplificado a 8 slots para Cuartos de Final) -->
+    <div class="col-md-9">
+      <div class="bracket-board bg-light border rounded p-3 h-100 overflow-auto">
+        <p class="text-muted small mb-3">Arrastra un equipo de la bolsa hacia un slot en la llave (Bracket).</p>
+        
+        <div class="bracket-tree d-flex gap-4">
+          
+          <!-- Ronda 1 -->
+          <div class="bracket-round">
+            <h6 class="text-center text-muted border-bottom pb-2 mb-3">Cuartos de final</h6>
+            @for (slot of bracketSlots; track $index) {
+              <div class="bracket-match mb-3">
+                <div class="text-muted small ps-1">Posición {{ $index + 1 }}</div>
+                <div
+                  [id]="'slot' + $index"
+                  cdkDropList
+                  [cdkDropListData]="slot"
+                  [cdkDropListConnectedTo]="['bolsaList']"
+                  class="slot-container"
+                  (cdkDropListDropped)="drop($event)">
+                  
+                  @if (slot.length > 0) {
+                    @for (item of slot; track item.id) {
+                      <div class="draggable-item" cdkDrag>
+                        <i class="bi bi-grip-vertical text-muted me-2"></i>
+                        {{ getEquipoNombre(item) }}
+                      </div>
+                    }
+                  } @else {
+                    <div class="empty-slot">Libre (Bye)</div>
+                  }
+                </div>
+              </div>
+              @if ($index % 2 === 1 && $index !== bracketSlots.length - 1) {
+                <div class="bracket-spacer"></div>
+              }
+            }
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
