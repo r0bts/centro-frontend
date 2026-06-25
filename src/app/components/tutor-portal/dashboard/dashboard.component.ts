@@ -403,6 +403,16 @@ export class DashboardComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  isSocioParticipant(child: any): boolean {
+    return child && child.participant_type === 'member';
+  }
+
+  goToLovableForm(child: any): void {
+    // Si más adelante el backend envía la URL dinámica, se usaría aquí (ej: child.lovable_url)
+    const url = 'https://portalserviciomedicocl.lovable.app/cuestionario/Lm8U2a8zcmnXOv42agGBRpZfLcPqBpk53hsRkmAQgpY';
+    window.open(url, '_blank');
+  }
+
   closeOnProfileOverlay(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('tp-modal-overlay')) {
       this.closeProfileModal();
