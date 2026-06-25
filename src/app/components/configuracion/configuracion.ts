@@ -279,6 +279,19 @@ export class ConfiguracionComponent implements OnInit {
       return false;
     }
     
+    // Para netsuite_sync: basta con tener cualquier permiso de sync
+    if (sectionId === 'netsuite') {
+      return this.authService.hasAnyPermission('netsuite_sync', [
+        'sync', 'sync_usuarios', 'sync_productos', 'sync_centros', 'sync_departamentos',
+        'sync_categorias', 'sync_subcategorias', 'sync_ubicaciones', 'sync_proyectos',
+        'sync_cuentas_inventario', 'sync_cuentas_gastos', 'sync_motivos_ajuste',
+        'sync_payment_frequencies', 'sync_condicion_patrimonial', 'sync_condicion_adm',
+        'sync_parentesco', 'sync_acceso_clubes', 'sync_genero', 'sync_estado_membresia',
+        'sync_cuotas_membresia', 'sync_socios', 'sync_membresias', 'sync_detalle_membresias',
+        'sync_medical_records', 'evaluar_batch', 'sync_summer_payments'
+      ]);
+    }
+
     // Verificar permiso de 'view' como mínimo
     const hasAccess = this.authService.hasPermission(submodule, 'view');
     

@@ -60,16 +60,7 @@ export class MenuService {
               active: false
             });
           }
-          const existsInstructorChecklist = item.children.find(c => c.id === 'sc-instructor-checklist');
-          if (!existsInstructorChecklist) {
-            item.children.push({
-              id: 'sc-instructor-checklist',
-              label: 'Lista Instructor',
-              icon: 'bi-clipboard-check',
-              route: '/summer-course/instructor-checklist',
-              active: false
-            });
-          }
+          // sc-instructor-checklist ya viene desde la BD (submodule id=63), no se inyecta manualmente
         } else {
             // Si no tiene children pero es el item, lo convertimos en padre
             item.children = [
@@ -85,13 +76,6 @@ export class MenuService {
                 label: 'Historial Entradas',
                 icon: 'bi-box-arrow-in-right',
                 route: '/summer-course/checkin-history',
-                active: false
-              },
-              {
-                id: 'sc-instructor-checklist',
-                label: 'Lista Instructor',
-                icon: 'bi-clipboard-check',
-                route: '/summer-course/instructor-checklist',
                 active: false
               }
             ];

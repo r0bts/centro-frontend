@@ -1,0 +1,146 @@
+<div class="sc-scan-page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="sc-scan-header">
+    <div class="sc-scan-header__icon">
+      <span class="material-symbols-outlined">qr_code_scanner</span>
+    </div>
+    <div>
+      <h1 class="sc-scan-header__title">{{ pageTitle }}</h1>
+      <p class="sc-scan-header__sub">Curso de Verano — Portal del Instructor</p>
+    </div>
+  </div>
+
+  <!-- ── Cámara ─────────────────────────────────────────────────────────── -->
+  @if (state() === 'idle') {
+    <div class="sc-scan-camera-wrap">
+      <div id="sc-scan-reader" class="sc-scan-reader"></div>
+
+      @if (cameraError()) {
+        <div class="sc-scan-alert sc-scan-alert--warn">
+          <span class="material-symbols-outlined">videocam_off</span>
+          {{ cameraError() }}
+        </div>
+      }
+
+      <!-- Entrada manual -->
+      <div class="sc-scan-manual">
+        <input class="sc-scan-manual__input"
+               type="text"
+               placeholder="O escribe el código aquí…"
+               [ngModel]="manualToken()"
+               (ngModelChange)="manualToken.set($event)"
+               (keydown.enter)="submitManual()">
+        <button class="sc-scan-manual__btn" (click)="submitManual()" [disabled]="!manualToken().trim()">
+          <span class="material-symbols-outlined">send</span>
+        </button>
+      </div>
+    </div>
+  }
+
+  <!-- ── Procesando ─────────────────────────────────────────────────────── -->
+  @if (processing()) {
+    <div class="sc-scan-processing">
+      <div class="sc-scan-spinner"></div>
+      <p>Verificando…</p>
+    </div>
+  }
+
+  <!-- ── Error (token inválido / red) ──────────────────────────────────── -->
+  @if (state() === 'error' && !processing()) {
+    <div class="sc-scan-card sc-scan-card--error">
+      <span class="material-symbols-outlined sc-scan-card__icon">error</span>
+      <p class="sc-scan-card__msg">{{ errorMsg() }}</p>
+      <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
+        <span class="material-symbols-outlined">refresh</span>
+        Intentar de nuevo
+      </button>
+    </div>
+  }
+
+  <!-- ── Ya tiene check-in ──────────────────────────────────────────────── -->
+  @if (state() === 'already' && result() && !processing()) {
+    <div class="sc-scan-card sc-scan-card--already">
+      @if (result()!.participant.photo_url) {
+        <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
+      }
+      <span class="material-symbols-outlined sc-scan-card__icon">check_circle</span>
+      <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
+      <p class="sc-scan-card__detail">
+        @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
+        {{ result()!.group_alias ?? 'Sin grupo' }}
+        @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
+      </p>
+      <div class="sc-scan-card__badge sc-scan-card__badge--already">
+        <span class="material-symbols-outlined">event_available</span>
+        Ya registró entrada hoy
+      </div>
+      <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Siguiente
+      </button>
+    </div>
+  }
+
+  <!-- ── Check-in OK (pertenece al grupo) ──────────────────────────────── -->
+  @if (state() === 'ok' && result() && !processing()) {
+    <div class="sc-scan-card sc-scan-card--ok">
+      @if (result()!.participant.photo_url) {
+        <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
+      }
+      <span class="material-symbols-outlined sc-scan-card__icon">check_circle</span>
+      <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
+      <p class="sc-scan-card__detail">
+        @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
+        {{ result()!.group_alias ?? 'Sin grupo' }}
+        @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
+      </p>
+      @if (result()!.payment_status !== 'paid') {
+        <div class="sc-scan-card__badge sc-scan-card__badge--warn">
+          <span class="material-symbols-outlined">payments</span>
+          Pago: {{ paymentLabel(result()!.payment_status) }}
+        </div>
+      }
+      <div class="sc-scan-card__badge sc-scan-card__badge--ok">
+        <span class="material-symbols-outlined">how_to_reg</span>
+        @if (result()!.checkin_registered) { Entrada registrada } @else { Entrada ya registrada }
+      </div>
+      <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
+        <span class="material-symbols-outlined">arrow_back</span>
+        Siguiente
+      </button>
+    </div>
+  }
+
+  <!-- ── Advertencia: niño no pertenece al grupo ────────────────────────── -->
+  @if (state() === 'warning' && result() && !processing()) {
+    <div class="sc-scan-card sc-scan-card--warning">
+      @if (result()!.participant.photo_url) {
+        <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
+      }
+      <span class="material-symbols-outlined sc-scan-card__icon">warning</span>
+      <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
+      <p class="sc-scan-card__detail">
+        @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
+        {{ result()!.group_alias ?? 'Sin grupo asignado' }}
+        @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
+      </p>
+      <div class="sc-scan-card__badge sc-scan-card__badge--warn">
+        <span class="material-symbols-outlined">info</span>
+        {{ result()!.warning }}
+      </div>
+
+      <div class="sc-scan-card__actions">
+        <button class="sc-scan-btn sc-scan-btn--accept" (click)="acceptForce()" [disabled]="processing()">
+          <span class="material-symbols-outlined">check</span>
+          Aceptar de todas formas
+        </button>
+        <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
+          <span class="material-symbols-outlined">close</span>
+          No pertenece aquí
+        </button>
+      </div>
+    </div>
+  }
+
+</div>

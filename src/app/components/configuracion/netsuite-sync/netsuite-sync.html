@@ -4,7 +4,7 @@
             <h5 class="card-title mb-0">
                 <i class="bi bi-cloud-arrow-down me-2"></i>Sincronización NetSuite
             </h5>
-            <button class="btn btn-primary" (click)="syncAll()">
+            <button class="btn btn-primary" *ngIf="canSync('sync')" (click)="syncAll()">
                 <i class="bi bi-arrow-repeat me-2"></i>Sincronizar Todo
             </button>
         </div>
@@ -22,7 +22,7 @@
         <!-- Tarjetas de Sincronización -->
         <div class="row">
             <!-- Sincronizar Usuarios -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_usuarios')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -65,7 +65,7 @@
             </div>
 
             <!-- Sincronizar Productos -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_productos')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -108,7 +108,7 @@
             </div>
 
             <!-- Sincronizar Departamentos -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_departamentos')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -151,7 +151,7 @@
             </div>
 
             <!-- Sincronizar Áreas -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_centros')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -194,7 +194,7 @@
             </div>
 
             <!-- Sincronizar Centros de Costos (Locations) -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ubicaciones')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -237,7 +237,7 @@
             </div>
 
             <!-- Sincronizar Eventos Centro Libanés (Projects) -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_proyectos')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -280,7 +280,7 @@
             </div>
 
             <!-- Sincronizar Cuentas de Inventario (Account Internal) -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_cuentas_inventario')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -323,7 +323,7 @@
             </div>
 
             <!-- Sincronizar Cuentas de Pagos (Account External) -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_cuentas_gastos')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -366,7 +366,7 @@
             </div>
 
             <!-- Sincronizar Razones de Ajuste -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_motivos_ajuste')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -409,7 +409,7 @@
             </div>
 
             <!-- Sincronizar Categorías -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_categorias')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -452,7 +452,7 @@
             </div>
 
             <!-- Sincronizar Subcategorías -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_subcategorias')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -495,7 +495,7 @@
             </div>
 
             <!-- Sincronizar Frecuencias de Pago -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_payment_frequencies')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -538,7 +538,7 @@
             </div>
 
             <!-- Sincronizar Condición Patrimonial -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_condicion_patrimonial')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -581,7 +581,7 @@
             </div>
 
             <!-- Sincronizar Condición Administrativa -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_condicion_adm')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -624,7 +624,7 @@
             </div>
 
             <!-- Sincronizar Parentesco -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_parentesco')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -667,7 +667,7 @@
             </div>
 
             <!-- Sincronizar Acceso Clubes -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_acceso_clubes')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -710,7 +710,7 @@
             </div>
 
             <!-- Sincronizar Género -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_genero')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -753,7 +753,7 @@
             </div>
 
             <!-- Sincronizar Estado Membresía -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_estado_membresia')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -796,7 +796,7 @@
             </div>
 
             <!-- Sincronizar Cuotas Membresía -->
-            <div class="col-md-6 col-lg-3 mb-4">
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_cuotas_membresia')">
                 <div class="card sync-card h-100">
                     <div class="card-body text-center">
                         <div class="sync-icon mb-3">
@@ -859,7 +859,7 @@
             </div>
 
             <!-- Sincronizar Socios -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" *ngIf="canSync('sync_socios')">
                 <div class="card sync-card h-100 border-primary">
                     <div class="card-header bg-primary bg-opacity-10 text-center py-1">
                         <small class="text-primary fw-bold">
@@ -907,7 +907,7 @@
             </div>
 
             <!-- Sincronizar Membresías -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" *ngIf="canSync('sync_membresias')">
                 <div class="card sync-card h-100 border-primary">
                     <div class="card-header bg-primary bg-opacity-10 text-center py-1">
                         <small class="text-primary fw-bold">
@@ -960,7 +960,7 @@
             </div>
 
             <!-- Sincronizar Detalle Membresías -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" *ngIf="canSync('sync_detalle_membresias')">
                 <div class="card sync-card h-100 border-primary">
                     <div class="card-header bg-primary bg-opacity-10 text-center py-1">
                         <small class="text-primary fw-bold">
@@ -1029,7 +1029,7 @@
             </div>
 
             <!-- Sincronizar Registros Médicos -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" *ngIf="canSync('sync_medical_records')">
                 <div class="card sync-card h-100 border-info">
                     <div class="card-header bg-info bg-opacity-10 text-center py-1">
                         <small class="text-info fw-bold">
@@ -1100,7 +1100,7 @@
             </div>
 
             <!-- Sincronizar Perfil de Salud -->
-            <div class="col-md-4 mb-4">
+            <div class="col-md-4 mb-4" *ngIf="canSync('sync_medical_records')">
                 <div class="card sync-card h-100 border-danger">
                     <div class="card-header bg-danger bg-opacity-10 text-center py-1">
                         <small class="text-danger fw-bold">
@@ -1176,7 +1176,7 @@
             </div>
 
             <!-- Evaluación Masiva -->
-            <div class="col-md-6 col-lg-4 mb-4">
+            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('evaluar_batch')">
                 <div class="card sync-card h-100 border-warning">
                     <div class="card-header bg-warning bg-opacity-10 text-center py-1">
                         <small class="fw-bold" style="color: var(--bs-warning-text-emphasis, #664d03);">
@@ -1246,7 +1246,7 @@
             </div>
 
             <!-- Sincronizar Pagos Curso de Verano -->
-            <div class="col-md-6 col-lg-4 mb-4">
+            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('sync_summer_payments')">
                 <div class="card sync-card h-100 border-success">
                     <div class="card-header bg-success bg-opacity-10 text-center py-1">
                         <small class="fw-bold" style="color: var(--bs-success-text-emphasis, #0a3622);">

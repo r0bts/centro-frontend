@@ -366,6 +366,12 @@ export const routes: Routes = [
     loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
   },
   {
+    // Portal público del instructor — sin AuthGuard, sin login
+    path: 'sc-scan/:groupAlias',
+    loadComponent: () =>
+      import('./components/summer-course/sc-scan/sc-scan.component').then(m => m.ScScanComponent)
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }
