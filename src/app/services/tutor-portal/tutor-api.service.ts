@@ -42,4 +42,23 @@ export class TutorApiService {
   updateParticipantProfile(participantId: number, data: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/participant/${participantId}/profile`, data);
   }
+
+  // --- Medical Questionnaires ---
+
+  getMedicalFull(socioId: string | number): Observable<any> {
+    // Assuming socioId is used; the API endpoint takes socio_id via query
+    return this.http.get(`${environment.apiUrl}/medical-questionnaires/full?socio_id=${socioId}`);
+  }
+
+  saveMedicalFull(data: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/medical-questionnaires/full`, data);
+  }
+
+  getMedicalSimplified(guestId: string | number): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/medical-questionnaires/simplified?guest_id=${guestId}`);
+  }
+
+  saveMedicalSimplified(data: any): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/medical-questionnaires/simplified`, data);
+  }
 }

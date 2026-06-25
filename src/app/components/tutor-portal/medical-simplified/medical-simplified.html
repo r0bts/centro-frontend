@@ -1,0 +1,112 @@
+<div class="tp-page">
+  <div class="tp-header">
+    <button class="tp-btn tp-btn--ghost mb-3" (click)="goBack()">
+      <span class="material-symbols-outlined">arrow_back</span> Regresar
+    </button>
+    <h1 class="tp-header__title">Cuestionario Médico Requerido</h1>
+    <p class="tp-header__subtitle">Información necesaria para participantes del Curso de Verano.</p>
+  </div>
+
+  <div class="simple-container" *ngIf="!isLoading">
+    
+    <div class="step-pane">
+      <h3 class="step-title">Información Básica y Contacto</h3>
+      <div class="grid-form">
+        <div class="tp-field">
+          <label class="tp-field__label">Nombre Completo <span class="tp-required">*</span></label>
+          <input type="text" class="tp-field__input" [(ngModel)]="respuestas.nombre_completo">
+        </div>
+        <div class="tp-field">
+          <label class="tp-field__label">Edad <span class="tp-required">*</span></label>
+          <input type="text" class="tp-field__input" [(ngModel)]="respuestas.edad">
+        </div>
+        <div class="tp-field">
+          <label class="tp-field__label">Teléfono de Emergencia <span class="tp-required">*</span></label>
+          <input type="text" class="tp-field__input" [(ngModel)]="respuestas.contacto_emergencia_telefono">
+        </div>
+        <div class="tp-field">
+          <label class="tp-field__label">Grupo Sanguíneo</label>
+          <select class="tp-field__input" [(ngModel)]="respuestas.grupo_sanguineo">
+            <option value="">Seleccione...</option>
+            <option value="A+">A+</option>
+            <option value="A-">A-</option>
+            <option value="B+">B+</option>
+            <option value="B-">B-</option>
+            <option value="AB+">AB+</option>
+            <option value="AB-">AB-</option>
+            <option value="O+">O+</option>
+            <option value="O-">O-</option>
+            <option value="Desconocido">Desconocido</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="step-pane">
+      <h3 class="step-title">Estado de Salud</h3>
+      
+      <div class="tp-field mb-4">
+        <label class="tp-field__label">¿El participante padece alguna enfermedad crónica o está enfermo actualmente? <span class="tp-required">*</span></label>
+        <div class="radio-group">
+          <label><input type="radio" name="enf" value="Si" [(ngModel)]="respuestas.enfermo_actualmente"> Sí</label>
+          <label><input type="radio" name="enf" value="No" [(ngModel)]="respuestas.enfermo_actualmente"> No</label>
+        </div>
+      </div>
+
+      <div class="tp-field mb-4">
+        <label class="tp-field__label">Alergias Conocidas (Alimentos, Medicamentos, etc.)</label>
+        <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.alergias_tipo_otra" placeholder="Especifique..."></textarea>
+      </div>
+
+      <div class="tp-field mb-4">
+        <label class="tp-field__label">¿Toma algún medicamento que deba ser suministrado durante el horario del curso?</label>
+        <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.medicamentos_actuales" placeholder="Especifique medicamento y dosis..."></textarea>
+      </div>
+
+      <div class="tp-field mb-4">
+        <label class="tp-field__label">Consideraciones adicionales para los instructores</label>
+        <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.notas_adicionales" placeholder="Información de cuidado especial..."></textarea>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="step-pane">
+      <h3 class="step-title">Términos y Consentimiento</h3>
+      <div class="terms-box">
+        <p>
+          Al enviar este formulario, certifico que la información proporcionada es correcta. Entiendo que esta 
+          información será utilizada exclusivamente por el personal del Centro Libanés para garantizar el bienestar
+          del participante durante el curso de verano.
+        </p>
+        <p>
+          Autorizo al personal a tomar las medidas de primeros auxilios necesarias en caso de emergencia y a contactar
+          al número de emergencia proporcionado.
+        </p>
+      </div>
+
+      <div class="consent-check">
+        <label>
+          <input type="checkbox" [(ngModel)]="consentAccepted">
+          He leído y acepto los términos de participación.
+        </label>
+      </div>
+    </div>
+
+    <div class="footer-actions mt-4">
+      <button class="tp-btn btn-success w-100" style="justify-content: center; padding: 14px;" 
+              [disabled]="!consentAccepted || isSaving" (click)="saveSimplified()">
+        {{ isSaving ? 'Guardando Información...' : 'Firmar y Enviar' }} 
+        <span class="material-symbols-outlined ml-2" *ngIf="!isSaving">check_circle</span>
+      </button>
+    </div>
+
+  </div>
+
+  <div *ngIf="isLoading" class="tp-loading">
+    <div class="tp-spinner"></div>
+    <p class="tp-loading__text">Cargando información...</p>
+  </div>
+</div>

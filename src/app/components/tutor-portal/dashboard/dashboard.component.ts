@@ -407,10 +407,13 @@ export class DashboardComponent implements OnInit {
     return child && child.participant_type === 'member';
   }
 
-  goToLovableForm(child: any): void {
-    // Si más adelante el backend envía la URL dinámica, se usaría aquí (ej: child.lovable_url)
-    const url = 'https://portalserviciomedicocl.lovable.app/cuestionario/Lm8U2a8zcmnXOv42agGBRpZfLcPqBpk53hsRkmAQgpY';
-    window.open(url, '_blank');
+  goToMedicalForm(child: any, variant: 'completo' | 'simplificado'): void {
+    this.closeProfileModal();
+    if (variant === 'completo') {
+      this.router.navigate(['/tutor-portal/expediente-medico/completo', child.id]);
+    } else {
+      this.router.navigate(['/tutor-portal/expediente-medico/simplificado', child.id]);
+    }
   }
 
   closeOnProfileOverlay(event: MouseEvent) {

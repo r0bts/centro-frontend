@@ -101,13 +101,13 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
   onScan() {
     if (!this.qrToken || !this.qrToken.trim()) return;
     
-    // Si viene de URL (ej. escanear un QR real), extraemos el token
+    // Manejo más robusto de URLs para extraer el ID final
     let token = this.qrToken.trim();
-    if (token.includes('/credencial/')) {
-      const parts = token.split('/credencial/');
-      token = parts[parts.length - 1];
-    } else if (token.includes('=')) {
+    if (token.includes('=')) {
       const parts = token.split('=');
+      token = parts[parts.length - 1];
+    } else if (token.includes('/')) {
+      const parts = token.split('/');
       token = parts[parts.length - 1];
     }
     this.qrToken = token;
@@ -121,22 +121,55 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (res: any) => {
-          if (res.success && res.data) {
-            this.medicalProfile = res.data;
+          if (res.success) {
+            this.router.navigate(['/servicio-medico/expediente', this.qrToken]);
           } else {
-            this.medicalProfile = res;
+            this.errorMessage = res.message || 'No se encontró el expediente.';
+            this.qrToken = '';
+            // NO llamamos a startScanner() de inmediato para que el usuario pueda ver el error
+            // o lo reactivamos pero sin borrar el errorMessage
+            this.restartScannerWithoutClearingError();
           }
-          this.qrToken = '';
           this.cdr.detectChanges();
         },
         error: (err: any) => {
           console.error('Error fetching medical profile:', err);
           this.errorMessage = err?.error?.message || 'No se encontró el expediente asociado a este código QR o ha caducado.';
           this.qrToken = '';
-          this.startScanner(); // Reactivamos el escáner si hubo error
+          this.restartScannerWithoutClearingError();
           this.cdr.detectChanges();
         }
       });
+  }
+
+  restartScannerWithoutClearingError() {
+    this.isScanning = true;
+    setTimeout(() => {
+      if (this.qrInput && this.qrInput.nativeElement) {
+        this.qrInput.nativeElement.focus();
+      }
+      if (!this.html5QrCode) {
+        this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        this.html5QrCode.start(
+          { facingMode: 'environment' }, config,
+          (decodedText) => {
+            this.qrToken = decodedText;
+            this.onScan();
+          },
+          (errorMessage) => {}
+        ).catch(() => {
+          this.html5QrCode!.start(
+            { facingMode: 'user' }, config,
+            (decodedText) => { this.qrToken = decodedText; this.onScan(); },
+            (errorMessage) => {}
+          ).catch(err => {
+             this.cameraError = 'No se pudo acceder a la cámara.';
+             this.cdr.detectChanges();
+          });
+        });
+      }
+    }, 200);
   }
 
   clearResult() {

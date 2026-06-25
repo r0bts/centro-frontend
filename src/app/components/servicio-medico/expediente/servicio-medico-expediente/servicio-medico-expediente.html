@@ -1,0 +1,635 @@
+<div class="container-fluid bg-light min-vh-100 p-0" style="background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%) !important;">
+  <app-content-menu></app-content-menu>
+  
+  <div class="p-4 p-md-5">
+    
+    <!-- Header Actions -->
+    <div class="d-flex align-items-center mb-4">
+      <button class="btn custom-btn-outline px-4 d-flex align-items-center me-3 shadow-sm bg-white" (click)="goBack()">
+        <i class="bi bi-arrow-left me-2"></i> Volver al Escáner
+      </button>
+    </div>
+
+    <!-- Cargando -->
+    <div *ngIf="isLoadingProfile" class="d-flex justify-content-center my-5">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="errorProfile" class="alert alert-danger shadow-sm border-0 rounded-4 glass-card">
+      <i class="bi bi-exclamation-triangle-fill me-2 text-danger"></i> <span class="fw-medium">{{ errorProfile }}</span>
+    </div>
+
+    <!-- Expediente Layout -->
+    <div *ngIf="!isLoadingProfile && medicalProfile" class="row">
+      
+      <!-- LEFT COL: Perfil Fijo -->
+      <div class="col-lg-4 col-xl-3 mb-4">
+        <div class="card glass-card rounded-4 border-0 position-sticky" style="top: 2rem;">
+          <div class="gradient-header p-4 text-center rounded-top-4 position-relative">
+            
+            <!-- Foto -->
+            <div class="position-relative d-inline-block mb-3">
+              <div *ngIf="medicalProfile.photo_base64 || medicalProfile.photo_url; else noPhoto">
+                <img [src]="medicalProfile.photo_base64 ? 'data:image/jpeg;base64,' + medicalProfile.photo_base64 : medicalProfile.photo_url"
+                     alt="Foto de Perfil"
+                     class="rounded-circle object-fit-cover shadow-lg border border-3 border-white"
+                     style="width: 120px; height: 120px;">
+              </div>
+              <ng-template #noPhoto>
+                <div class="rounded-circle shadow-lg border border-3 border-white bg-primary text-white d-flex align-items-center justify-content-center mx-auto" 
+                     style="width: 120px; height: 120px; font-size: 3rem; font-weight: bold; background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%) !important;">
+                    {{ (medicalProfile.first_name || medicalProfile.firstName || 'U')[0] }}
+                </div>
+              </ng-template>
+              <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-white border-2 rounded-circle" title="Paciente Activo"></span>
+            </div>
+
+            <h4 class="fw-bold text-dark mb-1">{{ medicalProfile.first_name || medicalProfile.firstName }} {{ medicalProfile.last_name || medicalProfile.lastName }}</h4>
+            <span class="badge bg-dark bg-opacity-10 text-dark border px-3 py-2 rounded-pill mt-2">
+              <i class="bi bi-person-badge me-1"></i> {{ medicalProfile.patient_type || 'Externo' | uppercase }}
+            </span>
+          </div>
+
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3 text-muted">
+              <i class="bi bi-calendar-event me-3 fs-5 text-primary"></i>
+              <div>
+                <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Edad</small>
+                <span class="fw-medium text-dark">{{ medicalProfile.age || '--' }} años</span>
+              </div>
+            </div>
+            
+            <div class="d-flex align-items-center mb-3 text-muted">
+              <i class="bi bi-envelope me-3 fs-5 text-primary"></i>
+              <div>
+                <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Email</small>
+                <span class="fw-medium text-dark text-truncate d-block" style="max-width: 200px;" [title]="medicalProfile.email || 'No registrado'">
+                  {{ medicalProfile.email || 'No registrado' }}
+                </span>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center text-muted">
+              <i class="bi bi-person-hearts me-3 fs-5 text-primary"></i>
+              <div>
+                <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Responsable</small>
+                <span class="fw-medium text-dark">{{ medicalProfile.responsable || 'N/A' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COL: Tabs y Contenido -->
+      <div class="col-lg-8 col-xl-9">
+        
+        <!-- Tabs de Navegación -->
+        <ul class="nav nav-pills mb-4 p-2 bg-white rounded-pill shadow-sm d-inline-flex">
+          <li class="nav-item">
+            <button class="nav-link rounded-pill fw-semibold px-4 transition-all" 
+                    [class.active]="activeTab === 'expediente'" 
+                    [class.bg-dark]="activeTab === 'expediente'"
+                    (click)="activeTab = 'expediente'">
+              <i class="bi bi-folder2-open me-2"></i> Datos Generales
+            </button>
+          </li>
+          <li class="nav-item ms-2">
+            <button class="nav-link rounded-pill fw-semibold px-4 transition-all" 
+                    [class.active]="activeTab === 'nueva_consulta'"
+                    [class.bg-dark]="activeTab === 'nueva_consulta'"
+                    (click)="iniciarNuevaConsulta()">
+              <i class="bi bi-plus-circle me-2"></i> Nueva Consulta
+            </button>
+          </li>
+        </ul>
+
+        <!-- VISTA EXPEDIENTE -->
+        <div *ngIf="activeTab === 'expediente'" class="fade show">
+          
+          <!-- Datos Generales -->
+          <div class="card glass-card border-0 rounded-4 mb-4">
+            <div class="card-header bg-transparent border-bottom px-4 py-3">
+              <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clipboard2-pulse text-primary me-2"></i> Ficha Clínica del Paciente</h5>
+            </div>
+            <div class="card-body p-4">
+              
+              <div class="row g-3">
+                <div class="col-md-3">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-droplet-half text-danger me-1"></i> Tipo de sangre</label>
+                  <input type="text" class="form-control premium-input py-2"
+                         [(ngModel)]="medicalProfile.blood_type" placeholder="ej. O+">
+                </div>
+                
+                <div class="col-md-9">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-shield-exclamation text-warning me-1"></i> Alergias</label>
+                  <input type="text" class="form-control premium-input py-2"
+                         [(ngModel)]="medicalProfile.allergies" placeholder="ej. Penicilina, nueces...">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-activity text-danger me-1"></i> Padecimientos crónicos</label>
+                  <textarea class="form-control premium-textarea py-2" rows="2"
+                            [(ngModel)]="medicalProfile.chronic_conditions" placeholder="ej. Asma, Diabetes..."></textarea>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-capsule text-primary me-1"></i> Medicamentos actuales</label>
+                  <textarea class="form-control premium-textarea py-2" rows="2"
+                            [(ngModel)]="medicalProfile.active_medications" placeholder="ej. Paracetamol (en caso de dolor)"></textarea>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-people text-info me-1"></i> Antecedentes familiares</label>
+                  <textarea class="form-control premium-textarea py-2" rows="2"
+                            [(ngModel)]="medicalProfile.family_history" placeholder="ej. Abuelos paternos con..."></textarea>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-bandaid text-success me-1"></i> Antecedentes quirúrgicos</label>
+                  <textarea class="form-control premium-textarea py-2" rows="2"
+                            [(ngModel)]="medicalProfile.surgical_history" placeholder="ej. Apendicectomía (2020)"></textarea>
+                </div>
+
+                <div class="col-12">
+                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-file-earmark-text text-secondary me-1"></i> Notas generales</label>
+                  <textarea class="form-control premium-textarea py-2" rows="2"
+                            [(ngModel)]="medicalProfile.general_notes" placeholder="Observaciones generales relevantes..."></textarea>
+                </div>
+              </div>
+
+              <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                <button class="btn custom-btn-primary px-5 py-2" 
+                        (click)="guardarDatosGenerales()" [disabled]="isSavingProfile">
+                  <span *ngIf="isSavingProfile" class="spinner-border spinner-border-sm me-2"></span>
+                  <i class="bi bi-save2 me-2" *ngIf="!isSavingProfile"></i> Actualizar Ficha Clínica
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Historial de Consultas -->
+          <div class="card glass-card border-0 rounded-4">
+            <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+              <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-primary me-2"></i> Historial de Atenciones</h5>
+            </div>
+            
+            <div class="card-body p-0">
+              <div *ngIf="isLoadingConsultas" class="text-center text-muted p-5">
+                <div class="spinner-grow text-primary mb-3" role="status"></div>
+                <p>Cargando historial...</p>
+              </div>
+
+              <div *ngIf="!isLoadingConsultas && consultas.length === 0" class="text-center text-muted p-5 bg-light m-4 rounded-4 border border-dashed">
+                <i class="bi bi-folder-x fs-1 text-secondary mb-3 opacity-50"></i>
+                <p class="mb-0 fw-medium">No hay consultas registradas para este paciente.</p>
+              </div>
+
+              <div *ngIf="!isLoadingConsultas && consultas.length > 0" class="list-group list-group-flush">
+                <div *ngFor="let c of consultas" class="list-group-item p-4 border-bottom border-light transition-all hover-bg-light cursor-pointer"
+                     data-bs-toggle="modal" data-bs-target="#consultaDetalleModal" (click)="consultaSeleccionada = c">
+                  <div class="row align-items-center">
+                    <div class="col-auto">
+                      <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                        <i class="bi bi-clipboard2-pulse fs-4"></i>
+                      </div>
+                    </div>
+                    <div class="col">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <h6 class="fw-bold mb-0 text-dark fs-5">{{ c.motivo_consulta || c.motivo || 'Consulta Médica General' }}</h6>
+                        <span class="badge bg-white text-secondary border px-3 py-2 rounded-pill shadow-sm">
+                          <i class="bi bi-calendar-check me-1"></i> {{ c.created | date:'dd MMM yyyy, HH:mm' }}
+                        </span>
+                      </div>
+                      <p class="text-muted small mb-2"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ c.ubicacion_netsuite || 'Servicio Médico' }}</p>
+                      
+                      <div *ngIf="c.diagnostico" class="bg-light p-3 rounded-3 mt-3 border border-light">
+                        <strong class="text-dark small text-uppercase"><i class="bi bi-check2-circle text-success me-1"></i> Diagnóstico:</strong>
+                        <p class="mb-0 mt-1 text-muted">{{ c.diagnostico }}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VISTA NUEVA CONSULTA -->
+        <div *ngIf="activeTab === 'nueva_consulta'" class="fade show position-relative pb-5">
+          
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 gap-3">
+            <div>
+              <h4 class="fw-bold text-dark mb-1">Registro de Atención Médica</h4>
+              <p class="text-muted small mb-0">Captura de nota médica formato SOAP e insumos.</p>
+            </div>
+            
+            <!-- Ubicación inline -->
+            <div class="d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
+              <i class="bi bi-geo-alt-fill text-primary me-2"></i>
+              <select class="form-select border-0 shadow-none bg-transparent fw-semibold text-dark py-1 pe-4" style="min-width: 200px;" [(ngModel)]="nuevaConsultaData.ubicacion_netsuite">
+                <option value="">Ubicación...</option>
+                <option value="G-Servicio Médico">G-Servicio Médico</option>
+                <option value="H-Servicio Médico">H-Servicio Médico</option>
+              </select>
+            </div>
+            
+            <button class="btn btn-light border shadow-sm text-danger fw-bold rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;" (click)="cancelarConsulta()" title="Cancelar Consulta">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+
+          <!-- Signos Vitales -->
+          <div class="card glass-card border-0 rounded-4 mb-3">
+            <div class="card-header bg-transparent border-bottom px-3 py-2">
+              <h6 class="fw-bold text-dark mb-0"><i class="bi bi-heart-pulse text-danger me-2"></i> Triage / Signos Vitales</h6>
+            </div>
+            <div class="card-body p-3">
+              
+              <div class="row g-2 mb-3">
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-activity text-danger"></i> TA Sistólica</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.ta_sistolica" placeholder="120">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">mmHg</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-activity text-danger"></i> TA Diastólica</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.ta_diastolica" placeholder="80">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">mmHg</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-heart text-danger"></i> F. Cardiaca</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.fc" placeholder="75">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">lpm</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-lungs text-info"></i> F. Respiratoria</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.fr" placeholder="16">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">rpm</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-thermometer-half text-warning"></i> Temperatura</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.temperatura" placeholder="36.5" step="0.1">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">°C</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-moisture text-primary"></i> SpO₂</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.saturacion_o2" placeholder="98">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">%</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-speedometer text-secondary"></i> Peso</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.peso" placeholder="70" (change)="calcularIMC()">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">kg</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-arrows-collapse text-secondary"></i> Talla</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="number" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.talla" placeholder="170" (change)="calcularIMC()">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">cm</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2 bg-light border-0">
+                    <span class="vital-label text-dark text-truncate"><i class="bi bi-calculator text-dark"></i> IMC</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="text" class="vital-input fs-5 text-primary" [(ngModel)]="nuevaConsultaData.imc" placeholder="--" readonly>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+                  <div class="vital-card p-2">
+                    <span class="vital-label text-truncate"><i class="bi bi-droplet text-danger"></i> Glucosa</span>
+                    <div class="d-flex align-items-baseline">
+                      <input type="text" class="vital-input fs-5" [(ngModel)]="nuevaConsultaData.glucosa" placeholder="90">
+                      <small class="text-muted ms-1" style="font-size: 0.65rem;">mg/dL</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-2">
+                <label class="form-label text-muted small fw-semibold mb-1"><i class="bi bi-journal-medical me-1"></i> Notas de enfermería / Triage</label>
+                <textarea class="form-control premium-textarea py-2" rows="2"
+                          [(ngModel)]="nuevaConsultaData.notas_enfermeria" placeholder="Observaciones adicionales..."></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nota Médica (SOAP) -->
+          <div class="card glass-card border-0 rounded-4 mb-3">
+            <div class="card-header bg-transparent border-bottom px-3 py-2">
+              <h6 class="fw-bold text-dark mb-0"><i class="bi bi-file-medical text-primary me-2"></i> Evolución Médica (SOAP)</h6>
+            </div>
+            <div class="card-body p-3">
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="soap-section h-100 border rounded-3 p-3 pt-4 position-relative bg-white">
+                    <span class="soap-badge bg-primary">S - SUBJETIVO</span>
+                    <label class="form-label fw-bold text-dark small mb-1">Motivo de consulta <span class="text-danger">*</span></label>
+                    <textarea class="form-control premium-textarea py-2 mb-3" rows="2" [(ngModel)]="nuevaConsultaData.motivo_consulta" placeholder="Principal molestia..."></textarea>
+                    
+                    <label class="form-label fw-bold text-dark small mb-1">Padecimiento actual</label>
+                    <textarea class="form-control premium-textarea py-2" rows="3" [(ngModel)]="nuevaConsultaData.padecimiento_actual" placeholder="Evolución y sintomatología..."></textarea>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <div class="soap-section h-100 border rounded-3 p-3 pt-4 position-relative bg-white">
+                    <span class="soap-badge bg-success">O - OBJETIVO</span>
+                    <label class="form-label fw-bold text-dark small mb-1">Exploración física</label>
+                    <textarea class="form-control premium-textarea py-2" rows="6" [(ngModel)]="nuevaConsultaData.exploracion_fisica" placeholder="Hallazgos clínicos..."></textarea>
+                  </div>
+                </div>
+
+                <div class="col-md-12">
+                  <div class="soap-section border rounded-3 p-3 pt-4 position-relative bg-white">
+                    <span class="soap-badge bg-warning text-dark">A - ANÁLISIS</span>
+                    <label class="form-label fw-bold text-dark small mb-1">Diagnóstico(s)</label>
+                    <textarea class="form-control premium-textarea py-2" rows="2" [(ngModel)]="nuevaConsultaData.diagnostico" placeholder="Impresión diagnóstica, CIE-10..."></textarea>
+                  </div>
+                </div>
+
+                <div class="col-md-12">
+                  <div class="soap-section border rounded-3 p-3 pt-4 position-relative bg-white">
+                    <span class="soap-badge bg-danger">P - PLAN</span>
+                    <label class="form-label fw-bold text-dark small mb-1">Plan / Tratamiento</label>
+                    <textarea class="form-control premium-textarea py-2" rows="3" [(ngModel)]="nuevaConsultaData.plan_tratamiento" placeholder="Medicamentos, indicaciones, estudios..."></textarea>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Materiales -->
+          <div class="card glass-card border-0 rounded-4 mb-4">
+            <div class="card-header bg-transparent border-bottom px-3 py-2">
+              <h6 class="fw-bold text-dark mb-0"><i class="bi bi-box-seam text-primary me-2"></i> Insumos Consumidos</h6>
+            </div>
+            <div class="card-body p-3">
+              
+              <div class="p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 mb-3">
+                <div class="row g-2 align-items-end">
+                  <div class="col-md-5">
+                    <label class="form-label fw-bold text-dark small mb-1">Material</label>
+                    <div class="input-group input-group-sm shadow-sm rounded-2 overflow-hidden">
+                      <span class="input-group-text bg-white border-0 text-primary"><i class="bi bi-search"></i></span>
+                      <input type="text" class="form-control border-0 py-1 shadow-none fw-medium" placeholder="ej. Jeringa 5ml" [(ngModel)]="nuevoMaterial.material">
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label fw-bold text-dark small mb-1">Cant.</label>
+                    <input type="number" class="form-control form-control-sm border-0 py-1 shadow-sm rounded-2 text-center fw-bold text-primary" [(ngModel)]="nuevoMaterial.cantidad">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label fw-bold text-dark small mb-1">Observaciones</label>
+                    <input type="text" class="form-control form-control-sm border-0 py-1 shadow-sm rounded-2" placeholder="Opcional" [(ngModel)]="nuevoMaterial.observaciones">
+                  </div>
+                  <div class="col-md-2">
+                    <button class="btn btn-sm custom-btn-primary w-100 py-1" (click)="agregarMaterial()">
+                      <i class="bi bi-plus-lg"></i> Agregar
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lista de Materiales -->
+              <div *ngIf="nuevaConsultaData.materiales_json.length === 0" class="text-center text-muted p-3 bg-light rounded-3 border border-dashed">
+                <span class="small">Sin materiales.</span>
+              </div>
+
+              <div class="list-group list-group-flush border rounded-3 overflow-hidden shadow-sm" *ngIf="nuevaConsultaData.materiales_json.length > 0">
+                <div class="list-group-item px-3 py-2 d-flex align-items-center material-item bg-white" *ngFor="let m of nuevaConsultaData.materiales_json; let i = index">
+                  <div style="width: 50%;" class="fw-bold text-dark small"><i class="bi bi-box me-2 text-muted"></i> {{ m.material }}</div>
+                  <div style="width: 15%; text-align: center;">
+                    <span class="badge bg-primary rounded-pill px-2 py-1 shadow-sm">{{ m.cantidad }}</span>
+                  </div>
+                  <div style="width: 30%;" class="text-muted small fst-italic">{{ m.observaciones || '--' }}</div>
+                  <div style="width: 5%; text-align: right;">
+                    <button class="btn btn-sm btn-link text-danger p-0" (click)="removerMaterial(i)" title="Eliminar">
+                      <i class="bi bi-trash-fill"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Flat Sticky Bottom Bar -->
+          <div class="position-sticky bottom-0 bg-white border-top shadow-lg p-3 mx-n4 mx-md-n5 mt-4" style="z-index: 1000;">
+            <div class="d-flex justify-content-between align-items-center px-2">
+              <span class="text-muted small fw-medium d-none d-md-inline"><i class="bi bi-info-circle me-1"></i> Verifica los datos antes de guardar</span>
+              <div class="d-flex gap-2 ms-auto">
+                <button class="btn custom-btn-outline px-4 rounded-3 bg-white fw-bold" (click)="guardarConsulta(false)" [disabled]="isSavingConsulta">
+                  <span *ngIf="isSavingConsulta" class="spinner-border spinner-border-sm me-2"></span>
+                  <i class="bi bi-save me-2" *ngIf="!isSavingConsulta"></i> Guardar
+                </button>
+                <button class="btn custom-btn-primary px-4 rounded-3 fw-bold" (click)="guardarConsulta(true)" [disabled]="isSavingConsulta">
+                  <i class="bi bi-lock-fill me-2"></i> Cerrar Consulta
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal Detalles de Consulta -->
+<div class="modal fade" id="consultaDetalleModal" tabindex="-1" aria-labelledby="consultaDetalleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content border-0 rounded-4 shadow">
+      <div class="modal-header border-bottom-0 pb-0" *ngIf="consultaSeleccionada">
+        <h5 class="modal-title fw-bold text-dark" id="consultaDetalleModalLabel">
+          <i class="bi bi-file-medical text-primary me-2"></i> Detalles de Consulta
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <div class="modal-body pt-3 pb-4 px-4" *ngIf="consultaSeleccionada">
+        <!-- Fecha y Motivo -->
+        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+          <div>
+            <h4 class="fw-bold mb-1 text-primary">{{ consultaSeleccionada.motivo_consulta || consultaSeleccionada.motivo || 'Consulta Médica General' }}</h4>
+            <div class="text-muted small">
+              <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ consultaSeleccionada.ubicacion_netsuite || 'Servicio Médico' }}
+            </div>
+          </div>
+          <div class="text-end">
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill shadow-sm">
+              <i class="bi bi-calendar-check me-1"></i> {{ consultaSeleccionada.created | date:'dd MMM yyyy, HH:mm' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Vitals -->
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-activity text-danger me-2"></i> Signos Vitales</h6>
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.ta_sistolica || consultaSeleccionada.ta_diastolica">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">T.A. (mmHg)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.ta_sistolica || '-' }}/{{ consultaSeleccionada.ta_diastolica || '-' }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.fc">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">F.C. (lpm)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.fc }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.fr">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">F.R. (rpm)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.fr }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.temperatura">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Temp (°C)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.temperatura }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.saturacion_o2">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">SpO2 (%)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.saturacion_o2 }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.glucosa">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Glucosa (mg/dL)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.glucosa }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.peso">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Peso (kg)</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.peso }}</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3" *ngIf="consultaSeleccionada.imc">
+            <div class="bg-light rounded-3 p-2 text-center border">
+              <small class="d-block text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">IMC</small>
+              <span class="fw-bold fs-6">{{ consultaSeleccionada.imc }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SOAP -->
+        <h6 class="fw-bold text-dark mb-3"><i class="bi bi-journal-medical text-primary me-2"></i> Evaluación Clínica (SOAP)</h6>
+        <div class="accordion" id="accordionSoap">
+          
+          <div class="accordion-item border-0 bg-light mb-2 rounded-3" *ngIf="consultaSeleccionada.padecimiento_actual">
+            <h2 class="accordion-header">
+              <button class="accordion-button bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseS">
+                Subjetivo (Padecimiento Actual)
+              </button>
+            </h2>
+            <div id="collapseS" class="accordion-collapse collapse show" data-bs-parent="#accordionSoap">
+              <div class="accordion-body pt-0 text-muted">
+                {{ consultaSeleccionada.padecimiento_actual }}
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 bg-light mb-2 rounded-3" *ngIf="consultaSeleccionada.exploracion_fisica">
+            <h2 class="accordion-header">
+              <button class="accordion-button bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseO">
+                Objetivo (Exploración Física)
+              </button>
+            </h2>
+            <div id="collapseO" class="accordion-collapse collapse show" data-bs-parent="#accordionSoap">
+              <div class="accordion-body pt-0 text-muted">
+                {{ consultaSeleccionada.exploracion_fisica }}
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 bg-light mb-2 rounded-3" *ngIf="consultaSeleccionada.diagnostico">
+            <h2 class="accordion-header">
+              <button class="accordion-button bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseA">
+                Análisis (Diagnóstico)
+              </button>
+            </h2>
+            <div id="collapseA" class="accordion-collapse collapse show" data-bs-parent="#accordionSoap">
+              <div class="accordion-body pt-0 text-dark fw-medium">
+                {{ consultaSeleccionada.diagnostico }}
+              </div>
+            </div>
+          </div>
+
+          <div class="accordion-item border-0 bg-light mb-2 rounded-3" *ngIf="consultaSeleccionada.plan_tratamiento">
+            <h2 class="accordion-header">
+              <button class="accordion-button bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseP">
+                Plan (Tratamiento)
+              </button>
+            </h2>
+            <div id="collapseP" class="accordion-collapse collapse show" data-bs-parent="#accordionSoap">
+              <div class="accordion-body pt-0 text-muted">
+                {{ consultaSeleccionada.plan_tratamiento }}
+              </div>
+            </div>
+          </div>
+          
+          <div class="accordion-item border-0 bg-light mb-2 rounded-3" *ngIf="consultaSeleccionada.notas_enfermeria">
+            <h2 class="accordion-header">
+              <button class="accordion-button bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseN">
+                Notas de Enfermería
+              </button>
+            </h2>
+            <div id="collapseN" class="accordion-collapse collapse" data-bs-parent="#accordionSoap">
+              <div class="accordion-body pt-0 text-muted">
+                {{ consultaSeleccionada.notas_enfermeria }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      
+      <div class="modal-footer border-top-0 pt-0">
+        <button type="button" class="btn custom-btn-outline px-4 rounded-pill" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
