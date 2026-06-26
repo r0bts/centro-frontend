@@ -1314,10 +1314,20 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
     this.svc.sendPortalLinkWhatsapp(p.enrollment_id, phoneToUse, url).subscribe({
       next: () => {
-        this.showToast('Liga enviada por WhatsApp exitosamente', 'success');
+        Swal.fire({
+          icon: 'success',
+          title: '¡Enviado!',
+          text: 'Se ha enviado la liga exitosamente.',
+          timer: 2000,
+          showConfirmButton: false
+        });
       },
       error: () => {
-        this.showToast('Error al enviar liga por WhatsApp', 'danger');
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'Hubo un problema al enviar la liga por WhatsApp.',
+        });
       }
     });
   }
