@@ -48,13 +48,23 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
     this.cameraError = null;
     this.errorMessage = '';
 
+    this.cdr.detectChanges(); // Forzar renderizado del DOM
+
     setTimeout(() => {
       if (this.qrInput && this.qrInput.nativeElement) {
         this.qrInput.nativeElement.focus();
       }
 
       if (!this.html5QrCode) {
-        this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        try {
+          this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        } catch (e) {
+          console.error("Error inicializando Html5Qrcode:", e);
+          this.cameraError = 'Error interno al cargar el escáner.';
+          this.isScanning = false;
+          this.cdr.detectChanges();
+          return;
+        }
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
         const tryStart = (facingMode: string) => {
@@ -150,12 +160,22 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
 
   restartScannerWithoutClearingError() {
     this.isScanning = true;
+    this.cdr.detectChanges(); // Forzar renderizado del DOM
+
     setTimeout(() => {
       if (this.qrInput && this.qrInput.nativeElement) {
         this.qrInput.nativeElement.focus();
       }
       if (!this.html5QrCode) {
-        this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        try {
+          this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        } catch (e) {
+          console.error("Error inicializando Html5Qrcode en restart:", e);
+          this.cameraError = 'Error interno al cargar el escáner.';
+          this.isScanning = false;
+          this.cdr.detectChanges();
+          return;
+        }
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         
         const tryStart = (facingMode: string) => {
