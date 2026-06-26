@@ -22,7 +22,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                          req.url.includes('/auth/login');
 
   // Ignorar peticiones exclusivas de Tutor Portal (el portal tiene su propio token)
-  if (req.url.includes('/api/tutor-portal')) {
+  if (req.url.includes('/api/tutor-portal') || req.url.includes('/api/medical-questionnaires')) {
     const tutorToken = localStorage.getItem('tutor_token');
     if (tutorToken) {
       req = req.clone({

@@ -23,6 +23,7 @@ export class ServicioMedicoExpediente implements OnInit {
   isLoadingConsultas: boolean = true;
   isSavingProfile: boolean = false;
   isSavingConsulta: boolean = false;
+  isNotifyingAdmin: boolean = false;
   
   errorProfile: string = '';
   
@@ -130,6 +131,38 @@ export class ServicioMedicoExpediente implements OnInit {
         error: (err) => {
           console.error(err);
           Swal.fire('Error', 'Error al guardar datos generales.', 'error');
+        }
+      });
+  }
+
+  notifyAdmin() {
+    if (!this.medicalProfile) return;
+    
+    this.isNotifyingAdmin = true;
+    const fullName = `${this.medicalProfile.first_name || this.medicalProfile.firstName || ''} ${this.medicalProfile.last_name || this.medicalProfile.lastName || ''}`.trim();
+    
+    this.servicioMedico.notificarAdminCursos({ name: fullName })
+      .pipe(finalize(() => {
+        this.isNotifyingAdmin = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Notificación Enviada',
+              text: 'Se ha notificado al administrador exitosamente.',
+              timer: 2500,
+              showConfirmButton: false
+            });
+          } else {
+            Swal.fire('Error', res.message || 'No se pudo enviar la notificación.', 'error');
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          Swal.fire('Error', 'Error de conexión al enviar WhatsApp.', 'error');
         }
       });
   }

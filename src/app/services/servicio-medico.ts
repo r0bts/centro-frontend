@@ -46,4 +46,11 @@ export class ServicioMedicoService {
   updateConsulta(id: string, payload: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/updateConsulta/${id}`, payload);
   }
+
+  /**
+   * Envía una notificación de WhatsApp al administrador de cursos de verano
+   */
+  notificarAdminCursos(payload: { name: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/notificar-admin-cursos`, payload);
+  }
 }

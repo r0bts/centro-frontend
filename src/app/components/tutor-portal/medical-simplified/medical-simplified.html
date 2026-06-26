@@ -10,20 +10,8 @@
   <div class="simple-container" *ngIf="!isLoading">
     
     <div class="step-pane">
-      <h3 class="step-title">Información Básica y Contacto</h3>
+      <h3 class="step-title">Información Médica del Participante</h3>
       <div class="grid-form">
-        <div class="tp-field">
-          <label class="tp-field__label">Nombre Completo <span class="tp-required">*</span></label>
-          <input type="text" class="tp-field__input" [(ngModel)]="respuestas.nombre_completo">
-        </div>
-        <div class="tp-field">
-          <label class="tp-field__label">Edad <span class="tp-required">*</span></label>
-          <input type="text" class="tp-field__input" [(ngModel)]="respuestas.edad">
-        </div>
-        <div class="tp-field">
-          <label class="tp-field__label">Teléfono de Emergencia <span class="tp-required">*</span></label>
-          <input type="text" class="tp-field__input" [(ngModel)]="respuestas.contacto_emergencia_telefono">
-        </div>
         <div class="tp-field">
           <label class="tp-field__label">Grupo Sanguíneo</label>
           <select class="tp-field__input" [(ngModel)]="respuestas.grupo_sanguineo">
@@ -49,9 +37,21 @@
       
       <div class="tp-field mb-4">
         <label class="tp-field__label">¿El participante padece alguna enfermedad crónica o está enfermo actualmente? <span class="tp-required">*</span></label>
-        <div class="radio-group">
-          <label><input type="radio" name="enf" value="Si" [(ngModel)]="respuestas.enfermo_actualmente"> Sí</label>
-          <label><input type="radio" name="enf" value="No" [(ngModel)]="respuestas.enfermo_actualmente"> No</label>
+        <div class="radio-cards-group">
+          <label class="radio-card-label">
+            <input type="radio" class="radio-card-input" name="enf" value="Si" [(ngModel)]="respuestas.enfermo_actualmente">
+            <div class="radio-card-content">
+              <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">medical_services</span>
+              Sí
+            </div>
+          </label>
+          <label class="radio-card-label">
+            <input type="radio" class="radio-card-input" name="enf" value="No" [(ngModel)]="respuestas.enfermo_actualmente">
+            <div class="radio-card-content">
+              <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">health_and_safety</span>
+              No
+            </div>
+          </label>
         </div>
       </div>
 

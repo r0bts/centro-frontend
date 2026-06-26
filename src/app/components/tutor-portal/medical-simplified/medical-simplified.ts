@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -34,7 +34,8 @@ export class MedicalSimplifiedComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private tutorApi: TutorApiService
+    private tutorApi: TutorApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -47,17 +48,24 @@ export class MedicalSimplifiedComponent implements OnInit {
   }
 
   loadRecord() {
+    console.log('loadRecord() started');
     this.isLoading = true;
+    this.cdr.detectChanges(); // Use detectChanges instead of markForCheck
+    
     this.tutorApi.getMedicalSimplified(this.participantId as string).subscribe({
       next: (res: any) => {
+        console.log('loadRecord() SUCCESS:', res);
         this.isLoading = false;
         if (res.success && res.data && res.data.respuestas_json) {
           this.respuestas = { ...this.respuestas, ...res.data.respuestas_json };
           this.consentAccepted = res.data.consent_status === 'accepted';
         }
+        this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
+        console.error('loadRecord() ERROR:', err);
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -70,6 +78,7 @@ export class MedicalSimplifiedComponent implements OnInit {
     if (!this.consentAccepted) return;
     
     this.isSaving = true;
+    this.cdr.markForCheck();
     const payload = {
       guest_id: this.participantId, // We assume participant is a guest (SummerCourseGuest)
       respuestas_json: this.respuestas,
@@ -79,6 +88,7 @@ export class MedicalSimplifiedComponent implements OnInit {
     this.tutorApi.saveMedicalSimplified(payload).subscribe({
       next: (res: any) => {
         this.isSaving = false;
+        this.cdr.markForCheck();
         if (res.success) {
           Swal.fire({
             icon: 'success',
@@ -95,6 +105,7 @@ export class MedicalSimplifiedComponent implements OnInit {
       },
       error: (err) => {
         this.isSaving = false;
+        this.cdr.markForCheck();
         Swal.fire('Error', 'Error de conexión al guardar.', 'error');
       }
     });

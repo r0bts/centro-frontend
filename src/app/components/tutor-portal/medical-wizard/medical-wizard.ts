@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -40,7 +40,8 @@ export class MedicalWizardComponent implements OnInit {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private tutorApi: TutorApiService
+    private tutorApi: TutorApiService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -53,17 +54,24 @@ export class MedicalWizardComponent implements OnInit {
   }
 
   loadRecord() {
+    console.log('loadRecord() started in wizard');
     this.isLoading = true;
+    this.cdr.detectChanges();
+    
     this.tutorApi.getMedicalFull(this.participantId as string).subscribe({
       next: (res: any) => {
+        console.log('loadRecord() SUCCESS:', res);
         this.isLoading = false;
         if (res.success && res.data && res.data.respuestas_json) {
           this.respuestas = { ...this.respuestas, ...res.data.respuestas_json };
           this.consentAccepted = res.data.consent_status === 'accepted';
         }
+        this.cdr.detectChanges();
       },
-      error: () => {
+      error: (err) => {
+        console.error('loadRecord() ERROR:', err);
         this.isLoading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -88,6 +96,7 @@ export class MedicalWizardComponent implements OnInit {
     if (!this.consentAccepted) return;
     
     this.isSaving = true;
+    this.cdr.markForCheck();
     const payload = {
       socio_id: this.participantId, // Assuming ID is socio_id
       respuestas_json: this.respuestas,
@@ -97,6 +106,7 @@ export class MedicalWizardComponent implements OnInit {
     this.tutorApi.saveMedicalFull(payload).subscribe({
       next: (res: any) => {
         this.isSaving = false;
+        this.cdr.markForCheck();
         if (res.success) {
           Swal.fire({
             icon: 'success',
@@ -113,6 +123,7 @@ export class MedicalWizardComponent implements OnInit {
       },
       error: (err) => {
         this.isSaving = false;
+        this.cdr.markForCheck();
         Swal.fire('Error', 'Error de conexión al guardar el expediente.', 'error');
       }
     });

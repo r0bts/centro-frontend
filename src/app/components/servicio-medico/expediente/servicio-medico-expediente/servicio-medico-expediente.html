@@ -51,6 +51,16 @@
             <span class="badge bg-dark bg-opacity-10 text-dark border px-3 py-2 rounded-pill mt-2">
               <i class="bi bi-person-badge me-1"></i> {{ medicalProfile.patient_type || 'Externo' | uppercase }}
             </span>
+
+            <!-- Botón de Notificar a Admin -->
+            <button *ngIf="(medicalProfile.patient_type | uppercase) === 'CURSO_VERANO'"
+                    class="btn btn-sm btn-success d-block mx-auto mt-3 rounded-pill px-3 shadow-sm"
+                    (click)="notifyAdmin()"
+                    [disabled]="isNotifyingAdmin">
+              <span *ngIf="isNotifyingAdmin" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              <i *ngIf="!isNotifyingAdmin" class="bi bi-whatsapp me-2"></i>
+              Notificar Llegada
+            </button>
           </div>
 
           <div class="card-body p-4">

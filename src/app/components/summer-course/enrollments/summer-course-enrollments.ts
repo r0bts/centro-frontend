@@ -71,6 +71,7 @@ interface PendingParticipant {
   suggestedLevel: ScLevel | null;
   outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
   guest_db_id?: number; // ID real en summer_course_guests (solo para invitados)
+  emergency_phone: string | null;
   // Nivel/grupo elegido antes de inscribir
   selectedLevel:      number | null;
   selectedGroupId:    number | null;
@@ -421,6 +422,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
+      emergency_phone: s.phone ?? null,
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
     const family: PendingParticipant[] = s.family.map(f => ({
@@ -429,6 +431,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
       suggestedLevel: this._getLevelForAge(f.age),
       outOfRange: this._isOutOfRange(f.age),
+      emergency_phone: f.phone ?? titular.emergency_phone ?? null,
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     }));
     this.pendingParticipants.set([titular, ...family]);
@@ -627,6 +630,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       participants: this.activePending.map(p => ({
         socio_id:        p.socio_id,
         guest_db_id:     p.guest_db_id ?? null,
+        emergency_phone: p.emergency_phone ?? null,
         type:            p.type,
         weeks:           p.weeks,
         birth_date:      p.birth_date,
@@ -708,6 +712,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       suggestedLevel:  this._getLevelForAge(age),
       outOfRange:      this._isOutOfRange(age),
       guest_db_id:     guest.id,
+      emergency_phone: null,
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
 
@@ -732,6 +737,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   /** Establece el nivel elegido para un pending participant (inline, sin API) */
+  setEmergencyPhone(idx: number, phone: string): void {
+    this.pendingParticipants.update(list => {
+      const updated = [...list];
+      updated[idx] = { ...updated[idx], emergency_phone: phone };
+      return updated;
+    });
+  }
+
   setPendingLevel(idx: number, levelNum: number): void {
     this.pendingParticipants.update(list => list.map((p, i) =>
       i === idx ? { ...p, selectedLevel: levelNum, selectedGroupId: null, selectedGroupAlias: null } : p

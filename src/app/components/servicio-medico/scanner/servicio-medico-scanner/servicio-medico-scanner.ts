@@ -84,7 +84,7 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
 
   stopScanner() {
     this.isScanning = false;
-    this.cdr.detectChanges();
+    setTimeout(() => this.cdr.detectChanges(), 0);
     if (this.html5QrCode && this.html5QrCode.isScanning) {
       this.html5QrCode.stop().then(() => {
         this.html5QrCode?.clear();

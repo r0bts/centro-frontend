@@ -39,6 +39,10 @@ export class TutorApiService {
     return this.http.get(`${this.baseUrl}/family-options/${participantId}`);
   }
 
+  generateExtraordinaryPass(data: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/generate-extraordinary-pass`, data);
+  }
+
   updateParticipantProfile(participantId: number, data: any): Observable<any> {
     return this.http.post(`${this.baseUrl}/participant/${participantId}/profile`, data);
   }
@@ -60,5 +64,14 @@ export class TutorApiService {
 
   saveMedicalSimplified(data: any): Observable<any> {
     return this.http.post(`${environment.apiUrl}/medical-questionnaires/simplified`, data);
+  }
+
+  // --- Terms and Conditions ---
+  getActiveTerms(modulo: string = 'Curso de Verano'): Observable<any> {
+    return this.http.get(`${this.baseUrl}/terms/active?modulo=${encodeURIComponent(modulo)}`);
+  }
+
+  acceptTerms(termsId: number): Observable<any> {
+    return this.http.post(`${this.baseUrl}/terms/accept`, { terms_id: termsId });
   }
 }
