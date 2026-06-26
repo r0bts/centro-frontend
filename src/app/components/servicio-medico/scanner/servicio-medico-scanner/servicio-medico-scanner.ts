@@ -20,6 +20,7 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
   html5QrCode: Html5Qrcode | null = null;
   isScanning: boolean = false;
   cameraError: string | null = null;
+  needsPermissionButton: boolean = false;
 
   qrToken: string = '';
   isLoading: boolean = false;
@@ -74,7 +75,12 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
           console.warn('Environment camera failed, trying user camera...', err);
           return tryStart('user');
         }).catch((err) => {
-          this.cameraError = 'No se pudo acceder a la cámara. Sin embargo, puedes usar una pistola lectora o escribir el código manualmente abajo.';
+          if (err && err.name === 'NotAllowedError' || err && err.message && err.message.includes('permission')) {
+             this.needsPermissionButton = true;
+             this.cameraError = 'La cámara está bloqueada por el navegador. Presiona el botón de abajo para autorizar el acceso.';
+          } else {
+             this.cameraError = 'No se pudo acceder a la cámara. Sin embargo, puedes usar una pistola lectora o escribir el código manualmente abajo.';
+          }
           console.error('Camera Error:', err);
           this.cdr.detectChanges();
         });
@@ -151,25 +157,32 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
       if (!this.html5QrCode) {
         this.html5QrCode = new Html5Qrcode('qr-reader-medical');
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
-        this.html5QrCode.start(
-          { facingMode: 'environment' }, config,
-          (decodedText) => {
-            this.qrToken = decodedText;
-            this.onScan();
-          },
-          (errorMessage) => {}
-        ).catch(() => {
-          this.html5QrCode!.start(
-            { facingMode: 'user' }, config,
+        
+        const tryStart = (facingMode: string) => {
+          return this.html5QrCode!.start(
+            { facingMode: facingMode }, config,
             (decodedText) => { this.qrToken = decodedText; this.onScan(); },
             (errorMessage) => {}
-          ).catch(err => {
-             this.cameraError = 'No se pudo acceder a la cámara.';
+          );
+        };
+        
+        tryStart('environment').catch(() => tryStart('user')).catch(err => {
+             if (err && err.name === 'NotAllowedError' || err && err.message && err.message.includes('permission')) {
+                this.needsPermissionButton = true;
+                this.cameraError = 'La cámara está bloqueada por el navegador.';
+             } else {
+                this.cameraError = 'No se pudo acceder a la cámara.';
+             }
              this.cdr.detectChanges();
-          });
         });
       }
     }, 200);
+  }
+  
+  requestCameraPermission() {
+    this.needsPermissionButton = false;
+    this.cameraError = null;
+    this.startScanner();
   }
 
   clearResult() {
