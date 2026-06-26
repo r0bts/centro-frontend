@@ -610,9 +610,9 @@ export class DashboardComponent implements OnInit {
         this.isLoading = false;
         if (res.success) {
           this.closeExtraordinaryModal();
-          const pIndex = this.participants.findIndex((p: any) => p.id === this.extraordinaryData.participant_id);
+          const pIndex = this.children.findIndex((p: any) => p.id === Number(this.extraordinaryData.participant_id));
           if (pIndex !== -1) {
-              this.participants[pIndex].extra_pass_url = res.data.url;
+              this.children[pIndex].extra_pass_url = res.data.url;
           }
           this.qrData = res.data.url;
           this.showQrModal = true;

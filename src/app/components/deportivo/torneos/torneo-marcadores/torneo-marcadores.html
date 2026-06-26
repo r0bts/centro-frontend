@@ -425,7 +425,7 @@
         <button type="button" class="btn btn-outline-primary" (click)="copiarMensaje()">
           <i class="bi bi-clipboard me-1"></i>Copiar Mensaje
         </button>
-        <button type="button" class="btn btn-success" (click)="enviarNotificacion()" [disabled]="notifying() || !notificarLugar?.trim()">
+        <button type="button" class="btn btn-success" (click)="enviarNotificacion()" [disabled]="notifying() || !notificarLugar || notificarLugar.trim() === ''">
           @if (notifying()) {
             <span class="spinner-border spinner-border-sm me-2"></span>Enviando...
           } @else {
