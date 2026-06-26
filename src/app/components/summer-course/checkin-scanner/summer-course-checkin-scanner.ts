@@ -135,7 +135,8 @@ export class SummerCourseCheckinScannerComponent implements OnInit, OnDestroy {
             toast: true,
             position: 'top-end',
             icon: 'success',
-            title: '¡Registrado: ' + this.scannedData.participant.first_name + '!',
+            title: '¡Registrado: ' + this.scannedData.participant.first_name
+              + (this.scannedData.level_roman ? ' · Nivel ' + this.scannedData.level_roman : '') + '!',
             showConfirmButton: false,
             timer: 1500
           });

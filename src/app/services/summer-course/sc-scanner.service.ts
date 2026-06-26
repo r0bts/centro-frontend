@@ -45,4 +45,21 @@ export class SummerCourseScannerService {
   processCheckin(token: string) {
     return this.http.post(`${this.apiUrl}/process-checkin`, { token });
   }
+
+  getInstructorChecklist(dateFilter: string = '') {
+    let url = `${this.apiUrl}/get-instructor-checklist`;
+    if (dateFilter) url += `?date=${dateFilter}`;
+    return this.http.get(url);
+  }
+
+  lookupParticipant(token: string) {
+    return this.http.post(`${this.apiUrl}/lookup-participant`, { token });
+  }
+
+  syncOnePayment(enrollmentId: number) {
+    return this.http.post(
+      `${environment.apiUrl}/summer-course/sync-payments/sync-one-payment`,
+      { enrollment_id: enrollmentId }
+    );
+  }
 }

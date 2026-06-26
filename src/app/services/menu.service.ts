@@ -60,6 +60,7 @@ export class MenuService {
               active: false
             });
           }
+          // sc-instructor-checklist ya viene desde la BD (submodule id=63), no se inyecta manualmente
         } else {
             // Si no tiene children pero es el item, lo convertimos en padre
             item.children = [

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
+import { AuthService } from '../../../services/auth.service';
 
 interface SyncStatus {
   type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments';
@@ -154,7 +155,14 @@ export class NetsuiteSyncComponent implements OnInit {
     }
   };
 
-  constructor(private netsuiteSyncService: NetsuiteSyncService) {}
+  constructor(
+    private netsuiteSyncService: NetsuiteSyncService,
+    private authService: AuthService
+  ) {}
+
+  canSync(permission: string): boolean {
+    return this.authService.hasPermission('netsuite_sync', permission);
+  }
 
   ngOnInit(): void {
     console.log('✅ NetsuiteSyncComponent initialized');

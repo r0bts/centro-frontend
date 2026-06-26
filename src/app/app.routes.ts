@@ -357,6 +357,11 @@ export const routes: Routes = [
           import('./components/summer-course/checkin-history/summer-course-checkin-history').then(m => m.SummerCourseCheckinHistoryComponent)
       },
       {
+        path: 'instructor-checklist',
+        loadComponent: () =>
+          import('./components/summer-course/instructor-checklist/summer-course-instructor-checklist').then(m => m.SummerCourseInstructorChecklistComponent)
+      },
+      {
         path: '',
         redirectTo: 'courses',
         pathMatch: 'full'
@@ -372,6 +377,12 @@ export const routes: Routes = [
   {
     path: 'unauthorized',
     loadComponent: () => import('./components/unauthorized/unauthorized').then(m => m.UnauthorizedComponent)
+  },
+  {
+    // Portal público del instructor — sin AuthGuard, sin login
+    path: 'sc-scan/:groupAlias',
+    loadComponent: () =>
+      import('./components/summer-course/sc-scan/sc-scan.component').then(m => m.ScScanComponent)
   },
   {
     path: '**',
