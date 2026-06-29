@@ -1,26 +1,35 @@
 import { Component, ChangeDetectionStrategy, OnInit, signal, computed, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { SummerCourseScannerService } from '../../../services/summer-course/sc-scanner.service';
 
+interface StaffEvent {
+  at: string;
+  by_name: string | null;
+  scanned_via: 'staff' | 'portal_instructor';
+}
+
+interface InstructorEvent {
+  at: string;
+  by_name: string | null;
+  out_of_group: boolean;
+}
+
 interface CheckinHistoryRecord {
-  id: number;
-  type?: string;
+  participant_id: number;
   participant_name: string;
   participant_photo_url?: string;
-  checked_in_at: string | null;
-  checked_in_by_name: string;
-  scanned_via?: 'staff' | 'portal_instructor' | 'instructor';
   level_roman?: string | null;
   group_alias?: string | null;
-  out_of_group?: boolean;
+  staff_event?: StaffEvent | null;
+  instructor_event?: InstructorEvent | null;
 }
 
 @Component({
   selector: 'app-summer-course-checkin-history',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, DatePipe],
   templateUrl: './summer-course-checkin-history.html',
   styleUrl: './summer-course-checkin-history.scss',
 })
@@ -50,7 +59,11 @@ export class SummerCourseCheckinHistoryComponent implements OnInit {
     let records = this.history();
 
     if (date) {
-      records = records.filter(r => r.checked_in_at && r.checked_in_at.startsWith(date));
+      records = records.filter(r => {
+        const at = r.staff_event?.at ?? r.instructor_event?.at ?? null;
+        if (!at) return false;
+        return new Date(at).toLocaleDateString('en-CA') === date;
+      });
     }
     if (term) {
       records = records.filter(r => r.participant_name.toLowerCase().includes(term));
