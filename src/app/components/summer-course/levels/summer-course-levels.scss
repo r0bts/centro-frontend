@@ -335,3 +335,31 @@
   min-width: 260px;
 }
 
+
+/* ── URL del portal del instructor ── */
+.group-scan-url {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+
+  &__link {
+    font-size: 0.72rem;
+    color: #6366f1;
+    text-decoration: none;
+    opacity: 0.85;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+    &:hover { opacity: 1; text-decoration: underline; }
+  }
+
+  .btn-xs {
+    padding: 1px 5px;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+}

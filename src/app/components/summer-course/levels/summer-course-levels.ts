@@ -129,6 +129,21 @@ export class SummerCourseLevelsComponent implements OnInit {
     return SC_LEVEL_LABELS[n]?.age ?? '';
   }
 
+  copiedAlias = signal<string | null>(null);
+
+  groupScanUrl(alias: string): string {
+    return `${window.location.origin}/sc-scan/${encodeURIComponent(alias)}`;
+  }
+
+  copyUrl(alias: string): void {
+    navigator.clipboard.writeText(this.groupScanUrl(alias)).then(() => {
+      this.copiedAlias.set(alias);
+      setTimeout(() => this.copiedAlias.set(null), 2000);
+    }).catch(() => {
+      this.showToast('No se pudo copiar al portapapeles.', 'danger');
+    });
+  }
+
   showToast(msg: string, type: 'success' | 'danger' = 'success'): void {
     this.toast.set(msg);
     this.toastType.set(type);

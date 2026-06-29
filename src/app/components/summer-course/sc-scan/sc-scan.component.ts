@@ -2,7 +2,7 @@ import {
   Component, OnInit, OnDestroy, signal, inject,
   ChangeDetectorRef, NgZone, ViewEncapsulation
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -23,10 +23,18 @@ interface ScanResult {
   payment_status: string;
 }
 
+interface ScanEntry {
+  participant_name: string;
+  participant_photo_url: string | null;
+  level_roman: string | null;
+  checked_in_at: string;
+  out_of_group: boolean;
+}
+
 @Component({
   selector: 'app-sc-scan',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePipe],
   templateUrl: './sc-scan.component.html',
   styleUrl: './sc-scan.component.scss',
   encapsulation: ViewEncapsulation.None,
@@ -37,7 +45,8 @@ export class ScScanComponent implements OnInit, OnDestroy {
   private cdr     = inject(ChangeDetectorRef);
   private ngZone  = inject(NgZone);
 
-  private readonly apiUrl = `${environment.apiUrl}/public/sc-scan`.replace('/api/public/', '/api/public/');
+  private readonly apiUrl     = `${environment.apiUrl}/public/sc-scan`;
+  private readonly historyUrl = `${environment.apiUrl}/public/sc-scan-history`;
 
   groupAlias   = signal<string>('');
   manualToken  = signal<string>('');
@@ -49,6 +58,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
   result       = signal<ScanResult | null>(null);
   errorMsg     = signal<string | null>(null);
   lastToken    = signal<string>('');
+  scannedList  = signal<ScanEntry[]>([]);
 
   /** 'idle' | 'ok' | 'warning' | 'error' | 'already' */
   state        = signal<'idle' | 'ok' | 'warning' | 'error' | 'already'>('idle');
@@ -58,6 +68,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const alias = this.route.snapshot.paramMap.get('groupAlias') ?? '';
     this.groupAlias.set(decodeURIComponent(alias));
+    this.loadInitialHistory();
     setTimeout(() => this.startCamera(), 300);
   }
 
@@ -106,8 +117,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   // ── Escaneo ───────────────────────────────────────────────────────────────
 
-  onScan(token: string): void {
-    if (this.processing() || token === this.lastToken()) return;
+  onScan(token: string): void {    if (this.processing() || token === this.lastToken()) return;
     this.lastToken.set(token);
     this.callApi(token, false);
   }
@@ -142,6 +152,33 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   // ── API ───────────────────────────────────────────────────────────────────
 
+  private loadInitialHistory(): void {
+    const alias = this.groupAlias();
+    if (!alias) return;
+    const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
+      .toISOString().split('T')[0];
+
+    this.http.get<{ success: boolean; data: { history: any[] } }>(
+      this.historyUrl, { params: { group_alias: alias, date: today } }
+    ).subscribe({
+      next: (res) => {
+        if (res.success && res.data.history?.length) {
+          this.ngZone.run(() => {
+            this.scannedList.set(res.data.history.map(h => ({
+              participant_name:      h.participant_name,
+              participant_photo_url: h.participant_photo_url ?? null,
+              level_roman:           h.level_roman ?? null,
+              checked_in_at:         h.checked_in_at,
+              out_of_group:          h.out_of_group ?? false,
+            })));
+            this.cdr.detectChanges();
+          });
+        }
+      },
+      error: () => {} // silencioso
+    });
+  }
+
   private callApi(token: string, force: boolean): void {
     this.processing.set(true);
     this.result.set(null);
@@ -161,6 +198,17 @@ export class ScScanComponent implements OnInit, OnDestroy {
         }
         const d = res.data;
         this.result.set(d);
+
+        // Agregar a la lista de la sesión si se registró un check-in nuevo
+        if (d.checkin_registered) {
+          this.scannedList.update(list => [{
+            participant_name:      `${d.participant.first_name} ${d.participant.last_name}`,
+            participant_photo_url: d.participant.photo_url,
+            level_roman:           d.level_roman,
+            checked_in_at:         new Date().toISOString(),
+            out_of_group:          !d.belongs_to_group,
+          }, ...list]);
+        }
 
         if (d.has_checkin_today && !d.checkin_registered) {
           this.state.set('already');
