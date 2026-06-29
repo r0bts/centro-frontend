@@ -415,7 +415,7 @@ export class DashboardComponent implements OnInit {
       allergies: child.allergies || '',
       active_medications: child.active_medications || '',
       chronic_conditions: child.chronic_conditions || '',
-      profile_picture: child.profile_picture ? `data:image/jpeg;base64,${child.profile_picture}` : ''
+      profile_picture: child.photo_url ? child.photo_url : (child.profile_picture ? `data:image/jpeg;base64,${child.profile_picture}` : '')
     };
 
     if (mode === 'edit') {
