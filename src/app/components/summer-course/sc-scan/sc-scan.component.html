@@ -163,7 +163,7 @@
         <span>{{ scannedList().length }} presente{{ scannedList().length === 1 ? '' : 's' }} en {{ groupAlias() }}</span>
       </div>
       <div class="sc-scan-list__body">
-        @for (entry of scannedList(); track entry.checked_in_at + entry.participant_name) {
+        @for (entry of scannedList(); track entry.id) {
           <div class="sc-scan-list__item" [class.sc-scan-list__item--out]="entry.out_of_group">
             @if (entry.participant_photo_url) {
               <img [src]="entry.participant_photo_url" class="sc-scan-list__photo" alt="">
@@ -172,17 +172,25 @@
             }
             <div class="sc-scan-list__info">
               <span class="sc-scan-list__name">{{ entry.participant_name }}</span>
+              <!-- Línea 1: nivel + hora confirmación del instructor -->
               <span class="sc-scan-list__meta">
                 @if (entry.level_roman) { Niv. {{ entry.level_roman }} · }
+                <span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle">how_to_reg</span>
                 {{ entry.checked_in_at | date:'HH:mm' }}
-                @if (entry.out_of_group) { · <em>fuera de grupo</em> }
+                @if (entry.instructor_name) { · {{ entry.instructor_name }} }
+                @if (entry.out_of_group) { · <em class="text-info">en este grupo</em> }
               </span>
+              <!-- Línea 2: entrada al edificio (check-in de staff) -->
               <span class="sc-scan-list__entrance"
-                    [class]="entry.has_entrance_today ? 'sc-scan-list__entrance--ok' : 'sc-scan-list__entrance--pending'">
+                    [class]="entry.entrance_checked_at ? 'sc-scan-list__entrance--ok' : 'sc-scan-list__entrance--pending'">
                 <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">
-                  {{ entry.has_entrance_today ? 'door_front' : 'schedule' }}
+                  {{ entry.entrance_checked_at ? 'door_front' : 'schedule' }}
                 </span>
-                {{ entry.has_entrance_today ? 'Entrada registrada' : 'Sin scan de entrada' }}
+                @if (entry.entrance_checked_at) {
+                  Entrada {{ entry.entrance_checked_at | date:'HH:mm' }}
+                } @else {
+                  Sin scan de entrada
+                }
               </span>
             </div>
           </div>
