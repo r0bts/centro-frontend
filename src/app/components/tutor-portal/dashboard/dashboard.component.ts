@@ -470,34 +470,61 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  private compressAndSetImage(file: File, target: 'profile' | 'extraordinary') {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const max_size = 800;
+        if (width > height) {
+          if (width > max_size) {
+            height *= max_size / width;
+            width = max_size;
+          }
+        } else {
+          if (height > max_size) {
+            width *= max_size / height;
+            height = max_size;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          if (target === 'profile') {
+            this.medicalProfile.profile_picture = dataUrl;
+            if (this.showMedicalTab) {
+              this.activeProfileTab = 'medical';
+            }
+          } else {
+            this.extraordinaryData.photo_base64 = dataUrl;
+          }
+          this.showCamera = false;
+          this.stopCamera();
+          this.cdr.detectChanges();
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
   onProfilePhotoUpload(event: any) {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.medicalProfile.profile_picture = e.target.result;
-        this.showCamera = false;
-        this.stopCamera();
-        if (this.showMedicalTab) {
-          this.activeProfileTab = 'medical'; // Auto-advance
-        }
-        this.cdr.detectChanges();
-      };
-      reader.readAsDataURL(file);
+      this.compressAndSetImage(file, 'profile');
     }
   }
 
   onExtraordinaryPhotoUpload(event: any) {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.extraordinaryData.photo_base64 = e.target.result;
-        this.showCamera = false;
-        this.stopCamera();
-        this.cdr.detectChanges();
-      };
-      reader.readAsDataURL(file);
+      this.compressAndSetImage(file, 'extraordinary');
     }
   }
 
