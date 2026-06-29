@@ -18,6 +18,7 @@ interface ScanResult {
   belongs_to_group: boolean;
   has_checkin_today: boolean;
   has_entrance_today: boolean;
+  entrance_checked_at: string | null;
   checkin_registered: boolean;
   checkin_error: string | null;
   warning: string | null;
@@ -25,12 +26,14 @@ interface ScanResult {
 }
 
 interface ScanEntry {
+  id: string;
   participant_name: string;
   participant_photo_url: string | null;
   level_roman: string | null;
   checked_in_at: string;
   out_of_group: boolean;
   has_entrance_today: boolean;
+  entrance_checked_at: string | null;
   instructor_name: string | null;
 }
 
@@ -168,12 +171,14 @@ export class ScScanComponent implements OnInit, OnDestroy {
         if (res.success && res.data.history?.length) {
           this.ngZone.run(() => {
             this.scannedList.set(res.data.history.map((h: any) => ({
+              id:                    h.id?.toString() ?? (Date.now() + Math.random()).toString(),
               participant_name:      h.participant_name,
               participant_photo_url: h.participant_photo_url ?? null,
               level_roman:           h.level_roman ?? null,
               checked_in_at:         h.checked_in_at,
               out_of_group:          h.out_of_group ?? false,
               has_entrance_today:    h.has_entrance_today ?? false,
+              entrance_checked_at:   h.entrance_checked_at ?? null,
               instructor_name:       h.instructor_name ?? null,
             })));
             this.cdr.detectChanges();
@@ -207,12 +212,14 @@ export class ScScanComponent implements OnInit, OnDestroy {
         // Agregar a la lista de la sesión si se registró un check-in nuevo
         if (d.checkin_registered) {
           this.scannedList.update(list => [{
+            id:                    Date.now().toString(),
             participant_name:      `${d.participant.first_name} ${d.participant.last_name}`,
             participant_photo_url: d.participant.photo_url,
             level_roman:           d.level_roman,
             checked_in_at:         new Date().toISOString(),
             out_of_group:          !d.belongs_to_group,
             has_entrance_today:    d.has_entrance_today,
+            entrance_checked_at:   d.entrance_checked_at,
             instructor_name:       null,
           }, ...list]);
         }
