@@ -95,6 +95,12 @@
         {{ result()!.group_alias ?? 'Sin grupo' }}
         @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
       </p>
+      <!-- Badge de entrada al edificio -->
+      <div class="sc-scan-card__badge"
+           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Aún no escaneado en entrada' }}
+      </div>
       @if (result()!.payment_status !== 'paid') {
         <div class="sc-scan-card__badge sc-scan-card__badge--warn">
           <span class="material-symbols-outlined">payments</span>
@@ -103,7 +109,7 @@
       }
       <div class="sc-scan-card__badge sc-scan-card__badge--ok">
         <span class="material-symbols-outlined">how_to_reg</span>
-        @if (result()!.checkin_registered) { Entrada registrada } @else { Entrada ya registrada }
+        @if (result()!.checkin_registered) { Confirmado en grupo } @else { Ya confirmado hoy }
       </div>
       <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -128,6 +134,12 @@
       <div class="sc-scan-card__badge sc-scan-card__badge--warn">
         <span class="material-symbols-outlined">info</span>
         {{ result()!.warning }}
+      </div>
+      <!-- Badge de entrada al edificio -->
+      <div class="sc-scan-card__badge"
+           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin escaneo de entrada' }}
       </div>
 
       <div class="sc-scan-card__actions">
@@ -164,6 +176,13 @@
                 @if (entry.level_roman) { Niv. {{ entry.level_roman }} · }
                 {{ entry.checked_in_at | date:'HH:mm' }}
                 @if (entry.out_of_group) { · <em>fuera de grupo</em> }
+              </span>
+              <span class="sc-scan-list__entrance"
+                    [class]="entry.has_entrance_today ? 'sc-scan-list__entrance--ok' : 'sc-scan-list__entrance--pending'">
+                <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">
+                  {{ entry.has_entrance_today ? 'door_front' : 'schedule' }}
+                </span>
+                {{ entry.has_entrance_today ? 'Entrada registrada' : 'Sin scan de entrada' }}
               </span>
             </div>
           </div>

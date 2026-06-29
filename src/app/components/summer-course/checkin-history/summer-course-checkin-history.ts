@@ -5,13 +5,15 @@ import { SummerCourseScannerService } from '../../../services/summer-course/sc-s
 
 interface CheckinHistoryRecord {
   id: number;
+  type?: string;
   participant_name: string;
   participant_photo_url?: string;
   checked_in_at: string | null;
   checked_in_by_name: string;
-  scanned_via?: 'staff' | 'portal_instructor';
+  scanned_via?: 'staff' | 'portal_instructor' | 'instructor';
   level_roman?: string | null;
   group_alias?: string | null;
+  out_of_group?: boolean;
 }
 
 @Component({

@@ -17,6 +17,7 @@ interface ScanResult {
   group_alias: string | null;
   belongs_to_group: boolean;
   has_checkin_today: boolean;
+  has_entrance_today: boolean;
   checkin_registered: boolean;
   checkin_error: string | null;
   warning: string | null;
@@ -29,6 +30,8 @@ interface ScanEntry {
   level_roman: string | null;
   checked_in_at: string;
   out_of_group: boolean;
+  has_entrance_today: boolean;
+  instructor_name: string | null;
 }
 
 @Component({
@@ -164,12 +167,14 @@ export class ScScanComponent implements OnInit, OnDestroy {
       next: (res) => {
         if (res.success && res.data.history?.length) {
           this.ngZone.run(() => {
-            this.scannedList.set(res.data.history.map(h => ({
+            this.scannedList.set(res.data.history.map((h: any) => ({
               participant_name:      h.participant_name,
               participant_photo_url: h.participant_photo_url ?? null,
               level_roman:           h.level_roman ?? null,
               checked_in_at:         h.checked_in_at,
               out_of_group:          h.out_of_group ?? false,
+              has_entrance_today:    h.has_entrance_today ?? false,
+              instructor_name:       h.instructor_name ?? null,
             })));
             this.cdr.detectChanges();
           });
@@ -207,6 +212,8 @@ export class ScScanComponent implements OnInit, OnDestroy {
             level_roman:           d.level_roman,
             checked_in_at:         new Date().toISOString(),
             out_of_group:          !d.belongs_to_group,
+            has_entrance_today:    d.has_entrance_today,
+            instructor_name:       null,
           }, ...list]);
         }
 

@@ -283,4 +283,16 @@
     color: var(--scan-muted);
     em { color: var(--scan-warn); font-style: normal; font-weight: 600; }
   }
+
+  &__entrance {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: .7rem;
+    font-weight: 600;
+    margin-top: 2px;
+
+    &--ok      { color: var(--scan-ok); }
+    &--pending { color: var(--scan-warn); }
+  }
 }
