@@ -9,6 +9,9 @@ interface CheckinHistoryRecord {
   participant_photo_url?: string;
   checked_in_at: string | null;
   checked_in_by_name: string;
+  scanned_via?: 'staff' | 'portal_instructor';
+  level_roman?: string | null;
+  group_alias?: string | null;
 }
 
 @Component({
@@ -30,18 +33,28 @@ export class SummerCourseCheckinHistoryComponent implements OnInit {
     new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
   );
   searchTerm = signal<string>('');
+  filterGroup = signal<string>('');
+
+  availableGroups = computed(() => {
+    const groups = new Set<string>();
+    this.history().forEach(r => { if (r.group_alias) groups.add(r.group_alias); });
+    return Array.from(groups).sort();
+  });
 
   filteredHistory = computed(() => {
     const term = this.searchTerm().toLowerCase();
     const date = this.selectedDate();
+    const group = this.filterGroup();
     let records = this.history();
 
     if (date) {
       records = records.filter(r => r.checked_in_at && r.checked_in_at.startsWith(date));
     }
-
     if (term) {
       records = records.filter(r => r.participant_name.toLowerCase().includes(term));
+    }
+    if (group) {
+      records = records.filter(r => r.group_alias === group);
     }
 
     return records;

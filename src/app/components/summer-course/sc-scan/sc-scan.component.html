@@ -143,4 +143,33 @@
     </div>
   }
 
+  <!-- ── Lista de escaneados del día ────────────────────────────────────── -->
+  @if (scannedList().length > 0) {
+    <div class="sc-scan-list">
+      <div class="sc-scan-list__header">
+        <span class="material-symbols-outlined">how_to_reg</span>
+        <span>{{ scannedList().length }} presente{{ scannedList().length === 1 ? '' : 's' }} en {{ groupAlias() }}</span>
+      </div>
+      <div class="sc-scan-list__body">
+        @for (entry of scannedList(); track entry.checked_in_at + entry.participant_name) {
+          <div class="sc-scan-list__item" [class.sc-scan-list__item--out]="entry.out_of_group">
+            @if (entry.participant_photo_url) {
+              <img [src]="entry.participant_photo_url" class="sc-scan-list__photo" alt="">
+            } @else {
+              <div class="sc-scan-list__avatar">{{ entry.participant_name.charAt(0) }}</div>
+            }
+            <div class="sc-scan-list__info">
+              <span class="sc-scan-list__name">{{ entry.participant_name }}</span>
+              <span class="sc-scan-list__meta">
+                @if (entry.level_roman) { Niv. {{ entry.level_roman }} · }
+                {{ entry.checked_in_at | date:'HH:mm' }}
+                @if (entry.out_of_group) { · <em>fuera de grupo</em> }
+              </span>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
 </div>
