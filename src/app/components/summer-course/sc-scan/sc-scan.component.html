@@ -72,8 +72,14 @@
         @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
       </p>
       <div class="sc-scan-card__badge sc-scan-card__badge--already">
-        <span class="material-symbols-outlined">event_available</span>
-        Ya registró entrada hoy
+        <span class="material-symbols-outlined">how_to_reg</span>
+        Ya confirmado en salón hoy
+      </div>
+      <!-- Badge de entrada al edificio -->
+      <div class="sc-scan-card__badge"
+           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin scan de entrada' }}
       </div>
       <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -147,10 +153,10 @@
           <span class="material-symbols-outlined">check</span>
           Aceptar de todas formas
         </button>
-        <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
+        <!-- <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
           <span class="material-symbols-outlined">close</span>
           No pertenece aquí
-        </button>
+        </button> -->
       </div>
     </div>
   }
@@ -178,7 +184,9 @@
                 <span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle">how_to_reg</span>
                 {{ entry.checked_in_at | date:'HH:mm' }}
                 @if (entry.instructor_name) { · {{ entry.instructor_name }} }
-                @if (entry.out_of_group) { · <em class="text-info">en este grupo</em> }
+                @if (entry.out_of_group) {
+                  · <em class="sc-scan-list__tag--out">⚠ grupo {{ entry.group_alias ?? 'otro' }}</em>
+                }
               </span>
               <!-- Línea 2: entrada al edificio (check-in de staff) -->
               <span class="sc-scan-list__entrance"
