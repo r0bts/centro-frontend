@@ -227,21 +227,38 @@
                               </button>
                             }
                             @if (p.assigned_level) {
-                              @if (p.group_id) {
-                                <button class="sce-assign-badge sce-assign-badge--group"
-                                        (click)="openGroupModal(p, group.titular_id)"
-                                        title="Cambiar grupo">
-                                  <span class="material-symbols-outlined">groups</span>
-                                  {{ p.group_alias ?? 'Grupo' }}
-                                  <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
-                                </button>
-                              } @else {
+                              @if (!isParticipantIntensive(p)) {
+                                @if (p.group_id) {
+                                  <button class="sce-assign-badge sce-assign-badge--group"
+                                          (click)="openGroupModal(p, group.titular_id)"
+                                          title="Cambiar grupo">
+                                    <span class="material-symbols-outlined">groups</span>
+                                    {{ p.group_alias ?? 'Grupo' }}
+                                    <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
+                                  </button>
+                                } @else {
+                                  <button class="sce-assign-btn sce-assign-btn--group"
+                                          (click)="openGroupModal(p, group.titular_id)"
+                                          title="Asignar grupo">
+                                    <span class="material-symbols-outlined">groups</span>
+                                    Asignar grupo
+                                  </button>
+                                }
+                              } @else if (p.group_id) {
+                                <!-- intensivo con grupo: solo permitir quitar -->
                                 <button class="sce-assign-btn sce-assign-btn--group"
                                         (click)="openGroupModal(p, group.titular_id)"
-                                        title="Asignar grupo">
+                                        title="Quitar grupo (es inscripción intensiva)">
                                   <span class="material-symbols-outlined">groups</span>
-                                  Asignar grupo
+                                  Quitar grupo
                                 </button>
+                              } @else {
+                                <!-- intensivo sin grupo: solo badge informativo -->
+                                <span class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled"
+                                      title="Inscripción intensiva · sin grupo">
+                                  <span class="material-symbols-outlined">bolt</span>
+                                  Intensivo
+                                </span>
                               }
                             } @else {
                               <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled
@@ -346,7 +363,7 @@
                             {{ chip.short }}@if (chip.dates) {: {{ chip.dates }}}
                             <select 
                               class="sce-week-chip__select"
-                              (change)="changeWeekIntensiveActivity(chip.enrollmentWeekId, $any($event.target).value)">
+                              (change)="changeWeekIntensiveActivity(chip.enrollmentWeekId, p.enrollment_id, $any($event.target).value)">
                               <option value="" [selected]="!chip.intensiveActivityId">Regular</option>
                               @for (act of intensiveActivities(); track act.id) {
                                 <option [value]="act.id" [selected]="chip.intensiveActivityId === act.id">{{ act.name }}</option>
@@ -697,7 +714,7 @@
                   <button class="wz-p-card__section-label wz-p-card__section-label--btn"
                           (click)="togglePendingExpand(i)">
                     <span class="wz-p-card__step-num" [class.wz-p-card__step-num--done]="!!p.selectedLevel">2</span>
-                    Nivel y grupo
+                    {{ isPendingIntensive(p) ? 'Solo nivel' : 'Nivel y grupo' }}
                     @if (p.suggestedLevel && !p.selectedLevel) {
                       <span class="wz-p-card__suggested">Sugerido: Niv. {{ p.suggestedLevel.roman }}</span>
                     }
@@ -727,8 +744,8 @@
                           }
                         </div>
                       </div>
-                      <!-- Grupo (visible solo si hay nivel elegido) -->
-                      @if (p.selectedLevel) {
+                      <!-- Grupo (visible solo si hay nivel elegido y no es intensivo) -->
+                      @if (p.selectedLevel && !isPendingIntensive(p)) {
                         <div class="wz-p-inline-panel__section">
                           <span class="wz-p-inline-panel__label">
                             <span class="material-symbols-outlined">groups</span> Selecciona el grupo

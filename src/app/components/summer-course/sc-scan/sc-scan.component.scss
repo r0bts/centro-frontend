@@ -284,6 +284,19 @@
     em { color: var(--scan-warn); font-style: normal; font-weight: 600; }
   }
 
+  &__tag--out {
+    display: inline-block;
+    background: #fff3cd;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    border-radius: 4px;
+    padding: 0 5px;
+    font-size: .68rem;
+    font-weight: 700;
+    font-style: normal;
+    vertical-align: middle;
+  }
+
   &__entrance {
     display: flex;
     align-items: center;

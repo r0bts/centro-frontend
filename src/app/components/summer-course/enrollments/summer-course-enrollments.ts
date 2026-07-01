@@ -193,7 +193,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   wizardOpen         = signal(false);
   wizardStep         = signal<WizardStep>('search');
   wizardMode         = signal<'socio'|'colaborador'|'colaborador_externo'>('socio');
-  createNsOrder      = signal(true);
+  createNsOrder      = signal(false);
   colaboradorNo      = signal('');
   colaboradorName    = signal('');
 
@@ -380,7 +380,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.selectedTitular.set(null);
-    this.createNsOrder.set(true);
+    this.createNsOrder.set(false);
   }
 
   closeWizard(): void { this.wizardOpen.set(false); }
@@ -640,7 +640,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         birth_date:      p.birth_date,
         suggested_level: p.suggestedLevel?.level_number ?? null,
         assigned_level:  p.selectedLevel,
-        group_id:        p.selectedGroupId,
+        group_id:        p.weeks.some(w => w.intensive_activity_id) ? null : p.selectedGroupId,
       })),
     };
 
@@ -1029,16 +1029,38 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.participantTypes.find(x => x.value === t)?.label ?? t;
   }
 
-  changeWeekIntensiveActivity(enrollmentWeekId: number | undefined, activityIdStr: string): void {
+  changeWeekIntensiveActivity(enrollmentWeekId: number | undefined, enrollmentId: number, activityIdStr: string): void {
     if (!enrollmentWeekId) return;
     const newActivityId = activityIdStr ? parseInt(activityIdStr, 10) : null;
     this.svc.updateWeekIntensiveActivity(enrollmentWeekId, newActivityId).subscribe({
       next: () => {
-        this.showToast('Actividad intensiva actualizada', 'success');
-        this._loadRegistrations(this.selectedCourse()!.id);
+        // Si se asignó actividad intensiva, quitar el grupo automáticamente
+        if (newActivityId) {
+          this.enrollSvc.assignGroup(enrollmentId, { group_id: null }).subscribe({
+            next: () => {
+              this.showToast('Actividad intensiva asignada · grupo removido', 'success');
+              this._loadRegistrations(this.selectedCourse()!.id);
+            },
+            error: () => {
+              this.showToast('Actividad actualizada (error al quitar grupo)', 'info');
+              this._loadRegistrations(this.selectedCourse()!.id);
+            }
+          });
+        } else {
+          this.showToast('Actividad intensiva actualizada', 'success');
+          this._loadRegistrations(this.selectedCourse()!.id);
+        }
       },
       error: () => this.showToast('Error al actualizar la actividad', 'danger')
     });
+  }
+
+  isParticipantIntensive(p: ScRegisteredParticipant): boolean {
+    return p.weeks.some(w => !!w.intensive_activity_id);
+  }
+
+  isPendingIntensive(p: PendingParticipant): boolean {
+    return p.weeks.some(w => !!w.intensive_activity_id);
   }
 
   weekChips(weeks: Array<{week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number}>): Array<{short: string; dates: string; intensiveActivityId?: number | null; intensiveActivityName?: string | null; enrollmentWeekId?: number}> {

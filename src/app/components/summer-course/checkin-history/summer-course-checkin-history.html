@@ -178,9 +178,11 @@
                 {{ record.instructor_event.by_name ?? 'Instructor' }}
               </div>
               <span *ngIf="record.instructor_event.out_of_group"
-                    class="badge bg-info bg-opacity-15 text-info d-inline-flex align-items-center gap-1 mt-1"
+                    class="badge bg-warning bg-opacity-20 text-warning d-inline-flex align-items-center gap-1 mt-1"
                     style="font-size:0.6rem;">
-                <i class="bi bi-shuffle"></i>En este grupo
+                <i class="bi bi-shuffle"></i>
+                Fuera de grupo
+                <span *ngIf="record.instructor_event.group_alias"> · {{ record.instructor_event.group_alias }}</span>
               </span>
             </ng-container>
             <ng-template #noInstructor>
