@@ -168,6 +168,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credModalLoading  = signal(false);
   credSaving        = signal(false);
   credNotes         = signal('');
+  
+  // ── Enviar Liga ───────────────────────────────────────────────────────────
+  sendingLinkMap    = signal<Record<number, boolean>>({});
 
   // ── Level / Group assignment ──────────────────────────────────────────────
   canReasignar          = signal<boolean>(false);
@@ -1324,18 +1327,64 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.authorizedPickupsParticipant.set(participantInfo as any);
   }
 
+  editPhone(p: ScRegisteredParticipant, event: Event): void {
+    event.stopPropagation();
+    let currentPhone = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/[^0-9]/g, '') : '';
+    
+    Swal.fire({
+      title: 'Editar teléfono',
+      text: 'Ingresa el número a 10 dígitos. A este número se enviará la liga.',
+      input: 'text',
+      inputValue: currentPhone,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      inputValidator: (value) => {
+        const cleaned = value.replace(/[^0-9]/g, '');
+        if (!cleaned) return 'Debes ingresar un número de teléfono válido';
+        if (cleaned.length !== 10) return 'El número debe tener exactamente 10 dígitos';
+        return null;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const phoneToUse = result.value.replace(/[^0-9]/g, '');
+        this.svc.updateParticipantPhone(p.participant_id, phoneToUse).subscribe({
+          next: () => {
+            p.phone = phoneToUse.replace(/(\d{2})(\d{4})(\d{4})/, '$1-$2-$3');
+            this.showToast('Teléfono guardado correctamente.', 'success');
+          },
+          error: () => this.showToast('Error al guardar el teléfono', 'danger')
+        });
+      }
+    });
+  }
+
   sendPortalLink(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
-    const url = window.location.origin + '/tutor-portal/login';
-    const phoneToUse = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/-/g, '') : null;
     
-    if (!phoneToUse) {
-      this.showToast('El participante no tiene un número de teléfono válido registrado.', 'danger');
+    if (this.sendingLinkMap()[p.participant_id]) {
       return;
     }
 
+    const phoneToUse = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/[^0-9]/g, '') : '';
+    
+    if (!phoneToUse || phoneToUse.length !== 10) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Número incorrecto',
+        text: 'El teléfono no tiene 10 dígitos o está mal escrito. Por favor edítalo primero usando el ícono del lápiz.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    const url = window.location.origin + '/tutor-portal/login';
+    
+    this.sendingLinkMap.update(m => ({...m, [p.participant_id]: true}));
+
     this.svc.sendPortalLinkWhatsapp(p.enrollment_id, phoneToUse, url).subscribe({
       next: () => {
+        this.sendingLinkMap.update(m => ({...m, [p.participant_id]: false}));
         Swal.fire({
           icon: 'success',
           title: '¡Enviado!',
@@ -1345,6 +1394,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         });
       },
       error: () => {
+        this.sendingLinkMap.update(m => ({...m, [p.participant_id]: false}));
         Swal.fire({
           icon: 'error',
           title: 'Error',
