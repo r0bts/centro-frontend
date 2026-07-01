@@ -94,6 +94,10 @@ export class ScRegistrationsService {
   /**
    * Envía la liga del portal externo por WhatsApp.
    */
+  updateParticipantPhone(participantId: number, phone: string): Observable<any> {
+    return this.http.patch(`${this.base}/update-participant-phone`, { participant_id: participantId, phone });
+  }
+
   sendPortalLinkWhatsapp(enrollmentId: number, phone: string | null, url: string): Observable<any> {
     return this.http.post(`${this.base}/send-portal-link`, { enrollment_id: enrollmentId, phone, url });
   }

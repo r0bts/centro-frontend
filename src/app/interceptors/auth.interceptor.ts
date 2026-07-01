@@ -24,7 +24,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   // Ignorar peticiones exclusivas de Tutor Portal (el portal tiene su propio token)
   if (req.url.includes('/api/tutor-portal') || req.url.includes('/api/medical-questionnaires')) {
     const tutorToken = localStorage.getItem('tutor_token');
-    if (tutorToken) {
+    const isTutorAuth = req.url.includes('/request-otp') || req.url.includes('/verify-otp');
+    
+    if (tutorToken && !isTutorAuth) {
       req = req.clone({
         setHeaders: {
           'Authorization': `Bearer ${tutorToken}`

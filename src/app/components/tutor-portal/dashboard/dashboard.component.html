@@ -58,6 +58,14 @@
               <span class="material-symbols-outlined">card_membership</span>
               Participante #{{child.id}}
             </span>
+            <span *ngIf="child.accepted_terms" class="tp-child-card__badge" style="background-color: #d1fae5; color: #065f46; border-color: #a7f3d0; margin-left: 8px;">
+              <span class="material-symbols-outlined" style="color: #059669; font-size: 16px;">check_circle</span>
+              Términos Aceptados
+            </span>
+            <span *ngIf="child.accepted_terms === false" class="tp-child-card__badge" style="background-color: #fffbeb; color: #92400e; border-color: #fde68a; margin-left: 8px;">
+              <span class="material-symbols-outlined" style="color: #d97706; font-size: 16px;">warning</span>
+              Términos Pendientes
+            </span>
             <div *ngIf="child.role_for_child === 'authorized'" class="mt-3">
               <button (click)="openDurationModal(child.id, child.pickup_id)" class="tp-btn tp-btn--primary" style="font-size: 16px; padding: 12px 24px; border-radius: 12px;">
                 <span class="material-symbols-outlined" style="font-size: 24px; margin-right: 8px;">qr_code_2</span>

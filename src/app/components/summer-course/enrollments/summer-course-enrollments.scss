@@ -1803,3 +1803,24 @@ $level-colors: (
     }
   }
 }
+
+.sce-edit-phone-btn {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+  }
+}
+

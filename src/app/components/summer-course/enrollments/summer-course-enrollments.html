@@ -201,11 +201,17 @@
                         <div class="sce-participant-meta">
                           <span class="sce-participant-type">{{ typeLabel(p.participant_type) }}</span>
 
-                          @if (p.phone) {
-                            <span class="sce-guest-badge" style="background: #f1f5f9; color: #475569; border-color: #e2e8f0;">
-                              <span class="material-symbols-outlined">call</span>
-                              {{ p.phone }}
-                            </span>
+                          @if (p.phone || p.participant_type === 'guest') {
+                            <div style="display: inline-flex; align-items: center; gap: 8px;">
+                              <span class="sce-guest-badge" style="background: #f1f5f9; color: #475569; border-color: #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
+                                <span class="material-symbols-outlined">call</span>
+                                {{ p.phone || 'Sin teléfono' }}
+                              </span>
+                              <button (click)="editPhone(p, $event)" class="sce-edit-phone-btn" title="Editar teléfono">
+                                <span class="material-symbols-outlined" style="font-size: 14px;">edit</span>
+                                Editar
+                              </button>
+                            </div>
                           }
                         </div>
                         <!-- Assign level / group actions -->
@@ -295,9 +301,14 @@
                       </button>
                       
                       <!-- Botón Enviar Liga Portal -->
-                      <button class="sce-kit-btn" style="margin-left: 6px;" (click)="sendPortalLink(p, $event)" title="Enviar liga por WhatsApp">
-                        <span class="material-symbols-outlined">send_to_mobile</span>
-                        Enviar liga
+                      <button class="sce-kit-btn" style="margin-left: 6px;" (click)="sendPortalLink(p, $event)" title="Enviar liga por WhatsApp" [disabled]="sendingLinkMap()[p.participant_id]">
+                        @if (sendingLinkMap()[p.participant_id]) {
+                          <span class="material-symbols-outlined" style="animation: spin 1s linear infinite;">sync</span>
+                          Enviando...
+                        } @else {
+                          <span class="material-symbols-outlined">send_to_mobile</span>
+                          Enviar liga
+                        }
                       </button>
 
                       @if (canVerPagos() && (p.payment_status === 'pending' || p.payment_status === 'partial')) {
