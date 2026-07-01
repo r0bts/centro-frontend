@@ -63,7 +63,16 @@ export class MedicalWizardComponent implements OnInit {
         console.log('loadRecord() SUCCESS:', res);
         this.isLoading = false;
         if (res.success && res.data && res.data.respuestas_json) {
-          this.respuestas = { ...this.respuestas, ...res.data.respuestas_json };
+          let loadedRespuestas = res.data.respuestas_json;
+          if (typeof loadedRespuestas === 'string') {
+            try {
+              loadedRespuestas = JSON.parse(loadedRespuestas);
+            } catch (e) {
+              console.error('Error parsing respuestas_json', e);
+              loadedRespuestas = {};
+            }
+          }
+          this.respuestas = { ...this.respuestas, ...loadedRespuestas };
           this.consentAccepted = res.data.consent_status === 'accepted';
         }
         this.cdr.detectChanges();
