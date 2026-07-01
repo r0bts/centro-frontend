@@ -456,12 +456,45 @@ export class DashboardComponent implements OnInit {
   }
 
   goToMedicalForm(child: any, variant: 'completo' | 'simplificado'): void {
-    this.closeProfileModal();
-    if (variant === 'completo') {
-      this.router.navigate(['/tutor-portal/expediente-medico/completo', child.id]);
+    const navigateFn = () => {
+      this.closeProfileModal();
+      if (variant === 'completo') {
+        this.router.navigate(['/tutor-portal/expediente-medico/completo', child.id]);
+      } else {
+        this.router.navigate(['/tutor-portal/expediente-medico/simplificado', child.id]);
+      }
+    };
+
+    // Si hay una foto cargada, guardamos silenciosamente antes de ir al cuestionario
+    if (this.medicalProfile && this.medicalProfile.profile_picture && this.medicalProfile.profile_picture.startsWith('data:image')) {
+      this.isLoading = true;
+      this.cdr.detectChanges();
+      
+      this.tutorApi.updateParticipantProfile(child.id, this.medicalProfile).subscribe({
+        next: (res: any) => {
+          this.isLoading = false;
+          navigateFn();
+        },
+        error: () => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          Swal.fire('Error', 'No se pudo guardar la fotografía, pero puedes continuar.', 'warning').then(() => {
+            navigateFn();
+          });
+        }
+      });
     } else {
-      this.router.navigate(['/tutor-portal/expediente-medico/simplificado', child.id]);
+      navigateFn();
     }
+  }
+
+  continueToMedicalFlow() {
+    if (!this.medicalProfile.profile_picture) {
+      Swal.fire('Atención', 'La fotografía es obligatoria para continuar.', 'warning');
+      return;
+    }
+    const variant = this.isSocioParticipant(this.selectedChildForProfile) ? 'completo' : 'simplificado';
+    this.goToMedicalForm(this.selectedChildForProfile, variant);
   }
 
   closeOnProfileOverlay(event: MouseEvent) {

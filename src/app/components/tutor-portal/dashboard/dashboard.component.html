@@ -444,7 +444,7 @@
       <button (click)="closeProfileModal()" class="tp-btn tp-btn--outline">Cancelar</button>
       
       <!-- Si está en la pestaña de foto, y EXISTE la médica, sugerir continuar -->
-      <button *ngIf="activeProfileTab === 'photo' && showMedicalTab" (click)="setProfileTab('medical')" class="tp-btn tp-btn--primary">
+      <button *ngIf="activeProfileTab === 'photo' && showMedicalTab" (click)="continueToMedicalFlow()" class="tp-btn tp-btn--primary">
         Continuar <span class="material-symbols-outlined">arrow_forward</span>
       </button>
 
