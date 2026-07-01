@@ -20,6 +20,7 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
   html5QrCode: Html5Qrcode | null = null;
   isScanning: boolean = false;
   cameraError: string | null = null;
+  needsPermissionButton: boolean = false;
 
   qrToken: string = '';
   isLoading: boolean = false;
@@ -47,13 +48,23 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
     this.cameraError = null;
     this.errorMessage = '';
 
+    this.cdr.detectChanges(); // Forzar renderizado del DOM
+
     setTimeout(() => {
       if (this.qrInput && this.qrInput.nativeElement) {
         this.qrInput.nativeElement.focus();
       }
 
       if (!this.html5QrCode) {
-        this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        try {
+          this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        } catch (e) {
+          console.error("Error inicializando Html5Qrcode:", e);
+          this.cameraError = 'Error interno al cargar el escáner.';
+          this.isScanning = false;
+          this.cdr.detectChanges();
+          return;
+        }
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
         const tryStart = (facingMode: string) => {
@@ -74,7 +85,12 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
           console.warn('Environment camera failed, trying user camera...', err);
           return tryStart('user');
         }).catch((err) => {
-          this.cameraError = 'No se pudo acceder a la cámara. Sin embargo, puedes usar una pistola lectora o escribir el código manualmente abajo.';
+          if (err && err.name === 'NotAllowedError' || err && err.message && err.message.includes('permission')) {
+             this.needsPermissionButton = true;
+             this.cameraError = 'La cámara está bloqueada por el navegador. Presiona el botón de abajo para autorizar el acceso.';
+          } else {
+             this.cameraError = 'No se pudo acceder a la cámara. Sin embargo, puedes usar una pistola lectora o escribir el código manualmente abajo.';
+          }
           console.error('Camera Error:', err);
           this.cdr.detectChanges();
         });
@@ -84,7 +100,7 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
 
   stopScanner() {
     this.isScanning = false;
-    this.cdr.detectChanges();
+    setTimeout(() => this.cdr.detectChanges(), 0);
     if (this.html5QrCode && this.html5QrCode.isScanning) {
       this.html5QrCode.stop().then(() => {
         this.html5QrCode?.clear();
@@ -101,13 +117,13 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
   onScan() {
     if (!this.qrToken || !this.qrToken.trim()) return;
     
-    // Si viene de URL (ej. escanear un QR real), extraemos el token
+    // Manejo más robusto de URLs para extraer el ID final
     let token = this.qrToken.trim();
-    if (token.includes('/credencial/')) {
-      const parts = token.split('/credencial/');
-      token = parts[parts.length - 1];
-    } else if (token.includes('=')) {
+    if (token.includes('=')) {
       const parts = token.split('=');
+      token = parts[parts.length - 1];
+    } else if (token.includes('/')) {
+      const parts = token.split('/');
       token = parts[parts.length - 1];
     }
     this.qrToken = token;
@@ -121,22 +137,72 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (res: any) => {
-          if (res.success && res.data) {
-            this.medicalProfile = res.data;
+          if (res.success) {
+            this.router.navigate(['/servicio-medico/expediente', this.qrToken]);
           } else {
-            this.medicalProfile = res;
+            this.errorMessage = res.message || 'No se encontró el expediente.';
+            this.qrToken = '';
+            // NO llamamos a startScanner() de inmediato para que el usuario pueda ver el error
+            // o lo reactivamos pero sin borrar el errorMessage
+            this.restartScannerWithoutClearingError();
           }
-          this.qrToken = '';
           this.cdr.detectChanges();
         },
         error: (err: any) => {
           console.error('Error fetching medical profile:', err);
           this.errorMessage = err?.error?.message || 'No se encontró el expediente asociado a este código QR o ha caducado.';
           this.qrToken = '';
-          this.startScanner(); // Reactivamos el escáner si hubo error
+          this.restartScannerWithoutClearingError();
           this.cdr.detectChanges();
         }
       });
+  }
+
+  restartScannerWithoutClearingError() {
+    this.isScanning = true;
+    this.cdr.detectChanges(); // Forzar renderizado del DOM
+
+    setTimeout(() => {
+      if (this.qrInput && this.qrInput.nativeElement) {
+        this.qrInput.nativeElement.focus();
+      }
+      if (!this.html5QrCode) {
+        try {
+          this.html5QrCode = new Html5Qrcode('qr-reader-medical');
+        } catch (e) {
+          console.error("Error inicializando Html5Qrcode en restart:", e);
+          this.cameraError = 'Error interno al cargar el escáner.';
+          this.isScanning = false;
+          this.cdr.detectChanges();
+          return;
+        }
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        const tryStart = (facingMode: string) => {
+          return this.html5QrCode!.start(
+            { facingMode: facingMode }, config,
+            (decodedText) => { this.qrToken = decodedText; this.onScan(); },
+            (errorMessage) => {}
+          );
+        };
+        
+        tryStart('environment').catch(() => tryStart('user')).catch(err => {
+             if (err && err.name === 'NotAllowedError' || err && err.message && err.message.includes('permission')) {
+                this.needsPermissionButton = true;
+                this.cameraError = 'La cámara está bloqueada por el navegador.';
+             } else {
+                this.cameraError = 'No se pudo acceder a la cámara.';
+             }
+             this.cdr.detectChanges();
+        });
+      }
+    }, 200);
+  }
+  
+  requestCameraPermission() {
+    this.needsPermissionButton = false;
+    this.cameraError = null;
+    this.startScanner();
   }
 
   clearResult() {

@@ -20,10 +20,24 @@ export class ServicioMedicoService {
   }
 
   /**
-   * Crea una nueva consulta médica
+   * Actualiza los datos generales del perfil médico
+   */
+  updateMedicalProfile(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/update-medical-profile`, payload);
+  }
+
+  /**
+   * Crea una nueva consulta médica (Interna/Externa)
    */
   createConsulta(payload: any): Observable<any> {
-    return this.http.post(`${this.apiUrl}/createConsulta`, payload);
+    return this.http.post(`${this.apiUrl}/consultas`, payload);
+  }
+
+  /**
+   * Obtiene el historial de consultas de un paciente
+   */
+  getConsultas(token: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/consultas?token=${token}`);
   }
 
   /**
@@ -31,5 +45,12 @@ export class ServicioMedicoService {
    */
   updateConsulta(id: string, payload: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/updateConsulta/${id}`, payload);
+  }
+
+  /**
+   * Envía una notificación de WhatsApp al administrador de cursos de verano
+   */
+  notificarAdminCursos(payload: { name: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/notificar-admin-cursos`, payload);
   }
 }

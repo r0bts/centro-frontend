@@ -64,9 +64,17 @@ export class DashboardComponent implements OnInit {
     profile_picture: ''
   };
 
+  // Extraordinary Pass State
+  showExtraordinaryModal = false;
+  extraordinaryData = {
+    participant_id: null as any,
+    authorized_name: '',
+    photo_base64: ''
+  };
+
   // Camera state
   showCamera = false;
-  cameraTarget: 'medical' | 'pickup' = 'medical';
+  cameraTarget: 'medical' | 'pickup' | 'extraordinary' = 'medical';
   videoStream: MediaStream | null = null;
 
   constructor(
@@ -82,7 +90,47 @@ export class DashboardComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadData();
+    this.checkTermsAndConditions();
+  }
+
+  checkTermsAndConditions() {
+    this.isLoading = true;
+    this.tutorApi.getActiveTerms('Curso de Verano').subscribe({
+      next: (res: any) => {
+        if (res.success && res.data && !res.user_accepted) {
+          this.isLoading = false;
+          Swal.fire({
+            title: res.data.title,
+            html: `<div style="text-align: left; max-height: 50vh; overflow-y: auto; font-size: 0.9em; padding: 10px; border: 1px solid #eee; border-radius: 5px;">${res.data.content}</div>`,
+            showCancelButton: false,
+            confirmButtonText: 'He leído y acepto los términos',
+            confirmButtonColor: '#10b981',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            allowEnterKey: false,
+            width: '600px'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              Swal.fire({ title: 'Guardando...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+              this.tutorApi.acceptTerms(res.data.id).subscribe({
+                next: () => {
+                  Swal.close();
+                  this.loadData();
+                },
+                error: () => {
+                  Swal.fire('Error', 'Hubo un problema al guardar tu respuesta. Por favor intenta de nuevo o recarga la página.', 'error');
+                }
+              });
+            }
+          });
+        } else {
+          this.loadData();
+        }
+      },
+      error: () => {
+        this.loadData();
+      }
+    });
   }
 
   loadData() {
@@ -308,7 +356,7 @@ export class DashboardComponent implements OnInit {
     this.tutorApi.generatePass(this.pendingQrChildId, this.pendingQrPickupId, this.selectedDuration).subscribe({
       next: (res: any) => {
         if (res.success) {
-          this.qrData = res.data;
+          this.qrData = res.data.url;
           this.closeDurationModal();
           this.showQrModal = true;
           this.cdr.detectChanges();
@@ -367,7 +415,7 @@ export class DashboardComponent implements OnInit {
       allergies: child.allergies || '',
       active_medications: child.active_medications || '',
       chronic_conditions: child.chronic_conditions || '',
-      profile_picture: child.profile_picture ? `data:image/jpeg;base64,${child.profile_picture}` : ''
+      profile_picture: child.photo_url ? child.photo_url : (child.profile_picture ? `data:image/jpeg;base64,${child.profile_picture}` : '')
     };
 
     if (mode === 'edit') {
@@ -403,31 +451,85 @@ export class DashboardComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  isSocioParticipant(child: any): boolean {
+    return child && child.participant_type === 'member';
+  }
+
+  goToMedicalForm(child: any, variant: 'completo' | 'simplificado'): void {
+    this.closeProfileModal();
+    if (variant === 'completo') {
+      this.router.navigate(['/tutor-portal/expediente-medico/completo', child.id]);
+    } else {
+      this.router.navigate(['/tutor-portal/expediente-medico/simplificado', child.id]);
+    }
+  }
+
   closeOnProfileOverlay(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('tp-modal-overlay')) {
       this.closeProfileModal();
     }
   }
 
+  private compressAndSetImage(file: File, target: 'profile' | 'extraordinary') {
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const max_size = 800;
+        if (width > height) {
+          if (width > max_size) {
+            height *= max_size / width;
+            width = max_size;
+          }
+        } else {
+          if (height > max_size) {
+            width *= max_size / height;
+            height = max_size;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+          if (target === 'profile') {
+            this.medicalProfile.profile_picture = dataUrl;
+            if (this.showMedicalTab) {
+              this.activeProfileTab = 'medical';
+            }
+          } else {
+            this.extraordinaryData.photo_base64 = dataUrl;
+          }
+          this.showCamera = false;
+          this.stopCamera();
+          this.cdr.detectChanges();
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
   onProfilePhotoUpload(event: any) {
     const file = event.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e: any) => {
-        this.medicalProfile.profile_picture = e.target.result;
-        this.showCamera = false;
-        this.stopCamera();
-        if (this.showMedicalTab) {
-          this.activeProfileTab = 'medical'; // Auto-advance
-        }
-        this.cdr.detectChanges();
-      };
-      reader.readAsDataURL(file);
+      this.compressAndSetImage(file, 'profile');
+    }
+  }
+
+  onExtraordinaryPhotoUpload(event: any) {
+    const file = event.target.files[0];
+    if (file) {
+      this.compressAndSetImage(file, 'extraordinary');
     }
   }
 
   // Camera Methods
-  async startCamera(target: 'medical' | 'pickup' = 'medical') {
+  async startCamera(target: 'medical' | 'pickup' | 'extraordinary' = 'medical') {
     this.cameraTarget = target;
     this.showCamera = true;
     this.cdr.detectChanges();
@@ -469,6 +571,8 @@ export class DashboardComponent implements OnInit {
       
       if (this.cameraTarget === 'pickup') {
         this.newPickup.photo_url = dataUrl;
+      } else if (this.cameraTarget === 'extraordinary') {
+        this.extraordinaryData.photo_base64 = dataUrl;
       } else {
         this.medicalProfile.profile_picture = dataUrl;
       }
@@ -489,6 +593,72 @@ export class DashboardComponent implements OnInit {
   retakePickupPhoto() {
     this.newPickup.photo_url = '';
     this.startCamera('pickup');
+  }
+
+  retakeExtraordinaryPhoto() {
+    this.extraordinaryData.photo_base64 = '';
+    this.startCamera('extraordinary');
+  }
+
+  openExtraordinaryModal(child: any) {
+    this.extraordinaryData = {
+      participant_id: child.id,
+      authorized_name: '',
+      photo_base64: ''
+    };
+    this.showExtraordinaryModal = true;
+  }
+
+  closeExtraordinaryModal() {
+    this.showExtraordinaryModal = false;
+    this.stopCamera();
+  }
+
+  closeOnExtraordinaryOverlay(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('tp-modal-overlay')) {
+      this.closeExtraordinaryModal();
+    }
+  }
+
+  generateExtraordinaryPass() {
+    if (!this.extraordinaryData.authorized_name.trim()) {
+      Swal.fire('Atención', 'Ingresa el nombre de quien recogerá.', 'warning');
+      return;
+    }
+    if (!this.extraordinaryData.photo_base64) {
+      Swal.fire('Atención', 'La fotografía es obligatoria.', 'warning');
+      return;
+    }
+
+    this.isLoading = true;
+    this.cdr.detectChanges();
+    this.tutorApi.generateExtraordinaryPass(this.extraordinaryData).subscribe({
+      next: (res: any) => {
+        this.isLoading = false;
+        if (res.success) {
+          this.closeExtraordinaryModal();
+          const pIndex = this.children.findIndex((p: any) => p.id === Number(this.extraordinaryData.participant_id));
+          if (pIndex !== -1) {
+              this.children[pIndex].extra_pass_url = res.data.url;
+          }
+          this.qrData = res.data.url;
+          this.showQrModal = true;
+          this.cdr.detectChanges();
+        } else {
+          this.cdr.detectChanges();
+          Swal.fire('Error', res.message || 'No se pudo generar el pase.', 'error');
+        }
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.cdr.detectChanges();
+        let msg = 'Error al generar el pase.';
+        if (err.error && err.error.message) {
+            msg = err.error.message;
+        }
+        Swal.fire('Error', msg, 'error');
+      }
+    });
   }
 
   saveProfile() {

@@ -665,10 +665,27 @@
                   } @else if (p.weeks.length > 0) {
                     <div class="wz-p-card__cost">
                       <span class="wz-p-cost__total">{{ currency(participantCost(p)) }}</span>
-                    </div>
+                     </div>
                   }
                 </div>
-              } @else if (p.alreadyEnrolled) {
+              }
+
+              <!-- ── Sección Teléfono de Emergencia ── -->
+              @if (!p.outOfRange && !p.alreadyEnrolled) {
+                <div class="wz-p-card__section">
+                  <div class="sce-form-field" style="margin-bottom:0">
+                    <label class="sce-form-label" style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
+                      <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">phone</span>
+                      Teléfono del Tutor / Emergencias
+                    </label>
+                    <input class="sce-form-input" type="tel" [value]="p.emergency_phone || ''" 
+                           (input)="setEmergencyPhone(i, $any($event.target).value)" 
+                           placeholder="Ingresa el teléfono a 10 dígitos">
+                  </div>
+                </div>
+              }
+
+              @if (p.alreadyEnrolled) {
                 <div class="wz-p-card__section">
                   <span style="font-size:.78rem;color:#92400e">Este participante ya está inscrito en este curso.</span>
                 </div>

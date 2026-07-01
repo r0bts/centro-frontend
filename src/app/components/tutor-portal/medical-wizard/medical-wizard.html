@@ -1,0 +1,199 @@
+<div class="tp-page">
+  <div class="tp-header">
+    <button class="tp-btn tp-btn--ghost mb-3" (click)="goBack()">
+      <span class="material-symbols-outlined">arrow_back</span> Regresar
+    </button>
+    <h1 class="tp-header__title">Expediente Médico Integral</h1>
+    <p class="tp-header__subtitle">Por favor complete la información requerida paso a paso.</p>
+  </div>
+
+  <div class="wizard-container" *ngIf="!isLoading">
+    <!-- Stepper Header -->
+    <div class="stepper-header">
+      <div class="step" [class.active]="currentStep >= 1" (click)="goToStep(1)">
+        <div class="step-number">1</div>
+        <div class="step-label">Datos Personales</div>
+      </div>
+      <div class="step-line" [class.active]="currentStep >= 2"></div>
+      <div class="step" [class.active]="currentStep >= 2" (click)="goToStep(2)">
+        <div class="step-number">2</div>
+        <div class="step-label">Salud y Antecedentes</div>
+      </div>
+      <div class="step-line" [class.active]="currentStep >= 3"></div>
+      <div class="step" [class.active]="currentStep >= 3" (click)="goToStep(3)">
+        <div class="step-number">3</div>
+        <div class="step-label">Hábitos y Riesgos</div>
+      </div>
+      <div class="step-line" [class.active]="currentStep >= 4"></div>
+      <div class="step" [class.active]="currentStep >= 4" (click)="goToStep(4)">
+        <div class="step-number">4</div>
+        <div class="step-label">Términos y Consentimiento</div>
+      </div>
+    </div>
+
+    <!-- Step Content -->
+    <div class="wizard-content">
+      <!-- STEP 1: Datos Personales -->
+      <div *ngIf="currentStep === 1" class="step-pane">
+        <h3 class="step-title">Datos Personales</h3>
+        
+        <div class="grid-form">
+          <div class="tp-field">
+            <label class="tp-field__label">Nombre Completo <span class="tp-required">*</span></label>
+            <input type="text" class="tp-field__input" [(ngModel)]="respuestas.nombre_completo">
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Edad <span class="tp-required">*</span></label>
+            <input type="text" class="tp-field__input" [(ngModel)]="respuestas.edad">
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Sexo <span class="tp-required">*</span></label>
+            <select class="tp-field__input" [(ngModel)]="respuestas.sexo">
+              <option value="">Seleccionar...</option>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Fecha de Nacimiento <span class="tp-required">*</span></label>
+            <input type="date" class="tp-field__input" [(ngModel)]="respuestas.fecha_nacimiento">
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Grupo Sanguíneo <span class="tp-required">*</span></label>
+            <select class="tp-field__input" [(ngModel)]="respuestas.grupo_sanguineo">
+              <option value="">Seleccione...</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+              <option value="Desconocido">Desconocido</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Teléfono de Emergencia <span class="tp-required">*</span></label>
+            <input type="text" class="tp-field__input" [(ngModel)]="respuestas.contacto_emergencia_telefono">
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Salud y Antecedentes -->
+      <div *ngIf="currentStep === 2" class="step-pane">
+        <h3 class="step-title">Salud y Antecedentes</h3>
+        
+        <div class="tp-field mb-4">
+          <label class="tp-field__label">¿Está enfermo actualmente? <span class="tp-required">*</span></label>
+          <div class="radio-group">
+            <label><input type="radio" name="enf_actual" value="Si" [(ngModel)]="respuestas.enfermo_actualmente"> Sí</label>
+            <label><input type="radio" name="enf_actual" value="No" [(ngModel)]="respuestas.enfermo_actualmente"> No</label>
+          </div>
+        </div>
+
+        <div class="tp-field mb-4">
+          <label class="tp-field__label">Enfermedades Personales</label>
+          <textarea class="tp-field__input" rows="3" [(ngModel)]="respuestas.enfermedades_personales_otra" placeholder="Asma, Diabetes, Hipertensión..."></textarea>
+        </div>
+
+        <div class="tp-field mb-4">
+          <label class="tp-field__label">Alergias Conocidas</label>
+          <textarea class="tp-field__input" rows="3" [(ngModel)]="respuestas.alergias_tipo_otra" placeholder="Medicamentos, alimentos, etc."></textarea>
+        </div>
+
+        <div class="tp-field mb-4">
+          <label class="tp-field__label">¿Toma algún medicamento actualmente? <span class="tp-required">*</span></label>
+          <div class="radio-group">
+            <label><input type="radio" name="med" value="Si" [(ngModel)]="respuestas.toma_medicamento"> Sí</label>
+            <label><input type="radio" name="med" value="No" [(ngModel)]="respuestas.toma_medicamento"> No</label>
+          </div>
+          <input *ngIf="respuestas.toma_medicamento === 'Si'" type="text" class="tp-field__input mt-2" [(ngModel)]="respuestas.medicamentos_actuales" placeholder="¿Cuáles?">
+        </div>
+      </div>
+
+      <!-- STEP 3: Hábitos y Riesgos -->
+      <div *ngIf="currentStep === 3" class="step-pane">
+        <h3 class="step-title">Hábitos y Riesgos</h3>
+        
+        <div class="grid-form">
+          <div class="tp-field">
+            <label class="tp-field__label">¿Fuma?</label>
+            <select class="tp-field__input" [(ngModel)]="respuestas.fuma">
+              <option value="No">No</option>
+              <option value="Si">Sí</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Actividad Física</label>
+            <select class="tp-field__input" [(ngModel)]="respuestas.actividad_fisica">
+              <option value="No">No</option>
+              <option value="Si">Sí</option>
+            </select>
+          </div>
+          <div class="tp-field">
+            <label class="tp-field__label">Alimentación</label>
+            <select class="tp-field__input" [(ngModel)]="respuestas.alimentacion">
+              <option value="Buena">Buena</option>
+              <option value="Regular">Regular</option>
+              <option value="Mala">Mala</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="tp-field mt-4">
+          <label class="tp-field__label">Notas Adicionales</label>
+          <textarea class="tp-field__input" rows="4" [(ngModel)]="respuestas.notas_adicionales" placeholder="Cualquier otra información relevante para el médico..."></textarea>
+        </div>
+      </div>
+
+      <!-- STEP 4: Consentimiento -->
+      <div *ngIf="currentStep === 4" class="step-pane">
+        <h3 class="step-title">Términos y Condiciones</h3>
+        
+        <div class="terms-box">
+          <p>
+            Al enviar este formulario, declaro bajo protesta de decir verdad que la información proporcionada
+            en este Expediente Médico Integral es verídica y completa. Entiendo que cualquier falsedad o
+            omisión puede representar un riesgo para la salud del participante durante las actividades en el Centro Libanés.
+          </p>
+          <p>
+            Autorizo al Servicio Médico del Centro Libanés a consultar este expediente y a tomar las decisiones
+            médicas necesarias en caso de emergencia.
+          </p>
+          <p>
+            Consiento el tratamiento de mis datos personales sensibles para los fines aquí descritos, de acuerdo con
+            las políticas de privacidad institucionales.
+          </p>
+        </div>
+
+        <div class="consent-check">
+          <label>
+            <input type="checkbox" [(ngModel)]="consentAccepted">
+            He leído y acepto los términos y el aviso de privacidad.
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wizard Footer Actions -->
+    <div class="wizard-footer">
+      <button class="tp-btn tp-btn--ghost" *ngIf="currentStep > 1" (click)="currentStep = currentStep - 1">
+        Anterior
+      </button>
+      <div class="spacer"></div>
+      <button class="tp-btn tp-btn--primary" *ngIf="currentStep < 4" (click)="nextStep()">
+        Siguiente <span class="material-symbols-outlined">arrow_forward</span>
+      </button>
+      <button class="tp-btn btn-success" *ngIf="currentStep === 4" [disabled]="!consentAccepted || isSaving" (click)="saveFull()">
+        {{ isSaving ? 'Guardando...' : 'Firmar y Enviar' }} <span class="material-symbols-outlined" *ngIf="!isSaving">check_circle</span>
+      </button>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="tp-loading">
+    <div class="tp-spinner"></div>
+    <p class="tp-loading__text">Cargando expediente...</p>
+  </div>
+</div>

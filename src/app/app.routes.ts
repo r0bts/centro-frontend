@@ -21,6 +21,14 @@ export const routes: Routes = [
     loadComponent: () => import('./components/tutor-portal/dashboard/dashboard.component').then(m => m.DashboardComponent)
   },
   {
+    path: 'tutor-portal/expediente-medico/completo/:id',
+    loadComponent: () => import('./components/tutor-portal/medical-wizard/medical-wizard').then(m => m.MedicalWizardComponent)
+  },
+  {
+    path: 'tutor-portal/expediente-medico/simplificado/:id',
+    loadComponent: () => import('./components/tutor-portal/medical-simplified/medical-simplified').then(m => m.MedicalSimplifiedComponent)
+  },
+  {
     path: 'tutor-portal',
     redirectTo: '/tutor-portal/login',
     pathMatch: 'full'
@@ -178,6 +186,11 @@ export const routes: Routes = [
         path: 'escaner',
         loadComponent: () =>
           import('./components/servicio-medico/scanner/servicio-medico-scanner/servicio-medico-scanner').then(m => m.ServicioMedicoScanner)
+      },
+      {
+        path: 'expediente/:token',
+        loadComponent: () =>
+          import('./components/servicio-medico/expediente/servicio-medico-expediente/servicio-medico-expediente').then(m => m.ServicioMedicoExpediente)
       },
       {
         path: 'socios',
