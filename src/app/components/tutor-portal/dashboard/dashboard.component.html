@@ -309,12 +309,17 @@
 <!-- Modal QR -->
 <div *ngIf="showQrModal" class="tp-modal-overlay tp-modal-overlay--dark" (click)="closeOnQrOverlay($event)">
   <div class="tp-qr-modal" data-modal>
-    <h3 class="tp-qr-modal__title">Pase de Salida</h3>
+    <div class="mb-3 d-flex flex-column align-items-center text-success">
+      <span class="material-symbols-outlined mb-1" style="font-size: 48px;">check_circle</span>
+      <h4 class="mb-0 fw-bold" style="font-size: 1.1rem; color: #10b981;">¡Pase Generado Exitosamente!</h4>
+    </div>
+    
+    <h3 class="tp-qr-modal__title mt-3 border-top pt-3">Pase de Salida</h3>
     <p class="tp-qr-modal__subtitle">{{qrData?.authorized_name}}</p>
     <div class="tp-qr-modal__code">
       <qrcode *ngIf="qrData?.token" [qrdata]="qrData.token" [width]="220" [errorCorrectionLevel]="'M'"></qrcode>
     </div>
-    <p class="tp-qr-modal__note">Presenta este código al guardia para permitir la salida.</p>
+    <p class="tp-qr-modal__note">Presenta este código al guardia. Es válido por <strong>1 hora</strong>.</p>
     <button (click)="closeQrModal()" class="tp-btn tp-btn--primary tp-btn--full">Cerrar</button>
   </div>
 </div>
@@ -485,26 +490,7 @@
     </div>
 
     <div class="tp-modal__body text-center">
-      <p class="text-muted mb-4" style="font-size: 0.95rem;">Selecciona el tiempo que el código será válido para presentarlo en la puerta.</p>
-      
-      <div class="d-flex flex-wrap gap-2 justify-content-center">
-        <button class="tp-btn" [ngClass]="selectedDuration === 15 ? 'tp-btn--primary' : 'tp-btn--outline'" (click)="selectedDuration = 15">
-          <span class="material-symbols-outlined" *ngIf="selectedDuration === 15">check_circle</span>
-          15 min
-        </button>
-        <button class="tp-btn" [ngClass]="selectedDuration === 30 ? 'tp-btn--primary' : 'tp-btn--outline'" (click)="selectedDuration = 30">
-          <span class="material-symbols-outlined" *ngIf="selectedDuration === 30">check_circle</span>
-          30 min
-        </button>
-        <button class="tp-btn" [ngClass]="selectedDuration === 45 ? 'tp-btn--primary' : 'tp-btn--outline'" (click)="selectedDuration = 45">
-          <span class="material-symbols-outlined" *ngIf="selectedDuration === 45">check_circle</span>
-          45 min
-        </button>
-        <button class="tp-btn" [ngClass]="selectedDuration === 60 ? 'tp-btn--primary' : 'tp-btn--outline'" (click)="selectedDuration = 60">
-          <span class="material-symbols-outlined" *ngIf="selectedDuration === 60">check_circle</span>
-          1 hora
-        </button>
-      </div>
+      <p class="text-muted mb-4" style="font-size: 1.05rem;">El código será válido por <strong>1 hora</strong> para presentarlo en la puerta.</p>
     </div>
     
     <div class="tp-modal__footer mt-3">
