@@ -271,7 +271,7 @@
             <span *ngIf="!newPickup.photo_url" class="material-symbols-outlined text-secondary" style="font-size: 48px;">person</span>
           </div>
 
-          <div *ngIf="!newPickup.photo_url" class="d-flex gap-3 justify-content-center">
+          <div *ngIf="!newPickup.photo_url" class="d-flex flex-wrap gap-3 justify-content-center">
             <div>
               <input type="file" accept="image/*" (change)="onPhotoUpload($event)" class="tp-field__file" id="pickupPhotoInput" style="display: none;">
               <label for="pickupPhotoInput" class="tp-btn tp-btn--outline mb-0 cursor-pointer">
@@ -284,7 +284,7 @@
           </div>
         </div>
 
-        <div *ngIf="newPickup.photo_url" class="d-flex gap-2 justify-content-center mt-2">
+        <div *ngIf="newPickup.photo_url" class="d-flex flex-wrap gap-2 justify-content-center mt-2">
            <div>
             <input type="file" accept="image/*" (change)="onPhotoUpload($event)" class="tp-field__file" id="pickupPhotoInputRetake" style="display: none;">
             <label for="pickupPhotoInputRetake" class="tp-btn tp-btn--outline tp-btn--sm mb-0 cursor-pointer">
