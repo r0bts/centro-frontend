@@ -203,6 +203,14 @@ export class DashboardComponent implements OnInit {
     return this.pickupsByChild[childId] || [];
   }
 
+  toggleBodyScroll() {
+    if (this.showQrModal || this.showAddModal || this.showDurationModal || this.showProfileModal || this.showExtraordinaryModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+  }
+
   openAddModal(childId: number) {
     this.newPickup.participant_id = childId;
     this.newPickup.authorized_socio_id = null;
@@ -220,6 +228,7 @@ export class DashboardComponent implements OnInit {
       domingo: false
     };
     this.showAddModal = true;
+    this.toggleBodyScroll();
     this.showFamilySelection = true;
     this.loadingFamily = true;
     this.familyOptions = [];
@@ -266,6 +275,7 @@ export class DashboardComponent implements OnInit {
 
   closeAddModal() {
     this.showAddModal = false;
+    this.toggleBodyScroll();
     this.cdr.detectChanges();
   }
 
@@ -344,10 +354,12 @@ export class DashboardComponent implements OnInit {
     this.pendingQrPickupId = pickupId;
     this.selectedDuration = 60;
     this.showDurationModal = true;
+    this.toggleBodyScroll();
   }
 
   closeDurationModal() {
     this.showDurationModal = false;
+    this.toggleBodyScroll();
     this.pendingQrChildId = null;
     this.pendingQrPickupId = null;
   }
@@ -367,6 +379,7 @@ export class DashboardComponent implements OnInit {
           
           this.closeDurationModal();
           this.showQrModal = true;
+          this.toggleBodyScroll();
           this.cdr.detectChanges();
         } else {
           Swal.fire('Error', res.message, 'error');
@@ -380,6 +393,7 @@ export class DashboardComponent implements OnInit {
 
   closeQrModal() {
     this.showQrModal = false;
+    this.toggleBodyScroll();
     this.qrData = null;
     this.cdr.detectChanges();
   }
@@ -444,6 +458,7 @@ export class DashboardComponent implements OnInit {
     }
 
     this.showProfileModal = true;
+    this.toggleBodyScroll();
     this.cdr.detectChanges();
   }
 
@@ -457,6 +472,7 @@ export class DashboardComponent implements OnInit {
 
   closeProfileModal() {
     this.showProfileModal = false;
+    this.toggleBodyScroll();
     this.selectedChildForProfile = null;
     this.stopCamera();
     this.cdr.detectChanges();
@@ -572,7 +588,6 @@ export class DashboardComponent implements OnInit {
           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           if (target === 'profile') {
             this.medicalProfile.profile_picture = dataUrl;
-            // Removed auto-advance per user request
           } else {
             this.extraordinaryData.photo_base64 = dataUrl;
           }
@@ -669,7 +684,6 @@ export class DashboardComponent implements OnInit {
       }
       
       this.stopCamera();
-      // Removed auto-advance per user request
       this.cdr.detectChanges();
     }
   }
@@ -696,10 +710,12 @@ export class DashboardComponent implements OnInit {
       photo_base64: ''
     };
     this.showExtraordinaryModal = true;
+    this.toggleBodyScroll();
   }
 
   closeExtraordinaryModal() {
     this.showExtraordinaryModal = false;
+    this.toggleBodyScroll();
     this.stopCamera();
   }
 
@@ -732,6 +748,7 @@ export class DashboardComponent implements OnInit {
           }
           this.qrData = res.data.url;
           this.showQrModal = true;
+          this.toggleBodyScroll();
           this.cdr.detectChanges();
         } else {
           this.cdr.detectChanges();
