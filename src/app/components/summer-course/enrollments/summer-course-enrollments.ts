@@ -154,10 +154,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   authorizedPickupsParticipant = signal<any | null>(null);
   
   credParticipant = signal<ScRegisteredParticipant | null>(null);
-  photoModalGroupTitular = signal<ScRegistrationGroup | null>(null);
+  photoCameraStream = signal<MediaStream | null>(null);
+  photoCameraFacingMode = signal<'user' | 'environment'>('user');
   photoPreviewUrl       = signal<string | null>(null);   // base64 capturado antes de guardar
   photoSaving           = signal(false);
-  photoCameraStream     = signal<MediaStream | null>(null);
   photoCameraMode       = signal<'camera' | 'file'>('camera');
 
   // ── Credencial ────────────────────────────────────────────────────────────
@@ -1249,13 +1249,19 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   async startCamera(videoEl: HTMLVideoElement): Promise<void> {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: this.photoCameraFacingMode() }, audio: false });
       this.photoCameraStream.set(stream);
       videoEl.srcObject = stream;
     } catch {
       this.showToast('No se pudo acceder a la cámara', 'danger');
       this.photoCameraMode.set('file');
     }
+  }
+
+  async toggleCamera(videoEl: HTMLVideoElement): Promise<void> {
+    this.photoCameraFacingMode.set(this.photoCameraFacingMode() === 'user' ? 'environment' : 'user');
+    this._stopCamera();
+    await this.startCamera(videoEl);
   }
 
   capturePhoto(videoEl: HTMLVideoElement): void {
