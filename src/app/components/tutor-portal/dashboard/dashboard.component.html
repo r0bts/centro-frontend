@@ -85,9 +85,9 @@
               <span *ngIf="!isPhotoComplete(child) && !isMedicalComplete(child)">Completar Perfil</span>
             </button>
             
-            <button *ngIf="getMissingProfileItems(child).length === 0" class="tp-btn tp-btn--outline" (click)="openProfileModal(child, 'edit')">
-              <span class="material-symbols-outlined" style="font-size: 18px;">edit</span>
-              <span>Editar Perfil</span>
+            <button *ngIf="getMissingProfileItems(child).length === 0" class="tp-btn tp-btn--outline tp-btn--disabled" style="opacity: 0.6; cursor: not-allowed;" title="Perfil completo. Para modificaciones, contacta a administración." disabled>
+              <span class="material-symbols-outlined" style="font-size: 18px;">lock</span>
+              <span>Perfil Completo</span>
             </button>
             <button *ngIf="!child.extra_pass_url" class="tp-btn tp-btn--primary" style="background: #8b5cf6; border-color: #8b5cf6;" (click)="openExtraordinaryModal(child)">
               <span class="material-symbols-outlined" style="font-size: 18px;">local_activity</span>
