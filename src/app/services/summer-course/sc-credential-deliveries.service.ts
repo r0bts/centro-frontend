@@ -8,6 +8,8 @@ import {
   ScCredentialDeliverRequest,
   ScCredentialDeliverResponse,
   ScPhotoUploadResponse,
+  ScCredentialReplacementResponse,
+  ScCredentialReplacementResult,
 } from '../../models/summer-course/summer-course.model';
 
 @Injectable({ providedIn: 'root' })
@@ -52,4 +54,39 @@ export class ScCredentialDeliveriesService {
       { photo_base64: photoBase64 }
     );
   }
+
+  /**
+   * POST /api/summer-course/credential-replacement
+   * Genera una SO en NetSuite por reposición de credencial perdida/dañada.
+   */
+  requestReplacement(enrollmentId: number, notes?: string): Observable<ScCredentialReplacementResponse> {
+    return this.http.post<ScCredentialReplacementResponse>(
+      `${environment.apiUrl}/summer-course/credential-replacement`,
+      { enrollment_id: enrollmentId, notes: notes ?? undefined }
+    );
+  }
+
+  /**
+   * GET /api/summer-course/credential-replacement?enrollment_id=
+   * Consulta el estado de la reposición de credencial para una inscripción.
+   */
+  getReplacementStatus(enrollmentId: number): Observable<{ success: boolean; message: string; data: { replacement: ScCredentialReplacementResult | null } }> {
+    return this.http.get<{ success: boolean; message: string; data: { replacement: ScCredentialReplacementResult | null } }>(
+      `${environment.apiUrl}/summer-course/credential-replacement`,
+      { params: { enrollment_id: enrollmentId.toString() } }
+    );
+  }
+
+  /**
+   * POST /api/summer-course/sync-payments/sync-credentials
+   * Dispara manualmente el sync de reposiciones contra NetSuite.
+   */
+  syncCredentialReplacements(replacementId?: number): Observable<{ success: boolean; message: string; data: unknown }> {
+    const body = replacementId ? { replacement_id: replacementId } : {};
+    return this.http.post<{ success: boolean; message: string; data: unknown }>(
+      `${environment.apiUrl}/summer-course/sync-payments/sync-credentials`,
+      body
+    );
+  }
 }
+

@@ -294,10 +294,16 @@
                             </button>
                           }
                           @if (ci.credential_delivered) {
-                            <span class="sce-kit-badge sce-kit-badge--done">
+                            <button class="sce-kit-btn"
+                                    [class.sce-kit-btn--delivered]="!ci.replacement_payment_status"
+                                    [class.sce-kit-btn--delivered-debt]="ci.replacement_payment_status === 'pending' || ci.replacement_payment_status === 'partial'"
+                                    [class.sce-kit-btn--delivered-paid]="ci.replacement_payment_status === 'paid'"
+                                    [class.sce-kit-btn--delivered-cancelled]="ci.replacement_payment_status === 'cancelled'"
+                                    (click)="openCredentialModal(p, $event)"
+                                    [title]="ci.replacement_payment_status === 'pending' || ci.replacement_payment_status === 'partial' ? 'Reposición pendiente de pago' : ci.replacement_payment_status === 'paid' ? 'Reposición pagada' : 'Credencial entregada'">
                               <span class="material-symbols-outlined">badge</span>
                               Credencial ✓
-                            </span>
+                            </button>
                           } @else {
                             <button class="sce-kit-btn"
                                     [class.sce-kit-btn--disabled]="!ci.has_photo"
@@ -1493,6 +1499,80 @@
                   <textarea class="sce-input" rows="4" placeholder="Ej: recogió la mamá..."
                          [value]="credNotes()"
                          (input)="credNotes.set($any($event.target).value)"></textarea>
+                </div>
+              }
+
+              @if (cd.credential_delivered) {
+                <div class="cred-replacement-section">
+                  <hr class="cred-divider">
+
+                  <!-- Estado de reposición EXISTENTE en DB (cargado al abrir modal) -->
+                  @if (credReplacementStatus() || credReplacementResult()) {
+                    @let rep = credReplacementStatus() ?? credReplacementResult()!;
+                    <div class="cred-replacement-card"
+                         [class.cred-replacement-card--paid]="rep.payment_status === 'paid'"
+                         [class.cred-replacement-card--pending]="rep.payment_status === 'pending' || rep.payment_status === 'partial'"
+                         [class.cred-replacement-card--cancelled]="rep.payment_status === 'cancelled'">
+                      <div class="cred-replacement-card__header">
+                        <span class="material-symbols-outlined">
+                          {{ rep.payment_status === 'paid' ? 'check_circle' : rep.payment_status === 'cancelled' ? 'cancel' : 'schedule' }}
+                        </span>
+                        <span class="cred-replacement-card__title">Reposición de Credencial</span>
+                        <span class="cred-replacement-card__badge cred-replacement-badge--{{ rep.payment_status }}">
+                          {{ rep.payment_status === 'paid' ? 'Pagada' : rep.payment_status === 'cancelled' ? 'Cancelada' : rep.payment_status === 'partial' ? 'Parcial' : 'Pendiente' }}
+                        </span>
+                      </div>
+                      <div class="cred-replacement-card__body">
+                        <div class="cred-rep-row">
+                          <span class="cred-rep-label">Monto</span>
+                          <span class="cred-rep-value">${{ rep.amount !== undefined ? (rep.amount | number:'1.2-2') : '200.00' }} MXN</span>
+                        </div>
+                        @if (rep.ns_so_id) {
+                          <div class="cred-rep-row">
+                            <span class="cred-rep-label">SO NetSuite</span>
+                            <span class="cred-rep-value">#{{ rep.ns_so_id }}</span>
+                          </div>
+                        }
+                        @if (rep.ns_so_status) {
+                          <div class="cred-rep-row">
+                            <span class="cred-rep-label">Estado NS</span>
+                            <span class="cred-rep-value">{{ rep.ns_so_status }}</span>
+                          </div>
+                        }
+                        @if (rep.ns_error) {
+                          <div class="cred-rep-row cred-rep-row--error">
+                            <span class="cred-rep-label">Error NS</span>
+                            <span class="cred-rep-value">{{ rep.ns_error }}</span>
+                          </div>
+                        }
+                      </div>
+                      <!-- Botón sync manual -->
+                      @if (rep.payment_status !== 'paid' && rep.payment_status !== 'cancelled' && rep.ns_so_id) {
+                        <button class="sce-btn sce-btn--ghost sce-btn--sm w-100 mt-2"
+                                (click)="syncCredentialReplacementStatus()"
+                                [disabled]="credReplacementSyncing()">
+                          @if (credReplacementSyncing()) {
+                            <span class="sce-btn-spinner"></span> Sincronizando...
+                          } @else {
+                            <span class="material-symbols-outlined">sync</span>
+                            Actualizar estado de pago
+                          }
+                        </button>
+                      }
+                    </div>
+                  } @else {
+                    <!-- No hay reposición — mostrar botón para solicitar -->
+                    <button class="sce-btn sce-btn--danger-outline w-100"
+                            (click)="requestCredentialReplacement()"
+                            [disabled]="credReplacementLoading()">
+                      @if (credReplacementLoading()) {
+                        <span class="sce-btn-spinner"></span> Procesando...
+                      } @else {
+                        <span class="material-symbols-outlined">autorenew</span>
+                        Reponer credencial ($200)
+                      }
+                    </button>
+                  }
                 </div>
               }
             </div>

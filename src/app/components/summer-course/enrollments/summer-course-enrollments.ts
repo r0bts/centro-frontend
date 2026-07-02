@@ -34,6 +34,7 @@ import {
   ScKitDeliverySummary,
   ScCredentialDeliveryItem,
   ScCredentialPreview,
+  ScCredentialReplacementResult,
   ScIntensiveActivity,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
@@ -168,6 +169,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credModalLoading  = signal(false);
   credSaving        = signal(false);
   credNotes         = signal('');
+  credReplacementLoading = signal(false);
+  credReplacementResult  = signal<ScCredentialReplacementResult | null>(null);
+  credReplacementStatus  = signal<ScCredentialReplacementResult | null>(null);
+  credReplacementSyncing = signal(false);
   
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
@@ -1302,12 +1307,24 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.credModalData.set(null);
     this.credModalLoading.set(true);
     this.credNotes.set('');
+    this.credReplacementResult.set(null);
+    this.credReplacementStatus.set(null);
 
     const courseId = this.selectedCourse()!.id;
     this.credSvc.getPreview(p.participant_id, courseId).subscribe({
       next: res => {
         this.credModalData.set(res.data);
         this.credModalLoading.set(false);
+
+        // Si ya tiene credencial entregada, cargar el estado de reposición existente
+        if (res.data?.credential_delivered && p.enrollment_id) {
+          this.credSvc.getReplacementStatus(p.enrollment_id).subscribe({
+            next: statusRes => {
+              this.credReplacementStatus.set(statusRes.data?.replacement ?? null);
+            },
+            error: () => { /* ignorar error en carga de estado */ },
+          });
+        }
       },
       error: () => {
         this.credModalLoading.set(false);
@@ -1505,6 +1522,74 @@ ${stylesHtml}
       error: err => {
         this.credSaving.set(false);
         this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
+  }
+
+  requestCredentialReplacement(): void {
+    const data = this.credModalData();
+    if (!data?.enrollment_id) return;
+
+    Swal.fire({
+      title: '¿Solicitar reposición de credencial?',
+      html: 'Se generará una Orden de Venta en NetSuite por <strong>$200.00 MXN</strong> a cargo del titular.<br><br>Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, generar orden',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d63384',
+    }).then(result => {
+      if (!result.isConfirmed) return;
+
+      this.credReplacementLoading.set(true);
+      this.credReplacementResult.set(null);
+
+      this.credSvc.requestReplacement(data.enrollment_id!).subscribe({
+        next: res => {
+          this.credReplacementLoading.set(false);
+          this.credReplacementResult.set(res.data);
+          // También actualizar el estado persistente para que se muestre en futuras aperturas
+          this.credReplacementStatus.set(res.data);
+          if (res.success) {
+            this.showToast(`Reposición registrada · SO NS: ${res.data.ns_so_id ?? 'Pendiente'}`, 'success');
+          } else {
+            this.showToast(res.message ?? 'Reposición registrada con error NS', 'info');
+          }
+        },
+        error: err => {
+          this.credReplacementLoading.set(false);
+          this.showToast(err?.error?.message ?? 'Error al solicitar reposición', 'danger');
+        },
+      });
+    });
+  }
+
+  syncCredentialReplacementStatus(): void {
+    const status = this.credReplacementStatus() ?? this.credReplacementResult();
+    const repId  = status?.id ?? (status as any)?.replacement_id;
+    if (!repId) return;
+
+    this.credReplacementSyncing.set(true);
+    this.credSvc.syncCredentialReplacements(repId).subscribe({
+      next: () => {
+        // Recargar estado tras sync
+        const p = this.credParticipant();
+        if (p?.enrollment_id) {
+          this.credSvc.getReplacementStatus(p.enrollment_id).subscribe({
+            next: res => {
+              this.credReplacementStatus.set(res.data?.replacement ?? null);
+              this.credReplacementSyncing.set(false);
+            },
+            error: () => this.credReplacementSyncing.set(false),
+          });
+        } else {
+          this.credReplacementSyncing.set(false);
+        }
+        this.showToast('Sync completado', 'success');
+      },
+      error: err => {
+        this.credReplacementSyncing.set(false);
+        this.showToast(err?.error?.message ?? 'Error al sincronizar', 'danger');
       },
     });
   }
