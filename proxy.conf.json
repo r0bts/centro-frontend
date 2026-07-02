@@ -1,11 +1,11 @@
 {
   "/api": {
-    "target": "https://centro.ddev.site",
+    "target": "https://ecosistema-centro.ddev.site",
     "secure": false,
     "changeOrigin": true
   },
   "/uploads": {
-    "target": "https://centro.ddev.site",
+    "target": "https://ecosistema-centro.ddev.site",
     "secure": false,
     "changeOrigin": true
   }

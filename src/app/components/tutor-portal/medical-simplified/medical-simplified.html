@@ -3,106 +3,140 @@
     <button class="tp-btn tp-btn--ghost mb-3" (click)="goBack()">
       <span class="material-symbols-outlined">arrow_back</span> Regresar
     </button>
-    <h1 class="tp-header__title">Cuestionario Médico Requerido</h1>
-    <p class="tp-header__subtitle">Información necesaria para participantes del Curso de Verano.</p>
   </div>
 
   <div class="simple-container" *ngIf="!isLoading">
     
-    <div class="step-pane">
-      <h3 class="step-title">Información Médica del Participante</h3>
-      <div class="grid-form">
-        <div class="tp-field">
-          <label class="tp-field__label">Grupo Sanguíneo</label>
-          <select class="tp-field__input" [(ngModel)]="respuestas.grupo_sanguineo">
-            <option value="">Seleccione...</option>
-            <option value="A+">A+</option>
-            <option value="A-">A-</option>
-            <option value="B+">B+</option>
-            <option value="B-">B-</option>
-            <option value="AB+">AB+</option>
-            <option value="AB-">AB-</option>
-            <option value="O+">O+</option>
-            <option value="O-">O-</option>
-            <option value="Desconocido">Desconocido</option>
-          </select>
-        </div>
-      </div>
-    </div>
-
-    <hr class="divider">
-
-    <div class="step-pane">
-      <h3 class="step-title">Estado de Salud</h3>
+    <div class="step-pane" style="padding: 32px; border-radius: 12px; background: #ffffff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); border: 1px solid var(--clr-border);">
+      <h3 class="step-title" style="margin-bottom: 8px; font-size: 1.15rem; color: #1e293b; font-weight: 700;">Datos generales</h3>
+      <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 24px;">Antecedentes y datos clínicos del participante. Separa elementos múltiples con coma.</p>
       
-      <div class="tp-field mb-4">
-        <label class="tp-field__label">¿El participante padece alguna enfermedad crónica o está enfermo actualmente? <span class="tp-required">*</span></label>
-        <div class="radio-cards-group">
-          <label class="radio-card-label">
-            <input type="radio" class="radio-card-input" name="enf" value="Si" [(ngModel)]="respuestas.enfermo_actualmente">
-            <div class="radio-card-content">
-              <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">medical_services</span>
-              Sí
+      <div class="row gx-4 gy-4">
+        <!-- Columna Izquierda (Pequeña) -->
+        <div class="col-md-4">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Tipo de sangre</label>
+            <div class="tp-field__input" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #fff;" (click)="openBloodSheet()">
+              <span [style.color]="respuestas.tipo_sangre ? '#1e293b' : '#94a3b8'">{{ respuestas.tipo_sangre || 'Seleccione...' }}</span>
+              <span class="material-symbols-outlined" style="color: #64748b;">expand_more</span>
             </div>
-          </label>
-          <label class="radio-card-label">
-            <input type="radio" class="radio-card-input" name="enf" value="No" [(ngModel)]="respuestas.enfermo_actualmente">
-            <div class="radio-card-content">
-              <span class="material-symbols-outlined" style="font-size: 18px; margin-right: 6px;">health_and_safety</span>
-              No
+          </div>
+        </div>
+
+        <!-- Columna Derecha (Más ancha) -->
+        <div class="col-md-8">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Alergias</label>
+            <div class="tp-field__input tp-chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; height: auto; min-height: 44px; padding: 4px 12px;">
+              <div class="tp-chip" *ngFor="let chip of alergiasChips; let i = index" style="background: #eff6ff; color: #2563eb; padding: 4px 10px; border-radius: 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; font-weight: 500;">
+                {{ chip }}
+                <span class="material-symbols-outlined" style="font-size: 16px; cursor: pointer;" (click)="removeAlergia(i)">close</span>
+              </div>
+              <input type="text" style="border: none; outline: none; flex: 1; min-width: 140px; font-size: 0.95rem; background: transparent; box-shadow: none; padding: 4px 0;" 
+                     [(ngModel)]="alergiaInput" 
+                     (input)="onAlergiaInput($event)" 
+                     (keydown)="onAlergiaKeyDown($event)" 
+                     (blur)="onAlergiaBlur()"
+                     [maxLength]="150 - (respuestas.alergias?.length || 0)">
             </div>
-          </label>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <span style="font-size: 0.75rem; color: #94a3b8;">Escribe y presiona Enter o coma...</span>
+              <span style="font-size: 0.75rem; color: #94a3b8;">{{ 150 - ((respuestas.alergias?.length || 0) + (alergiaInput?.length || 0)) }} / 150</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Izquierda -->
+        <div class="col-md-6">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Padecimientos crónicos</label>
+            <div class="tp-field__input tp-chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; height: auto; min-height: 44px; padding: 4px 12px;">
+              <div class="tp-chip" *ngFor="let chip of padecimientosChips; let i = index" style="background: #eff6ff; color: #2563eb; padding: 4px 10px; border-radius: 16px; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; font-weight: 500;">
+                {{ chip }}
+                <span class="material-symbols-outlined" style="font-size: 16px; cursor: pointer;" (click)="removePadecimiento(i)">close</span>
+              </div>
+              <input type="text" style="border: none; outline: none; flex: 1; min-width: 140px; font-size: 0.95rem; background: transparent; box-shadow: none; padding: 4px 0;" 
+                     [(ngModel)]="padecimientoInput" 
+                     (input)="onPadecimientoInput($event)" 
+                     (keydown)="onPadecimientoKeyDown($event)" 
+                     (blur)="onPadecimientoBlur()"
+                     [maxLength]="250 - (respuestas.padecimientos_cronicos?.length || 0)">
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <span style="font-size: 0.75rem; color: #94a3b8;">Escribe y presiona Enter o coma...</span>
+              <span style="font-size: 0.75rem; color: #94a3b8;">{{ 250 - ((respuestas.padecimientos_cronicos?.length || 0) + (padecimientoInput?.length || 0)) }} / 250</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="col-md-6">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Medicamentos actuales</label>
+            <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.medicamentos_actuales" placeholder="losartán 50mg, ..." maxlength="250"></textarea>
+            <div class="text-end" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">{{ 250 - (respuestas.medicamentos_actuales?.length || 0) }} / 250</div>
+          </div>
+        </div>
+
+        <!-- Columna Izquierda -->
+        <div class="col-md-6">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Antecedentes familiares</label>
+            <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.antecedentes_familiares" maxlength="250"></textarea>
+            <div class="text-end" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">{{ 250 - (respuestas.antecedentes_familiares?.length || 0) }} / 250</div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha -->
+        <div class="col-md-6">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Antecedentes quirúrgicos</label>
+            <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.antecedentes_quirurgicos" maxlength="250"></textarea>
+            <div class="text-end" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">{{ 250 - (respuestas.antecedentes_quirurgicos?.length || 0) }} / 250</div>
+          </div>
+        </div>
+
+        <!-- Ancho Completo -->
+        <div class="col-12">
+          <div class="tp-field">
+            <label class="tp-field__label" style="font-weight: 600; color: #334155;">Notas generales</label>
+            <textarea class="tp-field__input" rows="3" [(ngModel)]="respuestas.notas_generales" maxlength="500"></textarea>
+            <div class="text-end" style="font-size: 0.75rem; color: #94a3b8; margin-top: 4px;">{{ 500 - (respuestas.notas_generales?.length || 0) }} / 500</div>
+          </div>
         </div>
       </div>
-
-      <div class="tp-field mb-4">
-        <label class="tp-field__label">Alergias Conocidas (Alimentos, Medicamentos, etc.)</label>
-        <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.alergias_tipo_otra" placeholder="Especifique..."></textarea>
+      
+      <!-- Footer Button -->
+      <div class="d-flex justify-content-end mt-4 pt-2">
+        <button class="tp-btn" style="background-color: #b48e3a; color: white; border: none; font-weight: 600; padding: 10px 20px;" 
+                [disabled]="isSaving" (click)="saveSimplified()">
+          <span class="material-symbols-outlined mr-2" *ngIf="!isSaving" style="font-size: 20px;">save</span>
+          {{ isSaving ? 'Guardando...' : 'Guardar datos generales' }}
+        </button>
       </div>
 
-      <div class="tp-field mb-4">
-        <label class="tp-field__label">¿Toma algún medicamento que deba ser suministrado durante el horario del curso?</label>
-        <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.medicamentos_actuales" placeholder="Especifique medicamento y dosis..."></textarea>
-      </div>
-
-      <div class="tp-field mb-4">
-        <label class="tp-field__label">Consideraciones adicionales para los instructores</label>
-        <textarea class="tp-field__input" rows="2" [(ngModel)]="respuestas.notas_adicionales" placeholder="Información de cuidado especial..."></textarea>
-      </div>
     </div>
 
-    <hr class="divider">
+  </div>
 
-    <div class="step-pane">
-      <h3 class="step-title">Términos y Consentimiento</h3>
-      <div class="terms-box">
-        <p>
-          Al enviar este formulario, certifico que la información proporcionada es correcta. Entiendo que esta 
-          información será utilizada exclusivamente por el personal del Centro Libanés para garantizar el bienestar
-          del participante durante el curso de verano.
-        </p>
-        <p>
-          Autorizo al personal a tomar las medidas de primeros auxilios necesarias en caso de emergencia y a contactar
-          al número de emergencia proporcionado.
-        </p>
+  <!-- Bottom Sheet for Blood Type -->
+  <div class="tp-bottom-sheet-overlay" *ngIf="showBloodSheet" (click)="closeBloodSheet()">
+    <div class="tp-bottom-sheet" (click)="$event.stopPropagation()">
+      <div class="sheet-header">
+        <h4>Tipo de sangre</h4>
+        <button class="close-btn" (click)="closeBloodSheet()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
       </div>
-
-      <div class="consent-check">
-        <label>
-          <input type="checkbox" [(ngModel)]="consentAccepted">
-          He leído y acepto los términos de participación.
-        </label>
+      <div class="sheet-options">
+        <div class="sheet-option" *ngFor="let bt of bloodTypes" 
+             (click)="selectBloodType(bt)"
+             [class.active]="respuestas.tipo_sangre === bt">
+          {{ bt }}
+          <span class="material-symbols-outlined" *ngIf="respuestas.tipo_sangre === bt">check</span>
+        </div>
       </div>
     </div>
-
-    <div class="footer-actions mt-4">
-      <button class="tp-btn btn-success w-100" style="justify-content: center; padding: 14px;" 
-              [disabled]="!consentAccepted || isSaving" (click)="saveSimplified()">
-        {{ isSaving ? 'Guardando Información...' : 'Firmar y Enviar' }} 
-        <span class="material-symbols-outlined ml-2" *ngIf="!isSaving">check_circle</span>
-      </button>
-    </div>
-
   </div>
 
   <div *ngIf="isLoading" class="tp-loading">
