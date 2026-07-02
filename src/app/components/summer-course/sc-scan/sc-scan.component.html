@@ -72,8 +72,14 @@
         @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
       </p>
       <div class="sc-scan-card__badge sc-scan-card__badge--already">
-        <span class="material-symbols-outlined">event_available</span>
-        Ya registró entrada hoy
+        <span class="material-symbols-outlined">how_to_reg</span>
+        Ya confirmado en salón hoy
+      </div>
+      <!-- Badge de entrada al edificio -->
+      <div class="sc-scan-card__badge"
+           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin scan de entrada' }}
       </div>
       <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -95,6 +101,12 @@
         {{ result()!.group_alias ?? 'Sin grupo' }}
         @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
       </p>
+      <!-- Badge de entrada al edificio -->
+      <div class="sc-scan-card__badge"
+           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Aún no escaneado en entrada' }}
+      </div>
       @if (result()!.payment_status !== 'paid') {
         <div class="sc-scan-card__badge sc-scan-card__badge--warn">
           <span class="material-symbols-outlined">payments</span>
@@ -103,7 +115,7 @@
       }
       <div class="sc-scan-card__badge sc-scan-card__badge--ok">
         <span class="material-symbols-outlined">how_to_reg</span>
-        @if (result()!.checkin_registered) { Entrada registrada } @else { Entrada ya registrada }
+        @if (result()!.checkin_registered) { Confirmado en grupo } @else { Ya confirmado hoy }
       </div>
       <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -129,16 +141,68 @@
         <span class="material-symbols-outlined">info</span>
         {{ result()!.warning }}
       </div>
+      <!-- Badge de entrada al edificio -->
+      <div class="sc-scan-card__badge"
+           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin escaneo de entrada' }}
+      </div>
 
       <div class="sc-scan-card__actions">
         <button class="sc-scan-btn sc-scan-btn--accept" (click)="acceptForce()" [disabled]="processing()">
           <span class="material-symbols-outlined">check</span>
           Aceptar de todas formas
         </button>
-        <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
+        <!-- <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
           <span class="material-symbols-outlined">close</span>
           No pertenece aquí
-        </button>
+        </button> -->
+      </div>
+    </div>
+  }
+
+  <!-- ── Lista de escaneados del día ────────────────────────────────────── -->
+  @if (scannedList().length > 0) {
+    <div class="sc-scan-list">
+      <div class="sc-scan-list__header">
+        <span class="material-symbols-outlined">how_to_reg</span>
+        <span>{{ scannedList().length }} presente{{ scannedList().length === 1 ? '' : 's' }} en {{ groupAlias() }}</span>
+      </div>
+      <div class="sc-scan-list__body">
+        @for (entry of scannedList(); track entry.id) {
+          <div class="sc-scan-list__item" [class.sc-scan-list__item--out]="entry.out_of_group">
+            @if (entry.participant_photo_url) {
+              <img [src]="entry.participant_photo_url" class="sc-scan-list__photo" alt="">
+            } @else {
+              <div class="sc-scan-list__avatar">{{ entry.participant_name.charAt(0) }}</div>
+            }
+            <div class="sc-scan-list__info">
+              <span class="sc-scan-list__name">{{ entry.participant_name }}</span>
+              <!-- Línea 1: nivel + hora confirmación del instructor -->
+              <span class="sc-scan-list__meta">
+                @if (entry.level_roman) { Niv. {{ entry.level_roman }} · }
+                <span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle">how_to_reg</span>
+                {{ entry.checked_in_at | date:'HH:mm' }}
+                @if (entry.instructor_name) { · {{ entry.instructor_name }} }
+                @if (entry.out_of_group) {
+                  · <em class="sc-scan-list__tag--out">⚠ grupo {{ entry.group_alias ?? 'otro' }}</em>
+                }
+              </span>
+              <!-- Línea 2: entrada al edificio (check-in de staff) -->
+              <span class="sc-scan-list__entrance"
+                    [class]="entry.entrance_checked_at ? 'sc-scan-list__entrance--ok' : 'sc-scan-list__entrance--pending'">
+                <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">
+                  {{ entry.entrance_checked_at ? 'door_front' : 'schedule' }}
+                </span>
+                @if (entry.entrance_checked_at) {
+                  Entrada {{ entry.entrance_checked_at | date:'HH:mm' }}
+                } @else {
+                  Sin scan de entrada
+                }
+              </span>
+            </div>
+          </div>
+        }
       </div>
     </div>
   }

@@ -68,6 +68,22 @@
                         <i class="bi bi-person-fill me-1"></i>{{ g.teacher_name }}
                       </span>
                     }
+                    <!-- URL del portal del instructor -->
+                    <div class="group-scan-url">
+                      <a class="group-scan-url__link"
+                         [href]="groupScanUrl(g.alias)"
+                         target="_blank"
+                         rel="noopener"
+                         title="Abrir portal de escaneo">
+                        <i class="bi bi-qr-code me-1"></i>/sc-scan/{{ g.alias }}
+                      </a>
+                      <button class="btn btn-xs"
+                              [class]="copiedAlias() === g.alias ? 'btn-success' : 'btn-outline-secondary'"
+                              title="Copiar URL"
+                              (click)="copyUrl(g.alias)">
+                        <i [class]="copiedAlias() === g.alias ? 'bi bi-check-lg' : 'bi bi-clipboard'"></i>
+                      </button>
+                    </div>
                   </div>
                   <div class="group-item-meta">
                     @if (g.capacity) {

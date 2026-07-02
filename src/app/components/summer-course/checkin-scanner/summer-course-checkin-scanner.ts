@@ -51,6 +51,7 @@ export class SummerCourseCheckinScannerComponent implements OnInit, OnDestroy {
     this.scannedData = null;
     this.manualToken = '';
     this.cameraError = null;
+    this.cdr.detectChanges(); // render the #qr-reader-checkin div before instantiating Html5Qrcode
     
     // Slight delay to allow DOM to render the reader div
     setTimeout(() => {
@@ -62,7 +63,7 @@ export class SummerCourseCheckinScannerComponent implements OnInit, OnDestroy {
           { facingMode: facingMode },
           config,
           (decodedText) => {
-            this.onScanSuccess(decodedText);
+            this.ngZone.run(() => this.onScanSuccess(decodedText));
           },
           (errorMessage) => {
             // parse errors are frequent, ignore them

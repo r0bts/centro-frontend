@@ -2,7 +2,7 @@ import {
   Component, OnInit, OnDestroy, signal, inject,
   ChangeDetectorRef, NgZone, ViewEncapsulation
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -17,16 +17,31 @@ interface ScanResult {
   group_alias: string | null;
   belongs_to_group: boolean;
   has_checkin_today: boolean;
+  has_entrance_today: boolean;
+  entrance_checked_at: string | null;
   checkin_registered: boolean;
   checkin_error: string | null;
   warning: string | null;
   payment_status: string;
 }
 
+interface ScanEntry {
+  id: string;
+  participant_name: string;
+  participant_photo_url: string | null;
+  level_roman: string | null;
+  group_alias: string | null;
+  checked_in_at: string;
+  out_of_group: boolean;
+  has_entrance_today: boolean;
+  entrance_checked_at: string | null;
+  instructor_name: string | null;
+}
+
 @Component({
   selector: 'app-sc-scan',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, DatePipe],
   templateUrl: './sc-scan.component.html',
   styleUrl: './sc-scan.component.scss',
   encapsulation: ViewEncapsulation.None,
@@ -37,7 +52,8 @@ export class ScScanComponent implements OnInit, OnDestroy {
   private cdr     = inject(ChangeDetectorRef);
   private ngZone  = inject(NgZone);
 
-  private readonly apiUrl = `${environment.apiUrl}/public/sc-scan`.replace('/api/public/', '/api/public/');
+  private readonly apiUrl     = `${environment.apiUrl}/public/sc-scan`;
+  private readonly historyUrl = `${environment.apiUrl}/public/sc-scan-history`;
 
   groupAlias   = signal<string>('');
   manualToken  = signal<string>('');
@@ -49,6 +65,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
   result       = signal<ScanResult | null>(null);
   errorMsg     = signal<string | null>(null);
   lastToken    = signal<string>('');
+  scannedList  = signal<ScanEntry[]>([]);
 
   /** 'idle' | 'ok' | 'warning' | 'error' | 'already' */
   state        = signal<'idle' | 'ok' | 'warning' | 'error' | 'already'>('idle');
@@ -58,6 +75,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const alias = this.route.snapshot.paramMap.get('groupAlias') ?? '';
     this.groupAlias.set(decodeURIComponent(alias));
+    this.loadInitialHistory();
     setTimeout(() => this.startCamera(), 300);
   }
 
@@ -106,8 +124,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   // ── Escaneo ───────────────────────────────────────────────────────────────
 
-  onScan(token: string): void {
-    if (this.processing() || token === this.lastToken()) return;
+  onScan(token: string): void {    if (this.processing() || token === this.lastToken()) return;
     this.lastToken.set(token);
     this.callApi(token, false);
   }
@@ -115,6 +132,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
   submitManual(): void {
     const t = this.manualToken().trim();
     if (!t) return;
+    this.lastToken.set(t);
     this.callApi(t, false);
     this.manualToken.set('');
   }
@@ -142,6 +160,36 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   // ── API ───────────────────────────────────────────────────────────────────
 
+  private loadInitialHistory(): void {
+    const alias = this.groupAlias();
+    if (!alias) return;
+    const today = new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000)
+      .toISOString().split('T')[0];
+
+    this.http.get<{ success: boolean; data: { history: any[] } }>(
+      this.historyUrl, { params: { group_alias: alias, date: today } }
+    ).subscribe({
+      next: (res) => {
+        if (res.success && res.data.history?.length) {
+          this.ngZone.run(() => {
+            this.scannedList.set(res.data.history.map((h: any) => ({
+              id:                    h.id?.toString() ?? (Date.now() + Math.random()).toString(),
+              participant_name:      h.participant_name,
+              participant_photo_url: h.participant_photo_url ?? null,
+              level_roman:           h.level_roman ?? null,              group_alias:           h.group_alias ?? null,              checked_in_at:         h.checked_in_at,
+              out_of_group:          h.out_of_group ?? false,
+              has_entrance_today:    h.has_entrance_today ?? false,
+              entrance_checked_at:   h.entrance_checked_at ?? null,
+              instructor_name:       h.instructor_name ?? null,
+            })));
+            this.cdr.detectChanges();
+          });
+        }
+      },
+      error: () => {} // silencioso
+    });
+  }
+
   private callApi(token: string, force: boolean): void {
     this.processing.set(true);
     this.result.set(null);
@@ -162,14 +210,30 @@ export class ScScanComponent implements OnInit, OnDestroy {
         const d = res.data;
         this.result.set(d);
 
-        if (d.has_checkin_today && !d.checkin_registered) {
+        // Agregar a la lista de la sesión si se registró un check-in nuevo
+        if (d.checkin_registered) {
+          this.scannedList.update(list => [{
+            id:                    Date.now().toString(),
+            participant_name:      `${d.participant.first_name} ${d.participant.last_name}`,
+            participant_photo_url: d.participant.photo_url,
+            level_roman:           d.level_roman,
+            group_alias:           d.group_alias,
+            checked_in_at:         new Date().toISOString(),
+            out_of_group:          !d.belongs_to_group,
+            has_entrance_today:    d.has_entrance_today,
+            entrance_checked_at:   d.entrance_checked_at,
+            instructor_name:       null,
+          }, ...list]);
+        }
+
+        if (d.checkin_registered) {
+          this.state.set('ok');
+          // Auto-reset tras 4 s cuando se registró check-in (en grupo o forzado)
+          setTimeout(() => this.reset(), 4000);
+        } else if (d.has_checkin_today) {
           this.state.set('already');
         } else if (!d.belongs_to_group) {
           this.state.set('warning');
-        } else if (d.checkin_registered) {
-          this.state.set('ok');
-          // Auto-reset tras 4 s si check-in fue exitoso en su grupo
-          setTimeout(() => this.reset(), 4000);
         } else {
           this.state.set('ok');
         }

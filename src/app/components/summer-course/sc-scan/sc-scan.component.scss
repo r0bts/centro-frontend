@@ -200,3 +200,112 @@
 .sc-scan-btn--accept { background: #16a34a; color: #fff; }
 .sc-scan-btn--reject { background: #fee2e2; color: var(--scan-error); }
 .sc-scan-btn--ghost  { background: #f1f5f9; color: var(--scan-text); margin-top: 4px; }
+
+/* Lista de presentes del día */
+.sc-scan-list {
+  width: 100%;
+  max-width: 480px;
+  margin-top: 28px;
+  background: var(--scan-surface);
+  border-radius: 14px;
+  border: 1px solid var(--scan-border);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #334155;
+    border-bottom: 1px solid var(--scan-border);
+
+    .material-symbols-outlined { font-size: 20px; color: var(--scan-ok); }
+  }
+
+  &__body {
+    max-height: 380px;
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    &:last-child { border-bottom: none; }
+    &--out { background: #fffbeb; }
+  }
+
+  &__photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 2px solid var(--scan-border);
+  }
+
+  &__avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e0e7ff;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--scan-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    font-size: .75rem;
+    color: var(--scan-muted);
+    em { color: var(--scan-warn); font-style: normal; font-weight: 600; }
+  }
+
+  &__tag--out {
+    display: inline-block;
+    background: #fff3cd;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+    border-radius: 4px;
+    padding: 0 5px;
+    font-size: .68rem;
+    font-weight: 700;
+    font-style: normal;
+    vertical-align: middle;
+  }
+
+  &__entrance {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: .7rem;
+    font-weight: 600;
+    margin-top: 2px;
+
+    &--ok      { color: var(--scan-ok); }
+    &--pending { color: var(--scan-warn); }
+  }
+}
