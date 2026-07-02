@@ -308,18 +308,12 @@
 
 <!-- Modal QR -->
 <div *ngIf="showQrModal" class="tp-modal-overlay tp-modal-overlay--dark" (click)="closeOnQrOverlay($event)">
-  <div class="tp-qr-modal" data-modal>
-    <div class="mb-3 d-flex flex-column align-items-center text-success">
-      <span class="material-symbols-outlined mb-1" style="font-size: 48px;">check_circle</span>
-      <h4 class="mb-0 fw-bold" style="font-size: 1.1rem; color: #10b981;">¡Pase Generado Exitosamente!</h4>
+  <div class="tp-qr-modal" data-modal style="padding: 32px 24px;">
+    <div class="mb-4 d-flex flex-column align-items-center text-success">
+      <span class="material-symbols-outlined mb-2" style="font-size: 64px;">check_circle</span>
+      <h4 class="mb-2 fw-bold text-center" style="font-size: 1.25rem; color: #10b981;">¡Pase Generado Exitosamente!</h4>
+      <p class="text-center text-muted m-0" style="font-size: 0.95rem;">El código estará disponible en la entrada y será válido por <strong>1 hora</strong>.</p>
     </div>
-    
-    <h3 class="tp-qr-modal__title mt-3 border-top pt-3">Pase de Salida</h3>
-    <p class="tp-qr-modal__subtitle">{{qrData?.authorized_name}}</p>
-    <div class="tp-qr-modal__code">
-      <qrcode *ngIf="qrData?.token" [qrdata]="qrData.token" [width]="220" [errorCorrectionLevel]="'M'"></qrcode>
-    </div>
-    <p class="tp-qr-modal__note">Presenta este código al guardia. Es válido por <strong>1 hora</strong>.</p>
     <button (click)="closeQrModal()" class="tp-btn tp-btn--primary tp-btn--full">Cerrar</button>
   </div>
 </div>
