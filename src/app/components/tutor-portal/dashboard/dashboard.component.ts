@@ -17,7 +17,8 @@ import { QRCodeComponent } from 'angularx-qrcode';
 export class DashboardComponent implements OnInit {
   children: any[] = [];
   pickups: any[] = [];
-  isLoading = true;
+  isLoading = false;
+  isSavingPickup = false;
   phone: string = '';
 
   showQrModal = false;
@@ -74,6 +75,7 @@ export class DashboardComponent implements OnInit {
 
   // Camera state
   showCamera = false;
+  currentFacingMode: 'user' | 'environment' = 'user';
   cameraTarget: 'medical' | 'pickup' | 'extraordinary' = 'medical';
   videoStream: MediaStream | null = null;
 
@@ -201,6 +203,14 @@ export class DashboardComponent implements OnInit {
     return this.pickupsByChild[childId] || [];
   }
 
+  toggleBodyScroll() {
+    if (this.showQrModal || this.showAddModal || this.showDurationModal || this.showProfileModal || this.showExtraordinaryModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+  }
+
   openAddModal(childId: number) {
     this.newPickup.participant_id = childId;
     this.newPickup.authorized_socio_id = null;
@@ -218,6 +228,7 @@ export class DashboardComponent implements OnInit {
       domingo: false
     };
     this.showAddModal = true;
+    this.toggleBodyScroll();
     this.showFamilySelection = true;
     this.loadingFamily = true;
     this.familyOptions = [];
@@ -264,6 +275,7 @@ export class DashboardComponent implements OnInit {
 
   closeAddModal() {
     this.showAddModal = false;
+    this.toggleBodyScroll();
     this.cdr.detectChanges();
   }
 
@@ -285,22 +297,22 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    this.isSavingPickup = true;
     this.cdr.detectChanges();
     this.tutorApi.addPickup(this.newPickup).subscribe({
       next: (res: any) => {
+        this.isSavingPickup = false;
         if (res.success) {
           Swal.fire('Guardado', 'Persona autorizada agregada', 'success');
           this.closeAddModal();
           this.loadPickups();
         } else {
-          this.isLoading = false;
           this.cdr.detectChanges();
           Swal.fire('Error', res.message, 'error');
         }
       },
       error: () => {
-        this.isLoading = false;
+        this.isSavingPickup = false;
         this.cdr.detectChanges();
         Swal.fire('Error', 'Error al guardar', 'error');
       }
@@ -340,12 +352,14 @@ export class DashboardComponent implements OnInit {
   openDurationModal(childId: number, pickupId: number) {
     this.pendingQrChildId = childId;
     this.pendingQrPickupId = pickupId;
-    this.selectedDuration = 15;
+    this.selectedDuration = 60;
     this.showDurationModal = true;
+    this.toggleBodyScroll();
   }
 
   closeDurationModal() {
     this.showDurationModal = false;
+    this.toggleBodyScroll();
     this.pendingQrChildId = null;
     this.pendingQrPickupId = null;
   }
@@ -357,8 +371,15 @@ export class DashboardComponent implements OnInit {
       next: (res: any) => {
         if (res.success) {
           this.qrData = res.data.url;
+          
+          if (this.pendingQrChildId !== null && this.pickupsByChild[this.pendingQrChildId]) {
+             let p = this.pickupsByChild[this.pendingQrChildId].find((pu: any) => pu.id == this.pendingQrPickupId);
+             if (p) p.active_pass_url = res.data.url;
+          }
+          
           this.closeDurationModal();
           this.showQrModal = true;
+          this.toggleBodyScroll();
           this.cdr.detectChanges();
         } else {
           Swal.fire('Error', res.message, 'error');
@@ -372,6 +393,7 @@ export class DashboardComponent implements OnInit {
 
   closeQrModal() {
     this.showQrModal = false;
+    this.toggleBodyScroll();
     this.qrData = null;
     this.cdr.detectChanges();
   }
@@ -436,16 +458,21 @@ export class DashboardComponent implements OnInit {
     }
 
     this.showProfileModal = true;
+    this.toggleBodyScroll();
     this.cdr.detectChanges();
   }
 
   setProfileTab(tab: 'photo' | 'medical') {
+    if (tab === 'medical' && this.activeProfileTab === 'photo') {
+      return; // Do not allow advancing via tabs
+    }
     this.activeProfileTab = tab;
     this.cdr.detectChanges();
   }
 
   closeProfileModal() {
     this.showProfileModal = false;
+    this.toggleBodyScroll();
     this.selectedChildForProfile = null;
     this.stopCamera();
     this.cdr.detectChanges();
@@ -457,9 +484,12 @@ export class DashboardComponent implements OnInit {
 
   goToMedicalForm(child: any, variant: 'completo' | 'simplificado'): void {
     const navigateFn = () => {
+      console.log('Navigating to form. Child object:', child);
       this.closeProfileModal();
       if (variant === 'completo') {
-        this.router.navigate(['/tutor-portal/expediente-medico/completo', child.id]);
+        const idToPass = child.socio_id || child.titular_socio_id || child.id;
+        console.log('Completo idToPass:', idToPass);
+        this.router.navigate(['/tutor-portal/expediente-medico/completo', idToPass]);
       } else {
         this.router.navigate(['/tutor-portal/expediente-medico/simplificado', child.id]);
       }
@@ -493,8 +523,35 @@ export class DashboardComponent implements OnInit {
       Swal.fire('Atención', 'La fotografía es obligatoria para continuar.', 'warning');
       return;
     }
-    const variant = this.isSocioParticipant(this.selectedChildForProfile) ? 'completo' : 'simplificado';
-    this.goToMedicalForm(this.selectedChildForProfile, variant);
+
+    const switchToMedical = () => {
+      this.activeProfileTab = 'medical';
+      this.cdr.detectChanges();
+    };
+
+    if (this.medicalProfile.profile_picture.startsWith('data:image')) {
+      this.isLoading = true;
+      this.cdr.detectChanges();
+      
+      this.tutorApi.updateParticipantProfile(this.selectedChildForProfile.id, this.medicalProfile).subscribe({
+        next: (res: any) => {
+          this.isLoading = false;
+          if (res.data && res.data.profile_picture) {
+            this.selectedChildForProfile.profile_picture = res.data.profile_picture;
+          }
+          switchToMedical();
+        },
+        error: () => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          Swal.fire('Error', 'No se pudo guardar la fotografía, pero puedes continuar.', 'warning').then(() => {
+            switchToMedical();
+          });
+        }
+      });
+    } else {
+      switchToMedical();
+    }
   }
 
   closeOnProfileOverlay(event: MouseEvent) {
@@ -531,9 +588,6 @@ export class DashboardComponent implements OnInit {
           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           if (target === 'profile') {
             this.medicalProfile.profile_picture = dataUrl;
-            if (this.showMedicalTab) {
-              this.activeProfileTab = 'medical';
-            }
           } else {
             this.extraordinaryData.photo_base64 = dataUrl;
           }
@@ -568,7 +622,7 @@ export class DashboardComponent implements OnInit {
     this.cdr.detectChanges();
     try {
       this.videoStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' }, 
+        video: { facingMode: this.currentFacingMode }, 
         audio: false 
       });
       const videoElement = document.getElementById('cameraVideo') as HTMLVideoElement;
@@ -579,6 +633,25 @@ export class DashboardComponent implements OnInit {
       this.showCamera = false;
       this.cdr.detectChanges();
       Swal.fire('Error', 'No se pudo acceder a la cámara. Revisa los permisos de tu navegador.', 'error');
+    }
+  }
+
+  async toggleCamera() {
+    this.currentFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+    }
+    try {
+      this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: this.currentFacingMode }, 
+        audio: false 
+      });
+      const videoElement = document.getElementById('cameraVideo') as HTMLVideoElement;
+      if (videoElement) {
+        videoElement.srcObject = this.videoStream;
+      }
+    } catch (err) {
+      console.error('Error toggling camera', err);
     }
   }
 
@@ -611,9 +684,6 @@ export class DashboardComponent implements OnInit {
       }
       
       this.stopCamera();
-      if (this.cameraTarget === 'medical' && this.showMedicalTab) {
-        this.activeProfileTab = 'medical'; // Auto-advance
-      }
       this.cdr.detectChanges();
     }
   }
@@ -640,10 +710,12 @@ export class DashboardComponent implements OnInit {
       photo_base64: ''
     };
     this.showExtraordinaryModal = true;
+    this.toggleBodyScroll();
   }
 
   closeExtraordinaryModal() {
     this.showExtraordinaryModal = false;
+    this.toggleBodyScroll();
     this.stopCamera();
   }
 
@@ -676,6 +748,7 @@ export class DashboardComponent implements OnInit {
           }
           this.qrData = res.data.url;
           this.showQrModal = true;
+          this.toggleBodyScroll();
           this.cdr.detectChanges();
         } else {
           this.cdr.detectChanges();

@@ -1222,8 +1222,15 @@
           <!-- Panel izquierdo: cámara o selector de archivo -->
           <div class="photo-area__source">
             @if (photoCameraMode() === 'camera') {
-              <video #videoEl autoplay playsinline class="photo-video"
-                     [style.display]="photoCameraStream() ? 'block' : 'none'"></video>
+              <div style="position: relative; display: inline-block; width: 100%;">
+                <video #videoEl autoplay playsinline class="photo-video"
+                       [style.display]="photoCameraStream() ? 'block' : 'none'"></video>
+                @if (photoCameraStream()) {
+                  <button (click)="toggleCamera(videoEl)" class="tp-camera-toggle-btn" style="position: absolute; bottom: 8px; right: 50%; transform: translateX(50%); background: rgba(255,255,255,0.8); border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.2); z-index: 10;">
+                    <span class="material-symbols-outlined" style="font-size: 20px; color: #334155;">flip_camera_ios</span>
+                  </button>
+                }
+              </div>
               @if (!photoCameraStream()) {
                 <div class="photo-video photo-video--placeholder">
                   <span class="material-symbols-outlined">videocam_off</span>
