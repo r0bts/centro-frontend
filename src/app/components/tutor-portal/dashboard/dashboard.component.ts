@@ -17,7 +17,8 @@ import { QRCodeComponent } from 'angularx-qrcode';
 export class DashboardComponent implements OnInit {
   children: any[] = [];
   pickups: any[] = [];
-  isLoading = true;
+  isLoading = false;
+  isSavingPickup = false;
   phone: string = '';
 
   showQrModal = false;
@@ -286,22 +287,22 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    this.isLoading = true;
+    this.isSavingPickup = true;
     this.cdr.detectChanges();
     this.tutorApi.addPickup(this.newPickup).subscribe({
       next: (res: any) => {
+        this.isSavingPickup = false;
         if (res.success) {
           Swal.fire('Guardado', 'Persona autorizada agregada', 'success');
           this.closeAddModal();
           this.loadPickups();
         } else {
-          this.isLoading = false;
           this.cdr.detectChanges();
           Swal.fire('Error', res.message, 'error');
         }
       },
       error: () => {
-        this.isLoading = false;
+        this.isSavingPickup = false;
         this.cdr.detectChanges();
         Swal.fire('Error', 'Error al guardar', 'error');
       }
