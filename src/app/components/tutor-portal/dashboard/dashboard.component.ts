@@ -361,7 +361,7 @@ export class DashboardComponent implements OnInit {
           this.qrData = res.data.url;
           
           if (this.pickupsByChild[this.pendingQrChildId]) {
-             let p = this.pickupsByChild[this.pendingQrChildId].find((pu: any) => pu.id === this.pendingQrPickupId);
+             let p = this.pickupsByChild[this.pendingQrChildId].find((pu: any) => pu.id == this.pendingQrPickupId);
              if (p) p.active_pass_url = res.data.url;
           }
           
