@@ -18,17 +18,23 @@ export class MedicalSimplifiedComponent implements OnInit {
   participantId: string | null = null;
   consentAccepted = false;
 
+  showBloodSheet = false;
+  bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Desconocido'];
+
+  alergiasChips: string[] = [];
+  alergiaInput: string = '';
+
+  padecimientosChips: string[] = [];
+  padecimientoInput: string = '';
+
   respuestas: any = {
-    nombre_completo: '',
-    edad: '',
-    sexo: '',
-    fecha_nacimiento: '',
-    grupo_sanguineo: '',
-    contacto_emergencia_telefono: '',
-    enfermo_actualmente: 'No',
-    alergias_tipo_otra: '',
+    tipo_sangre: '',
+    alergias: '',
+    padecimientos_cronicos: '',
     medicamentos_actuales: '',
-    notas_adicionales: ''
+    antecedentes_familiares: '',
+    antecedentes_quirurgicos: '',
+    notas_generales: ''
   };
 
   constructor(
@@ -68,6 +74,8 @@ export class MedicalSimplifiedComponent implements OnInit {
           }
           this.respuestas = { ...this.respuestas, ...loadedRespuestas };
           this.consentAccepted = res.data.consent_status === 'accepted';
+          this.syncAlergiasChips();
+          this.syncPadecimientosChips();
         }
         this.cdr.detectChanges();
       },
@@ -83,8 +91,106 @@ export class MedicalSimplifiedComponent implements OnInit {
     this.router.navigate(['/tutor-portal/dashboard']);
   }
 
+  openBloodSheet() {
+    this.showBloodSheet = true;
+  }
+
+  closeBloodSheet() {
+    this.showBloodSheet = false;
+  }
+
+  selectBloodType(bt: string) {
+    this.respuestas.tipo_sangre = bt;
+    this.closeBloodSheet();
+  }
+
+  syncAlergiasChips() {
+    if (this.respuestas.alergias) {
+      this.alergiasChips = this.respuestas.alergias.split(',')
+        .map((a: string) => a.trim())
+        .filter((a: string) => a.length > 0);
+    } else {
+      this.alergiasChips = [];
+    }
+  }
+
+  onAlergiaInput(event: any) {
+    const val = event.target.value;
+    if (val.includes(',')) {
+      this.addAlergia(val.replace(',', '').trim());
+    }
+  }
+
+  onAlergiaKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.keyCode === 13) {
+      event.preventDefault();
+      this.addAlergia(this.alergiaInput.trim());
+    }
+  }
+
+  onAlergiaBlur() {
+    if (this.alergiaInput.trim()) {
+      this.addAlergia(this.alergiaInput.trim());
+    }
+  }
+
+  addAlergia(val: string) {
+    if (val && !this.alergiasChips.includes(val)) {
+      this.alergiasChips.push(val);
+      this.respuestas.alergias = this.alergiasChips.join(', ');
+    }
+    this.alergiaInput = '';
+  }
+
+  removeAlergia(index: number) {
+    this.alergiasChips.splice(index, 1);
+    this.respuestas.alergias = this.alergiasChips.join(', ');
+  }
+
+  syncPadecimientosChips() {
+    if (this.respuestas.padecimientos_cronicos) {
+      this.padecimientosChips = this.respuestas.padecimientos_cronicos.split(',')
+        .map((a: string) => a.trim())
+        .filter((a: string) => a.length > 0);
+    } else {
+      this.padecimientosChips = [];
+    }
+  }
+
+  onPadecimientoInput(event: any) {
+    const val = event.target.value;
+    if (val.includes(',')) {
+      this.addPadecimiento(val.replace(',', '').trim());
+    }
+  }
+
+  onPadecimientoKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Enter' || event.keyCode === 13) {
+      event.preventDefault();
+      this.addPadecimiento(this.padecimientoInput.trim());
+    }
+  }
+
+  onPadecimientoBlur() {
+    if (this.padecimientoInput.trim()) {
+      this.addPadecimiento(this.padecimientoInput.trim());
+    }
+  }
+
+  addPadecimiento(val: string) {
+    if (val && !this.padecimientosChips.includes(val)) {
+      this.padecimientosChips.push(val);
+      this.respuestas.padecimientos_cronicos = this.padecimientosChips.join(', ');
+    }
+    this.padecimientoInput = '';
+  }
+
+  removePadecimiento(index: number) {
+    this.padecimientosChips.splice(index, 1);
+    this.respuestas.padecimientos_cronicos = this.padecimientosChips.join(', ');
+  }
+
   saveSimplified() {
-    if (!this.consentAccepted) return;
     
     this.isSaving = true;
     this.cdr.markForCheck();
@@ -101,8 +207,8 @@ export class MedicalSimplifiedComponent implements OnInit {
         if (res.success) {
           Swal.fire({
             icon: 'success',
-            title: '¡Cuestionario Guardado!',
-            text: 'La información se ha guardado correctamente para el curso de verano.',
+            title: '¡Datos Guardados!',
+            text: 'Los datos médicos se han guardado correctamente.',
             confirmButtonText: 'Continuar',
             confirmButtonColor: '#4f46e5'
           }).then(() => {

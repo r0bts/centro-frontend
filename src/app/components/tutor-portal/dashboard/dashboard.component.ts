@@ -74,6 +74,7 @@ export class DashboardComponent implements OnInit {
 
   // Camera state
   showCamera = false;
+  currentFacingMode: 'user' | 'environment' = 'user';
   cameraTarget: 'medical' | 'pickup' | 'extraordinary' = 'medical';
   videoStream: MediaStream | null = null;
 
@@ -440,6 +441,9 @@ export class DashboardComponent implements OnInit {
   }
 
   setProfileTab(tab: 'photo' | 'medical') {
+    if (tab === 'medical' && this.activeProfileTab === 'photo') {
+      return; // Do not allow advancing via tabs
+    }
     this.activeProfileTab = tab;
     this.cdr.detectChanges();
   }
@@ -457,9 +461,12 @@ export class DashboardComponent implements OnInit {
 
   goToMedicalForm(child: any, variant: 'completo' | 'simplificado'): void {
     const navigateFn = () => {
+      console.log('Navigating to form. Child object:', child);
       this.closeProfileModal();
       if (variant === 'completo') {
-        this.router.navigate(['/tutor-portal/expediente-medico/completo', child.id]);
+        const idToPass = child.socio_id || child.titular_socio_id || child.id;
+        console.log('Completo idToPass:', idToPass);
+        this.router.navigate(['/tutor-portal/expediente-medico/completo', idToPass]);
       } else {
         this.router.navigate(['/tutor-portal/expediente-medico/simplificado', child.id]);
       }
@@ -493,8 +500,35 @@ export class DashboardComponent implements OnInit {
       Swal.fire('Atención', 'La fotografía es obligatoria para continuar.', 'warning');
       return;
     }
-    const variant = this.isSocioParticipant(this.selectedChildForProfile) ? 'completo' : 'simplificado';
-    this.goToMedicalForm(this.selectedChildForProfile, variant);
+
+    const switchToMedical = () => {
+      this.activeProfileTab = 'medical';
+      this.cdr.detectChanges();
+    };
+
+    if (this.medicalProfile.profile_picture.startsWith('data:image')) {
+      this.isLoading = true;
+      this.cdr.detectChanges();
+      
+      this.tutorApi.updateParticipantProfile(this.selectedChildForProfile.id, this.medicalProfile).subscribe({
+        next: (res: any) => {
+          this.isLoading = false;
+          if (res.data && res.data.profile_picture) {
+            this.selectedChildForProfile.profile_picture = res.data.profile_picture;
+          }
+          switchToMedical();
+        },
+        error: () => {
+          this.isLoading = false;
+          this.cdr.detectChanges();
+          Swal.fire('Error', 'No se pudo guardar la fotografía, pero puedes continuar.', 'warning').then(() => {
+            switchToMedical();
+          });
+        }
+      });
+    } else {
+      switchToMedical();
+    }
   }
 
   closeOnProfileOverlay(event: MouseEvent) {
@@ -531,9 +565,7 @@ export class DashboardComponent implements OnInit {
           const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           if (target === 'profile') {
             this.medicalProfile.profile_picture = dataUrl;
-            if (this.showMedicalTab) {
-              this.activeProfileTab = 'medical';
-            }
+            // Removed auto-advance per user request
           } else {
             this.extraordinaryData.photo_base64 = dataUrl;
           }
@@ -568,7 +600,7 @@ export class DashboardComponent implements OnInit {
     this.cdr.detectChanges();
     try {
       this.videoStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user' }, 
+        video: { facingMode: this.currentFacingMode }, 
         audio: false 
       });
       const videoElement = document.getElementById('cameraVideo') as HTMLVideoElement;
@@ -579,6 +611,25 @@ export class DashboardComponent implements OnInit {
       this.showCamera = false;
       this.cdr.detectChanges();
       Swal.fire('Error', 'No se pudo acceder a la cámara. Revisa los permisos de tu navegador.', 'error');
+    }
+  }
+
+  async toggleCamera() {
+    this.currentFacingMode = this.currentFacingMode === 'user' ? 'environment' : 'user';
+    if (this.videoStream) {
+      this.videoStream.getTracks().forEach(track => track.stop());
+    }
+    try {
+      this.videoStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: this.currentFacingMode }, 
+        audio: false 
+      });
+      const videoElement = document.getElementById('cameraVideo') as HTMLVideoElement;
+      if (videoElement) {
+        videoElement.srcObject = this.videoStream;
+      }
+    } catch (err) {
+      console.error('Error toggling camera', err);
     }
   }
 
@@ -611,9 +662,7 @@ export class DashboardComponent implements OnInit {
       }
       
       this.stopCamera();
-      if (this.cameraTarget === 'medical' && this.showMedicalTab) {
-        this.activeProfileTab = 'medical'; // Auto-advance
-      }
+      // Removed auto-advance per user request
       this.cdr.detectChanges();
     }
   }
