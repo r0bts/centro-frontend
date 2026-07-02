@@ -296,9 +296,11 @@
     </div>
     
     <div *ngIf="!showFamilySelection" class="tp-modal__footer">
-      <button (click)="closeAddModal()" class="tp-btn tp-btn--outline">Cancelar</button>
-      <button (click)="addPickup()" class="tp-btn tp-btn--primary">
-        <span class="material-symbols-outlined">save</span> Guardar
+      <button (click)="closeAddModal()" class="tp-btn tp-btn--outline" [disabled]="isSavingPickup">Cancelar</button>
+      <button (click)="addPickup()" class="tp-btn tp-btn--primary" [disabled]="isSavingPickup">
+        <span class="material-symbols-outlined" *ngIf="!isSavingPickup">save</span>
+        <span class="spinner-border spinner-border-sm me-2" *ngIf="isSavingPickup" role="status" style="width: 1.2rem; height: 1.2rem; border-width: 0.15em;"></span>
+        {{ isSavingPickup ? 'Guardando...' : 'Guardar' }}
       </button>
     </div>
   </div>
