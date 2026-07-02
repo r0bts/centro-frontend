@@ -342,7 +342,7 @@ export class DashboardComponent implements OnInit {
   openDurationModal(childId: number, pickupId: number) {
     this.pendingQrChildId = childId;
     this.pendingQrPickupId = pickupId;
-    this.selectedDuration = 15;
+    this.selectedDuration = 60;
     this.showDurationModal = true;
   }
 
