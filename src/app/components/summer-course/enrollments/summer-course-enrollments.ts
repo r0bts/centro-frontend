@@ -154,6 +154,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   authorizedPickupsParticipant = signal<any | null>(null);
   
   credParticipant = signal<ScRegisteredParticipant | null>(null);
+  photoModalGroupTitular = signal<ScRegistrationGroup | null>(null);
   photoCameraStream = signal<MediaStream | null>(null);
   photoCameraFacingMode = signal<'user' | 'environment'>('user');
   photoPreviewUrl       = signal<string | null>(null);   // base64 capturado antes de guardar
