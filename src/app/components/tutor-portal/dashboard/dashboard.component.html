@@ -95,7 +95,7 @@
             </button>
             <a *ngIf="child.extra_pass_url" [href]="child.extra_pass_url" target="_blank" class="tp-btn tp-btn--primary" style="background: #10b981; border-color: #10b981; text-decoration: none;">
               <span class="material-symbols-outlined" style="font-size: 18px;">qr_code</span>
-              <span>Ver Pase Activo</span>
+              <span>Ver Pase Extraordinario</span>
             </a>
           </div>
         </div>
@@ -130,10 +130,14 @@
                 </div>
               </div>
               <div class="tp-pickup-card__actions">
-                <button (click)="openDurationModal(child.id, pickup.id)" class="tp-btn--qr-full">
+                <button *ngIf="!pickup.active_pass_url" (click)="openDurationModal(child.id, pickup.id)" class="tp-btn--qr-full">
                   <span class="material-symbols-outlined">qr_code_2</span>
                   Generar Pase QR
                 </button>
+                <a *ngIf="pickup.active_pass_url" [href]="pickup.active_pass_url" target="_blank" class="tp-btn--qr-full" style="background: #10b981; border-color: #10b981; color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                  <span class="material-symbols-outlined" style="margin-right: 6px;">qr_code</span>
+                  Ver Pase Activo
+                </a>
               </div>
             </div>
 

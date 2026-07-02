@@ -359,6 +359,12 @@ export class DashboardComponent implements OnInit {
       next: (res: any) => {
         if (res.success) {
           this.qrData = res.data.url;
+          
+          if (this.pickupsByChild[this.pendingQrChildId]) {
+             let p = this.pickupsByChild[this.pendingQrChildId].find((pu: any) => pu.id === this.pendingQrPickupId);
+             if (p) p.active_pass_url = res.data.url;
+          }
+          
           this.closeDurationModal();
           this.showQrModal = true;
           this.cdr.detectChanges();
