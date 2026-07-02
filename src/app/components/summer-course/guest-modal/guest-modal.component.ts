@@ -83,11 +83,7 @@ export class GuestModalComponent implements OnInit {
 
   readonly formValid = computed(() => {
     const f = this.form();
-    const isBaseValid = f.first_name.trim() && f.last_name.trim() && f.birth_date && f.relationship.trim();
-    if (this.isEmp()) {
-      return isBaseValid && f.phone.trim() !== '';
-    }
-    return isBaseValid;
+    return !!(f.first_name.trim() && f.last_name.trim() && f.birth_date && f.relationship.trim() && f.phone.trim());
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────

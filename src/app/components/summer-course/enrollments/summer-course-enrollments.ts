@@ -428,13 +428,21 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
     const tType = this.wizardMode() === 'colaborador_externo' ? 'staff' : 'member';
 
+    // Find the real Titular's phone (either the queried member, or a family member marked as Titular)
+    let realTitularPhone = s.phone;
+    const realTitularInFamily = s.family.find(f => f.memberType === 'Titular');
+    if (realTitularInFamily && realTitularInFamily.phone) {
+        realTitularPhone = realTitularInFamily.phone;
+    }
+    const defaultPhone = realTitularPhone ?? null;
+
     const titular: PendingParticipant = {
       socio_id: s.id, fullName: s.fullName, type: tType,
       weeks: [], birth_date: s.birth_date, age: s.age,
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
-      emergency_phone: s.phone ?? null,
+      emergency_phone: s.phone ?? defaultPhone,
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
     const family: PendingParticipant[] = s.family.map(f => ({
@@ -443,7 +451,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
       suggestedLevel: this._getLevelForAge(f.age),
       outOfRange: this._isOutOfRange(f.age),
-      emergency_phone: f.phone ?? titular.emergency_phone ?? null,
+      emergency_phone: f.phone ?? defaultPhone,
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     }));
     this.pendingParticipants.set([titular, ...family]);
