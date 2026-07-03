@@ -93,13 +93,13 @@
               <span class="material-symbols-outlined" style="font-size: 18px;">local_activity</span>
               <span>Pase Extraordinario</span>
             </button>
-            <div *ngIf="child.extra_pass_url" style="display: flex; gap: 8px; width: 100%;">
-              <a [href]="child.extra_pass_url" target="_blank" class="tp-btn tp-btn--success" style="flex: 1; text-decoration: none;">
-                <span class="material-symbols-outlined" style="margin-right: 4px;">qr_code</span>
+            <div *ngIf="child.extra_pass_url" class="tp-btn-group mt-2">
+              <a [href]="child.extra_pass_url" target="_blank" class="tp-btn tp-btn--success" style="text-decoration: none;">
+                <span class="material-symbols-outlined">qr_code</span>
                 Ver Pase
               </a>
-              <button (click)="shareWhatsApp(child.extra_pass_url, child.first_name)" class="tp-btn tp-btn--whatsapp-outline" style="flex: 1;">
-                <span class="material-symbols-outlined" style="margin-right: 4px;">share</span>
+              <button (click)="shareWhatsApp(child.extra_pass_url, child.first_name)" class="tp-btn tp-btn--whatsapp-outline">
+                <span class="material-symbols-outlined">share</span>
                 WhatsApp
               </button>
             </div>
@@ -140,13 +140,13 @@
                   <span class="material-symbols-outlined">qr_code_2</span>
                   Generar Pase QR
                 </button>
-                <div *ngIf="pickup.active_pass_url" style="display: flex; gap: 8px;">
-                  <a [href]="pickup.active_pass_url" target="_blank" class="tp-btn--qr-full tp-btn--success" style="flex: 1; text-decoration: none;">
-                    <span class="material-symbols-outlined" style="margin-right: 4px;">qr_code</span>
+                <div *ngIf="pickup.active_pass_url" class="tp-btn-group mt-2">
+                  <a [href]="pickup.active_pass_url" target="_blank" class="tp-btn tp-btn--success" style="text-decoration: none;">
+                    <span class="material-symbols-outlined">qr_code</span>
                     Ver Pase
                   </a>
-                  <button (click)="shareWhatsApp(pickup.active_pass_url, child.first_name, pickup.name)" class="tp-btn--qr-full tp-btn--whatsapp-outline" style="flex: 1;">
-                    <span class="material-symbols-outlined" style="margin-right: 4px;">share</span>
+                  <button (click)="shareWhatsApp(pickup.active_pass_url, child.first_name, pickup.name)" class="tp-btn tp-btn--whatsapp-outline">
+                    <span class="material-symbols-outlined">share</span>
                     WhatsApp
                   </button>
                 </div>
