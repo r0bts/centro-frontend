@@ -492,6 +492,27 @@
 
 .tp-btn--full { width: 100%; justify-content: center; }
 
+.tp-btn--success {
+  background: #10b981;
+  color: #fff;
+  border: 1px solid #10b981;
+}
+.tp-btn--success:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.tp-btn--whatsapp-outline {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+.tp-btn--whatsapp-outline:hover {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #4ade80;
+}
+
 /* ─── Icon buttons ───────────────────────────── */
 .tp-icon-btn {
   width: 32px;
