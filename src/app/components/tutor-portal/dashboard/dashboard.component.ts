@@ -433,6 +433,18 @@ export class DashboardComponent implements OnInit {
     this.cdr.detectChanges();
   }
 
+  shareWhatsApp(url: string, childName?: string, pickupName?: string) {
+    let message = `¡Hola! Aquí tienes el pase de salida QR para el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    if (childName && pickupName) {
+       message = `¡Hola ${pickupName}! Te comparto el pase de salida QR para recoger a ${childName} en el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    } else if (childName) {
+       message = `¡Hola! Te comparto el pase de salida QR extraordinario para recoger a ${childName} en el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    }
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  }
+
   closeOnOverlay(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('tp-modal-overlay')) {
       this.closeAddModal();
