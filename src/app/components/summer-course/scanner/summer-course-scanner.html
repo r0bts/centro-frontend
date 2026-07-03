@@ -98,9 +98,15 @@
                   <div class="card-body text-center p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
                     
                     <ng-container *ngIf="!scannedPass?.is_dynamic">
-                      <img [src]="scannedPass?.authorized_photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
-                           class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 75px; height: 75px;">
-                      <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.85rem;">{{ scannedPass?.authorized_name }}</h6>
+                      <ng-container *ngIf="scannedPass?.is_static_credential_alone">
+                        <i class="bi bi-person-walking text-success mb-2" style="font-size: 3rem;"></i>
+                        <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.85rem;">{{ scannedPass?.authorized_name }}</h6>
+                      </ng-container>
+                      <ng-container *ngIf="!scannedPass?.is_static_credential_alone">
+                        <img [src]="scannedPass?.authorized_photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                             class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 75px; height: 75px;">
+                        <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.85rem;">{{ scannedPass?.authorized_name }}</h6>
+                      </ng-container>
                     </ng-container>
 
                     <ng-container *ngIf="scannedPass?.is_dynamic && scannedPass?.authorized_pickups?.length === 1">
@@ -163,7 +169,7 @@
             </div>
 
             <!-- ACTION BUTTONS -->
-            <div class="row g-2">
+            <div class="row g-2" *ngIf="!scannedPass?.is_static_credential_alone">
               <div class="col-12 col-md-6">
                 <button class="btn btn-danger btn-lg w-100 rounded-pill fw-bold py-3 shadow-sm" (click)="reportMismatch()" [disabled]="isProcessing">
                   <span *ngIf="!isProcessing"><i class="bi bi-exclamation-triangle-fill me-2"></i> NO COINCIDE (ALERTA)</span>
@@ -183,6 +189,15 @@
                 </button>
               </div>
             </div>
+
+            <div class="row g-2" *ngIf="scannedPass?.is_static_credential_alone">
+              <div class="col-12">
+                <button class="btn btn-success btn-lg w-100 rounded-pill fw-bold py-3 shadow-sm" (click)="startScanner()">
+                  <span><i class="bi bi-door-open-fill me-2"></i> PERMITIR SALIDA AL CLUB</span>
+                </button>
+              </div>
+            </div>
+            
             <button class="btn btn-link text-muted mt-3 w-100" (click)="startScanner()" [disabled]="isProcessing">Cancelar</button>
           </div>
         </div>

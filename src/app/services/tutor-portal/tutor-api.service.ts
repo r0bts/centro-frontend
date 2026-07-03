@@ -47,6 +47,13 @@ export class TutorApiService {
     return this.http.post(`${this.baseUrl}/participant/${participantId}/profile`, data);
   }
 
+  updateLeaveAlone(participantId: number, canLeaveAlone: boolean): Observable<any> {
+    return this.http.post(`${this.baseUrl}/update-leave-alone`, {
+      participant_id: participantId,
+      can_leave_alone: canLeaveAlone
+    });
+  }
+
   // --- Medical Questionnaires ---
 
   getMedicalFull(socioId: string | number): Observable<any> {

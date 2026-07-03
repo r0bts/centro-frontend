@@ -199,6 +199,41 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  toggleLeaveAlone(child: any) {
+    // Invert the current state visually immediately, then call API.
+    // Actually, it's better to let ngModel handle the state, we just call the API.
+    const newState = child.can_leave_alone;
+    this.tutorApi.updateLeaveAlone(child.id, newState).subscribe({
+      next: (res: any) => {
+        if (!res.success) {
+          // Revert on error
+          child.can_leave_alone = !newState;
+          Swal.fire('Error', res.message || 'No se pudo actualizar el permiso', 'error');
+        } else {
+          // Success, maybe show a small toast (optional)
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+          });
+          Toast.fire({
+            icon: 'success',
+            title: 'Permiso actualizado'
+          });
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Revert on error
+        child.can_leave_alone = !newState;
+        Swal.fire('Error', 'No se pudo actualizar el permiso', 'error');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   getPickupsForChild(childId: number) {
     return this.pickupsByChild[childId] || [];
   }
