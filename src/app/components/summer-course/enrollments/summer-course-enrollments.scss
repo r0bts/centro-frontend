@@ -1875,16 +1875,18 @@ $level-colors: (
 .cred-replacement-card {
   border-radius: 10px; padding: 12px 14px; font-size: 13px;
   border: 1.5px solid #e2e8f0; background: #f8fafc;
+  margin-bottom: 8px;
 
-  &--paid     { border-color: #86efac; background: #f0fdf4; }
-  &--pending  { border-color: #fed7aa; background: #fffbeb; }
-  &--cancelled{ border-color: #fca5a5; background: #fef2f2; }
+  &--paid      { border-color: #a78bfa; background: #ede9fe; }
+  &--pending   { border-color: #fed7aa; background: #fffbeb; }
+  &--delivered { border-color: #86efac; background: #f0fdf4; }
+  &--cancelled { border-color: #cbd5e1; background: #f1f5f9; }
 
   &__header {
     display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
     .material-symbols-outlined { font-size: 18px; }
   }
-  &__title { font-weight: 600; flex: 1; }
+  &__title { font-weight: 600; flex: 1; font-size: 12.5px; }
   &__badge {
     border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .03em;
@@ -1892,10 +1894,10 @@ $level-colors: (
   &__body { display: flex; flex-direction: column; gap: 5px; }
 }
 .cred-replacement-badge {
-  &--paid      { background: #dcfce7; color: #16a34a; }
+  &--paid      { background: #ede9fe; color: #6d28d9; }
   &--pending   { background: #fef9c3; color: #a16207; }
-  &--partial   { background: #dbeafe; color: #1d4ed8; }
-  &--cancelled { background: #fee2e2; color: #dc2626; }
+  &--delivered { background: #dcfce7; color: #16a34a; }
+  &--cancelled { background: #f1f5f9; color: #64748b; }
 }
 .cred-rep-row {
   display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px;
@@ -1903,6 +1905,8 @@ $level-colors: (
 }
 .cred-rep-label { color: #64748b; }
 .cred-rep-value { font-weight: 600; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
 
 .sce-btn--danger-outline {
   border: 1.5px solid #f43f5e; color: #f43f5e; background: transparent;

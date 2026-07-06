@@ -172,8 +172,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credNotes         = signal('');
   credReplacementLoading = signal(false);
   credReplacementResult  = signal<ScCredentialReplacementResult | null>(null);
-  credReplacementStatus  = signal<ScCredentialReplacementResult | null>(null);
+  credReplacementList    = signal<ScCredentialReplacementResult[]>([]);
   credReplacementSyncing = signal(false);
+  credDeliveringId       = signal<number | null>(null); // id de la reposición que se está entregando
   
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
@@ -1323,7 +1324,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.credModalLoading.set(true);
     this.credNotes.set('');
     this.credReplacementResult.set(null);
-    this.credReplacementStatus.set(null);
+    this.credReplacementList.set([]);
 
     const courseId = this.selectedCourse()!.id;
     this.credSvc.getPreview(p.participant_id, courseId).subscribe({
@@ -1331,13 +1332,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.credModalData.set(res.data);
         this.credModalLoading.set(false);
 
-        // Si ya tiene credencial entregada, cargar el estado de reposición existente
+        // Cargar lista de reposiciones si ya tiene credencial entregada
         if (res.data?.credential_delivered && p.enrollment_id) {
-          this.credSvc.getReplacementStatus(p.enrollment_id).subscribe({
-            next: statusRes => {
-              this.credReplacementStatus.set(statusRes.data?.replacement ?? null);
-            },
-            error: () => { /* ignorar error en carga de estado */ },
+          this.credSvc.getReplacementList(p.enrollment_id).subscribe({
+            next: r => this.credReplacementList.set(r.data?.replacements ?? []),
+            error: () => {},
           });
         }
       },
@@ -1563,8 +1562,8 @@ ${stylesHtml}
         next: res => {
           this.credReplacementLoading.set(false);
           this.credReplacementResult.set(res.data);
-          // También actualizar el estado persistente para que se muestre en futuras aperturas
-          this.credReplacementStatus.set(res.data);
+          // Agregar al inicio de la lista
+          this.credReplacementList.update(list => [res.data, ...list]);
           if (res.success) {
             this.showToast(`Reposición registrada · SO NS: ${res.data.ns_so_id ?? 'Pendiente'}`, 'success');
           } else {
@@ -1579,27 +1578,41 @@ ${stylesHtml}
     });
   }
 
+  deliverCredential(replacementId: number): void {
+    this.credDeliveringId.set(replacementId);
+    this.credSvc.deliverReplacement(replacementId).subscribe({
+      next: res => {
+        this.credDeliveringId.set(null);
+        // Actualizar esa card en la lista
+        this.credReplacementList.update(list =>
+          list.map(r => r.id === replacementId ? res.data : r)
+        );
+        this.showToast('Credencial de reposición entregada', 'success');
+        // Recargar credenciales para actualizar el color del botón en la lista
+        this._loadCredentials(this.selectedCourse()!.id);
+      },
+      error: err => {
+        this.credDeliveringId.set(null);
+        this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
+  }
+
   syncCredentialReplacementStatus(): void {
-    const status = this.credReplacementStatus() ?? this.credReplacementResult();
-    const repId  = status?.id ?? (status as any)?.replacement_id;
-    if (!repId) return;
+    const list = this.credReplacementList();
+    const p    = this.credParticipant();
+    if (!p?.enrollment_id) return;
 
     this.credReplacementSyncing.set(true);
-    this.credSvc.syncCredentialReplacements(repId).subscribe({
+    this.credSvc.syncCredentialReplacements().subscribe({
       next: () => {
-        // Recargar estado tras sync
-        const p = this.credParticipant();
-        if (p?.enrollment_id) {
-          this.credSvc.getReplacementStatus(p.enrollment_id).subscribe({
-            next: res => {
-              this.credReplacementStatus.set(res.data?.replacement ?? null);
-              this.credReplacementSyncing.set(false);
-            },
-            error: () => this.credReplacementSyncing.set(false),
-          });
-        } else {
-          this.credReplacementSyncing.set(false);
-        }
+        this.credSvc.getReplacementList(p.enrollment_id!).subscribe({
+          next: r => {
+            this.credReplacementList.set(r.data?.replacements ?? []);
+            this.credReplacementSyncing.set(false);
+          },
+          error: () => this.credReplacementSyncing.set(false),
+        });
         this.showToast('Sync completado', 'success');
       },
       error: err => {
