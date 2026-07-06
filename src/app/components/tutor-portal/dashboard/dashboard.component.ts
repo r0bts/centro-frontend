@@ -199,12 +199,47 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  toggleLeaveAlone(child: any) {
+    // Invert the current state visually immediately, then call API.
+    // Actually, it's better to let ngModel handle the state, we just call the API.
+    const newState = child.can_leave_alone;
+    this.tutorApi.updateLeaveAlone(child.id, newState).subscribe({
+      next: (res: any) => {
+        if (!res.success) {
+          // Revert on error
+          child.can_leave_alone = !newState;
+          Swal.fire('Error', res.message || 'No se pudo actualizar el permiso', 'error');
+        } else {
+          // Success, maybe show a small toast (optional)
+          const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+          });
+          Toast.fire({
+            icon: 'success',
+            title: 'Permiso actualizado'
+          });
+        }
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        // Revert on error
+        child.can_leave_alone = !newState;
+        Swal.fire('Error', 'No se pudo actualizar el permiso', 'error');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   getPickupsForChild(childId: number) {
     return this.pickupsByChild[childId] || [];
   }
 
   toggleBodyScroll() {
-    if (this.showQrModal || this.showAddModal || this.showDurationModal || this.showProfileModal || this.showExtraordinaryModal) {
+    if (this.showQrModal || this.showAddModal || this.showProfileModal || this.showExtraordinaryModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
@@ -352,14 +387,10 @@ export class DashboardComponent implements OnInit {
   openDurationModal(childId: number, pickupId: number) {
     this.pendingQrChildId = childId;
     this.pendingQrPickupId = pickupId;
-    this.selectedDuration = 60;
-    this.showDurationModal = true;
-    this.toggleBodyScroll();
+    this.generatePass();
   }
 
   closeDurationModal() {
-    this.showDurationModal = false;
-    this.toggleBodyScroll();
     this.pendingQrChildId = null;
     this.pendingQrPickupId = null;
   }
@@ -367,8 +398,11 @@ export class DashboardComponent implements OnInit {
   generatePass() {
     if (!this.pendingQrChildId || !this.pendingQrPickupId) return;
 
-    this.tutorApi.generatePass(this.pendingQrChildId, this.pendingQrPickupId, this.selectedDuration).subscribe({
+    Swal.fire({ title: 'Generando pase...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+    this.tutorApi.generatePass(this.pendingQrChildId, this.pendingQrPickupId, 0).subscribe({
       next: (res: any) => {
+        Swal.close();
         if (res.success) {
           this.qrData = res.data.url;
           
@@ -386,6 +420,7 @@ export class DashboardComponent implements OnInit {
         }
       },
       error: () => {
+        Swal.close();
         Swal.fire('Error', 'Error al generar pase', 'error');
       }
     });
@@ -396,6 +431,18 @@ export class DashboardComponent implements OnInit {
     this.toggleBodyScroll();
     this.qrData = null;
     this.cdr.detectChanges();
+  }
+
+  shareWhatsApp(url: string, childName?: string, pickupName?: string) {
+    let message = `¡Hola! Aquí tienes el pase de salida QR para el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    if (childName && pickupName) {
+       message = `¡Hola ${pickupName}! Te comparto el pase de salida QR para recoger a ${childName} en el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    } else if (childName) {
+       message = `¡Hola! Te comparto el pase de salida QR extraordinario para recoger a ${childName} en el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    }
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
   }
 
   closeOnOverlay(event: MouseEvent) {

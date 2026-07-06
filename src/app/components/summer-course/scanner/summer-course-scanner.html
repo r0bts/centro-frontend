@@ -58,44 +58,110 @@
             <h4 class="fw-bold text-success mb-2">Pase Dinámico Válido</h4>
             <p class="text-muted fw-bold text-uppercase small">{{ statusMessage }}</p>
             
-            <!-- Participant Info -->
-            <div class="participant-info p-3 bg-light rounded-4 mb-4 text-start">
-              <div class="d-flex align-items-center mb-0">
-                <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px; font-size: 1.5rem;">
-                  {{ scannedPass?.participant?.first_name ? scannedPass.participant.first_name.charAt(0) : 'P' }}
-                </div>
-                <div>
-                  <h5 class="mb-1 fw-bold">{{ scannedPass?.participant?.first_name }} {{ scannedPass?.participant?.last_name }}</h5>
-                  <p class="text-muted mb-0">ID Menor: #{{ scannedPass?.participant?.id }}</p>
+            <!-- 2-COLUMN COMPARISON LAYOUT -->
+            <div class="row align-items-stretch justify-content-center mb-4 gx-1 gx-md-3">
+              
+              <!-- LEFT SIDE: NIÑO -->
+              <div class="col px-1 px-md-2">
+                <div class="card h-100 border-0 bg-light shadow-sm rounded-4">
+                  <div class="card-header bg-primary bg-opacity-10 border-0 rounded-top-4 py-2 text-center">
+                    <span class="text-primary fw-bold small text-uppercase" style="letter-spacing: 0.5px;">Entregar a</span>
+                  </div>
+                  <div class="card-body text-center p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
+                    <ng-container *ngIf="scannedPass?.participant?.photo_url; else noParticipantPhoto">
+                      <img [src]="scannedPass.participant.photo_url" alt="Foto Menor" class="rounded-circle mb-2 object-fit-cover shadow border border-3 border-white" style="width: 75px; height: 75px;">
+                    </ng-container>
+                    <ng-template #noParticipantPhoto>
+                      <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow border border-3 border-white mx-auto" style="width: 75px; height: 75px; font-size: 2rem;">
+                        {{ scannedPass?.participant?.first_name ? scannedPass.participant.first_name.charAt(0) : 'P' }}
+                      </div>
+                    </ng-template>
+                    <h6 class="fw-bold mb-1 text-dark lh-sm" style="font-size: 0.85rem;">{{ scannedPass?.participant?.first_name }} <br> {{ scannedPass?.participant?.last_name }}</h6>
+                    <span class="badge bg-secondary mt-1" style="font-size: 0.7rem;">#{{ scannedPass?.participant?.id }}</span>
+                  </div>
                 </div>
               </div>
+
+              <!-- MIDDLE ARROW -->
+              <div class="col-auto d-flex flex-column align-items-center justify-content-center px-0">
+                <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 32px; height: 32px;">
+                  <i class="bi bi-arrow-right fw-bold fs-5"></i>
+                </div>
+              </div>
+
+              <!-- RIGHT SIDE: AUTORIZADO (Single or Pre-selected) -->
+              <div class="col px-1 px-md-2" *ngIf="(!scannedPass?.is_dynamic) || (scannedPass?.is_dynamic && scannedPass?.authorized_pickups?.length === 1)">
+                <div class="card h-100 border-0 bg-success bg-opacity-10 shadow-sm rounded-4 border border-2 border-success">
+                  <div class="card-header bg-success text-white border-0 rounded-top-3 py-2 text-center">
+                    <span class="fw-bold small text-uppercase" style="letter-spacing: 0.5px;">A esta persona</span>
+                  </div>
+                  <div class="card-body text-center p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
+                    
+                    <ng-container *ngIf="!scannedPass?.is_dynamic">
+                      <ng-container *ngIf="scannedPass?.is_static_credential_alone">
+                        <i class="bi bi-person-walking text-success mb-2" style="font-size: 3rem;"></i>
+                        <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.85rem;">{{ scannedPass?.authorized_name }}</h6>
+                      </ng-container>
+                      <ng-container *ngIf="!scannedPass?.is_static_credential_alone">
+                        <img [src]="scannedPass?.authorized_photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                             class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 75px; height: 75px;">
+                        <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.85rem;">{{ scannedPass?.authorized_name }}</h6>
+                      </ng-container>
+                    </ng-container>
+
+                    <ng-container *ngIf="scannedPass?.is_dynamic && scannedPass?.authorized_pickups?.length === 1">
+                      <img [src]="scannedPass.authorized_pickups[0].photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                           class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 75px; height: 75px;">
+                      <h6 class="fw-bold mb-1 text-success lh-sm" style="font-size: 0.85rem;">{{ scannedPass.authorized_pickups[0].name }}</h6>
+                      <small class="text-muted fw-semibold" style="font-size: 0.7rem;">{{ scannedPass.authorized_pickups[0].relationship }}</small>
+                    </ng-container>
+
+                  </div>
+                </div>
+              </div>
+
+              <!-- RIGHT SIDE: AUTORIZADO (Multiple choices) -->
+              <div class="col px-1 px-md-2" *ngIf="scannedPass?.is_dynamic && scannedPass?.authorized_pickups?.length > 1">
+                <div class="card h-100 border-0 shadow-sm rounded-4 border border-2" [ngClass]="selectedPickupName ? 'bg-success-subtle border-success' : 'bg-warning-subtle border-warning'">
+                  <div class="card-header text-white border-0 rounded-top-3 py-2 text-center" [ngClass]="selectedPickupName ? 'bg-success' : 'bg-warning'">
+                    <span class="fw-bold small text-uppercase" style="letter-spacing: 0.5px;">{{ selectedPickupName ? 'A esta persona' : '¿A quién?' }}</span>
+                  </div>
+                  <div class="card-body text-center p-2 d-flex flex-column align-items-center justify-content-center">
+                    
+                    <ng-container *ngIf="selectedPickupName">
+                      <ng-container *ngFor="let person of scannedPass.authorized_pickups">
+                        <ng-container *ngIf="person.name === selectedPickupName">
+                          <img [src]="person.photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                               class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 75px; height: 75px;">
+                          <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.8rem;">{{ person.name }}</h6>
+                        </ng-container>
+                      </ng-container>
+                    </ng-container>
+
+                    <ng-container *ngIf="!selectedPickupName">
+                      <i class="bi bi-person-bounding-box text-warning mb-2" style="font-size: 2.5rem;"></i>
+                      <p class="small fw-bold text-warning mb-0 lh-sm">Selecciona abajo</p>
+                    </ng-container>
+
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            <!-- Specific Authorized Pickup (is_dynamic = false) -->
-            <div *ngIf="!scannedPass?.is_dynamic && scannedPass?.authorized_name" class="mb-4 text-start">
-               <h5 class="fw-bold mb-3 text-center">Persona Autorizada</h5>
-               <div class="card border-success border-2 bg-success-subtle">
-                 <div class="card-body text-center p-3">
-                   <img [src]="scannedPass.authorized_photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
-                        class="img-fluid rounded-3 mb-2 shadow-sm" style="height: 150px; width: auto; max-width: 100%; object-fit: cover;">
-                   <h5 class="fw-bold mb-0 text-success">{{ scannedPass.authorized_name }}</h5>
-                 </div>
-               </div>
-            </div>
-
-            <!-- Dynamic Authorized Pickups List -->
-            <div *ngIf="scannedPass?.is_dynamic && scannedPass?.authorized_pickups" class="mb-4 text-start">
-               <h5 class="fw-bold mb-3">¿Quién recoge al menor?</h5>
-               <div class="row g-3">
-                 <div class="col-12 col-md-6" *ngFor="let person of scannedPass.authorized_pickups">
-                   <div class="card h-100 cursor-pointer border-2" 
-                        [ngClass]="{'border-success bg-success-subtle': selectedPickupName === person.name, 'border-light': selectedPickupName !== person.name}"
+            <!-- MULTIPLE SELECTION GRID (Only if dynamic and > 1) -->
+            <div *ngIf="scannedPass?.is_dynamic && scannedPass?.authorized_pickups?.length > 1" class="mb-4 text-start">
+               <h6 class="fw-bold mb-3 text-center text-muted">¿Quién recoge al menor en este momento?</h6>
+               <div class="row g-2">
+                 <div class="col-6 col-md-4" *ngFor="let person of scannedPass.authorized_pickups">
+                   <div class="card h-100 cursor-pointer border-2 rounded-4" style="transition: all 0.2s ease-in-out;"
+                        [ngClass]="{'border-success bg-success-subtle shadow': selectedPickupName === person.name, 'border-light bg-light': selectedPickupName !== person.name}"
                         (click)="selectPickup(person.name)">
-                     <div class="card-body text-center p-3">
+                     <div class="card-body text-center p-2">
                        <img [src]="person.photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
-                            class="img-fluid rounded-3 mb-2 shadow-sm" style="height: 120px; width: 100%; object-fit: cover;">
-                       <h6 class="fw-bold mb-0 text-truncate">{{ person.name }}</h6>
-                       <small class="text-muted">{{ person.relationship }}</small>
+                            class="rounded-3 mb-2 object-fit-cover shadow-sm" style="height: 60px; width: 60px;">
+                       <h6 class="fw-bold mb-0 lh-sm" style="font-size: 0.8rem;" [ngClass]="{'text-success': selectedPickupName === person.name}">{{ person.name }}</h6>
+                       <small class="text-muted" style="font-size: 0.7rem;">{{ person.relationship }}</small>
                      </div>
                    </div>
                  </div>
@@ -103,7 +169,7 @@
             </div>
 
             <!-- ACTION BUTTONS -->
-            <div class="row g-2">
+            <div class="row g-2" *ngIf="!scannedPass?.is_static_credential_alone">
               <div class="col-12 col-md-6">
                 <button class="btn btn-danger btn-lg w-100 rounded-pill fw-bold py-3 shadow-sm" (click)="reportMismatch()" [disabled]="isProcessing">
                   <span *ngIf="!isProcessing"><i class="bi bi-exclamation-triangle-fill me-2"></i> NO COINCIDE (ALERTA)</span>
@@ -123,6 +189,15 @@
                 </button>
               </div>
             </div>
+
+            <div class="row g-2" *ngIf="scannedPass?.is_static_credential_alone">
+              <div class="col-12">
+                <button class="btn btn-success btn-lg w-100 rounded-pill fw-bold py-3 shadow-sm" (click)="startScanner()">
+                  <span><i class="bi bi-door-open-fill me-2"></i> PERMITIR SALIDA AL CLUB</span>
+                </button>
+              </div>
+            </div>
+            
             <button class="btn btn-link text-muted mt-3 w-100" (click)="startScanner()" [disabled]="isProcessing">Cancelar</button>
           </div>
         </div>
@@ -139,8 +214,20 @@
             </div>
             
             <div class="participant-info p-3 bg-light rounded-4 mb-4 text-start">
-              <h5 class="mb-1 fw-bold">{{ scannedPass?.participant?.first_name }} {{ scannedPass?.participant?.last_name }}</h5>
-              <p class="text-muted mb-0">ID Menor: #{{ scannedPass?.participant?.id }}</p>
+              <div class="d-flex align-items-center mb-3">
+                <ng-container *ngIf="scannedPass?.participant?.photo_url; else noParticipantPhotoYellow">
+                  <img [src]="scannedPass.participant.photo_url" alt="Foto Menor" class="rounded-circle me-3 border border-2 border-warning shadow-sm" style="width: 60px; height: 60px; object-fit: cover;">
+                </ng-container>
+                <ng-template #noParticipantPhotoYellow>
+                  <div class="avatar bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-3 shadow-sm border border-2 border-white" style="width: 60px; height: 60px; font-size: 1.5rem;">
+                    {{ scannedPass?.participant?.first_name ? scannedPass.participant.first_name.charAt(0) : 'P' }}
+                  </div>
+                </ng-template>
+                <div>
+                  <h5 class="mb-1 fw-bold">{{ scannedPass?.participant?.first_name }} {{ scannedPass?.participant?.last_name }}</h5>
+                  <p class="text-muted mb-0">ID Menor: #{{ scannedPass?.participant?.id }}</p>
+                </div>
+              </div>
               <hr>
               <p class="mb-0 fw-bold"><i class="bi bi-telephone-fill me-2 text-primary"></i> Contacto Titular: {{ scannedPass?.titular_phone || 'No disponible' }}</p>
             </div>
