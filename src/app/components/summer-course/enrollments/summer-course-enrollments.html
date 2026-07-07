@@ -294,10 +294,10 @@
                             </button>
                           }
                           @if (ci.credential_delivered) {
-                            <span class="sce-kit-badge sce-kit-badge--done">
+                            <button class="sce-kit-badge sce-kit-badge--done" style="cursor: pointer;" (click)="openCredentialModal(p, $event)" title="Ver opciones de credencial">
                               <span class="material-symbols-outlined">badge</span>
                               Credencial ✓
-                            </span>
+                            </button>
                           } @else {
                             <button class="sce-kit-btn"
                                     [class.sce-kit-btn--disabled]="!ci.has_photo"
