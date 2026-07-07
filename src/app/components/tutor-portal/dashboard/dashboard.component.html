@@ -93,10 +93,16 @@
               <span class="material-symbols-outlined" style="font-size: 18px;">local_activity</span>
               <span>Pase Extraordinario</span>
             </button>
-            <a *ngIf="child.extra_pass_url" [href]="child.extra_pass_url" target="_blank" class="tp-btn tp-btn--primary" style="background: #10b981; border-color: #10b981; text-decoration: none;">
-              <span class="material-symbols-outlined" style="font-size: 18px;">qr_code</span>
-              <span>Ver Pase Extraordinario</span>
-            </a>
+            <div *ngIf="child.extra_pass_url" class="tp-btn-group mt-2">
+              <a [href]="child.extra_pass_url" target="_blank" class="tp-btn tp-btn--success" style="text-decoration: none;">
+                <span class="material-symbols-outlined">qr_code</span>
+                Ver Pase
+              </a>
+              <button (click)="shareWhatsApp(child.extra_pass_url, child.first_name)" class="tp-btn tp-btn--whatsapp-outline">
+                <span class="material-symbols-outlined">share</span>
+                WhatsApp
+              </button>
+            </div>
           </div>
         </div>
 
@@ -134,10 +140,16 @@
                   <span class="material-symbols-outlined">qr_code_2</span>
                   Generar Pase QR
                 </button>
-                <a *ngIf="pickup.active_pass_url" [href]="pickup.active_pass_url" target="_blank" class="tp-btn--qr-full" style="background: #10b981; border-color: #10b981; color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">
-                  <span class="material-symbols-outlined" style="margin-right: 6px;">qr_code</span>
-                  Ver Pase Activo
-                </a>
+                <div *ngIf="pickup.active_pass_url" class="tp-btn-group mt-2">
+                  <a [href]="pickup.active_pass_url" target="_blank" class="tp-btn tp-btn--success" style="text-decoration: none;">
+                    <span class="material-symbols-outlined">qr_code</span>
+                    Ver Pase
+                  </a>
+                  <button (click)="shareWhatsApp(pickup.active_pass_url, child.first_name, pickup.name)" class="tp-btn tp-btn--whatsapp-outline">
+                    <span class="material-symbols-outlined">share</span>
+                    WhatsApp
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -332,9 +344,14 @@
     <div class="mb-4 d-flex flex-column align-items-center text-success">
       <span class="material-symbols-outlined mb-2" style="font-size: 64px;">check_circle</span>
       <h4 class="mb-2 fw-bold text-center" style="font-size: 1.25rem; color: #10b981;">¡Pase Generado Exitosamente!</h4>
-      <p class="text-center text-muted m-0" style="font-size: 0.95rem;">El código estará disponible en la entrada y será válido por <strong>1 hora</strong>.</p>
+      <p class="text-center text-muted m-0" style="font-size: 0.95rem;">El código será permanente y válido durante <strong>todo el curso de verano</strong>.</p>
     </div>
-    <button (click)="closeQrModal()" class="tp-btn tp-btn--primary tp-btn--full">Cerrar</button>
+    <div class="d-flex gap-2">
+      <button (click)="closeQrModal()" class="tp-btn tp-btn--outline flex-fill">Cerrar</button>
+      <button (click)="shareWhatsApp(qrData)" class="tp-btn tp-btn--success flex-fill">
+        <span class="material-symbols-outlined" style="margin-right: 4px;">share</span> Enviar por WhatsApp
+      </button>
+    </div>
   </div>
 </div>
 
@@ -490,31 +507,6 @@
   </div>
 </div>
 
-<!-- Modal Selección de Duración -->
-<div *ngIf="showDurationModal" class="tp-modal-overlay" (click)="closeDurationModal()">
-  <div class="tp-modal" data-modal (click)="$event.stopPropagation()">
-    <div class="tp-modal__header">
-      <div class="tp-modal__title">
-        <span class="material-symbols-outlined">timer</span>
-        Validez del Pase QR
-      </div>
-      <button (click)="closeDurationModal()" class="tp-modal__close">
-        <span class="material-symbols-outlined">close</span>
-      </button>
-    </div>
-
-    <div class="tp-modal__body text-center">
-      <p class="text-muted mb-4" style="font-size: 1.05rem;">El código será válido por <strong>1 hora</strong> para presentarlo en la puerta.</p>
-    </div>
-    
-    <div class="tp-modal__footer mt-3">
-      <button (click)="closeDurationModal()" class="tp-btn tp-btn--outline">Cancelar</button>
-      <button (click)="generatePass()" class="tp-btn tp-btn--primary">
-        <span class="material-symbols-outlined">qr_code</span> Generar Pase
-      </button>
-    </div>
-  </div>
-</div>
 
 <!-- Extraordinary Pass Modal -->
 <div class="tp-modal-overlay" *ngIf="showExtraordinaryModal" (click)="closeOnExtraordinaryOverlay($event)">

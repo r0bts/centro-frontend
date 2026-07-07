@@ -239,7 +239,7 @@ export class DashboardComponent implements OnInit {
   }
 
   toggleBodyScroll() {
-    if (this.showQrModal || this.showAddModal || this.showDurationModal || this.showProfileModal || this.showExtraordinaryModal) {
+    if (this.showQrModal || this.showAddModal || this.showProfileModal || this.showExtraordinaryModal) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'auto';
@@ -387,14 +387,10 @@ export class DashboardComponent implements OnInit {
   openDurationModal(childId: number, pickupId: number) {
     this.pendingQrChildId = childId;
     this.pendingQrPickupId = pickupId;
-    this.selectedDuration = 60;
-    this.showDurationModal = true;
-    this.toggleBodyScroll();
+    this.generatePass();
   }
 
   closeDurationModal() {
-    this.showDurationModal = false;
-    this.toggleBodyScroll();
     this.pendingQrChildId = null;
     this.pendingQrPickupId = null;
   }
@@ -402,8 +398,11 @@ export class DashboardComponent implements OnInit {
   generatePass() {
     if (!this.pendingQrChildId || !this.pendingQrPickupId) return;
 
-    this.tutorApi.generatePass(this.pendingQrChildId, this.pendingQrPickupId, this.selectedDuration).subscribe({
+    Swal.fire({ title: 'Generando pase...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+    this.tutorApi.generatePass(this.pendingQrChildId, this.pendingQrPickupId, 0).subscribe({
       next: (res: any) => {
+        Swal.close();
         if (res.success) {
           this.qrData = res.data.url;
           
@@ -421,6 +420,7 @@ export class DashboardComponent implements OnInit {
         }
       },
       error: () => {
+        Swal.close();
         Swal.fire('Error', 'Error al generar pase', 'error');
       }
     });
@@ -431,6 +431,18 @@ export class DashboardComponent implements OnInit {
     this.toggleBodyScroll();
     this.qrData = null;
     this.cdr.detectChanges();
+  }
+
+  shareWhatsApp(url: string, childName?: string, pickupName?: string) {
+    let message = `¡Hola! Aquí tienes el pase de salida QR para el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    if (childName && pickupName) {
+       message = `¡Hola ${pickupName}! Te comparto el pase de salida QR para recoger a ${childName} en el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    } else if (childName) {
+       message = `¡Hola! Te comparto el pase de salida QR extraordinario para recoger a ${childName} en el curso de verano de Centro Libanés.\n\nLink: ${url}`;
+    }
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
   }
 
   closeOnOverlay(event: MouseEvent) {

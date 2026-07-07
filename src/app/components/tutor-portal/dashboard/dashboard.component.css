@@ -492,6 +492,51 @@
 
 .tp-btn--full { width: 100%; justify-content: center; }
 
+.tp-btn-group {
+  display: flex;
+  width: 100%;
+}
+.tp-btn-group .tp-btn {
+  flex: 1;
+  padding: 6px 8px; /* Thinner height */
+  font-size: 0.85rem;
+  justify-content: center;
+}
+.tp-btn-group .tp-btn:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.tp-btn-group .tp-btn:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: none; /* Evita doble borde si ambos tienen */
+}
+
+.tp-btn-group .tp-btn .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.tp-btn--success {
+  background: #10b981;
+  color: #fff;
+  border: 1px solid #10b981;
+}
+.tp-btn--success:hover {
+  background: #059669;
+  border-color: #059669;
+}
+
+.tp-btn--whatsapp-outline {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #86efac;
+}
+.tp-btn--whatsapp-outline:hover {
+  background: #dcfce7;
+  color: #15803d;
+  border-color: #4ade80;
+}
+
 /* ─── Icon buttons ───────────────────────────── */
 .tp-icon-btn {
   width: 32px;
