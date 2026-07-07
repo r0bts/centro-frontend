@@ -1070,6 +1070,37 @@ $level-colors: (
     cursor: not-allowed;
     opacity: .7;
   }
+
+  &--delivered {
+    border-color: #16a34a;
+    background: #f0fdf4;
+    color: #15803d;
+    &:hover { background: #dcfce7; border-color: #15803d; }
+  }
+
+  // Credencial entregada + reposición pendiente de pago (deuda)
+  &--delivered-debt {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #b45309;
+    &:hover { background: #fef3c7; border-color: #d97706; }
+  }
+
+  // Credencial entregada + reposición pagada
+  &--delivered-paid {
+    border-color: #6366f1;
+    background: #eef2ff;
+    color: #4338ca;
+    &:hover { background: #e0e7ff; border-color: #4f46e5; }
+  }
+
+  // Credencial entregada + reposición cancelada
+  &--delivered-cancelled {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+    color: #475569;
+    &:hover { background: #e2e8f0; border-color: #64748b; }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1824,3 +1855,66 @@ $level-colors: (
   }
 }
 
+
+// ── Credential Replacement ────────────────────────────────────────────────
+.cred-divider {
+  border: none; border-top: 1px solid #f1f5f9; margin: 14px 0;
+}
+.cred-replacement-section {
+  padding-top: 4px;
+}
+.cred-replacement-result {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 8px; font-size: 13px;
+  &--ok   { background: #f0fdf4; color: #16a34a; }
+  &--warn { background: #fff7ed; color: #d97706; }
+  .material-symbols-outlined { font-size: 16px; }
+}
+
+// ── Replacement status card ──────────────────────────────────────────────────
+.cred-replacement-card {
+  border-radius: 10px; padding: 12px 14px; font-size: 13px;
+  border: 1.5px solid #e2e8f0; background: #f8fafc;
+  margin-bottom: 8px;
+
+  &--paid      { border-color: #a78bfa; background: #ede9fe; }
+  &--pending   { border-color: #fed7aa; background: #fffbeb; }
+  &--delivered { border-color: #86efac; background: #f0fdf4; }
+  &--cancelled { border-color: #cbd5e1; background: #f1f5f9; }
+
+  &__header {
+    display: flex; align-items: center; gap: 7px; margin-bottom: 10px;
+    .material-symbols-outlined { font-size: 18px; }
+  }
+  &__title { font-weight: 600; flex: 1; font-size: 12.5px; }
+  &__badge {
+    border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em;
+  }
+  &__body { display: flex; flex-direction: column; gap: 5px; }
+}
+.cred-replacement-badge {
+  &--paid      { background: #ede9fe; color: #6d28d9; }
+  &--pending   { background: #fef9c3; color: #a16207; }
+  &--delivered { background: #dcfce7; color: #16a34a; }
+  &--cancelled { background: #f1f5f9; color: #64748b; }
+}
+.cred-rep-row {
+  display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px;
+  &--error { color: #dc2626; }
+}
+.cred-rep-label { color: #64748b; }
+.cred-rep-value { font-weight: 600; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+
+.sce-btn--danger-outline {
+  border: 1.5px solid #f43f5e; color: #f43f5e; background: transparent;
+  border-radius: 8px; padding: 8px 16px; font-size: 13px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background .15s, color .15s;
+  &:hover:not(:disabled) { background: #fff1f2; }
+  &:disabled { opacity: .55; cursor: not-allowed; }
+  .material-symbols-outlined { font-size: 16px; }
+  &.w-100 { width: 100%; }
+}

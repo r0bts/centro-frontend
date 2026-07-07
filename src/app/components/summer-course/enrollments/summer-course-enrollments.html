@@ -294,7 +294,14 @@
                             </button>
                           }
                           @if (ci.credential_delivered) {
-                            <button class="sce-kit-badge sce-kit-badge--done" style="cursor: pointer;" (click)="openCredentialModal(p, $event)" title="Ver opciones de credencial">
+                            <button class="sce-kit-btn"
+                                    [class.sce-kit-btn--delivered]="ci.replacement_summary.total_active === 0"
+                                    [class.sce-kit-btn--delivered-debt]="ci.replacement_summary.to_deliver === 0 && ci.replacement_summary.pending > 0"
+                                    [class.sce-kit-btn--delivered-paid]="ci.replacement_summary.to_deliver > 0"
+                                    (click)="openCredentialModal(p, $event)"
+                                    [title]="ci.replacement_summary.to_deliver > 0 ? ci.replacement_summary.to_deliver + ' reposición(es) pagada(s) — entregar'
+                                           : ci.replacement_summary.pending > 0  ? ci.replacement_summary.pending + ' reposición(es) pendiente(s) de pago'
+                                           : 'Credencial entregada'">
                               <span class="material-symbols-outlined">badge</span>
                               Credencial ✓
                             </button>
@@ -1500,6 +1507,104 @@
                   <textarea class="sce-input" rows="4" placeholder="Ej: recogió la mamá..."
                          [value]="credNotes()"
                          (input)="credNotes.set($any($event.target).value)"></textarea>
+                </div>
+              }
+
+              @if (cd.credential_delivered) {
+                <div class="cred-replacement-section">
+                  <hr class="cred-divider">
+
+                  <!-- Lista de reposiciones existentes -->
+                  @for (rep of credReplacementList(); track rep.id) {
+                    <div class="cred-replacement-card"
+                         [class.cred-replacement-card--pending]="rep.payment_status === 'pending'"
+                         [class.cred-replacement-card--paid]="rep.payment_status === 'paid' && !rep.delivered_at"
+                         [class.cred-replacement-card--delivered]="rep.payment_status === 'paid' && rep.delivered_at"
+                         [class.cred-replacement-card--cancelled]="rep.payment_status === 'cancelled'">
+                      <div class="cred-replacement-card__header">
+                        <span class="material-symbols-outlined">
+                          {{ rep.payment_status === 'paid' && rep.delivered_at ? 'check_circle'
+                           : rep.payment_status === 'paid' ? 'payments'
+                           : rep.payment_status === 'cancelled' ? 'cancel'
+                           : 'schedule' }}
+                        </span>
+                        <span class="cred-replacement-card__title">Reposición #{{ rep.id }}</span>
+                        <span class="cred-replacement-card__badge"
+                              [class.cred-replacement-badge--pending]="rep.payment_status === 'pending'"
+                              [class.cred-replacement-badge--paid]="rep.payment_status === 'paid' && !rep.delivered_at"
+                              [class.cred-replacement-badge--delivered]="rep.payment_status === 'paid' && rep.delivered_at"
+                              [class.cred-replacement-badge--cancelled]="rep.payment_status === 'cancelled'">
+                          {{ rep.payment_status === 'paid' && rep.delivered_at ? 'Entregada'
+                           : rep.payment_status === 'paid' ? 'Pagada'
+                           : rep.payment_status === 'cancelled' ? 'Cancelada'
+                           : 'Pend. pago' }}
+                        </span>
+                      </div>
+                      <div class="cred-replacement-card__body">
+                        <div class="cred-rep-row">
+                          <span class="cred-rep-label">Monto</span>
+                          <span class="cred-rep-value">${{ rep.amount ?? 200 | number:'1.2-2' }} MXN</span>
+                        </div>
+                        @if (rep.ns_so_id) {
+                          <div class="cred-rep-row">
+                            <span class="cred-rep-label">SO NetSuite</span>
+                            <span class="cred-rep-value">#{{ rep.ns_so_id }}</span>
+                          </div>
+                        }
+                        @if (rep.delivered_at) {
+                          <div class="cred-rep-row">
+                            <span class="cred-rep-label">Entregada</span>
+                            <span class="cred-rep-value">{{ rep.delivered_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                          </div>
+                        }
+                        @if (rep.ns_error) {
+                          <div class="cred-rep-row cred-rep-row--error">
+                            <span class="cred-rep-label">Error NS</span>
+                            <span class="cred-rep-value">{{ rep.ns_error }}</span>
+                          </div>
+                        }
+                      </div>
+                      <!-- Botón entregar: solo si paid + no entregada -->
+                      @if (rep.payment_status === 'paid' && !rep.delivered_at) {
+                        <button class="sce-btn sce-btn--primary sce-btn--sm w-100 mt-2"
+                                (click)="deliverCredential(rep.id)"
+                                [disabled]="credDeliveringId() === rep.id">
+                          @if (credDeliveringId() === rep.id) {
+                            <span class="sce-btn-spinner"></span> Registrando entrega...
+                          } @else {
+                            <span class="material-symbols-outlined">how_to_reg</span>
+                            Entregar credencial de reposición
+                          }
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  <!-- Botón solicitar nueva — SIEMPRE visible -->
+                  <button class="sce-btn sce-btn--danger-outline w-100 mt-2"
+                          (click)="requestCredentialReplacement()"
+                          [disabled]="credReplacementLoading()">
+                    @if (credReplacementLoading()) {
+                      <span class="sce-btn-spinner"></span> Procesando...
+                    } @else {
+                      <span class="material-symbols-outlined">autorenew</span>
+                      Solicitar reposición de credencial ($200)
+                    }
+                  </button>
+
+                  <!-- Sync manual -->
+                  @if (credReplacementList().length > 0) {
+                    <button class="sce-btn sce-btn--ghost sce-btn--sm w-100 mt-1"
+                            (click)="syncCredentialReplacementStatus()"
+                            [disabled]="credReplacementSyncing()">
+                      @if (credReplacementSyncing()) {
+                        <span class="sce-btn-spinner"></span> Sincronizando...
+                      } @else {
+                        <span class="material-symbols-outlined">sync</span>
+                        Actualizar estados de pago
+                      }
+                    </button>
+                  }
                 </div>
               }
             </div>

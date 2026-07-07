@@ -8,12 +8,25 @@ import {
   ScCredentialDeliverRequest,
   ScCredentialDeliverResponse,
   ScPhotoUploadResponse,
+  ScCredentialReplacementResponse,
+  ScCredentialReplacementResult,
+  ScCredentialReplacementSummary,
 } from '../../models/summer-course/summer-course.model';
+
+export interface ScReplacementListResponse {
+  success:  boolean;
+  message:  string;
+  data: {
+    replacements: ScCredentialReplacementResult[];
+    summary:      ScCredentialReplacementSummary;
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class ScCredentialDeliveriesService {
   private readonly base     = `${environment.apiUrl}/summer-course/credential-deliveries`;
   private readonly baseDepo = `${environment.apiUrl}/deportivo/summer-course`;
+  private readonly baseRep  = `${environment.apiUrl}/summer-course/credential-replacement`;
 
   constructor(private http: HttpClient) {}
 
@@ -33,23 +46,50 @@ export class ScCredentialDeliveriesService {
     );
   }
 
-  /**
-   * POST /api/summer-course/credential-deliveries/deliver
-   * Individual: { enrollment_id, notes }
-   * Masivo:     { titular_socio_id, course_id, notes }
-   */
+  /** POST /api/summer-course/credential-deliveries/deliver */
   deliver(payload: ScCredentialDeliverRequest): Observable<ScCredentialDeliverResponse> {
     return this.http.post<ScCredentialDeliverResponse>(`${this.base}/deliver`, payload);
   }
 
-  /**
-   * POST /api/deportivo/summer-course/participants/{id}/photo
-   * Body JSON: { photo_base64: "data:image/jpeg;base64,..." }
-   */
+  /** POST /api/deportivo/summer-course/participants/{id}/photo */
   uploadPhoto(participantId: number, photoBase64: string): Observable<ScPhotoUploadResponse> {
     return this.http.post<ScPhotoUploadResponse>(
       `${this.baseDepo}/participants/${participantId}/photo`,
       { photo_base64: photoBase64 }
     );
   }
+
+  /** POST /api/summer-course/credential-replacement — Solicitar nueva reposición */
+  requestReplacement(enrollmentId: number, notes?: string): Observable<ScCredentialReplacementResponse> {
+    return this.http.post<ScCredentialReplacementResponse>(
+      this.baseRep,
+      { enrollment_id: enrollmentId, notes: notes ?? undefined }
+    );
+  }
+
+  /** GET /api/summer-course/credential-replacement?enrollment_id= — Lista de reposiciones */
+  getReplacementList(enrollmentId: number): Observable<ScReplacementListResponse> {
+    return this.http.get<ScReplacementListResponse>(
+      this.baseRep,
+      { params: { enrollment_id: enrollmentId.toString() } }
+    );
+  }
+
+  /** POST /api/summer-course/credential-replacement/deliver — Entregar credencial pagada */
+  deliverReplacement(replacementId: number): Observable<{ success: boolean; message: string; data: ScCredentialReplacementResult }> {
+    return this.http.post<{ success: boolean; message: string; data: ScCredentialReplacementResult }>(
+      `${this.baseRep}/deliver`,
+      { replacement_id: replacementId }
+    );
+  }
+
+  /** POST /api/summer-course/sync-payments/sync-credentials — Sync manual */
+  syncCredentialReplacements(replacementId?: number): Observable<{ success: boolean; message: string; data: unknown }> {
+    const body = replacementId ? { replacement_id: replacementId } : {};
+    return this.http.post<{ success: boolean; message: string; data: unknown }>(
+      `${environment.apiUrl}/summer-course/sync-payments/sync-credentials`,
+      body
+    );
+  }
 }
+

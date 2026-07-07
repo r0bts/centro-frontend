@@ -34,6 +34,7 @@ import {
   ScKitDeliverySummary,
   ScCredentialDeliveryItem,
   ScCredentialPreview,
+  ScCredentialReplacementResult,
   ScIntensiveActivity,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
@@ -169,6 +170,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credModalLoading  = signal(false);
   credSaving        = signal(false);
   credNotes         = signal('');
+  credReplacementLoading = signal(false);
+  credReplacementResult  = signal<ScCredentialReplacementResult | null>(null);
+  credReplacementList    = signal<ScCredentialReplacementResult[]>([]);
+  credReplacementSyncing = signal(false);
+  credDeliveringId       = signal<number | null>(null); // id de la reposición que se está entregando
   
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
@@ -1317,12 +1323,22 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.credModalData.set(null);
     this.credModalLoading.set(true);
     this.credNotes.set('');
+    this.credReplacementResult.set(null);
+    this.credReplacementList.set([]);
 
     const courseId = this.selectedCourse()!.id;
     this.credSvc.getPreview(p.participant_id, courseId).subscribe({
       next: res => {
         this.credModalData.set(res.data);
         this.credModalLoading.set(false);
+
+        // Cargar lista de reposiciones si ya tiene credencial entregada
+        if (res.data?.credential_delivered && p.enrollment_id) {
+          this.credSvc.getReplacementList(p.enrollment_id).subscribe({
+            next: r => this.credReplacementList.set(r.data?.replacements ?? []),
+            error: () => {},
+          });
+        }
       },
       error: () => {
         this.credModalLoading.set(false);
@@ -1520,6 +1536,88 @@ ${stylesHtml}
       error: err => {
         this.credSaving.set(false);
         this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
+  }
+
+  requestCredentialReplacement(): void {
+    const data = this.credModalData();
+    if (!data?.enrollment_id) return;
+
+    Swal.fire({
+      title: '¿Solicitar reposición de credencial?',
+      html: 'Se generará una Orden de Venta en NetSuite por <strong>$200.00 MXN</strong> a cargo del titular.<br><br>Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, generar orden',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d63384',
+    }).then(result => {
+      if (!result.isConfirmed) return;
+
+      this.credReplacementLoading.set(true);
+      this.credReplacementResult.set(null);
+
+      this.credSvc.requestReplacement(data.enrollment_id!).subscribe({
+        next: res => {
+          this.credReplacementLoading.set(false);
+          this.credReplacementResult.set(res.data);
+          // Agregar al inicio de la lista
+          this.credReplacementList.update(list => [res.data, ...list]);
+          if (res.success) {
+            this.showToast(`Reposición registrada · SO NS: ${res.data.ns_so_id ?? 'Pendiente'}`, 'success');
+          } else {
+            this.showToast(res.message ?? 'Reposición registrada con error NS', 'info');
+          }
+        },
+        error: err => {
+          this.credReplacementLoading.set(false);
+          this.showToast(err?.error?.message ?? 'Error al solicitar reposición', 'danger');
+        },
+      });
+    });
+  }
+
+  deliverCredential(replacementId: number): void {
+    this.credDeliveringId.set(replacementId);
+    this.credSvc.deliverReplacement(replacementId).subscribe({
+      next: res => {
+        this.credDeliveringId.set(null);
+        // Actualizar esa card en la lista
+        this.credReplacementList.update(list =>
+          list.map(r => r.id === replacementId ? res.data : r)
+        );
+        this.showToast('Credencial de reposición entregada', 'success');
+        // Recargar credenciales para actualizar el color del botón en la lista
+        this._loadCredentials(this.selectedCourse()!.id);
+      },
+      error: err => {
+        this.credDeliveringId.set(null);
+        this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
+  }
+
+  syncCredentialReplacementStatus(): void {
+    const list = this.credReplacementList();
+    const p    = this.credParticipant();
+    if (!p?.enrollment_id) return;
+
+    this.credReplacementSyncing.set(true);
+    this.credSvc.syncCredentialReplacements().subscribe({
+      next: () => {
+        this.credSvc.getReplacementList(p.enrollment_id!).subscribe({
+          next: r => {
+            this.credReplacementList.set(r.data?.replacements ?? []);
+            this.credReplacementSyncing.set(false);
+          },
+          error: () => this.credReplacementSyncing.set(false),
+        });
+        this.showToast('Sync completado', 'success');
+      },
+      error: err => {
+        this.credReplacementSyncing.set(false);
+        this.showToast(err?.error?.message ?? 'Error al sincronizar', 'danger');
       },
     });
   }

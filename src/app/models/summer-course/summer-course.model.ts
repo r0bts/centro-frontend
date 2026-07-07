@@ -817,10 +817,11 @@ export interface ScCredentialDeliveryItem {
   membership_no:         number | null;
   has_photo:             boolean;
   photo_url:             string | null;
-  credential_delivered:  boolean;
-  delivered_by_name:     string | null;
-  delivered_at:          string | null;
-  notes:                 string | null;
+  credential_delivered:          boolean;
+  delivered_by_name:             string | null;
+  delivered_at:                  string | null;
+  notes:                         string | null;
+  replacement_summary:           { to_deliver: number; pending: number; total_active: number };
 }
 
 export interface ScCredentialStatusResponse {
@@ -881,4 +882,32 @@ export interface ScPhotoUploadResponse {
     photo_url:         string;
     photo_uploaded_at: string;
   };
+}
+
+// ── Credential Replacement ────────────────────────────────────────────────────
+export interface ScCredentialReplacementResult {
+  id:              number;
+  enrollment_id?:  number;
+  ns_so_id:        number | null;
+  ns_so_status:    string | null;
+  payment_status:  string;
+  ns_external_id:  string;
+  amount?:         number;
+  delivered_at?:   string | null;
+  delivered_by?:   number | null;
+  notes?:          string | null;
+  ns_error?:       string | null;
+  requested_at?:   string | null;
+}
+
+export interface ScCredentialReplacementSummary {
+  to_deliver:   number;
+  pending:      number;
+  total_active: number;
+}
+
+export interface ScCredentialReplacementResponse {
+  success: boolean;
+  message: string;
+  data:    ScCredentialReplacementResult;
 }
