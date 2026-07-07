@@ -36,6 +36,7 @@ import {
   ScCredentialPreview,
   ScCredentialReplacementResult,
   ScIntensiveActivity,
+  ScEnrollmentWeek,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 import { AuthorizedPickupsModalComponent } from './authorized-pickups-modal/authorized-pickups-modal';
@@ -175,6 +176,53 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credReplacementList    = signal<ScCredentialReplacementResult[]>([]);
   credReplacementSyncing = signal(false);
   credDeliveringId       = signal<number | null>(null); // id de la reposición que se está entregando
+
+  // ── Edit weeks ────────────────────────────────────────────────────────────
+  canEditWeeks           = signal<boolean>(false);
+  editWeeksParticipant   = signal<ScRegisteredParticipant | null>(null);  // participante en modal
+  editWeeksIds           = signal<number[]>([]);          // selección actual (sc_week ids)
+  editWeeksSaving        = signal(false);
+  editWeeksDetail        = signal<ScEnrollmentWeek[]>([]);  // semanas con payment_status
+
+  get editingWeeksForId(): number | null { return this.editWeeksParticipant()?.enrollment_id ?? null; }
+
+  /** Calcula el nuevo total de paquete dado el participant_type y N semanas seleccionadas */
+  editWeeksNewTotal = computed(() => {
+    const p = this.editWeeksParticipant();
+    if (!p) return 0;
+    const n = this.editWeeksIds().length;
+    if (n === 0) return 0;
+    const ptype = p.participant_type;
+    const match = this.costs().find(c => c.participant_type === ptype && c.weeks_count === n);
+    if (match) return match.total;
+    const base = this.costs().find(c => c.participant_type === ptype && c.weeks_count === 1);
+    return base ? base.cost_per_week * n : 0;
+  });
+
+  /** IDs de semanas que se agregarán (nuevas) */
+  editWeeksAdded = computed(() => {
+    const origIds = this.editWeeksDetail().map(w => w.week_id);
+    return this.editWeeksIds().filter(id => !origIds.includes(id));
+  });
+
+  /** IDs de semanas que se eliminarán (removidas) */
+  editWeeksRemoved = computed(() => {
+    const newIds = this.editWeeksIds();
+    return this.editWeeksDetail().map(w => w.week_id).filter(id => !newIds.includes(id));
+  });
+
+  /** Etiqueta de una semana del curso por su id */
+  courseWeekLabel(weekId: number): string {
+    return (this.selectedCourse()?.sc_weeks ?? []).find(w => w.id === weekId)?.label ?? `Semana ${weekId}`;
+  }
+
+  editWeeksAddedLabels(): string {
+    return this.editWeeksAdded().map(id => this.courseWeekLabel(id)).join(', ');
+  }
+
+  editWeeksRemovedLabels(): string {
+    return this.editWeeksRemoved().map(id => this.courseWeekLabel(id)).join(', ');
+  }
   
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
@@ -255,6 +303,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   ngOnInit(): void {
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
+    this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
 
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
@@ -277,6 +326,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           this._loadKits(list[0].id);
           this._loadCredentials(list[0].id);
           this._loadLevelGroups();
+          this._loadCosts(); // pre-cargar costos para el modal de edición de semanas
         }
         this.loading.set(false);
       },
@@ -1618,6 +1668,112 @@ ${stylesHtml}
       error: err => {
         this.credReplacementSyncing.set(false);
         this.showToast(err?.error?.message ?? 'Error al sincronizar', 'danger');
+      },
+    });
+  }
+
+  // ── Edit weeks ────────────────────────────────────────────────────────────
+
+  openEditWeeks(p: ScRegisteredParticipant): void {
+    const enrollmentId = p.enrollment_id;
+    if (!enrollmentId) return;
+
+    // Construir editWeeksDetail directamente desde los datos ya cargados del participante
+    // (evita una llamada API extra que puede causar 401 y logout)
+    const detail: ScEnrollmentWeek[] = (p.weeks ?? [])
+      .filter(w => w.enrollment_week_id != null && w.week_id != null)
+      .map(w => ({
+        id: w.enrollment_week_id!,
+        enrollment_id: enrollmentId,
+        week_id: w.week_id!,
+        amount: 0,
+        payment_status: (w.payment_status ?? 'pending') as 'pending' | 'paid' | 'partial' | 'cancelled',
+      }));
+
+    this.editWeeksDetail.set(detail);
+    this.editWeeksIds.set(detail.map(w => w.week_id));
+    this.editWeeksParticipant.set(p);
+  }
+
+  cancelEditWeeks(): void {
+    this.editWeeksParticipant.set(null);
+    this.editWeeksIds.set([]);
+  }
+
+  isEditWeekPaid(weekId: number): boolean {
+    return this.editWeeksDetail().some(w => w.week_id === weekId && w.payment_status === 'paid');
+  }
+
+  isEditWeekChecked(weekId: number): boolean {
+    return this.editWeeksIds().includes(weekId);
+  }
+
+  hasAnyPaidWeekInEdit(): boolean {
+    return this.editWeeksDetail().some(w => w.payment_status === 'paid');
+  }
+
+  toggleEditWeek(weekId: number): void {
+    // Verificar si está pagada (no se puede desmarcar)
+    const isPaid = this.editWeeksDetail().some(w => w.week_id === weekId && w.payment_status === 'paid');
+    if (isPaid) return;
+    const current = this.editWeeksIds();
+    if (current.includes(weekId)) {
+      this.editWeeksIds.set(current.filter(id => id !== weekId));
+    } else {
+      this.editWeeksIds.set([...current, weekId]);
+    }
+  }
+
+  saveEditWeeks(p: ScRegisteredParticipant): void {
+    const enrollmentId = p.enrollment_id;
+    if (!enrollmentId) return;
+
+    const ids = this.editWeeksIds();
+    if (ids.length === 0) {
+      this.showToast('Debe seleccionar al menos una semana.', 'danger');
+      return;
+    }
+
+    this.editWeeksSaving.set(true);
+    this.enrollSvc.updateWeeks(enrollmentId, ids).subscribe({
+      next: res => {
+        this.editWeeksSaving.set(false);
+        this.editWeeksParticipant.set(null);
+        this.editWeeksIds.set([]);
+        const updated = res.data;
+        if (updated) {
+          const newWeeks = (updated.weeks ?? []).map(w => ({
+            week_number: w.week_number ?? (this.selectedCourse()?.sc_weeks ?? [])
+              .find((sw: any) => sw.id === w.week_id)?.week_number ?? 0,
+            label: w.week_label ?? '',
+            enrollment_week_id: w.id,
+            week_id: w.week_id,
+            payment_status: w.payment_status ?? 'pending',
+            intensive_activity_id: null,
+            intensive_activity_name: null,
+          }));
+          this.registrations.update(groups =>
+            groups.map(g => ({
+              ...g,
+              participants: g.participants.map(part =>
+                part.enrollment_id === enrollmentId
+                  ? {
+                      ...part,
+                      weeks:           newWeeks,
+                      amount_paid:     updated.amount_paid     ?? part.amount_paid,
+                      list_price:      updated.list_price      ?? part.list_price,
+                      discount_amount: updated.discount_amount ?? part.discount_amount,
+                    }
+                  : part
+              ),
+            }))
+          );
+        }
+        this.showToast('Semanas actualizadas correctamente.', 'success');
+      },
+      error: err => {
+        this.editWeeksSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al actualizar semanas', 'danger');
       },
     });
   }

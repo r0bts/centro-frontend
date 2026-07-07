@@ -76,19 +76,32 @@ export interface ScEnrollment {
   participant_id: number;
   course_id: number;
   participant_type: 'member' | 'guest' | 'staff' | 'staff_guest';
-  suggested_level?: number | null;    // integer 1-8
-  assigned_level?: number | null;     // integer 1-8
+  suggested_level?: number | null;
+  assigned_level?: number | null;
   group_id?: number | null;
   level_notes?: string | null;
-  enrollment_date: string;            // DATE YYYY-MM-DD
+  enrollment_date: string;
   payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
   created_by?: number;
   created_at?: string;
   updated_at?: string;
+  list_price?: number | null;
+  discount_amount?: number | null;
+  amount_paid?: number | null;
   // Relations
   sc_participant?: ScParticipant;
   sc_course?: ScCourse;
   sc_enrollment_weeks?: ScEnrollmentWeek[];
+  weeks?: ScEnrollmentWeekFormatted[];
+}
+
+export interface ScEnrollmentWeekFormatted {
+  id: number;
+  week_id: number;
+  week_number?: number | null;
+  amount: number;
+  payment_status: 'pending' | 'paid' | 'partial' | 'cancelled';
+  week_label?: string | null;
 }
 
 export interface ScEnrollmentWeek {
@@ -576,7 +589,7 @@ export interface ScRegisteredParticipant {
   guest_id:         number | null;
   invited_by:       string | null;  // nombre del titular que lo invitó (solo guests)
   birth_date:       string | null;
-  weeks:            Array<{ week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number }>;
+  weeks:            Array<{ week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number; week_id?: number; payment_status?: 'pending' | 'paid' | 'partial' | 'cancelled' }>;
   payment_status:   'pending' | 'paid' | 'partial' | 'cancelled';
   access_code:      string | null;
   assigned_level?:    number | null;

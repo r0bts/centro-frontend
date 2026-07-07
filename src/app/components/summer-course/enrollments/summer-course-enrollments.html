@@ -323,6 +323,15 @@
                         <span class="material-symbols-outlined">family_restroom</span>
                         Autorizados
                       </button>
+
+                      <!-- Botón Editar Semanas -->
+                      @if (canEditWeeks()) {
+                        <button class="sce-kit-btn sce-kit-btn--weeks" style="margin-left: 6px;"
+                          (click)="openEditWeeks(p)" title="Editar semanas inscritas">
+                          <span class="material-symbols-outlined">edit_calendar</span>
+                          Semanas
+                        </button>
+                      }
                       
                       <!-- Botón Enviar Liga Portal -->
                       <button class="sce-kit-btn" style="margin-left: 6px;" (click)="sendPortalLink(p, $event)" title="Enviar liga por WhatsApp" [disabled]="sendingLinkMap()[p.participant_id]">
@@ -1645,4 +1654,168 @@
     [participant]="authorizedPickupsParticipant()"
     (close)="authorizedPickupsParticipant.set(null)">
   </app-authorized-pickups-modal>
+}
+
+<!-- ── Modal Editar Semanas ─────────────────────────────────────────────── -->
+@if (editWeeksParticipant(); as ewp) {
+  <div class="ewm-overlay" (click)="cancelEditWeeks()">
+    <div class="ewm-modal" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="ewm-header">
+        <div class="ewm-header__title">
+          <span class="material-symbols-outlined">edit_calendar</span>
+          Editar Semanas Inscritas
+        </div>
+        <div class="ewm-header__name">{{ ewp.full_name }}</div>
+        <button class="ewm-close" (click)="cancelEditWeeks()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="ewm-body">
+
+          <!-- Semanas actuales -->
+          <div class="ewm-section">
+            <div class="ewm-section__label">Semanas actuales ({{ editWeeksDetail().length }})</div>
+            @if (editWeeksDetail().length > 0) {
+              <div class="ewm-current-weeks">
+                @for (wd of editWeeksDetail(); track wd.id) {
+                  <div class="ewm-current-week" [class.ewm-current-week--paid]="wd.payment_status === 'paid'"
+                    [class.ewm-current-week--removed]="editWeeksRemoved().includes(wd.week_id)">
+                    <span class="ewm-current-week__label">{{ courseWeekLabel(wd.week_id) }}</span>
+                    <span class="ewm-current-week__status ewm-current-week__status--{{ wd.payment_status }}">
+                      @if (wd.payment_status === 'paid') {
+                        <span class="material-symbols-outlined">check_circle</span>pagada
+                      } @else if (wd.payment_status === 'partial') {
+                        <span class="material-symbols-outlined">pending</span>parcial
+                      } @else {
+                        <span class="material-symbols-outlined">schedule</span>pendiente
+                      }
+                    </span>
+                    @if (editWeeksRemoved().includes(wd.week_id)) {
+                      <span class="ewm-diff-badge ewm-diff-badge--remove">
+                        <span class="material-symbols-outlined">remove_circle</span>se quita
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <span class="ewm-empty-note">Sin semanas registradas</span>
+            }
+          </div>
+
+          <!-- Diff: resumen de cambios -->
+          @if (editWeeksAdded().length > 0 || editWeeksRemoved().length > 0) {
+            <div class="ewm-diff-summary">
+              @if (editWeeksAdded().length > 0) {
+                <div class="ewm-diff-row ewm-diff-row--add">
+                  <span class="material-symbols-outlined">add_circle</span>
+                  <span>Se agregan: <strong>{{ editWeeksAddedLabels() }}</strong></span>
+                </div>
+              }
+              @if (editWeeksRemoved().length > 0) {
+                <div class="ewm-diff-row ewm-diff-row--remove">
+                  <span class="material-symbols-outlined">remove_circle</span>
+                  <span>Se quitan: <strong>{{ editWeeksRemovedLabels() }}</strong></span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Selección de semanas -->
+          <div class="ewm-section">
+            <div class="ewm-section__label">Seleccionar semanas</div>
+            <div class="ewm-weeks-grid">
+              @for (cw of (selectedCourse()?.sc_weeks ?? []); track cw.id) {
+                @let paid = isEditWeekPaid(cw.id);
+                @let checked = isEditWeekChecked(cw.id);
+                @let isNew = editWeeksAdded().includes(cw.id);
+                <label class="ewm-week-opt"
+                  [class.ewm-week-opt--paid]="paid"
+                  [class.ewm-week-opt--checked]="checked && !paid"
+                  [class.ewm-week-opt--new]="isNew">
+                  <input type="checkbox" [checked]="checked" [disabled]="paid"
+                    (change)="toggleEditWeek(cw.id)" />
+                  <div class="ewm-week-opt__info">
+                    <span class="ewm-week-opt__label">{{ cw.label }}</span>
+                    @if (cw.start_date) {
+                      <span class="ewm-week-opt__dates">{{ cw.start_date }} – {{ cw.end_date }}</span>
+                    }
+                  </div>
+                  @if (paid) {
+                    <span class="ewm-week-opt__badge ewm-week-opt__badge--paid">
+                      <span class="material-symbols-outlined">lock</span>pagada
+                    </span>
+                  } @else if (isNew) {
+                    <span class="ewm-week-opt__badge ewm-week-opt__badge--new">
+                      <span class="material-symbols-outlined">add</span>nueva
+                    </span>
+                  }
+                </label>
+              }
+            </div>
+          </div>
+
+          <!-- Resumen de costos -->
+          <div class="ewm-cost-summary">
+            <div class="ewm-cost-row">
+              <span class="ewm-cost-row__label">Semanas actuales</span>
+              <span class="ewm-cost-row__val">{{ editWeeksDetail().length }} sem. — {{ currency(ewp.amount_paid ?? 0) }}</span>
+            </div>
+            <div class="ewm-cost-row">
+              <span class="ewm-cost-row__label">Semanas nuevas</span>
+              <span class="ewm-cost-row__val ewm-cost-row__val--new">{{ editWeeksIds().length }} sem.</span>
+            </div>
+            <div class="ewm-cost-divider"></div>
+            <div class="ewm-cost-row ewm-cost-row--total">
+              <span class="ewm-cost-row__label">Nuevo total del paquete</span>
+              <span class="ewm-cost-row__val ewm-cost-row__val--total">{{ currency(editWeeksNewTotal()) }}</span>
+            </div>
+            @if (editWeeksIds().length > 0 && editWeeksNewTotal() > 0) {
+              <div class="ewm-cost-row ewm-cost-row--sub">
+                <span class="ewm-cost-row__label">Precio por semana</span>
+                <span class="ewm-cost-row__val">{{ currency(editWeeksNewTotal() / editWeeksIds().length) }}/sem.</span>
+              </div>
+            }
+            @if (editWeeksNewTotal() === 0 && editWeeksIds().length > 0) {
+              <div class="ewm-cost-row ewm-cost-row--sub">
+                <span class="ewm-cost-row__label" style="color:#ef4444;">No se encontró tarifa para este tipo de participante</span>
+              </div>
+            }
+          </div>
+
+          @if (hasAnyPaidWeekInEdit()) {
+            <div class="ewm-warning">
+              <span class="material-symbols-outlined">info</span>
+              Las semanas marcadas como <strong>pagadas</strong> no pueden eliminarse.
+            </div>
+          }
+          @if (editWeeksIds().length === 0) {
+            <div class="ewm-warning ewm-warning--error">
+              <span class="material-symbols-outlined">warning</span>
+              Debe seleccionar al menos una semana.
+            </div>
+          }
+
+      </div>
+
+      <!-- Footer -->
+      <div class="ewm-footer">
+        <button class="sce-btn sce-btn--ghost" (click)="cancelEditWeeks()" [disabled]="editWeeksSaving()">Cancelar</button>
+        <button class="sce-btn sce-btn--primary" (click)="saveEditWeeks(ewp)"
+          [disabled]="editWeeksSaving() || editWeeksIds().length === 0">
+          @if (editWeeksSaving()) {
+            <span class="sce-btn-spinner"></span> Guardando...
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            Guardar cambios
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
 }

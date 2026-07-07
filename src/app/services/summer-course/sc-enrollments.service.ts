@@ -55,4 +55,8 @@ export class ScEnrollmentsService {
   assignGroup(id: number, data: AssignGroupRequest): Observable<ScEnrollmentResponse> {
     return this.http.patch<ScEnrollmentResponse>(`${this.base}/${id}/group`, data);
   }
+
+  updateWeeks(enrollmentId: number, weekIds: number[]): Observable<ScEnrollmentResponse> {
+    return this.http.put<ScEnrollmentResponse>(`${this.base}/${enrollmentId}/weeks`, { weeks: weekIds });
+  }
 }
