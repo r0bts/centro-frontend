@@ -180,6 +180,12 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Edit weeks ────────────────────────────────────────────────────────────
   canEditWeeks           = signal<boolean>(false);
   canPrintFormato        = signal<boolean>(false);
+  canExportCsv           = signal<boolean>(false);
+  // ── Export CSV signals ────────────────────────────────────────────────────
+  exportFilter           = signal<'all' | 'day' | 'week' | 'month'>('all');
+  exportDate             = signal<string>('');
+  exportWeekId           = signal<number>(0);
+  exportMonth            = signal<string>('');
   editWeeksParticipant   = signal<ScRegisteredParticipant | null>(null);  // participante en modal
   editWeeksIds           = signal<number[]>([]);          // selección actual (sc_week ids)
   editWeeksSaving        = signal(false);
@@ -306,6 +312,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
     this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
     this.canPrintFormato.set(this.authSvc.hasPermission('sc.enrollments', 'imprimir_formato_colaborador'));
+    this.canExportCsv.set(this.authSvc.hasPermission('sc.enrollments', 'exportar_csv'));
 
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
@@ -1794,6 +1801,34 @@ ${stylesHtml}
         URL.revokeObjectURL(url);
       },
       error: () => this.showToast('Error al generar el formato PDF', 'danger'),
+    });
+  }
+
+  downloadCsv(): void {
+    const course = this.selectedCourse();
+    if (!course) return;
+    const params: Record<string, string> = {
+      course_id: String(course.id),
+      filter:    this.exportFilter(),
+    };
+    if (this.exportFilter() === 'day'   && this.exportDate())   params['date']    = this.exportDate();
+    if (this.exportFilter() === 'week'  && this.exportWeekId()) params['week_id'] = String(this.exportWeekId());
+    if (this.exportFilter() === 'month' && this.exportMonth())  params['month']   = this.exportMonth();
+
+    this.enrollSvc.exportCsv(params as any).subscribe({
+      next: blob => {
+        const suffix = this.exportFilter() === 'day'   ? this.exportDate().replace(/-/g, '') :
+                       this.exportFilter() === 'week'  ? `S${this.exportWeekId()}` :
+                       this.exportFilter() === 'month' ? this.exportMonth() :
+                       new Date().getFullYear().toString();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `INSCRITOS_CVERANO_${suffix}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.showToast('Error al exportar CSV', 'danger'),
     });
   }
 }

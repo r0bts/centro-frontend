@@ -1930,6 +1930,43 @@ $level-colors: (
   &:hover:not(:disabled) { background: #fee2e2; border-color: #f87171; }
 }
 
+// ── Export CSV bar ────────────────────────────────────────────────────────────
+.sce-export-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.sce-export-select {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  cursor: pointer;
+  &:focus { outline: 2px solid #6366f1; outline-offset: 1px; }
+}
+
+.sce-export-input {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #374151;
+  background: #fff;
+  &:focus { outline: 2px solid #6366f1; outline-offset: 1px; }
+}
+
+.sce-kit-btn--csv {
+  background: #f0fdf4; border-color: #86efac; color: #166534;
+  &:hover:not(:disabled) { background: #dcfce7; border-color: #4ade80; }
+}
+
 // Modal overlay
 .ewm-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.48);

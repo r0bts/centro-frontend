@@ -113,6 +113,45 @@
       <span class="sce-count-label">
         {{ filteredRegistrations().length }} familia{{ filteredRegistrations().length !== 1 ? 's' : '' }}
       </span>
+
+      @if (canExportCsv()) {
+        <div class="sce-export-bar">
+          <select class="sce-export-select"
+                  [value]="exportFilter()"
+                  (change)="exportFilter.set($any($event.target).value)">
+            <option value="all">Todos</option>
+            <option value="day">Por día</option>
+            <option value="week">Por semana</option>
+            <option value="month">Por mes</option>
+          </select>
+
+          @if (exportFilter() === 'day') {
+            <input class="sce-export-input" type="date"
+                   [value]="exportDate()"
+                   (change)="exportDate.set($any($event.target).value)">
+          }
+          @if (exportFilter() === 'week') {
+            <select class="sce-export-select"
+                    [value]="exportWeekId()"
+                    (change)="exportWeekId.set(+$any($event.target).value)">
+              <option value="0" disabled>Seleccionar semana</option>
+              @for (w of courseWeeks; track w.id) {
+                <option [value]="w.id">{{ w.label }}</option>
+              }
+            </select>
+          }
+          @if (exportFilter() === 'month') {
+            <input class="sce-export-input" type="month"
+                   [value]="exportMonth()"
+                   (change)="exportMonth.set($any($event.target).value)">
+          }
+
+          <button class="sce-kit-btn sce-kit-btn--csv" (click)="downloadCsv()">
+            <span class="material-symbols-outlined">download</span>
+            Exportar CSV
+          </button>
+        </div>
+      }
     </div>
 
     @if (tableLoading()) {

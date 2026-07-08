@@ -12,6 +12,14 @@ import {
   AssignGroupRequest,
 } from '../../models/summer-course/summer-course.model';
 
+export interface ScExportCsvParams {
+  course_id: number;
+  filter?: 'all' | 'day' | 'week' | 'month';
+  date?: string;    // YYYY-MM-DD
+  week_id?: number;
+  month?: string;   // YYYY-MM
+}
+
 @Injectable({ providedIn: 'root' })
 export class ScEnrollmentsService {
   private readonly base = `${environment.apiUrl}/summer-course/enrollments`;
@@ -62,5 +70,10 @@ export class ScEnrollmentsService {
 
   printFormatColaborador(enrollmentId: number): Observable<Blob> {
     return this.http.get(`${this.base}/${enrollmentId}/format-colaborador`, { responseType: 'blob' });
+  }
+
+  exportCsv(params: ScExportCsvParams): Observable<Blob> {
+    const qp = new HttpParams({ fromObject: params as unknown as Record<string, string> });
+    return this.http.get(`${this.base}/export-csv`, { params: qp, responseType: 'blob' });
   }
 }
