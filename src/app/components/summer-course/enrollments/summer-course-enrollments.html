@@ -333,8 +333,8 @@
                         </button>
                       }
 
-                      <!-- Botón Formato PDF (solo staff_guest) -->
-                      @if (canPrintFormato() && (p.participant_type === 'staff_guest' || p.participant_type === 'staff')) {
+                      <!-- Botón Formato PDF (solo staff_guest/staff, excluir titulares CL* y participantes CL*) -->
+                      @if (canPrintFormato() && (p.participant_type === 'staff_guest' || p.participant_type === 'staff') && !(group.titular_name ?? '').toUpperCase().startsWith('CL') && !p.full_name.toUpperCase().startsWith('CL')) {
                         <button class="sce-kit-btn sce-kit-btn--pdf" style="margin-left: 6px;"
                           (click)="printFormato(p)" title="Descargar formato RH">
                           <span class="material-symbols-outlined">picture_as_pdf</span>
