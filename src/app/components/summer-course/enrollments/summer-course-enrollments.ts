@@ -179,6 +179,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Edit weeks ────────────────────────────────────────────────────────────
   canEditWeeks           = signal<boolean>(false);
+  canPrintFormato        = signal<boolean>(false);
   editWeeksParticipant   = signal<ScRegisteredParticipant | null>(null);  // participante en modal
   editWeeksIds           = signal<number[]>([]);          // selección actual (sc_week ids)
   editWeeksSaving        = signal(false);
@@ -304,6 +305,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
     this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
+    this.canPrintFormato.set(this.authSvc.hasPermission('sc.enrollments', 'imprimir_formato_colaborador'));
 
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
@@ -1775,6 +1777,23 @@ ${stylesHtml}
         this.editWeeksSaving.set(false);
         this.showToast(err?.error?.message ?? 'Error al actualizar semanas', 'danger');
       },
+    });
+  }
+
+  // ── Formato colaborador PDF ───────────────────────────────────────────────
+  printFormato(p: ScRegisteredParticipant): void {
+    const eid = p.enrollment_id;
+    if (!eid) return;
+    this.enrollSvc.printFormatColaborador(eid).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `formato_${eid}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.showToast('Error al generar el formato PDF', 'danger'),
     });
   }
 }

@@ -59,4 +59,8 @@ export class ScEnrollmentsService {
   updateWeeks(enrollmentId: number, weekIds: number[]): Observable<ScEnrollmentResponse> {
     return this.http.put<ScEnrollmentResponse>(`${this.base}/${enrollmentId}/weeks`, { weeks: weekIds });
   }
+
+  printFormatColaborador(enrollmentId: number): Observable<Blob> {
+    return this.http.get(`${this.base}/${enrollmentId}/format-colaborador`, { responseType: 'blob' });
+  }
 }

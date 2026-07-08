@@ -1925,6 +1925,11 @@ $level-colors: (
   &:hover:not(:disabled) { background: #e0f2fe; border-color: #38bdf8; }
 }
 
+.sce-kit-btn--pdf {
+  background: #fef2f2; border-color: #fca5a5; color: #b91c1c;
+  &:hover:not(:disabled) { background: #fee2e2; border-color: #f87171; }
+}
+
 // Modal overlay
 .ewm-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.48);

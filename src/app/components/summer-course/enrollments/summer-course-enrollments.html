@@ -332,6 +332,15 @@
                           Semanas
                         </button>
                       }
+
+                      <!-- Botón Formato PDF (solo staff_guest) -->
+                      @if (canPrintFormato() && (p.participant_type === 'staff_guest' || p.participant_type === 'staff')) {
+                        <button class="sce-kit-btn sce-kit-btn--pdf" style="margin-left: 6px;"
+                          (click)="printFormato(p)" title="Descargar formato RH">
+                          <span class="material-symbols-outlined">picture_as_pdf</span>
+                          Formato
+                        </button>
+                      }
                       
                       <!-- Botón Enviar Liga Portal -->
                       <button class="sce-kit-btn" style="margin-left: 6px;" (click)="sendPortalLink(p, $event)" title="Enviar liga por WhatsApp" [disabled]="sendingLinkMap()[p.participant_id]">
