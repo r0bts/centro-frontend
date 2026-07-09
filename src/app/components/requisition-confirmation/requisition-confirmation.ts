@@ -23,6 +23,7 @@ export interface RequisitionSummary {
 
 export interface Product {
   id: string;
+  itemId?: number; // requisition_items.id (para processReturn)
   name: string;
   quantity: number;
   unit: string;
@@ -118,6 +119,8 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
 
   // Permiso para cerrar entrega parcial directamente (perm_id=45)
   canClosePartial: boolean = false;
+  canAuthorize: boolean = false;   // permiso authorize (perm_id=7)
+  canCloseReturn: boolean = false; // permiso return (perm_id=9)
 
   constructor(private router: Router, private route: ActivatedRoute) {
     // Obtener datos del estado de navegación (para flujo normal y desde listado)
@@ -245,6 +248,8 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
           this.selectedProjectId = data.projectId;
           this.requisitionStatus = data.status || '';
           this.canClosePartial = this.authService.hasPermission('requisition_confirmation', 'close_partial');
+          this.canAuthorize    = this.authService.hasPermission('requisition_confirmation', 'authorize');
+          this.canCloseReturn  = this.authService.hasPermission('requisition_confirmation', 'return');
           
           // Capturar PIN de la requisición
           this.requisitionPin = data.pin || '';
@@ -276,6 +281,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
             const area = areaMap.get(areaKey)!;
             area.products.push({
               id: item.productId.toString(),
+              itemId: item.id,
               name: item.productName || 'Producto sin nombre',
               quantity: item.requestedQuantity,
               unit: item.unit || '',
@@ -993,13 +999,39 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
     }).then((result) => {
       if (result.isConfirmed) {
         Swal.fire({
-          icon: 'success',
-          title: 'Devolución cerrada',
-          text: 'La devolución ha sido cerrada exitosamente.',
-          confirmButtonText: 'Continuar'
-        }).then(() => {
-          // Redirigir a la lista de requisiciones
-          this.router.navigate(['/requisicion/lista']);
+          title: 'Cerrando devolución...',
+          text: 'Por favor espera...',
+          allowOutsideClick: false,
+          didOpen: () => { Swal.showLoading(); }
+        });
+
+        const items = this.requisitionData
+          .flatMap(summary => summary.products)
+          .filter(p => p.itemId != null)
+          .map(p => ({ item_id: p.itemId!, returned_quantity: 0 }));
+
+        this.requisitionService.processReturn(this.requisitionId, items).subscribe({
+          next: (response) => {
+            if (response.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Devolución cerrada',
+                text: 'La devolución ha sido cerrada exitosamente.',
+                confirmButtonText: 'Continuar'
+              }).then(() => {
+                this.router.navigate(['/requisicion/lista']);
+              });
+            }
+          },
+          error: (error) => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: error.error?.message || 'No se pudo cerrar la devolución',
+              confirmButtonText: 'Entendido',
+              confirmButtonColor: '#dc3545'
+            });
+          }
         });
       }
     });

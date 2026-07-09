@@ -113,6 +113,45 @@
       <span class="sce-count-label">
         {{ filteredRegistrations().length }} familia{{ filteredRegistrations().length !== 1 ? 's' : '' }}
       </span>
+
+      @if (canExportCsv()) {
+        <div class="sce-export-bar">
+          <select class="sce-export-select"
+                  [value]="exportFilter()"
+                  (change)="exportFilter.set($any($event.target).value)">
+            <option value="all">Todos</option>
+            <option value="day">Por día</option>
+            <option value="week">Por semana</option>
+            <option value="month">Por mes</option>
+          </select>
+
+          @if (exportFilter() === 'day') {
+            <input class="sce-export-input" type="date"
+                   [value]="exportDate()"
+                   (change)="exportDate.set($any($event.target).value)">
+          }
+          @if (exportFilter() === 'week') {
+            <select class="sce-export-select"
+                    [value]="exportWeekId()"
+                    (change)="exportWeekId.set(+$any($event.target).value)">
+              <option value="0" disabled>Seleccionar semana</option>
+              @for (w of courseWeeks; track w.id) {
+                <option [value]="w.id">{{ w.label }}</option>
+              }
+            </select>
+          }
+          @if (exportFilter() === 'month') {
+            <input class="sce-export-input" type="month"
+                   [value]="exportMonth()"
+                   (change)="exportMonth.set($any($event.target).value)">
+          }
+
+          <button class="sce-kit-btn sce-kit-btn--csv" (click)="downloadCsv()">
+            <span class="material-symbols-outlined">download</span>
+            Exportar CSV
+          </button>
+        </div>
+      }
     </div>
 
     @if (tableLoading()) {
@@ -294,10 +333,17 @@
                             </button>
                           }
                           @if (ci.credential_delivered) {
-                            <span class="sce-kit-badge sce-kit-badge--done">
+                            <button class="sce-kit-btn"
+                                    [class.sce-kit-btn--delivered]="ci.replacement_summary.total_active === 0"
+                                    [class.sce-kit-btn--delivered-debt]="ci.replacement_summary.to_deliver === 0 && ci.replacement_summary.pending > 0"
+                                    [class.sce-kit-btn--delivered-paid]="ci.replacement_summary.to_deliver > 0"
+                                    (click)="openCredentialModal(p, $event)"
+                                    [title]="ci.replacement_summary.to_deliver > 0 ? ci.replacement_summary.to_deliver + ' reposición(es) pagada(s) — entregar'
+                                           : ci.replacement_summary.pending > 0  ? ci.replacement_summary.pending + ' reposición(es) pendiente(s) de pago'
+                                           : 'Credencial entregada'">
                               <span class="material-symbols-outlined">badge</span>
                               Credencial ✓
-                            </span>
+                            </button>
                           } @else {
                             <button class="sce-kit-btn"
                                     [class.sce-kit-btn--disabled]="!ci.has_photo"
@@ -316,6 +362,24 @@
                         <span class="material-symbols-outlined">family_restroom</span>
                         Autorizados
                       </button>
+
+                      <!-- Botón Editar Semanas -->
+                      @if (canEditWeeks()) {
+                        <button class="sce-kit-btn sce-kit-btn--weeks" style="margin-left: 6px;"
+                          (click)="openEditWeeks(p)" title="Editar semanas inscritas">
+                          <span class="material-symbols-outlined">edit_calendar</span>
+                          Semanas
+                        </button>
+                      }
+
+                      <!-- Botón Formato PDF (solo staff_guest/staff, excluir titulares CL* y participantes CL*) -->
+                      @if (canPrintFormato() && (p.participant_type === 'staff_guest' || p.participant_type === 'staff') && !(group.titular_name ?? '').toUpperCase().startsWith('CL') && !p.full_name.toUpperCase().startsWith('CL')) {
+                        <button class="sce-kit-btn sce-kit-btn--pdf" style="margin-left: 6px;"
+                          (click)="printFormato(p)" title="Descargar formato RH">
+                          <span class="material-symbols-outlined">picture_as_pdf</span>
+                          Formato
+                        </button>
+                      }
                       
                       <!-- Botón Enviar Liga Portal -->
                       <button class="sce-kit-btn" style="margin-left: 6px;" (click)="sendPortalLink(p, $event)" title="Enviar liga por WhatsApp" [disabled]="sendingLinkMap()[p.participant_id]">
@@ -1502,6 +1566,104 @@
                          (input)="credNotes.set($any($event.target).value)"></textarea>
                 </div>
               }
+
+              @if (cd.credential_delivered) {
+                <div class="cred-replacement-section">
+                  <hr class="cred-divider">
+
+                  <!-- Lista de reposiciones existentes -->
+                  @for (rep of credReplacementList(); track rep.id) {
+                    <div class="cred-replacement-card"
+                         [class.cred-replacement-card--pending]="rep.payment_status === 'pending'"
+                         [class.cred-replacement-card--paid]="rep.payment_status === 'paid' && !rep.delivered_at"
+                         [class.cred-replacement-card--delivered]="rep.payment_status === 'paid' && rep.delivered_at"
+                         [class.cred-replacement-card--cancelled]="rep.payment_status === 'cancelled'">
+                      <div class="cred-replacement-card__header">
+                        <span class="material-symbols-outlined">
+                          {{ rep.payment_status === 'paid' && rep.delivered_at ? 'check_circle'
+                           : rep.payment_status === 'paid' ? 'payments'
+                           : rep.payment_status === 'cancelled' ? 'cancel'
+                           : 'schedule' }}
+                        </span>
+                        <span class="cred-replacement-card__title">Reposición #{{ rep.id }}</span>
+                        <span class="cred-replacement-card__badge"
+                              [class.cred-replacement-badge--pending]="rep.payment_status === 'pending'"
+                              [class.cred-replacement-badge--paid]="rep.payment_status === 'paid' && !rep.delivered_at"
+                              [class.cred-replacement-badge--delivered]="rep.payment_status === 'paid' && rep.delivered_at"
+                              [class.cred-replacement-badge--cancelled]="rep.payment_status === 'cancelled'">
+                          {{ rep.payment_status === 'paid' && rep.delivered_at ? 'Entregada'
+                           : rep.payment_status === 'paid' ? 'Pagada'
+                           : rep.payment_status === 'cancelled' ? 'Cancelada'
+                           : 'Pend. pago' }}
+                        </span>
+                      </div>
+                      <div class="cred-replacement-card__body">
+                        <div class="cred-rep-row">
+                          <span class="cred-rep-label">Monto</span>
+                          <span class="cred-rep-value">${{ rep.amount ?? 200 | number:'1.2-2' }} MXN</span>
+                        </div>
+                        @if (rep.ns_so_id) {
+                          <div class="cred-rep-row">
+                            <span class="cred-rep-label">SO NetSuite</span>
+                            <span class="cred-rep-value">#{{ rep.ns_so_id }}</span>
+                          </div>
+                        }
+                        @if (rep.delivered_at) {
+                          <div class="cred-rep-row">
+                            <span class="cred-rep-label">Entregada</span>
+                            <span class="cred-rep-value">{{ rep.delivered_at | date:'dd/MM/yyyy HH:mm' }}</span>
+                          </div>
+                        }
+                        @if (rep.ns_error) {
+                          <div class="cred-rep-row cred-rep-row--error">
+                            <span class="cred-rep-label">Error NS</span>
+                            <span class="cred-rep-value">{{ rep.ns_error }}</span>
+                          </div>
+                        }
+                      </div>
+                      <!-- Botón entregar: solo si paid + no entregada -->
+                      @if (rep.payment_status === 'paid' && !rep.delivered_at) {
+                        <button class="sce-btn sce-btn--primary sce-btn--sm w-100 mt-2"
+                                (click)="deliverCredential(rep.id)"
+                                [disabled]="credDeliveringId() === rep.id">
+                          @if (credDeliveringId() === rep.id) {
+                            <span class="sce-btn-spinner"></span> Registrando entrega...
+                          } @else {
+                            <span class="material-symbols-outlined">how_to_reg</span>
+                            Entregar credencial de reposición
+                          }
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  <!-- Botón solicitar nueva — SIEMPRE visible -->
+                  <button class="sce-btn sce-btn--danger-outline w-100 mt-2"
+                          (click)="requestCredentialReplacement()"
+                          [disabled]="credReplacementLoading()">
+                    @if (credReplacementLoading()) {
+                      <span class="sce-btn-spinner"></span> Procesando...
+                    } @else {
+                      <span class="material-symbols-outlined">autorenew</span>
+                      Solicitar reposición de credencial ($200)
+                    }
+                  </button>
+
+                  <!-- Sync manual -->
+                  @if (credReplacementList().length > 0) {
+                    <button class="sce-btn sce-btn--ghost sce-btn--sm w-100 mt-1"
+                            (click)="syncCredentialReplacementStatus()"
+                            [disabled]="credReplacementSyncing()">
+                      @if (credReplacementSyncing()) {
+                        <span class="sce-btn-spinner"></span> Sincronizando...
+                      } @else {
+                        <span class="material-symbols-outlined">sync</span>
+                        Actualizar estados de pago
+                      }
+                    </button>
+                  }
+                </div>
+              }
             </div>
             <!-- /cred-modal-right -->
           </div>
@@ -1540,4 +1702,168 @@
     [participant]="authorizedPickupsParticipant()"
     (close)="authorizedPickupsParticipant.set(null)">
   </app-authorized-pickups-modal>
+}
+
+<!-- ── Modal Editar Semanas ─────────────────────────────────────────────── -->
+@if (editWeeksParticipant(); as ewp) {
+  <div class="ewm-overlay" (click)="cancelEditWeeks()">
+    <div class="ewm-modal" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="ewm-header">
+        <div class="ewm-header__title">
+          <span class="material-symbols-outlined">edit_calendar</span>
+          Editar Semanas Inscritas
+        </div>
+        <div class="ewm-header__name">{{ ewp.full_name }}</div>
+        <button class="ewm-close" (click)="cancelEditWeeks()">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="ewm-body">
+
+          <!-- Semanas actuales -->
+          <div class="ewm-section">
+            <div class="ewm-section__label">Semanas actuales ({{ editWeeksDetail().length }})</div>
+            @if (editWeeksDetail().length > 0) {
+              <div class="ewm-current-weeks">
+                @for (wd of editWeeksDetail(); track wd.id) {
+                  <div class="ewm-current-week" [class.ewm-current-week--paid]="wd.payment_status === 'paid'"
+                    [class.ewm-current-week--removed]="editWeeksRemoved().includes(wd.week_id)">
+                    <span class="ewm-current-week__label">{{ courseWeekLabel(wd.week_id) }}</span>
+                    <span class="ewm-current-week__status ewm-current-week__status--{{ wd.payment_status }}">
+                      @if (wd.payment_status === 'paid') {
+                        <span class="material-symbols-outlined">check_circle</span>pagada
+                      } @else if (wd.payment_status === 'partial') {
+                        <span class="material-symbols-outlined">pending</span>parcial
+                      } @else {
+                        <span class="material-symbols-outlined">schedule</span>pendiente
+                      }
+                    </span>
+                    @if (editWeeksRemoved().includes(wd.week_id)) {
+                      <span class="ewm-diff-badge ewm-diff-badge--remove">
+                        <span class="material-symbols-outlined">remove_circle</span>se quita
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <span class="ewm-empty-note">Sin semanas registradas</span>
+            }
+          </div>
+
+          <!-- Diff: resumen de cambios -->
+          @if (editWeeksAdded().length > 0 || editWeeksRemoved().length > 0) {
+            <div class="ewm-diff-summary">
+              @if (editWeeksAdded().length > 0) {
+                <div class="ewm-diff-row ewm-diff-row--add">
+                  <span class="material-symbols-outlined">add_circle</span>
+                  <span>Se agregan: <strong>{{ editWeeksAddedLabels() }}</strong></span>
+                </div>
+              }
+              @if (editWeeksRemoved().length > 0) {
+                <div class="ewm-diff-row ewm-diff-row--remove">
+                  <span class="material-symbols-outlined">remove_circle</span>
+                  <span>Se quitan: <strong>{{ editWeeksRemovedLabels() }}</strong></span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Selección de semanas -->
+          <div class="ewm-section">
+            <div class="ewm-section__label">Seleccionar semanas</div>
+            <div class="ewm-weeks-grid">
+              @for (cw of (selectedCourse()?.sc_weeks ?? []); track cw.id) {
+                @let paid = isEditWeekPaid(cw.id);
+                @let checked = isEditWeekChecked(cw.id);
+                @let isNew = editWeeksAdded().includes(cw.id);
+                <label class="ewm-week-opt"
+                  [class.ewm-week-opt--paid]="paid"
+                  [class.ewm-week-opt--checked]="checked && !paid"
+                  [class.ewm-week-opt--new]="isNew">
+                  <input type="checkbox" [checked]="checked" [disabled]="paid"
+                    (change)="toggleEditWeek(cw.id)" />
+                  <div class="ewm-week-opt__info">
+                    <span class="ewm-week-opt__label">{{ cw.label }}</span>
+                    @if (cw.start_date) {
+                      <span class="ewm-week-opt__dates">{{ cw.start_date }} – {{ cw.end_date }}</span>
+                    }
+                  </div>
+                  @if (paid) {
+                    <span class="ewm-week-opt__badge ewm-week-opt__badge--paid">
+                      <span class="material-symbols-outlined">lock</span>pagada
+                    </span>
+                  } @else if (isNew) {
+                    <span class="ewm-week-opt__badge ewm-week-opt__badge--new">
+                      <span class="material-symbols-outlined">add</span>nueva
+                    </span>
+                  }
+                </label>
+              }
+            </div>
+          </div>
+
+          <!-- Resumen de costos -->
+          <div class="ewm-cost-summary">
+            <div class="ewm-cost-row">
+              <span class="ewm-cost-row__label">Semanas actuales</span>
+              <span class="ewm-cost-row__val">{{ editWeeksDetail().length }} sem. — {{ currency(ewp.amount_paid ?? 0) }}</span>
+            </div>
+            <div class="ewm-cost-row">
+              <span class="ewm-cost-row__label">Semanas nuevas</span>
+              <span class="ewm-cost-row__val ewm-cost-row__val--new">{{ editWeeksIds().length }} sem.</span>
+            </div>
+            <div class="ewm-cost-divider"></div>
+            <div class="ewm-cost-row ewm-cost-row--total">
+              <span class="ewm-cost-row__label">Nuevo total del paquete</span>
+              <span class="ewm-cost-row__val ewm-cost-row__val--total">{{ currency(editWeeksNewTotal()) }}</span>
+            </div>
+            @if (editWeeksIds().length > 0 && editWeeksNewTotal() > 0) {
+              <div class="ewm-cost-row ewm-cost-row--sub">
+                <span class="ewm-cost-row__label">Precio por semana</span>
+                <span class="ewm-cost-row__val">{{ currency(editWeeksNewTotal() / editWeeksIds().length) }}/sem.</span>
+              </div>
+            }
+            @if (editWeeksNewTotal() === 0 && editWeeksIds().length > 0) {
+              <div class="ewm-cost-row ewm-cost-row--sub">
+                <span class="ewm-cost-row__label" style="color:#ef4444;">No se encontró tarifa para este tipo de participante</span>
+              </div>
+            }
+          </div>
+
+          @if (hasAnyPaidWeekInEdit()) {
+            <div class="ewm-warning">
+              <span class="material-symbols-outlined">info</span>
+              Las semanas marcadas como <strong>pagadas</strong> no pueden eliminarse.
+            </div>
+          }
+          @if (editWeeksIds().length === 0) {
+            <div class="ewm-warning ewm-warning--error">
+              <span class="material-symbols-outlined">warning</span>
+              Debe seleccionar al menos una semana.
+            </div>
+          }
+
+      </div>
+
+      <!-- Footer -->
+      <div class="ewm-footer">
+        <button class="sce-btn sce-btn--ghost" (click)="cancelEditWeeks()" [disabled]="editWeeksSaving()">Cancelar</button>
+        <button class="sce-btn sce-btn--primary" (click)="saveEditWeeks(ewp)"
+          [disabled]="editWeeksSaving() || editWeeksIds().length === 0">
+          @if (editWeeksSaving()) {
+            <span class="sce-btn-spinner"></span> Guardando...
+          } @else {
+            <span class="material-symbols-outlined">save</span>
+            Guardar cambios
+          }
+        </button>
+      </div>
+
+    </div>
+  </div>
 }

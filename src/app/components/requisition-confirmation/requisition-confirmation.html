@@ -354,7 +354,7 @@
                   <button 
                     class="btn btn-outline-warning" 
                     (click)="cerrarDevolucion()"
-                    *ngIf="requisitionStatus === 'Espera Devolución'">
+                    *ngIf="requisitionStatus === 'Espera Devolución' && canCloseReturn">
                     Cerrar Devolución
                   </button>
                   
@@ -371,7 +371,7 @@
                 <button 
                   class="btn btn-success" 
                   (click)="confirmEdit()"
-                  *ngIf="requisitionStatus === 'Solicitado'">
+                  *ngIf="requisitionStatus === 'Solicitado' && canAuthorize">
                   Autorizar
                 </button>
               </div>

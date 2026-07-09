@@ -85,9 +85,9 @@
               <span *ngIf="!isPhotoComplete(child) && !isMedicalComplete(child)">Completar Perfil</span>
             </button>
             
-            <button *ngIf="getMissingProfileItems(child).length === 0" class="tp-btn tp-btn--outline tp-btn--disabled" style="opacity: 0.6; cursor: not-allowed;" title="Perfil completo. Para modificaciones, contacta a administración." disabled>
-              <span class="material-symbols-outlined" style="font-size: 18px;">lock</span>
-              <span>Perfil Completo</span>
+            <button *ngIf="getMissingProfileItems(child).length === 0" class="tp-btn tp-btn--outline" style="border-color: #10b981; color: #10b981;" (click)="goToMedicalForm(child, isSocioParticipant(child) ? 'completo' : 'simplificado')">
+              <span class="material-symbols-outlined" style="font-size: 18px;">assignment</span>
+              <span>Ver / Editar Médico</span>
             </button>
             <button *ngIf="!child.extra_pass_url" class="tp-btn tp-btn--primary" style="background: #8b5cf6; border-color: #8b5cf6;" (click)="openExtraordinaryModal(child)">
               <span class="material-symbols-outlined" style="font-size: 18px;">local_activity</span>
@@ -472,7 +472,7 @@
         <ng-container *ngIf="isSocioParticipant(selectedChildForProfile)">
           <button (click)="goToMedicalForm(selectedChildForProfile, 'completo')" class="tp-btn tp-btn--primary w-100 justify-content-center" style="padding: 14px;">
             <span class="material-symbols-outlined">assignment</span> 
-            <span>Llenar Expediente Clínico</span>
+            <span>{{ isMedicalComplete(selectedChildForProfile) ? 'Ver / Editar Expediente Médico' : 'Llenar Expediente Clínico' }}</span>
           </button>
         </ng-container>
 
@@ -480,7 +480,7 @@
         <ng-container *ngIf="!isSocioParticipant(selectedChildForProfile)">
           <button (click)="goToMedicalForm(selectedChildForProfile, 'simplificado')" class="tp-btn tp-btn--primary w-100 justify-content-center" style="padding: 14px;">
             <span class="material-symbols-outlined">assignment</span> 
-            <span>Llenar Cuestionario Médico</span>
+            <span>{{ isMedicalComplete(selectedChildForProfile) ? 'Ver / Editar Cuestionario Médico' : 'Llenar Cuestionario Médico' }}</span>
           </button>
         </ng-container>
       </div>

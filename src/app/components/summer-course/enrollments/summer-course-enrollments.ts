@@ -34,7 +34,9 @@ import {
   ScKitDeliverySummary,
   ScCredentialDeliveryItem,
   ScCredentialPreview,
+  ScCredentialReplacementResult,
   ScIntensiveActivity,
+  ScEnrollmentWeek,
 } from '../../../models/summer-course/summer-course.model';
 import { GuestModalComponent } from '../guest-modal/guest-modal.component';
 import { AuthorizedPickupsModalComponent } from './authorized-pickups-modal/authorized-pickups-modal';
@@ -169,6 +171,65 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   credModalLoading  = signal(false);
   credSaving        = signal(false);
   credNotes         = signal('');
+  credReplacementLoading = signal(false);
+  credReplacementResult  = signal<ScCredentialReplacementResult | null>(null);
+  credReplacementList    = signal<ScCredentialReplacementResult[]>([]);
+  credReplacementSyncing = signal(false);
+  credDeliveringId       = signal<number | null>(null); // id de la reposición que se está entregando
+
+  // ── Edit weeks ────────────────────────────────────────────────────────────
+  canEditWeeks           = signal<boolean>(false);
+  canPrintFormato        = signal<boolean>(false);
+  canExportCsv           = signal<boolean>(false);
+  // ── Export CSV signals ────────────────────────────────────────────────────
+  exportFilter           = signal<'all' | 'day' | 'week' | 'month'>('all');
+  exportDate             = signal<string>('');
+  exportWeekId           = signal<number>(0);
+  exportMonth            = signal<string>('');
+  editWeeksParticipant   = signal<ScRegisteredParticipant | null>(null);  // participante en modal
+  editWeeksIds           = signal<number[]>([]);          // selección actual (sc_week ids)
+  editWeeksSaving        = signal(false);
+  editWeeksDetail        = signal<ScEnrollmentWeek[]>([]);  // semanas con payment_status
+
+  get editingWeeksForId(): number | null { return this.editWeeksParticipant()?.enrollment_id ?? null; }
+
+  /** Calcula el nuevo total de paquete dado el participant_type y N semanas seleccionadas */
+  editWeeksNewTotal = computed(() => {
+    const p = this.editWeeksParticipant();
+    if (!p) return 0;
+    const n = this.editWeeksIds().length;
+    if (n === 0) return 0;
+    const ptype = p.participant_type;
+    const match = this.costs().find(c => c.participant_type === ptype && c.weeks_count === n);
+    if (match) return match.total;
+    const base = this.costs().find(c => c.participant_type === ptype && c.weeks_count === 1);
+    return base ? base.cost_per_week * n : 0;
+  });
+
+  /** IDs de semanas que se agregarán (nuevas) */
+  editWeeksAdded = computed(() => {
+    const origIds = this.editWeeksDetail().map(w => w.week_id);
+    return this.editWeeksIds().filter(id => !origIds.includes(id));
+  });
+
+  /** IDs de semanas que se eliminarán (removidas) */
+  editWeeksRemoved = computed(() => {
+    const newIds = this.editWeeksIds();
+    return this.editWeeksDetail().map(w => w.week_id).filter(id => !newIds.includes(id));
+  });
+
+  /** Etiqueta de una semana del curso por su id */
+  courseWeekLabel(weekId: number): string {
+    return (this.selectedCourse()?.sc_weeks ?? []).find(w => w.id === weekId)?.label ?? `Semana ${weekId}`;
+  }
+
+  editWeeksAddedLabels(): string {
+    return this.editWeeksAdded().map(id => this.courseWeekLabel(id)).join(', ');
+  }
+
+  editWeeksRemovedLabels(): string {
+    return this.editWeeksRemoved().map(id => this.courseWeekLabel(id)).join(', ');
+  }
   
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
@@ -249,6 +310,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   ngOnInit(): void {
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
+    this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
+    this.canPrintFormato.set(this.authSvc.hasPermission('sc.enrollments', 'imprimir_formato_colaborador'));
+    this.canExportCsv.set(this.authSvc.hasPermission('sc.enrollments', 'exportar_csv'));
 
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
@@ -271,6 +335,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
           this._loadKits(list[0].id);
           this._loadCredentials(list[0].id);
           this._loadLevelGroups();
+          this._loadCosts(); // pre-cargar costos para el modal de edición de semanas
         }
         this.loading.set(false);
       },
@@ -1317,12 +1382,22 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.credModalData.set(null);
     this.credModalLoading.set(true);
     this.credNotes.set('');
+    this.credReplacementResult.set(null);
+    this.credReplacementList.set([]);
 
     const courseId = this.selectedCourse()!.id;
     this.credSvc.getPreview(p.participant_id, courseId).subscribe({
       next: res => {
         this.credModalData.set(res.data);
         this.credModalLoading.set(false);
+
+        // Cargar lista de reposiciones si ya tiene credencial entregada
+        if (res.data?.credential_delivered && p.enrollment_id) {
+          this.credSvc.getReplacementList(p.enrollment_id).subscribe({
+            next: r => this.credReplacementList.set(r.data?.replacements ?? []),
+            error: () => {},
+          });
+        }
       },
       error: () => {
         this.credModalLoading.set(false);
@@ -1521,6 +1596,239 @@ ${stylesHtml}
         this.credSaving.set(false);
         this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
       },
+    });
+  }
+
+  requestCredentialReplacement(): void {
+    const data = this.credModalData();
+    if (!data?.enrollment_id) return;
+
+    Swal.fire({
+      title: '¿Solicitar reposición de credencial?',
+      html: 'Se generará una Orden de Venta en NetSuite por <strong>$200.00 MXN</strong> a cargo del titular.<br><br>Esta acción no se puede deshacer.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, generar orden',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#d63384',
+    }).then(result => {
+      if (!result.isConfirmed) return;
+
+      this.credReplacementLoading.set(true);
+      this.credReplacementResult.set(null);
+
+      this.credSvc.requestReplacement(data.enrollment_id!).subscribe({
+        next: res => {
+          this.credReplacementLoading.set(false);
+          this.credReplacementResult.set(res.data);
+          // Agregar al inicio de la lista
+          this.credReplacementList.update(list => [res.data, ...list]);
+          if (res.success) {
+            this.showToast(`Reposición registrada · SO NS: ${res.data.ns_so_id ?? 'Pendiente'}`, 'success');
+          } else {
+            this.showToast(res.message ?? 'Reposición registrada con error NS', 'info');
+          }
+        },
+        error: err => {
+          this.credReplacementLoading.set(false);
+          this.showToast(err?.error?.message ?? 'Error al solicitar reposición', 'danger');
+        },
+      });
+    });
+  }
+
+  deliverCredential(replacementId: number): void {
+    this.credDeliveringId.set(replacementId);
+    this.credSvc.deliverReplacement(replacementId).subscribe({
+      next: res => {
+        this.credDeliveringId.set(null);
+        // Actualizar esa card en la lista
+        this.credReplacementList.update(list =>
+          list.map(r => r.id === replacementId ? res.data : r)
+        );
+        this.showToast('Credencial de reposición entregada', 'success');
+        // Recargar credenciales para actualizar el color del botón en la lista
+        this._loadCredentials(this.selectedCourse()!.id);
+      },
+      error: err => {
+        this.credDeliveringId.set(null);
+        this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
+  }
+
+  syncCredentialReplacementStatus(): void {
+    const list = this.credReplacementList();
+    const p    = this.credParticipant();
+    if (!p?.enrollment_id) return;
+
+    this.credReplacementSyncing.set(true);
+    this.credSvc.syncCredentialReplacements().subscribe({
+      next: () => {
+        this.credSvc.getReplacementList(p.enrollment_id!).subscribe({
+          next: r => {
+            this.credReplacementList.set(r.data?.replacements ?? []);
+            this.credReplacementSyncing.set(false);
+          },
+          error: () => this.credReplacementSyncing.set(false),
+        });
+        this.showToast('Sync completado', 'success');
+      },
+      error: err => {
+        this.credReplacementSyncing.set(false);
+        this.showToast(err?.error?.message ?? 'Error al sincronizar', 'danger');
+      },
+    });
+  }
+
+  // ── Edit weeks ────────────────────────────────────────────────────────────
+
+  openEditWeeks(p: ScRegisteredParticipant): void {
+    const enrollmentId = p.enrollment_id;
+    if (!enrollmentId) return;
+
+    // Construir editWeeksDetail directamente desde los datos ya cargados del participante
+    // (evita una llamada API extra que puede causar 401 y logout)
+    const detail: ScEnrollmentWeek[] = (p.weeks ?? [])
+      .filter(w => w.enrollment_week_id != null && w.week_id != null)
+      .map(w => ({
+        id: w.enrollment_week_id!,
+        enrollment_id: enrollmentId,
+        week_id: w.week_id!,
+        amount: 0,
+        payment_status: (w.payment_status ?? 'pending') as 'pending' | 'paid' | 'partial' | 'cancelled',
+      }));
+
+    this.editWeeksDetail.set(detail);
+    this.editWeeksIds.set(detail.map(w => w.week_id));
+    this.editWeeksParticipant.set(p);
+  }
+
+  cancelEditWeeks(): void {
+    this.editWeeksParticipant.set(null);
+    this.editWeeksIds.set([]);
+  }
+
+  isEditWeekPaid(weekId: number): boolean {
+    return this.editWeeksDetail().some(w => w.week_id === weekId && w.payment_status === 'paid');
+  }
+
+  isEditWeekChecked(weekId: number): boolean {
+    return this.editWeeksIds().includes(weekId);
+  }
+
+  hasAnyPaidWeekInEdit(): boolean {
+    return this.editWeeksDetail().some(w => w.payment_status === 'paid');
+  }
+
+  toggleEditWeek(weekId: number): void {
+    // Verificar si está pagada (no se puede desmarcar)
+    const isPaid = this.editWeeksDetail().some(w => w.week_id === weekId && w.payment_status === 'paid');
+    if (isPaid) return;
+    const current = this.editWeeksIds();
+    if (current.includes(weekId)) {
+      this.editWeeksIds.set(current.filter(id => id !== weekId));
+    } else {
+      this.editWeeksIds.set([...current, weekId]);
+    }
+  }
+
+  saveEditWeeks(p: ScRegisteredParticipant): void {
+    const enrollmentId = p.enrollment_id;
+    if (!enrollmentId) return;
+
+    const ids = this.editWeeksIds();
+    if (ids.length === 0) {
+      this.showToast('Debe seleccionar al menos una semana.', 'danger');
+      return;
+    }
+
+    this.editWeeksSaving.set(true);
+    this.enrollSvc.updateWeeks(enrollmentId, ids).subscribe({
+      next: res => {
+        this.editWeeksSaving.set(false);
+        this.editWeeksParticipant.set(null);
+        this.editWeeksIds.set([]);
+        const updated = res.data;
+        if (updated) {
+          const newWeeks = (updated.weeks ?? []).map(w => ({
+            week_number: w.week_number ?? (this.selectedCourse()?.sc_weeks ?? [])
+              .find((sw: any) => sw.id === w.week_id)?.week_number ?? 0,
+            label: w.week_label ?? '',
+            enrollment_week_id: w.id,
+            week_id: w.week_id,
+            payment_status: w.payment_status ?? 'pending',
+            intensive_activity_id: null,
+            intensive_activity_name: null,
+          }));
+          this.registrations.update(groups =>
+            groups.map(g => ({
+              ...g,
+              participants: g.participants.map(part =>
+                part.enrollment_id === enrollmentId
+                  ? {
+                      ...part,
+                      weeks:           newWeeks,
+                      amount_paid:     updated.amount_paid     ?? part.amount_paid,
+                      list_price:      updated.list_price      ?? part.list_price,
+                      discount_amount: updated.discount_amount ?? part.discount_amount,
+                    }
+                  : part
+              ),
+            }))
+          );
+        }
+        this.showToast('Semanas actualizadas correctamente.', 'success');
+      },
+      error: err => {
+        this.editWeeksSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al actualizar semanas', 'danger');
+      },
+    });
+  }
+
+  // ── Formato colaborador PDF ───────────────────────────────────────────────
+  printFormato(p: ScRegisteredParticipant): void {
+    const eid = p.enrollment_id;
+    if (!eid) return;
+    this.enrollSvc.printFormatColaborador(eid).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `formato_${eid}_${new Date().toISOString().slice(0, 10)}.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.showToast('Error al generar el formato PDF', 'danger'),
+    });
+  }
+
+  downloadCsv(): void {
+    const course = this.selectedCourse();
+    if (!course) return;
+    const params: Record<string, string> = {
+      course_id: String(course.id),
+      filter:    this.exportFilter(),
+    };
+    if (this.exportFilter() === 'day'   && this.exportDate())   params['date']    = this.exportDate();
+    if (this.exportFilter() === 'week'  && this.exportWeekId()) params['week_id'] = String(this.exportWeekId());
+    if (this.exportFilter() === 'month' && this.exportMonth())  params['month']   = this.exportMonth();
+
+    this.enrollSvc.exportCsv(params as any).subscribe({
+      next: blob => {
+        const suffix = this.exportFilter() === 'day'   ? this.exportDate().replace(/-/g, '') :
+                       this.exportFilter() === 'week'  ? `S${this.exportWeekId()}` :
+                       this.exportFilter() === 'month' ? this.exportMonth() :
+                       new Date().getFullYear().toString();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `INSCRITOS_CVERANO_${suffix}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => this.showToast('Error al exportar CSV', 'danger'),
     });
   }
 }
