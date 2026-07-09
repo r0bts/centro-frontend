@@ -772,7 +772,13 @@
                     </label>
                     <input class="sce-form-input" type="tel" [value]="p.emergency_phone || ''" 
                            (input)="setEmergencyPhone(i, $any($event.target).value)" 
-                           placeholder="Ingresa el teléfono a 10 dígitos">
+                           placeholder="Ingresa el teléfono a 10 dígitos"
+                           [ngStyle]="{'border-color': !isPhoneValid(p.emergency_phone) ? '#ef4444' : ''}">
+                    @if (!isPhoneValid(p.emergency_phone)) {
+                      <div style="color: #ef4444; font-size: 0.75rem; margin-top: 4px;">
+                        Este campo es obligatorio y debe tener al menos 10 dígitos.
+                      </div>
+                    }
                   </div>
                 </div>
               }

@@ -186,19 +186,12 @@
           </div>
         </div>
 
-        <div class="gm-row gm-row--2">
+        <div class="gm-row">
           <div class="gm-field">
             <label class="gm-label">Email <span class="gm-opt">(opcional)</span></label>
             <input class="gm-input" type="email" placeholder="correo@ejemplo.com"
                    [value]="form().email"
                    (input)="updateForm('email', $any($event.target).value)" />
-          </div>
-          <div class="gm-field">
-            <label class="gm-label">Teléfono <span class="gm-req">*</span></label>
-            <input class="gm-input" type="tel" placeholder="55 1234 5678"
-                   [value]="form().phone"
-                   (input)="updateForm('phone', $any($event.target).value)"
-                   required />
           </div>
         </div>
 

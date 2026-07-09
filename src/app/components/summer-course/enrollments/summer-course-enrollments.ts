@@ -615,7 +615,15 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.pendingParticipants().filter(p => p.weeks.length > 0 && !p.outOfRange);
   }
 
-  canConfirm(): boolean { return this.activePending.length > 0; }
+  isPhoneValid(phone: string | null): boolean {
+    if (!phone) return false;
+    return phone.replace(/\D/g, '').length >= 10;
+  }
+
+  canConfirm(): boolean { 
+    return this.activePending.length > 0 && 
+           this.activePending.every(p => this.isPhoneValid(p.emergency_phone)); 
+  }
 
   goToConfirm(): void { if (this.canConfirm()) this.wizardStep.set('confirm'); }
   backToParticipants(): void { this.wizardStep.set('participants'); }
