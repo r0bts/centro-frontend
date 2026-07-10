@@ -45,10 +45,12 @@
           </select>
         </div>
       }
-      <button class="sce-btn sce-btn--primary" (click)="openWizard()" [disabled]="!selectedCourse()">
-        <span class="material-symbols-outlined">person_add</span>
-        Nueva inscripción
-      </button>
+      @if (canAdd()) {
+        <button class="sce-btn sce-btn--primary" (click)="openWizard()" [disabled]="!selectedCourse()">
+          <span class="material-symbols-outlined">person_add</span>
+          Nueva inscripción
+        </button>
+      }
       <button class="sce-btn sce-btn--icon" (click)="refreshTable()" title="Actualizar lista">
         <span class="material-symbols-outlined">refresh</span>
       </button>
@@ -168,10 +170,12 @@
         </div>
         <h3>Sin inscripciones</h3>
         <p>No hay participantes registrados en este curso todavía.</p>
-        <button class="sce-btn sce-btn--primary" (click)="openWizard()">
-          <span class="material-symbols-outlined">person_add</span>
-          Registrar primera inscripción
-        </button>
+        @if (canAdd()) {
+          <button class="sce-btn sce-btn--primary" (click)="openWizard()">
+            <span class="material-symbols-outlined">person_add</span>
+            Registrar primera inscripción
+          </button>
+        }
       </div>
     }
 

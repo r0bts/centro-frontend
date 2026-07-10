@@ -244,6 +244,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
 
+  // ── Permisos ──────────────────────────────────────────────────────────────
+  canAdd                = signal<boolean>(false);
+
   // ── Level / Group assignment ──────────────────────────────────────────────
   canReasignar          = signal<boolean>(false);
   canVerPagos           = signal<boolean>(false);
@@ -319,6 +322,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.canAdd.set(this.authSvc.hasPermission('sc.enrollments', 'add'));
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
     this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
