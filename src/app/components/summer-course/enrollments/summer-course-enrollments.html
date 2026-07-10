@@ -149,8 +149,8 @@
           }
 
           <button class="sce-kit-btn sce-kit-btn--csv" (click)="downloadCsv()">
-            <span class="material-symbols-outlined">download</span>
-            Exportar CSV
+            <span class="material-symbols-outlined">table_view</span>
+            Exportar Excel
           </button>
         </div>
       }
@@ -421,6 +421,21 @@
                       } @else {
                         <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}" style="margin-left: 6px;">
                           {{ paymentLabel(p.payment_status) }}
+                        </span>
+                      }
+                      <!-- Selector de género (todos los inscritos sin género asignado) -->
+                      @if (!p.gender_id) {
+                        <select class="sce-gender-select" style="margin-left:6px;"
+                                [disabled]="updatingGenderId() === p.participant_id"
+                                (change)="updateGender(p, +$any($event.target).value)">
+                          <option value="0">— Género —</option>
+                          <option value="1">♂ Masculino</option>
+                          <option value="2">♀ Femenino</option>
+                        </select>
+                      }
+                      @if (p.gender_id) {
+                        <span class="sce-gender-badge" style="margin-left:6px;">
+                          {{ p.gender_id === 1 ? '♂ M' : '♀ F' }}
                         </span>
                       }
                       @if (canVerPagos()) {

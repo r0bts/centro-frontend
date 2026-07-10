@@ -621,6 +621,7 @@ export interface ScRegisteredParticipant {
   list_price?:        number | null;
   discount_amount?:   number | null;
   amount_paid?:       number | null;
+  gender_id?:         number | null;   // 1=Masculino 2=Femenino null=sin género
 }
 
 /** Grupo de inscripción agrupado por titular */

@@ -76,4 +76,9 @@ export class ScEnrollmentsService {
     const qp = new HttpParams({ fromObject: params as unknown as Record<string, string> });
     return this.http.get(`${this.base}/export-csv`, { params: qp, responseType: 'blob' });
   }
+
+  exportXlsx(params: ScExportCsvParams): Observable<Blob> {
+    const qp = new HttpParams({ fromObject: params as unknown as Record<string, string> });
+    return this.http.get(`${this.base}/export-xlsx`, { params: qp, responseType: 'blob' });
+  }
 }

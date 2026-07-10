@@ -60,6 +60,17 @@ export class ScRegistrationsService {
   }
 
   /**
+   * Actualiza el género de un participante (modifica socios.gender_id).
+   * Solo aplica para participant_type=member (tienen socio_id).
+   */
+  updateParticipantGender(participantId: number, genderId: 1 | 2): Observable<{ success: boolean; data: { gender_id: number } }> {
+    return this.http.patch<{ success: boolean; data: { gender_id: number } }>(
+      `${this.base}/participants/${participantId}/gender`,
+      { gender_id: genderId }
+    );
+  }
+
+  /**
    * Obtiene los niveles del curso (sc_levels) con rangos de edad.
    */
   getLevels(): Observable<any> {

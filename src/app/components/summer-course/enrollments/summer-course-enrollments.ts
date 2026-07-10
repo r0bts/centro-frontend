@@ -188,6 +188,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   exportDate             = signal<string>('');
   exportWeekId           = signal<number>(0);
   exportMonth            = signal<string>('');
+  // ── Género inline ────────────────────────────────────────────────────────
+  updatingGenderId       = signal<number | null>(null);
   // ── Edit guest signals ─────────────────────────────────────────────────
   editGuestOpen          = signal(false);
   editGuestData          = signal<ScGuest | null>(null);
@@ -1920,7 +1922,7 @@ ${stylesHtml}
     if (this.exportFilter() === 'week'  && this.exportWeekId()) params['week_id'] = String(this.exportWeekId());
     if (this.exportFilter() === 'month' && this.exportMonth())  params['month']   = this.exportMonth();
 
-    this.enrollSvc.exportCsv(params as any).subscribe({
+    this.enrollSvc.exportXlsx(params as any).subscribe({
       next: blob => {
         const suffix = this.exportFilter() === 'day'   ? this.exportDate().replace(/-/g, '') :
                        this.exportFilter() === 'week'  ? `S${this.exportWeekId()}` :
@@ -1929,11 +1931,36 @@ ${stylesHtml}
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href     = url;
-        a.download = `INSCRITOS_CVERANO_${suffix}.csv`;
+        a.download = `INSCRITOS_CVERANO_${suffix}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.showToast('Error al exportar CSV', 'danger'),
+      error: () => this.showToast('Error al exportar Excel', 'danger'),
+    });
+  }
+
+  updateGender(p: ScRegisteredParticipant, genderId: number): void {
+    if (!genderId || genderId < 1 || genderId > 2) return;
+    this.updatingGenderId.set(p.participant_id);
+    this.svc.updateParticipantGender(p.participant_id, genderId as 1 | 2).subscribe({
+      next: () => {
+        this.registrations.update(groups =>
+          groups.map(g => ({
+            ...g,
+            participants: g.participants.map(part =>
+              part.participant_id === p.participant_id
+                ? { ...part, gender_id: genderId }
+                : part
+            ),
+          }))
+        );
+        this.showToast('Género actualizado ✓', 'success');
+        this.updatingGenderId.set(null);
+      },
+      error: () => {
+        this.showToast('Error al actualizar género', 'danger');
+        this.updatingGenderId.set(null);
+      },
     });
   }
 }
