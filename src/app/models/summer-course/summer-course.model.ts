@@ -494,6 +494,27 @@ export interface UpdateScInstructorRequest {
   specialty?: string | null;
 }
 
+/** Datos necesarios para renderizar la credencial de un instructor */
+export interface ScInstructorCredentialPreview {
+  instructor_id:        number;
+  full_name:            string;
+  specialty:            string | null;
+  email:                string | null;
+  photo_url:            string | null;
+  has_photo:            boolean;
+  qr_token:             string | null;
+  course_id:            number;
+  credential_id:        number | null;
+  credential_delivered: boolean;
+  credential_delivery:  { delivered_at: string; notes: string | null } | null;
+}
+
+export interface ScInstructorCredentialPreviewResponse {
+  success: boolean;
+  message: string;
+  data:    ScInstructorCredentialPreview;
+}
+
 // =====================================================================
 // INSCRIPCIONES (registration flow)
 // =====================================================================
@@ -761,6 +782,17 @@ export interface GuestResult {
     guest: ScGuest;
     ns_synced: boolean;
   };
+}
+
+export interface UpdateGuestPayload {
+  first_name?:       string;
+  last_name?:        string;
+  second_last_name?: string;
+  email?:            string;
+  phone?:            string;
+  birth_date?:       string;  // YYYY-MM-DD
+  rfc?:              string;
+  relationship?:     string;
 }
 
 export interface ScGuestListResponse {

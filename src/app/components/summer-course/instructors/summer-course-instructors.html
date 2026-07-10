@@ -113,6 +113,9 @@
                       <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(inst)" title="Eliminar">
                         <i class="bi bi-trash"></i>
                       </button>
+                      <button class="btn btn-sm btn-outline-primary" (click)="openCredentialModal(inst)" title="Credencial">
+                        <i class="bi bi-person-badge"></i>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -238,6 +241,222 @@
               Eliminar
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  }
+  <!-- ── Modal Credencial Profesor ──────────────────────────────────────── -->
+  @if (credModalOpen()) {
+    <div class="sce-modal-overlay" (click)="closeCredentialModal()">
+      <div class="sce-modal sce-credential-modal" (click)="$event.stopPropagation()">
+
+        <div class="sce-modal__header no-print">
+          <span class="material-symbols-outlined">badge</span>
+          <h2>Credencial de Profesor</h2>
+          <button class="sce-modal__close" (click)="closeCredentialModal()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="sce-modal__body">
+
+          <!-- Selector de edición del curso -->
+          <div class="cred-course-select no-print">
+            <label class="sce-field-label">Edición del curso</label>
+            <select class="sce-form-input"
+                    [value]="credSelectedCourse() ?? ''"
+                    (change)="onCredCourseChange(+$any($event.target).value)">
+              <option value="">— Selecciona —</option>
+              @for (c of courses(); track c.id) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+
+          @if (!credSelectedCourse()) {
+            <div class="cred-course-hint">
+              <span class="material-symbols-outlined">arrow_upward</span>
+              Selecciona una edición del curso para ver la credencial.
+            </div>
+          } @else if (credModalLoading()) {
+            <div class="sce-loading-row">
+              <span class="sce-spinner"></span> Cargando credencial...
+            </div>
+          } @else {
+            @let cd = credModalData();
+            @if (cd) {
+              <div class="cred-modal-layout">
+
+                <!-- ── Columna izquierda: credencial imprimible ── -->
+                <div class="cred-modal-left">
+                  <div class="credential-card print-target">
+                    <div class="cred-wrapper">
+
+                      <div class="cred-top-row">
+                        <div class="cred-logo-block">
+                          <img src="/assets/images/logo-centro-libanes.png" alt="Centro Libanés" class="cred-logo-main" />
+                        </div>
+                        <div class="cred-punch-area">
+                          <div class="cred-punch-oval"></div>
+                          <span class="cred-punch-label">ZONA DE PERFORACIÓN</span>
+                        </div>
+                        <div class="cred-badge-type cred-badge-type--profesor">PROFESOR</div>
+                      </div>
+
+                      <div class="cred-body-bg">
+                        <div class="cred-course-logo-wrapper">
+                          <img src="/assets/images/logocurso2026.webp" alt="Curso de Verano 2026" class="cred-course-logo-img" />
+                        </div>
+                        <div class="cred-media-row">
+                          <div class="cred-media-box cred-media-box--photo">
+                            <div class="cred-photo-inner">
+                              @if (credPhotoPreview()) {
+                                <img [src]="credPhotoPreview()" class="cred-photo-img" />
+                              } @else if (cd.photo_url) {
+                                <img [src]="photoBaseUrl + cd.photo_url" class="cred-photo-img" />
+                              } @else {
+                                <div class="cred-photo-empty">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="cred-avatar-svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                  </svg>
+                                  <span class="cred-photo-text">FOTO</span>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                          <div class="cred-media-box cred-media-box--qr">
+                            <div class="cred-qr-inner">
+                              <img [src]="'https://quickchart.io/qr?size=150&margin=0&text=' + cd.qr_token" class="cred-qr-img" crossorigin="anonymous" />
+                            </div>
+                            <div class="cred-qr-label">RECEPCIÓN/ENTREGA</div>
+                          </div>
+                        </div>
+                        <div class="cred-data-fields">
+                          <div class="cred-field cred-field--full">
+                            <div class="cred-label cred-label--blue">NOMBRE</div>
+                            <div class="cred-value">{{ cd.full_name }}</div>
+                          </div>
+                          <div class="cred-field cred-field--full">
+                            <div class="cred-label cred-label--orange">ESPECIALIDAD</div>
+                            <div class="cred-value">{{ cd.specialty || '—' }}</div>
+                          </div>
+                          <div class="cred-field cred-field--full">
+                            <div class="cred-label cred-label--dark">EMAIL</div>
+                            <div class="cred-value">{{ cd.email || '—' }}</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="cred-footer-area">
+                        <div class="cred-footer-line"></div>
+                        <div class="cred-footer-bar">CENTRO LIBANÉS - CURSO DE VERANO 2026</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- /cred-modal-left -->
+
+                <!-- ── Columna derecha: acciones ── -->
+                <div class="cred-modal-right no-print">
+
+                  <div class="cred-status">
+                    @if (cd.credential_delivered) {
+                      <span class="cred-status-badge cred-status-badge--delivered">
+                        <span class="material-symbols-outlined">check_circle</span>
+                        Credencial entregada · {{ cd.credential_delivery?.delivered_at | date:'dd/MM/yyyy HH:mm' }}
+                      </span>
+                    } @else {
+                      <span class="cred-status-badge cred-status-badge--pending">
+                        <span class="material-symbols-outlined">pending</span>
+                        Pendiente de entrega
+                      </span>
+                    }
+                  </div>
+
+                  @if (!cd.credential_delivered) {
+
+                    <!-- Sección de fotografía -->
+                    <div class="cred-camera-section">
+                      <div class="cred-camera-header">
+                        <span class="material-symbols-outlined">photo_camera</span>
+                        <span class="sce-field-label">Fotografía</span>
+                        <div class="cred-camera-tabs">
+                          <button class="cred-camera-tab" [class.cred-camera-tab--active]="credCameraMode() === 'camera'"
+                                  (click)="credCameraMode.set('camera')">
+                            <span class="material-symbols-outlined">camera_alt</span>
+                          </button>
+                          <button class="cred-camera-tab" [class.cred-camera-tab--active]="credCameraMode() === 'file'"
+                                  (click)="credCameraMode.set('file')">
+                            <span class="material-symbols-outlined">upload</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      @if (credPhotoPreview()) {
+                        <img [src]="credPhotoPreview()" class="cred-camera-preview" />
+                        <div class="cred-camera-actions">
+                          <button class="sce-btn sce-btn--ghost sce-btn--sm"
+                                  (click)="credPhotoPreview.set(null); credCameraMode.set('camera')">
+                            <span class="material-symbols-outlined">replay</span>Repetir
+                          </button>
+                          <button class="sce-btn sce-btn--success sce-btn--sm"
+                                  (click)="saveCredPhoto()" [disabled]="credPhotoSaving()">
+                            @if (credPhotoSaving()) { <span class="sce-btn-spinner"></span> }
+                            <span class="material-symbols-outlined">save</span>Guardar foto
+                          </button>
+                        </div>
+                      } @else if (credCameraMode() === 'camera') {
+                        <video #credVideo class="cred-camera-video" autoplay playsinline
+                               (canplay)="startCredCamera(credVideo)"></video>
+                        <div class="cred-camera-actions">
+                          <button class="sce-btn sce-btn--ghost sce-btn--sm" (click)="toggleCredCamera(credVideo)">
+                            <span class="material-symbols-outlined">flip_camera_ios</span>
+                          </button>
+                          <button class="sce-btn sce-btn--primary sce-btn--sm" style="flex:1" (click)="captureCredPhoto(credVideo)">
+                            <span class="material-symbols-outlined">photo_camera</span>Capturar
+                          </button>
+                        </div>
+                      } @else {
+                        <input type="file" accept="image/*" class="sce-form-input"
+                               (change)="onCredFileSelected($event)" />
+                      }
+                    </div>
+
+                    @if (cd.has_photo) {
+                      <div class="cred-notes-row">
+                        <label class="sce-field-label">Notas (opcional)</label>
+                        <textarea class="sce-input" rows="3"
+                                  placeholder="Ej: recogió el coordinador..."
+                                  [value]="credNotes()"
+                                  (input)="credNotes.set($any($event.target).value)"></textarea>
+                      </div>
+                      <button class="sce-btn sce-btn--primary w-100"
+                              (click)="deliverInstructorCredential()"
+                              [disabled]="credDelivering()">
+                        @if (credDelivering()) { <span class="sce-btn-spinner"></span> }
+                        <span class="material-symbols-outlined">how_to_reg</span>
+                        Entregar credencial
+                      </button>
+                    } @else {
+                      <div class="cred-info-hint">
+                        <span class="material-symbols-outlined">info</span>
+                        Captura la fotografía del instructor antes de entregar la credencial.
+                      </div>
+                    }
+
+                  }
+
+                  <button class="sce-btn sce-btn--ghost w-100 mt-2" (click)="printInstructorCredential()">
+                    <span class="material-symbols-outlined">print</span>Imprimir credencial
+                  </button>
+
+                </div>
+                <!-- /cred-modal-right -->
+
+              </div>
+            }
+          }
+
         </div>
       </div>
     </div>
