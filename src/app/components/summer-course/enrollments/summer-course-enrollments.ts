@@ -324,7 +324,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.canAdd.set(this.authSvc.hasPermission('sc.enrollments', 'add'));
+    this.canAdd.set(this.authSvc.hasPermission('sc.enrollments', 'create'));
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
     this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
