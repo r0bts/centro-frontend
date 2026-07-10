@@ -98,6 +98,10 @@ export class ScRegistrationsService {
     return this.http.patch(`${this.base}/update-participant-phone`, { participant_id: participantId, phone });
   }
 
+  updateParticipantName(participantId: number, name: string): Observable<any> {
+    return this.http.patch(`${this.base}/update-participant-name`, { participant_id: participantId, name });
+  }
+
   sendPortalLinkWhatsapp(enrollmentId: number, phone: string | null, url: string): Observable<any> {
     return this.http.post(`${this.base}/send-portal-link`, { enrollment_id: enrollmentId, phone, url });
   }

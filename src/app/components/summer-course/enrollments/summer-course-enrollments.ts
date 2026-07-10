@@ -1457,6 +1457,39 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     });
   }
 
+  editGuestName(p: ScRegisteredParticipant, event: Event): void {
+    event.stopPropagation();
+    
+    Swal.fire({
+      title: 'Editar nombre del invitado',
+      input: 'text',
+      inputValue: p.full_name,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      inputValidator: (value) => {
+        if (!value || value.trim().length === 0) {
+          return 'El nombre no puede estar vacío';
+        }
+        return null;
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const newName = result.value.trim();
+        this.svc.updateParticipantName(p.participant_id, newName).subscribe({
+          next: () => {
+            p.full_name = newName.toUpperCase();
+            this.showToast('Nombre guardado correctamente.', 'success');
+          },
+          error: (err) => {
+            const msg = err.error?.message || 'Error al guardar el nombre';
+            this.showToast(msg, 'danger');
+          }
+        });
+      }
+    });
+  }
+
   sendPortalLink(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
     

@@ -236,7 +236,15 @@
                         {{ p.participant_type === 'guest' ? 'person_outline' : 'person' }}
                       </span>
                       <div>
-                        <span class="sce-participant-name">{{ p.full_name }}</span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span class="sce-participant-name">{{ p.full_name }}</span>
+                          @if (p.participant_type === 'guest') {
+                            <button (click)="editGuestName(p, $event)" class="sce-edit-phone-btn" title="Editar nombre" style="padding: 2px 6px;">
+                              <span class="material-symbols-outlined" style="font-size: 14px;">edit</span>
+                              Editar
+                            </button>
+                          }
+                        </div>
                         <div class="sce-participant-meta">
                           <span class="sce-participant-type">{{ typeLabel(p.participant_type) }}</span>
 
