@@ -8,6 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Html5Qrcode } from 'html5-qrcode';
 import { environment } from '../../../../environments/environment';
+import Swal from 'sweetalert2';
 
 interface ScanResult {
   participant: { id: number; first_name: string; last_name: string; photo_url: string | null; age: number | null };
@@ -39,6 +40,21 @@ interface ScanEntry {
   instructor_name: string | null;
 }
 
+interface CheckoutResult {
+  status_color: 'green' | 'yellow' | 'red';
+  message: string;
+  is_dynamic: boolean;
+  is_static_credential_alone?: boolean;
+  pass_id: number | null;
+  authorized_name?: string;
+  authorized_photo_url?: string | null;
+  authorized_pickups?: Array<{name: string, relationship: string, phone: string, photo_url: string | null}>;
+  participant: { id: number; first_name: string; last_name: string; photo_url: string | null };
+  can_leave_alone: boolean;
+  warning?: string | null;
+  token?: string;
+}
+
 @Component({
   selector: 'app-sc-scan',
   standalone: true,
@@ -55,15 +71,24 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   private readonly apiUrl     = `${environment.apiUrl}/public/sc-scan`;
   private readonly historyUrl = `${environment.apiUrl}/public/sc-scan-history`;
+  private readonly checkoutValidateUrl = `${environment.apiUrl}/public/sc-validate-first-checkout`;
+  private readonly checkoutProcessUrl  = `${environment.apiUrl}/public/sc-process-first-checkout`;
 
   groupAlias   = signal<string>('');
   manualToken  = signal<string>('');
+
+  mode         = signal<'entrada' | 'salida'>('entrada');
 
   scanning     = signal(false);
   processing   = signal(false);
   cameraError  = signal<string | null>(null);
 
+  // Entrada
   result       = signal<ScanResult | null>(null);
+  // Salida
+  checkoutResult = signal<CheckoutResult | null>(null);
+  selectedPickupName = signal<string | null>(null);
+
   errorMsg     = signal<string | null>(null);
   lastToken    = signal<string>('');
   scannedList  = signal<ScanEntry[]>([]);
@@ -82,6 +107,12 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopCamera();
+  }
+
+  setMode(newMode: 'entrada' | 'salida'): void {
+    if (this.mode() === newMode) return;
+    this.mode.set(newMode);
+    this.reset();
   }
 
   // ── Cámara ────────────────────────────────────────────────────────────────
@@ -125,27 +156,48 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   // ── Escaneo ───────────────────────────────────────────────────────────────
 
-  onScan(token: string): void {    if (this.processing() || token === this.lastToken()) return;
-    this.lastToken.set(token);
-    this.callApi(token, false);
+  onScan(token: string): void {    
+    if (this.processing() || token === this.lastToken()) return;
+    
+    // Extraer token si es URL (como en el final scanner)
+    let parsedToken = token;
+    if (parsedToken.includes('/pase-salida/')) {
+      const parts = parsedToken.split('/pase-salida/');
+      parsedToken = parts[parts.length - 1];
+    } else if (parsedToken.includes('/credencial/')) {
+      const parts = parsedToken.split('/credencial/');
+      parsedToken = parts[parts.length - 1];
+    } else if (parsedToken.includes('=')) {
+      const parts = parsedToken.split('=');
+      parsedToken = parts[parts.length - 1];
+    }
+
+    this.lastToken.set(parsedToken);
+    
+    if (this.mode() === 'entrada') {
+      this.callApiEntrada(parsedToken, false);
+    } else {
+      this.callApiSalida(parsedToken);
+    }
   }
 
   submitManual(): void {
     const t = this.manualToken().trim();
     if (!t) return;
-    this.lastToken.set(t);
-    this.callApi(t, false);
+    this.onScan(t);
     this.manualToken.set('');
   }
 
   acceptForce(): void {
     const t = this.lastToken();
     if (!t) return;
-    this.callApi(t, true);
+    this.callApiEntrada(t, true);
   }
 
   reset(): void {
     this.result.set(null);
+    this.checkoutResult.set(null);
+    this.selectedPickupName.set(null);
     this.state.set('idle');
     this.errorMsg.set(null);
     this.lastToken.set('');
@@ -159,7 +211,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
-  // ── API ───────────────────────────────────────────────────────────────────
+  // ── API ENTRADA ────────────────────────────────────────────────────────────
 
   private loadInitialHistory(): void {
     const alias = this.groupAlias();
@@ -194,7 +246,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
     });
   }
 
-  private callApi(token: string, force: boolean): void {
+  private callApiEntrada(token: string, force: boolean): void {
     this.processing.set(true);
     this.result.set(null);
     this.errorMsg.set(null);
@@ -253,6 +305,101 @@ export class ScScanComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── API SALIDA ────────────────────────────────────────────────────────────
+
+  private callApiSalida(token: string): void {
+    this.processing.set(true);
+    this.checkoutResult.set(null);
+    this.selectedPickupName.set(null);
+    this.errorMsg.set(null);
+
+    this.http.post<{ success: boolean; message: string; data: CheckoutResult }>(
+      this.checkoutValidateUrl,
+      { token, group_alias: this.groupAlias() }
+    ).subscribe({
+      next: (res) => {
+        this.processing.set(false);
+        const data = res.data;
+
+        if (res.success || data?.status_color === 'yellow') {
+          data.token = token;
+          this.checkoutResult.set(data);
+          
+          if (data.status_color === 'green') {
+            this.state.set('ok');
+            this.playSuccessSound();
+            if (data.is_dynamic && data.authorized_pickups && data.authorized_pickups.length === 1) {
+              this.selectedPickupName.set(data.authorized_pickups[0].name);
+            }
+          } else {
+            this.state.set('warning'); // yellow
+          }
+        } else {
+          this.state.set('error');
+          this.errorMsg.set(res.message || data?.message || 'Pase inválido');
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.processing.set(false);
+        this.state.set('error');
+        this.errorMsg.set(err?.error?.message ?? err?.error?.data?.message ?? 'Error de red. Intenta de nuevo.');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  processCheckout() {
+    const coResult = this.checkoutResult();
+    if (!coResult || !coResult.token || this.processing()) return;
+    if (coResult.status_color !== 'green') return;
+
+    if (coResult.is_dynamic && coResult.authorized_pickups && coResult.authorized_pickups.length > 1) {
+      if (!this.selectedPickupName()) {
+        Swal.fire('Selección requerida', 'Debes confirmar visualmente qué persona autorizada está recogiendo al menor.', 'warning');
+        return;
+      }
+    }
+
+    this.processing.set(true);
+    this.cdr.detectChanges();
+
+    this.http.post<{ success: boolean; message: string }>(
+      this.checkoutProcessUrl,
+      { token: coResult.token, group_alias: this.groupAlias() }
+    ).subscribe({
+      next: (res) => {
+        this.processing.set(false);
+        if (res.success) {
+          this.playSuccessSound();
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: '¡Primera Salida Registrada!',
+            showConfirmButton: false,
+            timer: 1500
+          });
+          this.reset();
+        } else {
+          this.errorMsg.set(res.message);
+          this.state.set('error');
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.processing.set(false);
+        this.errorMsg.set(err.error?.message || 'Error al procesar.');
+        this.state.set('error');
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  selectPickup(name: string) {
+    this.selectedPickupName.set(name);
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   paymentLabel(s: string | undefined): string {
@@ -264,5 +411,27 @@ export class ScScanComponent implements OnInit, OnDestroy {
 
   get pageTitle(): string {
     return this.groupAlias() ? `Grupo ${this.groupAlias()}` : 'Escaneo de grupo';
+  }
+
+  playSuccessSound() {
+    try {
+      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, context.currentTime); // A5 note
+      
+      gainNode.gain.setValueAtTime(0.1, context.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.00001, context.currentTime + 0.15);
+      
+      oscillator.start(context.currentTime);
+      oscillator.stop(context.currentTime + 0.15);
+    } catch (e) {
+      console.log('Audio not supported', e);
+    }
   }
 }

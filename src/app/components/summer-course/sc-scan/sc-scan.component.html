@@ -11,6 +11,20 @@
     </div>
   </div>
 
+  <!-- ── Tabs Entrada / Salida ───────────────────────────────────────────── -->
+  <div class="sc-scan-tabs d-flex justify-content-center mb-3">
+    <div class="btn-group" role="group">
+      <button type="button" class="btn" [ngClass]="mode() === 'entrada' ? 'btn-primary' : 'btn-outline-primary'" (click)="setMode('entrada')">
+        <span class="material-symbols-outlined me-1" style="vertical-align: bottom; font-size: 1.2rem;">login</span>
+        Entrada
+      </button>
+      <button type="button" class="btn" [ngClass]="mode() === 'salida' ? 'btn-primary' : 'btn-outline-primary'" (click)="setMode('salida')">
+        <span class="material-symbols-outlined me-1" style="vertical-align: bottom; font-size: 1.2rem;">logout</span>
+        Salida
+      </button>
+    </div>
+  </div>
+
   <!-- ── Cámara ─────────────────────────────────────────────────────────── -->
   @if (state() === 'idle') {
     <div class="sc-scan-camera-wrap">
@@ -58,153 +72,334 @@
     </div>
   }
 
-  <!-- ── Ya tiene check-in ──────────────────────────────────────────────── -->
-  @if (state() === 'already' && result() && !processing()) {
-    <div class="sc-scan-card sc-scan-card--already">
-      @if (result()!.participant.photo_url) {
-        <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
-      }
-      <span class="material-symbols-outlined sc-scan-card__icon">check_circle</span>
-      <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
-      <p class="sc-scan-card__detail">
-        @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
-        {{ result()!.group_alias ?? 'Sin grupo' }}
-        @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
-      </p>
-      <div class="sc-scan-card__badge sc-scan-card__badge--already">
-        <span class="material-symbols-outlined">how_to_reg</span>
-        Ya confirmado en salón hoy
-      </div>
-      <!-- Badge de entrada al edificio -->
-      <div class="sc-scan-card__badge"
-           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
-        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
-        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin scan de entrada' }}
-      </div>
-      <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
-        <span class="material-symbols-outlined">arrow_back</span>
-        Siguiente
-      </button>
-    </div>
-  }
+  @if (mode() === 'entrada') {
 
-  <!-- ── Check-in OK (pertenece al grupo) ──────────────────────────────── -->
-  @if (state() === 'ok' && result() && !processing()) {
-    <div class="sc-scan-card sc-scan-card--ok">
-      @if (result()!.participant.photo_url) {
-        <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
-      }
-      <span class="material-symbols-outlined sc-scan-card__icon">check_circle</span>
-      <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
-      <p class="sc-scan-card__detail">
-        @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
-        {{ result()!.group_alias ?? 'Sin grupo' }}
-        @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
-      </p>
-      <!-- Badge de entrada al edificio -->
-      <div class="sc-scan-card__badge"
-           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
-        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
-        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Aún no escaneado en entrada' }}
-      </div>
-      @if (result()!.payment_status !== 'paid') {
-        <div class="sc-scan-card__badge sc-scan-card__badge--warn">
-          <span class="material-symbols-outlined">payments</span>
-          Pago: {{ paymentLabel(result()!.payment_status) }}
+    <!-- ── Ya tiene check-in ──────────────────────────────────────────────── -->
+    @if (state() === 'already' && result() && !processing()) {
+      <div class="sc-scan-card sc-scan-card--already">
+        @if (result()!.participant.photo_url) {
+          <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
+        }
+        <span class="material-symbols-outlined sc-scan-card__icon">check_circle</span>
+        <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
+        <p class="sc-scan-card__detail">
+          @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
+          {{ result()!.group_alias ?? 'Sin grupo' }}
+          @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
+        </p>
+        <div class="sc-scan-card__badge sc-scan-card__badge--already">
+          <span class="material-symbols-outlined">how_to_reg</span>
+          Ya confirmado en salón hoy
         </div>
-      }
-      <div class="sc-scan-card__badge sc-scan-card__badge--ok">
-        <span class="material-symbols-outlined">how_to_reg</span>
-        @if (result()!.checkin_registered) { Confirmado en grupo <strong>{{ groupAlias() }}</strong> } @else { Ya confirmado en <strong>{{ groupAlias() }}</strong> hoy }
-      </div>
-      <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
-        <span class="material-symbols-outlined">arrow_back</span>
-        Siguiente
-      </button>
-    </div>
-  }
-
-  <!-- ── Advertencia: niño no pertenece al grupo ────────────────────────── -->
-  @if (state() === 'warning' && result() && !processing()) {
-    <div class="sc-scan-card sc-scan-card--warning">
-      @if (result()!.participant.photo_url) {
-        <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
-      }
-      <span class="material-symbols-outlined sc-scan-card__icon">warning</span>
-      <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
-      <p class="sc-scan-card__detail">
-        @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
-        {{ result()!.group_alias ?? 'Sin grupo asignado' }}
-        @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
-      </p>
-      <div class="sc-scan-card__badge sc-scan-card__badge--warn">
-        <span class="material-symbols-outlined">info</span>
-        {{ result()!.warning }}
-      </div>
-      <!-- Badge de entrada al edificio -->
-      <div class="sc-scan-card__badge"
-           [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
-        <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
-        {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin escaneo de entrada' }}
-      </div>
-
-      <div class="sc-scan-card__actions">
-        <button class="sc-scan-btn sc-scan-btn--accept" (click)="acceptForce()" [disabled]="processing()">
-          <span class="material-symbols-outlined">check</span>
-          Aceptar en {{ groupAlias() }}
+        <!-- Badge de entrada al edificio -->
+        <div class="sc-scan-card__badge"
+             [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+          <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+          {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin scan de entrada' }}
+        </div>
+        <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Siguiente
         </button>
-        <!-- <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
-          <span class="material-symbols-outlined">close</span>
-          No pertenece aquí
-        </button> -->
       </div>
-    </div>
-  }
+    }
 
-  <!-- ── Lista de escaneados del día ────────────────────────────────────── -->
-  @if (scannedList().length > 0) {
-    <div class="sc-scan-list">
-      <div class="sc-scan-list__header">
-        <span class="material-symbols-outlined">how_to_reg</span>
-        <span>{{ scannedList().length }} presente{{ scannedList().length === 1 ? '' : 's' }} en {{ groupAlias() }}</span>
+    <!-- ── Check-in OK (pertenece al grupo) ──────────────────────────────── -->
+    @if (state() === 'ok' && result() && !processing()) {
+      <div class="sc-scan-card sc-scan-card--ok">
+        @if (result()!.participant.photo_url) {
+          <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
+        }
+        <span class="material-symbols-outlined sc-scan-card__icon">check_circle</span>
+        <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
+        <p class="sc-scan-card__detail">
+          @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
+          {{ result()!.group_alias ?? 'Sin grupo' }}
+          @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
+        </p>
+        <!-- Badge de entrada al edificio -->
+        <div class="sc-scan-card__badge"
+             [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+          <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+          {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Aún no escaneado en entrada' }}
+        </div>
+        @if (result()!.payment_status !== 'paid') {
+          <div class="sc-scan-card__badge sc-scan-card__badge--warn">
+            <span class="material-symbols-outlined">payments</span>
+            Pago: {{ paymentLabel(result()!.payment_status) }}
+          </div>
+        }
+        <div class="sc-scan-card__badge sc-scan-card__badge--ok">
+          <span class="material-symbols-outlined">how_to_reg</span>
+          @if (result()!.checkin_registered) { Confirmado en grupo <strong>{{ groupAlias() }}</strong> } @else { Ya confirmado en <strong>{{ groupAlias() }}</strong> hoy }
+        </div>
+        <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
+          <span class="material-symbols-outlined">arrow_back</span>
+          Siguiente
+        </button>
       </div>
-      <div class="sc-scan-list__body">
-        @for (entry of scannedList(); track entry.id) {
-          <div class="sc-scan-list__item" [class.sc-scan-list__item--out]="entry.out_of_group">
-            @if (entry.participant_photo_url) {
-              <img [src]="entry.participant_photo_url" class="sc-scan-list__photo" alt="">
-            } @else {
-              <div class="sc-scan-list__avatar">{{ entry.participant_name.charAt(0) }}</div>
-            }
-            <div class="sc-scan-list__info">
-              <span class="sc-scan-list__name">{{ entry.participant_name }}</span>
-              <!-- Línea 1: nivel + hora confirmación del instructor -->
-              <span class="sc-scan-list__meta">
-                @if (entry.level_roman) { Niv. {{ entry.level_roman }} · }
-                <span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle">how_to_reg</span>
-                {{ entry.checked_in_at | date:'HH:mm' }}
-                @if (entry.instructor_name) { · {{ entry.instructor_name }} }
-                @if (entry.out_of_group) {
-                  · <em class="sc-scan-list__tag--out">⚠ grupo {{ entry.group_alias ?? 'otro' }}</em>
-                }
-              </span>
-              <!-- Línea 2: entrada al edificio (check-in de staff) -->
-              <span class="sc-scan-list__entrance"
-                    [class]="entry.entrance_checked_at ? 'sc-scan-list__entrance--ok' : 'sc-scan-list__entrance--pending'">
-                <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">
-                  {{ entry.entrance_checked_at ? 'door_front' : 'schedule' }}
-                </span>
-                @if (entry.entrance_checked_at) {
-                  Entrada {{ entry.entrance_checked_at | date:'HH:mm' }}
-                } @else {
-                  Sin scan de entrada
-                }
-              </span>
+    }
+
+    <!-- ── Advertencia: niño no pertenece al grupo ────────────────────────── -->
+    @if (state() === 'warning' && result() && !processing()) {
+      <div class="sc-scan-card sc-scan-card--warning">
+        @if (result()!.participant.photo_url) {
+          <img [src]="result()!.participant.photo_url" class="sc-scan-card__photo" alt="foto">
+        }
+        <span class="material-symbols-outlined sc-scan-card__icon">warning</span>
+        <p class="sc-scan-card__name">{{ result()!.participant.first_name }} {{ result()!.participant.last_name }}</p>
+        <p class="sc-scan-card__detail">
+          @if (result()!.level_roman) { Niv. {{ result()!.level_roman }} · }
+          {{ result()!.group_alias ?? 'Sin grupo asignado' }}
+          @if (result()!.participant.age !== null) { · {{ result()!.participant.age }} años }
+        </p>
+        <div class="sc-scan-card__badge sc-scan-card__badge--warn">
+          <span class="material-symbols-outlined">info</span>
+          {{ result()!.warning }}
+        </div>
+        <!-- Badge de entrada al edificio -->
+        <div class="sc-scan-card__badge"
+             [class]="result()!.has_entrance_today ? 'sc-scan-card__badge--ok' : 'sc-scan-card__badge--warn'">
+          <span class="material-symbols-outlined">{{ result()!.has_entrance_today ? 'door_front' : 'schedule' }}</span>
+          {{ result()!.has_entrance_today ? 'Ya pasó por entrada' : 'Sin escaneo de entrada' }}
+        </div>
+
+        <div class="sc-scan-card__actions">
+          <button class="sc-scan-btn sc-scan-btn--accept" (click)="acceptForce()" [disabled]="processing()">
+            <span class="material-symbols-outlined">check</span>
+            Aceptar en {{ groupAlias() }}
+          </button>
+        </div>
+      </div>
+    }
+
+  } @else {
+
+    <!-- ── MODO SALIDA ──────────────────────────────────────────────────────── -->
+    @if ((state() === 'ok' || state() === 'warning') && checkoutResult() && !processing()) {
+      <div class="container py-2 result-card animate__animated animate__fadeInUp px-0">
+        
+        <!-- YELLOW CARD: Warning -->
+        @if (checkoutResult()?.status_color === 'yellow') {
+          <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 border-top border-warning border-5 bg-white">
+            <div class="card-body p-4 text-center">
+              <div class="mb-3">
+                <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size: 4rem;"></i>
+              </div>
+              <h4 class="fw-bold text-warning mb-2">Advertencia</h4>
+              <p class="text-muted fw-bold small">{{ checkoutResult()?.message }}</p>
+              
+              <div class="card bg-light border-0 rounded-4 mt-3">
+                <div class="card-body p-3">
+                  <ng-container *ngIf="checkoutResult()?.participant?.photo_url; else noParticipantPhotoY">
+                    <img [src]="checkoutResult()?.participant?.photo_url" class="rounded-circle mb-2 object-fit-cover shadow border border-3 border-white" style="width: 75px; height: 75px;">
+                  </ng-container>
+                  <ng-template #noParticipantPhotoY>
+                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow border border-3 border-white mx-auto" style="width: 75px; height: 75px; font-size: 2rem;">
+                      {{ checkoutResult()?.participant?.first_name ? checkoutResult()?.participant?.first_name?.charAt(0) : 'P' }}
+                    </div>
+                  </ng-template>
+                  <h6 class="fw-bold mb-0">{{ checkoutResult()?.participant?.first_name }} {{ checkoutResult()?.participant?.last_name }}</h6>
+                </div>
+              </div>
+              
+              <div class="d-grid mt-4">
+                <button class="btn btn-warning py-3 rounded-3 fw-bold" (click)="reset()">Volver a Escanear</button>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- GREEN CARD: Success -->
+        @if (checkoutResult()?.status_color === 'green') {
+          <div class="card border-0 shadow-lg rounded-4 overflow-hidden mb-4 border-top border-success border-5 bg-white">
+            <div class="card-body p-3 text-center">
+              <div class="success-icon mb-2">
+                <span class="material-symbols-outlined text-success" style="font-size: 3.5rem;">verified</span>
+              </div>
+              <h4 class="fw-bold text-success mb-2" style="font-size: 1.25rem;">Validación Profesor</h4>
+              <p class="text-muted fw-bold text-uppercase small" style="font-size: 0.75rem; line-height: 1.2;">{{ checkoutResult()?.message }}</p>
+              
+              <div *ngIf="checkoutResult()?.warning" class="alert alert-warning py-2 mb-3" style="font-size: 0.8rem;">
+                <i class="bi bi-info-circle-fill me-1"></i> {{ checkoutResult()?.warning }}
+              </div>
+
+              <!-- 2-COLUMN COMPARISON LAYOUT -->
+              <div class="row align-items-stretch justify-content-center mb-4 gx-1">
+                
+                <!-- LEFT SIDE: NIÑO -->
+                <div class="col px-1">
+                  <div class="card h-100 border-0 bg-light shadow-sm rounded-4">
+                    <div class="card-header bg-primary bg-opacity-10 border-0 rounded-top-4 py-2 text-center">
+                      <span class="text-primary fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Alumno</span>
+                    </div>
+                    <div class="card-body text-center p-2 d-flex flex-column align-items-center justify-content-center">
+                      <ng-container *ngIf="checkoutResult()?.participant?.photo_url; else noParticipantPhoto">
+                        <img [src]="checkoutResult()!.participant!.photo_url" alt="Foto Menor" class="rounded-circle mb-2 object-fit-cover shadow border border-3 border-white" style="width: 65px; height: 65px;">
+                      </ng-container>
+                      <ng-template #noParticipantPhoto>
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mb-2 shadow border border-3 border-white mx-auto" style="width: 65px; height: 65px; font-size: 1.5rem;">
+                          {{ checkoutResult()?.participant?.first_name ? checkoutResult()!.participant.first_name.charAt(0) : 'P' }}
+                        </div>
+                      </ng-template>
+                      <h6 class="fw-bold mb-1 text-dark lh-sm" style="font-size: 0.8rem;">{{ checkoutResult()?.participant?.first_name }} <br> {{ checkoutResult()?.participant?.last_name }}</h6>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- MIDDLE ARROW -->
+                <div class="col-auto d-flex flex-column align-items-center justify-content-center px-0">
+                  <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center shadow" style="width: 24px; height: 24px;">
+                    <span class="material-symbols-outlined fw-bold" style="font-size: 1rem;">arrow_forward</span>
+                  </div>
+                </div>
+
+                <!-- RIGHT SIDE: AUTORIZADO (Single or Pre-selected) -->
+                <div class="col px-1" *ngIf="(!checkoutResult()?.is_dynamic) || (checkoutResult()?.is_dynamic && checkoutResult()?.authorized_pickups?.length === 1)">
+                  <div class="card h-100 border-0 bg-success bg-opacity-10 shadow-sm rounded-4 border border-2 border-success">
+                    <div class="card-header bg-success text-white border-0 rounded-top-3 py-2 text-center">
+                      <span class="fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">A esta persona</span>
+                    </div>
+                    <div class="card-body text-center p-2 d-flex flex-column align-items-center justify-content-center">
+                      
+                      <ng-container *ngIf="!checkoutResult()?.is_dynamic">
+                        <ng-container *ngIf="checkoutResult()?.is_static_credential_alone">
+                          <span class="material-symbols-outlined text-success mb-2" style="font-size: 2.5rem;">directions_walk</span>
+                          <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.75rem;">{{ checkoutResult()?.authorized_name }}</h6>
+                        </ng-container>
+                        <ng-container *ngIf="!checkoutResult()?.is_static_credential_alone">
+                          <img [src]="checkoutResult()?.authorized_photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                               class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 65px; height: 65px;">
+                          <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.75rem;">{{ checkoutResult()?.authorized_name }}</h6>
+                        </ng-container>
+                      </ng-container>
+
+                      <ng-container *ngIf="checkoutResult()?.is_dynamic && checkoutResult()?.authorized_pickups?.length === 1">
+                        <img [src]="checkoutResult()!.authorized_pickups![0].photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                             class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 65px; height: 65px;">
+                        <h6 class="fw-bold mb-1 text-success lh-sm" style="font-size: 0.75rem;">{{ checkoutResult()!.authorized_pickups![0].name }}</h6>
+                      </ng-container>
+
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RIGHT SIDE: AUTORIZADO (Multiple choices) -->
+                <div class="col px-1" *ngIf="checkoutResult()?.is_dynamic && checkoutResult()?.authorized_pickups?.length! > 1">
+                  <div class="card h-100 border-0 shadow-sm rounded-4 border border-2" [ngClass]="selectedPickupName() ? 'bg-success-subtle border-success' : 'bg-warning-subtle border-warning'">
+                    <div class="card-header text-white border-0 rounded-top-3 py-2 text-center" [ngClass]="selectedPickupName() ? 'bg-success' : 'bg-warning'">
+                      <span class="fw-bold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">{{ selectedPickupName() ? 'A esta persona' : '¿A quién?' }}</span>
+                    </div>
+                    <div class="card-body text-center p-2 d-flex flex-column align-items-center justify-content-center">
+                      
+                      <ng-container *ngIf="selectedPickupName()">
+                        <ng-container *ngFor="let person of checkoutResult()!.authorized_pickups">
+                          <ng-container *ngIf="person.name === selectedPickupName()">
+                            <img [src]="person.photo_url || 'assets/images/default-avatar.png'" alt="Foto Autorizado" 
+                                 class="rounded-4 mb-2 object-fit-cover shadow border border-2 border-success" style="width: 65px; height: 65px;">
+                            <h6 class="fw-bold mb-0 text-success lh-sm" style="font-size: 0.75rem;">{{ person.name }}</h6>
+                          </ng-container>
+                        </ng-container>
+                      </ng-container>
+
+                      <ng-container *ngIf="!selectedPickupName()">
+                        <span class="material-symbols-outlined text-warning mb-2" style="font-size: 2.5rem;">person_search</span>
+                        <p class="fw-bold text-warning mb-0 lh-sm" style="font-size: 0.7rem;">Selecciona abajo</p>
+                      </ng-container>
+
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- DYNAMIC OPTIONS SELECTION -->
+              <div *ngIf="checkoutResult()?.is_dynamic && checkoutResult()?.authorized_pickups?.length! > 1" class="mb-4 text-start">
+                <p class="text-muted fw-bold small mb-2"><i class="bi bi-people-fill me-1"></i> Selecciona quién recoge al menor:</p>
+                <div class="row g-2">
+                  <div class="col-6" *ngFor="let person of checkoutResult()!.authorized_pickups">
+                    <div class="card border-2 cursor-pointer h-100 transition-all"
+                         [ngClass]="selectedPickupName() === person.name ? 'border-success bg-success-subtle' : 'border-light'"
+                         (click)="selectPickup(person.name)">
+                      <div class="card-body p-2 d-flex align-items-center">
+                        <img [src]="person.photo_url || 'assets/images/default-avatar.png'" class="rounded-circle me-2 object-fit-cover" style="width: 35px; height: 35px;">
+                        <div>
+                          <div class="fw-bold text-dark lh-sm" style="font-size: 0.75rem;">{{ person.name }}</div>
+                          <div class="text-muted" style="font-size: 0.65rem;">{{ person.relationship }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACTION BUTTONS -->
+              <div class="d-grid gap-2">
+                <button class="btn btn-success py-3 rounded-3 fw-bold shadow-sm d-flex justify-content-center align-items-center" 
+                        (click)="processCheckout()"
+                        [disabled]="processing() || (checkoutResult()?.is_dynamic && checkoutResult()?.authorized_pickups?.length! > 1 && !selectedPickupName())">
+                  <span class="material-symbols-outlined me-2">check_circle</span>
+                  Registrar Primera Salida
+                </button>
+                <button class="btn btn-light py-2 rounded-3 text-muted fw-bold" (click)="reset()" [disabled]="processing()">
+                  Cancelar
+                </button>
+              </div>
+
             </div>
           </div>
         }
       </div>
-    </div>
+    }
+
+  }
+
+  @if (mode() === 'entrada') {
+    <!-- ── Lista de escaneados del día (Solo en Entrada por ahora) ────────────────────────────────────── -->
+    @if (scannedList().length > 0) {
+      <div class="sc-scan-list">
+        <div class="sc-scan-list__header">
+          <span class="material-symbols-outlined">how_to_reg</span>
+          <span>{{ scannedList().length }} presente{{ scannedList().length === 1 ? '' : 's' }} en {{ groupAlias() }}</span>
+        </div>
+        <div class="sc-scan-list__body">
+          @for (entry of scannedList(); track entry.id) {
+            <div class="sc-scan-list__item" [class.sc-scan-list__item--out]="entry.out_of_group">
+              @if (entry.participant_photo_url) {
+                <img [src]="entry.participant_photo_url" class="sc-scan-list__photo" alt="">
+              } @else {
+                <div class="sc-scan-list__avatar">{{ entry.participant_name.charAt(0) }}</div>
+              }
+              <div class="sc-scan-list__info">
+                <span class="sc-scan-list__name">{{ entry.participant_name }}</span>
+                <!-- Línea 1: nivel + hora confirmación del instructor -->
+                <span class="sc-scan-list__meta">
+                  @if (entry.level_roman) { Niv. {{ entry.level_roman }} · }
+                  <span class="material-symbols-outlined" style="font-size:12px;vertical-align:middle">how_to_reg</span>
+                  {{ entry.checked_in_at | date:'HH:mm' }}
+                  @if (entry.instructor_name) { · {{ entry.instructor_name }} }
+                  @if (entry.out_of_group) {
+                    · <em class="sc-scan-list__tag--out">⚠ grupo {{ entry.group_alias ?? 'otro' }}</em>
+                  }
+                </span>
+                <!-- Línea 2: entrada al edificio (check-in de staff) -->
+                <span class="sc-scan-list__entrance"
+                      [class]="entry.entrance_checked_at ? 'sc-scan-list__entrance--ok' : 'sc-scan-list__entrance--pending'">
+                  <span class="material-symbols-outlined" style="font-size:13px;vertical-align:middle">
+                    {{ entry.entrance_checked_at ? 'door_front' : 'schedule' }}
+                  </span>
+                  @if (entry.entrance_checked_at) {
+                    Entrada {{ entry.entrance_checked_at | date:'HH:mm' }}
+                  } @else {
+                    Sin scan de entrada
+                  }
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
   }
 
 </div>
