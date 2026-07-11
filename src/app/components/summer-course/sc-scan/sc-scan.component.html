@@ -115,7 +115,7 @@
       }
       <div class="sc-scan-card__badge sc-scan-card__badge--ok">
         <span class="material-symbols-outlined">how_to_reg</span>
-        @if (result()!.checkin_registered) { Confirmado en grupo } @else { Ya confirmado hoy }
+        @if (result()!.checkin_registered) { Confirmado en grupo <strong>{{ groupAlias() }}</strong> } @else { Ya confirmado en <strong>{{ groupAlias() }}</strong> hoy }
       </div>
       <button class="sc-scan-btn sc-scan-btn--ghost" (click)="reset()">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -151,7 +151,7 @@
       <div class="sc-scan-card__actions">
         <button class="sc-scan-btn sc-scan-btn--accept" (click)="acceptForce()" [disabled]="processing()">
           <span class="material-symbols-outlined">check</span>
-          Aceptar de todas formas
+          Aceptar en {{ groupAlias() }}
         </button>
         <!-- <button class="sc-scan-btn sc-scan-btn--reject" (click)="reset()">
           <span class="material-symbols-outlined">close</span>

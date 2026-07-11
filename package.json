@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "prestart": "node set-env.js",
-    "start": "ng serve",
+    "start": "ng serve --host 0.0.0.0",
     "prebuild": "node set-env.js",
     "build": "ng build",
     "prewatch": "node set-env.js",

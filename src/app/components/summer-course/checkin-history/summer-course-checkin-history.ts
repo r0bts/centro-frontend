@@ -14,6 +14,7 @@ interface InstructorEvent {
   by_name: string | null;
   out_of_group: boolean;
   group_alias?: string | null;
+  final_group_alias?: string | null;
 }
 
 interface CheckinHistoryRecord {

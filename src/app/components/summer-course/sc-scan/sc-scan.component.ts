@@ -31,6 +31,7 @@ interface ScanEntry {
   participant_photo_url: string | null;
   level_roman: string | null;
   group_alias: string | null;
+  final_group_alias: string | null;
   checked_in_at: string;
   out_of_group: boolean;
   has_entrance_today: boolean;
@@ -176,7 +177,10 @@ export class ScScanComponent implements OnInit, OnDestroy {
               id:                    h.id?.toString() ?? (Date.now() + Math.random()).toString(),
               participant_name:      h.participant_name,
               participant_photo_url: h.participant_photo_url ?? null,
-              level_roman:           h.level_roman ?? null,              group_alias:           h.group_alias ?? null,              checked_in_at:         h.checked_in_at,
+              level_roman:           h.level_roman ?? null,
+              group_alias:           h.group_alias ?? null,
+              final_group_alias:     h.final_group_alias ?? null,
+              checked_in_at:         h.checked_in_at,
               out_of_group:          h.out_of_group ?? false,
               has_entrance_today:    h.has_entrance_today ?? false,
               entrance_checked_at:   h.entrance_checked_at ?? null,
@@ -218,6 +222,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
             participant_photo_url: d.participant.photo_url,
             level_roman:           d.level_roman,
             group_alias:           d.group_alias,
+            final_group_alias:     this.groupAlias(),
             checked_in_at:         new Date().toISOString(),
             out_of_group:          !d.belongs_to_group,
             has_entrance_today:    d.has_entrance_today,

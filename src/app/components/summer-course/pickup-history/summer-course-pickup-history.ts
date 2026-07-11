@@ -37,7 +37,12 @@ export class SummerCoursePickupHistoryComponent implements OnInit {
     let records = this.history();
 
     if (date) {
-      records = records.filter(r => r.scanned_at && r.scanned_at.startsWith(date));
+      records = records.filter(r => {
+        if (!r.scanned_at) return false;
+        const d = new Date(r.scanned_at);
+        const localDate = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+        return localDate === date;
+      });
     }
 
     if (term) {
