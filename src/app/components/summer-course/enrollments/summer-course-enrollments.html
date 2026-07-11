@@ -45,10 +45,12 @@
           </select>
         </div>
       }
-      <button class="sce-btn sce-btn--primary" (click)="openWizard()" [disabled]="!selectedCourse()">
-        <span class="material-symbols-outlined">person_add</span>
-        Nueva inscripción
-      </button>
+      @if (canAdd()) {
+        <button class="sce-btn sce-btn--primary" (click)="openWizard()" [disabled]="!selectedCourse()">
+          <span class="material-symbols-outlined">person_add</span>
+          Nueva inscripción
+        </button>
+      }
       <button class="sce-btn sce-btn--icon" (click)="refreshTable()" title="Actualizar lista">
         <span class="material-symbols-outlined">refresh</span>
       </button>
@@ -147,8 +149,8 @@
           }
 
           <button class="sce-kit-btn sce-kit-btn--csv" (click)="downloadCsv()">
-            <span class="material-symbols-outlined">download</span>
-            Exportar CSV
+            <span class="material-symbols-outlined">table_view</span>
+            Exportar Excel
           </button>
         </div>
       }
@@ -168,10 +170,12 @@
         </div>
         <h3>Sin inscripciones</h3>
         <p>No hay participantes registrados en este curso todavía.</p>
-        <button class="sce-btn sce-btn--primary" (click)="openWizard()">
-          <span class="material-symbols-outlined">person_add</span>
-          Registrar primera inscripción
-        </button>
+        @if (canAdd()) {
+          <button class="sce-btn sce-btn--primary" (click)="openWizard()">
+            <span class="material-symbols-outlined">person_add</span>
+            Registrar primera inscripción
+          </button>
+        }
       </div>
     }
 
@@ -371,6 +375,16 @@
                         Autorizados
                       </button>
 
+                      <!-- Botón Editar Invitado (solo guest/staff_guest) -->
+                      @if ((p.participant_type === 'guest' || p.participant_type === 'staff_guest') && p.guest_id) {
+                        <button class="sce-kit-btn sce-kit-btn--edit-guest" style="margin-left: 6px;"
+                          [disabled]="editGuestLoading()"
+                          (click)="openEditGuest(p)" title="Editar datos del invitado">
+                          <span class="material-symbols-outlined">edit</span>
+                          Editar
+                        </button>
+                      }
+
                       <!-- Botón Editar Semanas -->
                       @if (canEditWeeks()) {
                         <button class="sce-kit-btn sce-kit-btn--weeks" style="margin-left: 6px;"
@@ -415,6 +429,21 @@
                       } @else {
                         <span class="sce-payment-badge sce-payment-badge--{{ p.payment_status }}" style="margin-left: 6px;">
                           {{ paymentLabel(p.payment_status) }}
+                        </span>
+                      }
+                      <!-- Selector de género (todos los inscritos sin género asignado) -->
+                      @if (!p.gender_id) {
+                        <select class="sce-gender-select" style="margin-left:6px;"
+                                [disabled]="updatingGenderId() === p.participant_id"
+                                (change)="updateGender(p, +$any($event.target).value)">
+                          <option value="0">— Género —</option>
+                          <option value="1">♂ Masculino</option>
+                          <option value="2">♀ Femenino</option>
+                        </select>
+                      }
+                      @if (p.gender_id) {
+                        <span class="sce-gender-badge" style="margin-left:6px;">
+                          {{ p.gender_id === 1 ? '♂ M' : '♀ F' }}
                         </span>
                       }
                       @if (canVerPagos()) {
@@ -776,16 +805,15 @@
                   <div class="sce-form-field" style="margin-bottom:0">
                     <label class="sce-form-label" style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
                       <span class="material-symbols-outlined" style="font-size: 14px; vertical-align: middle; margin-right: 4px;">phone</span>
-                      Teléfono del Tutor / Emergencias
+                      Teléfono del Tutor / Emergencias <span style="color:#ef4444">*</span>
                     </label>
-                    <input class="sce-form-input" type="tel" [value]="p.emergency_phone || ''" 
-                           (input)="setEmergencyPhone(i, $any($event.target).value)" 
+                    <input class="sce-form-input" type="tel"
+                           [value]="p.emergency_phone || ''"
+                           (input)="setEmergencyPhone(i, $any($event.target).value)"
                            placeholder="Ingresa el teléfono a 10 dígitos"
-                           [ngStyle]="{'border-color': !isPhoneValid(p.emergency_phone) ? '#ef4444' : ''}">
-                    @if (!isPhoneValid(p.emergency_phone)) {
-                      <div style="color: #ef4444; font-size: 0.75rem; margin-top: 4px;">
-                        Este campo es obligatorio y debe tener al menos 10 dígitos.
-                      </div>
+                           [style.border-color]="confirmAttempted() && !isPhoneValid(p.emergency_phone) ? '#ef4444' : ''">
+                    @if (confirmAttempted() && !isPhoneValid(p.emergency_phone)) {
+                      <span style="font-size: 0.72rem; color: #ef4444; margin-top: 3px; display: block;">Este campo es obligatorio y debe tener al menos 10 dígitos.</span>
                     }
                   </div>
                 </div>
@@ -1263,6 +1291,16 @@
     (closed)="closeGuestModal()" />
 }
 
+<!-- GUEST EDIT MODAL -->
+@if (editGuestOpen() && editGuestData()) {
+  <app-guest-modal
+    [socioId]="0"
+    [socioName]="editGuestData()!.full_name"
+    [guestToEdit]="editGuestData()"
+    (guestUpdated)="onGuestUpdated($event)"
+    (closed)="closeEditGuest()" />
+}
+
 <!-- ── Modal Fotografía ──────────────────────────────────────────────────── -->
 @if (photoModalOpen() && photoModalParticipant()) {
   <div class="sce-modal-overlay" (click)="closePhotoModal()">
@@ -1738,6 +1776,32 @@
       <!-- Body -->
       <div class="ewm-body">
 
+          <!-- Banner: inscripción pagada, solo modo mover -->
+          @if (isPaidEnrollmentEdit()) {
+            <div class="ewm-paid-notice">
+              <span class="material-symbols-outlined">lock</span>
+              <span>
+                Inscripción <strong>pagada</strong>: solo puedes <strong>intercambiar</strong> semanas.
+                @if (editWeeksRemoved().length === 0 && editWeeksAdded().length === 0) {
+                  <span class="ewm-paid-notice__steps">
+                    <span><strong>1.</strong> Desmarca la semana que quieres quitar.</span>
+                    <span><strong>2.</strong> Marca la semana nueva que deseas agregar.</span>
+                  </span>
+                } @else if (editWeeksRemoved().length > 0 && editWeeksAdded().length === 0) {
+                  <span class="ewm-paid-notice__hint">
+                    Ahora selecciona la semana nueva a la que deseas mover
+                    ({{ editWeeksRemoved().length }} pendiente{{ editWeeksRemoved().length > 1 ? 's' : '' }}).
+                  </span>
+                } @else if (editWeeksAdded().length > 0 && editWeeksRemoved().length === 0) {
+                  <span class="ewm-paid-notice__hint">
+                    Ahora desmarca la semana que deseas quitar
+                    ({{ editWeeksAdded().length }} pendiente{{ editWeeksAdded().length > 1 ? 's' : '' }}).
+                  </span>
+                }
+              </span>
+            </div>
+          }
+
           <!-- Semanas actuales -->
           <div class="ewm-section">
             <div class="ewm-section__label">Semanas actuales ({{ editWeeksDetail().length }})</div>
@@ -1771,20 +1835,76 @@
 
           <!-- Diff: resumen de cambios -->
           @if (editWeeksAdded().length > 0 || editWeeksRemoved().length > 0) {
-            <div class="ewm-diff-summary">
-              @if (editWeeksAdded().length > 0) {
-                <div class="ewm-diff-row ewm-diff-row--add">
-                  <span class="material-symbols-outlined">add_circle</span>
-                  <span>Se agregan: <strong>{{ editWeeksAddedLabels() }}</strong></span>
+
+            @if (isPaidEnrollmentEdit()) {
+              <!-- Modo mover: muestra el intercambio visualmente -->
+              <div class="ewm-move-summary">
+                <div class="ewm-move-summary__title">
+                  <span class="material-symbols-outlined">swap_horiz</span>
+                  Intercambio de semanas
                 </div>
-              }
-              @if (editWeeksRemoved().length > 0) {
-                <div class="ewm-diff-row ewm-diff-row--remove">
-                  <span class="material-symbols-outlined">remove_circle</span>
-                  <span>Se quitan: <strong>{{ editWeeksRemovedLabels() }}</strong></span>
+                <div class="ewm-move-summary__flow">
+                  <div class="ewm-move-col ewm-move-col--remove">
+                    <div class="ewm-move-col__label">
+                      <span class="material-symbols-outlined">remove_circle</span> Quita
+                    </div>
+                    @if (editWeeksRemoved().length > 0) {
+                      @for (id of editWeeksRemoved(); track id) {
+                        <div class="ewm-move-col__week">{{ courseWeekLabel(id) }}</div>
+                      }
+                    } @else {
+                      <div class="ewm-move-col__week ewm-move-col__week--empty">&mdash;</div>
+                    }
+                  </div>
+                  <span class="material-symbols-outlined ewm-move-arrow">arrow_forward</span>
+                  <div class="ewm-move-col ewm-move-col--add">
+                    <div class="ewm-move-col__label">
+                      <span class="material-symbols-outlined">add_circle</span> Agrega
+                    </div>
+                    @if (editWeeksAdded().length > 0) {
+                      @for (id of editWeeksAdded(); track id) {
+                        <div class="ewm-move-col__week">{{ courseWeekLabel(id) }}</div>
+                      }
+                    } @else {
+                      <div class="ewm-move-col__week ewm-move-col__week--empty">&mdash;</div>
+                    }
+                  </div>
                 </div>
-              }
-            </div>
+                @if (editWeeksAdded().length === editWeeksRemoved().length && editWeeksAdded().length > 0) {
+                  <div class="ewm-move-summary__ok">
+                    <span class="material-symbols-outlined">check_circle</span>
+                    Intercambio completo &mdash; listo para guardar.
+                  </div>
+                } @else {
+                  <div class="ewm-move-summary__pending">
+                    <span class="material-symbols-outlined">info</span>
+                    @if (editWeeksRemoved().length > editWeeksAdded().length) {
+                      Selecciona {{ editWeeksRemoved().length - editWeeksAdded().length }} semana(s) nueva(s) para completar.
+                    } @else {
+                      Desmarca {{ editWeeksAdded().length - editWeeksRemoved().length }} semana(s) para completar.
+                    }
+                  </div>
+                }
+              </div>
+
+            } @else {
+              <!-- Modo normal: diff simple agregar/quitar -->
+              <div class="ewm-diff-summary">
+                @if (editWeeksAdded().length > 0) {
+                  <div class="ewm-diff-row ewm-diff-row--add">
+                    <span class="material-symbols-outlined">add_circle</span>
+                    <span>Se agregan: <strong>{{ editWeeksAddedLabels() }}</strong></span>
+                  </div>
+                }
+                @if (editWeeksRemoved().length > 0) {
+                  <div class="ewm-diff-row ewm-diff-row--remove">
+                    <span class="material-symbols-outlined">remove_circle</span>
+                    <span>Se quitan: <strong>{{ editWeeksRemovedLabels() }}</strong></span>
+                  </div>
+                }
+              </div>
+            }
+
           }
 
           <!-- Selección de semanas -->
@@ -1795,11 +1915,13 @@
                 @let paid = isEditWeekPaid(cw.id);
                 @let checked = isEditWeekChecked(cw.id);
                 @let isNew = editWeeksAdded().includes(cw.id);
+                @let paidLocked = isPaidEnrollmentEdit() && !checked && editWeeksRemoved().length === 0;
                 <label class="ewm-week-opt"
                   [class.ewm-week-opt--paid]="paid"
                   [class.ewm-week-opt--checked]="checked && !paid"
-                  [class.ewm-week-opt--new]="isNew">
-                  <input type="checkbox" [checked]="checked" [disabled]="paid"
+                  [class.ewm-week-opt--new]="isNew"
+                  [class.ewm-week-opt--locked]="paidLocked">
+                  <input type="checkbox" [checked]="checked" [disabled]="paid || paidLocked"
                     (change)="toggleEditWeek(cw.id)" />
                   <div class="ewm-week-opt__info">
                     <span class="ewm-week-opt__label">{{ cw.label }}</span>
@@ -1868,7 +1990,8 @@
       <div class="ewm-footer">
         <button class="sce-btn sce-btn--ghost" (click)="cancelEditWeeks()" [disabled]="editWeeksSaving()">Cancelar</button>
         <button class="sce-btn sce-btn--primary" (click)="saveEditWeeks(ewp)"
-          [disabled]="editWeeksSaving() || editWeeksIds().length === 0">
+          [disabled]="editWeeksSaving() || editWeeksIds().length === 0
+                      || (isPaidEnrollmentEdit() && editWeeksIds().length !== editWeeksDetail().length)">
           @if (editWeeksSaving()) {
             <span class="sce-btn-spinner"></span> Guardando...
           } @else {

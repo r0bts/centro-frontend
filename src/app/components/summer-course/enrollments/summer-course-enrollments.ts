@@ -17,6 +17,7 @@ import Swal from 'sweetalert2';
 import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
 import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
 import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
+import { ScGuestSyncService }       from '../../../services/summer-course/sc-guest-sync.service';
 import { environment } from '../../../../environments/environment';
 import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
@@ -106,6 +107,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private kitSvc       = inject(ScKitDeliveriesService);
   private credSvc      = inject(ScCredentialDeliveriesService);
   private enrollSvc    = inject(ScEnrollmentsService);
+  private guestSvc     = inject(ScGuestSyncService);
   private userSvc      = inject(UserService);
   private authSvc      = inject(AuthService);
   private scannerSvc   = inject(SummerCourseScannerService);
@@ -186,6 +188,16 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   exportDate             = signal<string>('');
   exportWeekId           = signal<number>(0);
   exportMonth            = signal<string>('');
+  // ── Género inline ────────────────────────────────────────────────────────
+  updatingGenderId       = signal<number | null>(null);
+  // ── Edit guest signals ─────────────────────────────────────────────────
+  editGuestOpen          = signal(false);
+  editGuestData          = signal<ScGuest | null>(null);
+  editGuestLoading       = signal(false);
+  // ── Wizard: validación teléfono ─────────────────────────────────────────
+  confirmAttempted       = signal(false);
+  // ── Bypass de límite de edad ─────────────────────────────────────────
+  canBypassAge           = signal<boolean>(false);
   editWeeksParticipant   = signal<ScRegisteredParticipant | null>(null);  // participante en modal
   editWeeksIds           = signal<number[]>([]);          // selección actual (sc_week ids)
   editWeeksSaving        = signal(false);
@@ -233,6 +245,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   
   // ── Enviar Liga ───────────────────────────────────────────────────────────
   sendingLinkMap    = signal<Record<number, boolean>>({});
+
+  // ── Permisos ──────────────────────────────────────────────────────────────
+  canAdd                = signal<boolean>(false);
 
   // ── Level / Group assignment ──────────────────────────────────────────────
   canReasignar          = signal<boolean>(false);
@@ -302,17 +317,20 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   readonly MAX_AGE = 15;
 
   _isOutOfRange(age: number | null): boolean {
+    if (this.canBypassAge()) return false;  // bypass total con permiso
     if (age === null) return true;
     return age < this.MIN_AGE || age > this.MAX_AGE;
   }
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.canAdd.set(this.authSvc.hasPermission('sc.enrollments', 'create'));
     this.canReasignar.set(this.authSvc.hasPermission('sc.enrollments', 'reasignacion_grupo'));
     this.canVerPagos.set(this.authSvc.hasPermission('sc.enrollments', 'ver_pagos_inscritos'));
     this.canEditWeeks.set(this.authSvc.hasPermission('sc.enrollments', 'edit_weeks'));
     this.canPrintFormato.set(this.authSvc.hasPermission('sc.enrollments', 'imprimir_formato_colaborador'));
     this.canExportCsv.set(this.authSvc.hasPermission('sc.enrollments', 'exportar_csv'));
+    this.canBypassAge.set(this.authSvc.hasPermission('sc.enrollments', 'inscribir_sin_limite_edad'));
 
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
@@ -554,6 +572,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return environment.apiUrl.replace('/api', '/'); 
   }
 
+  isPhoneValid(phone: string | null): boolean {
+    if (!phone) return false;
+    return phone.replace(/\D/g, '').length >= 10;
+  }
+
   // ── Step 2 ────────────────────────────────────────────────────────────────
   get courseWeeks() { return this.selectedCourse()?.sc_weeks ?? []; }
 
@@ -615,17 +638,16 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.pendingParticipants().filter(p => p.weeks.length > 0 && !p.outOfRange);
   }
 
-  isPhoneValid(phone: string | null): boolean {
-    if (!phone) return false;
-    return phone.replace(/\D/g, '').length >= 10;
+  canConfirm(): boolean {
+    const active = this.activePending;
+    if (!active.length) return false;
+    return active.every(p => this.isPhoneValid(p.emergency_phone));
   }
 
-  canConfirm(): boolean { 
-    return this.activePending.length > 0 && 
-           this.activePending.every(p => this.isPhoneValid(p.emergency_phone)); 
+  goToConfirm(): void {
+    this.confirmAttempted.set(true);
+    if (this.canConfirm()) this.wizardStep.set('confirm');
   }
-
-  goToConfirm(): void { if (this.canConfirm()) this.wizardStep.set('confirm'); }
   backToParticipants(): void { this.wizardStep.set('participants'); }
 
   // ── Step 3 ────────────────────────────────────────────────────────────────
@@ -762,6 +784,47 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   closeGuestModal(): void {
     this.guestModalOpen.set(false);
+  }
+
+  /** Abre el modal de edición para el invitado de un participante inscrito */
+  openEditGuest(p: ScRegisteredParticipant): void {
+    if (!p.guest_id) return;
+    this.editGuestLoading.set(true);
+    this.guestSvc.getGuestById(p.guest_id).subscribe({
+      next: r => {
+        this.editGuestLoading.set(false);
+        if (r.data?.guest) {
+          this.editGuestData.set(r.data.guest);
+          this.editGuestOpen.set(true);
+        }
+      },
+      error: () => {
+        this.editGuestLoading.set(false);
+        this.showToast('Error al cargar los datos del invitado', 'danger');
+      },
+    });
+  }
+
+  closeEditGuest(): void {
+    this.editGuestOpen.set(false);
+    this.editGuestData.set(null);
+  }
+
+  /** Callback cuando el modal de edición guarda correctamente */
+  onGuestUpdated(updatedGuest: ScGuest): void {
+    // Actualizar el nombre en la lista de inscritos si cambió
+    this.registrations.update(regs =>
+      regs.map(reg => ({
+        ...reg,
+        participants: reg.participants.map(p =>
+          p.guest_id === updatedGuest.id
+            ? { ...p, full_name: updatedGuest.full_name }
+            : p
+        ),
+      }))
+    );
+    this.closeEditGuest();
+    this.showToast(`${updatedGuest.full_name} actualizado correctamente`, 'success');
   }
 
   /**
@@ -1762,12 +1825,44 @@ ${stylesHtml}
     return this.editWeeksDetail().some(w => w.payment_status === 'paid');
   }
 
+  /** True cuando la inscripción en edición tiene al menos una semana pagada (paid o partial) */
+  isPaidEnrollmentEdit = computed(() =>
+    this.editWeeksParticipant() !== null &&
+    (
+      this.editWeeksParticipant()?.payment_status === 'paid' ||
+      this.editWeeksDetail().some(w => w.payment_status === 'paid')
+    )
+  );
+
   toggleEditWeek(weekId: number): void {
-    // Verificar si está pagada (no se puede desmarcar)
+    const current   = this.editWeeksIds();
+    const isChecked = current.includes(weekId);
+
+    if (this.isPaidEnrollmentEdit()) {
+      // Modo intercambio (inscripción pagada):
+      // – Quitar: siempre permitido (incluso si la semana es "paid")
+      // – Agregar: solo si ya quitaste al menos una (current.length < original)
+      const original = this.editWeeksDetail().length;
+      if (!isChecked && current.length >= original) {
+        this.showToast(
+          `Inscripción pagada: debes quitar una semana antes de agregar otra (total fijo: ${original}).`,
+          'danger'
+        );
+        return;
+      }
+      if (isChecked) {
+        this.editWeeksIds.set(current.filter(id => id !== weekId));
+      } else {
+        this.editWeeksIds.set([...current, weekId]);
+      }
+      return;
+    }
+
+    // Modo normal: no se puede desmarcar semanas individualmente pagadas
     const isPaid = this.editWeeksDetail().some(w => w.week_id === weekId && w.payment_status === 'paid');
     if (isPaid) return;
-    const current = this.editWeeksIds();
-    if (current.includes(weekId)) {
+
+    if (isChecked) {
       this.editWeeksIds.set(current.filter(id => id !== weekId));
     } else {
       this.editWeeksIds.set([...current, weekId]);
@@ -1777,6 +1872,15 @@ ${stylesHtml}
   saveEditWeeks(p: ScRegisteredParticipant): void {
     const enrollmentId = p.enrollment_id;
     if (!enrollmentId) return;
+
+    // Inscripción pagada: el conteo de semanas no puede cambiar
+    if (this.isPaidEnrollmentEdit() && this.editWeeksIds().length !== this.editWeeksDetail().length) {
+      this.showToast(
+        `Inscripción pagada: el total de semanas debe mantenerse en ${this.editWeeksDetail().length}.`,
+        'danger'
+      );
+      return;
+    }
 
     const ids = this.editWeeksIds();
     if (ids.length === 0) {
@@ -1856,7 +1960,7 @@ ${stylesHtml}
     if (this.exportFilter() === 'week'  && this.exportWeekId()) params['week_id'] = String(this.exportWeekId());
     if (this.exportFilter() === 'month' && this.exportMonth())  params['month']   = this.exportMonth();
 
-    this.enrollSvc.exportCsv(params as any).subscribe({
+    this.enrollSvc.exportXlsx(params as any).subscribe({
       next: blob => {
         const suffix = this.exportFilter() === 'day'   ? this.exportDate().replace(/-/g, '') :
                        this.exportFilter() === 'week'  ? `S${this.exportWeekId()}` :
@@ -1865,11 +1969,36 @@ ${stylesHtml}
         const url  = URL.createObjectURL(blob);
         const a    = document.createElement('a');
         a.href     = url;
-        a.download = `INSCRITOS_CVERANO_${suffix}.csv`;
+        a.download = `INSCRITOS_CVERANO_${suffix}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.showToast('Error al exportar CSV', 'danger'),
+      error: () => this.showToast('Error al exportar Excel', 'danger'),
+    });
+  }
+
+  updateGender(p: ScRegisteredParticipant, genderId: number): void {
+    if (!genderId || genderId < 1 || genderId > 2) return;
+    this.updatingGenderId.set(p.participant_id);
+    this.svc.updateParticipantGender(p.participant_id, genderId as 1 | 2).subscribe({
+      next: () => {
+        this.registrations.update(groups =>
+          groups.map(g => ({
+            ...g,
+            participants: g.participants.map(part =>
+              part.participant_id === p.participant_id
+                ? { ...part, gender_id: genderId }
+                : part
+            ),
+          }))
+        );
+        this.showToast('Género actualizado ✓', 'success');
+        this.updatingGenderId.set(null);
+      },
+      error: () => {
+        this.showToast('Error al actualizar género', 'danger');
+        this.updatingGenderId.set(null);
+      },
     });
   }
 }

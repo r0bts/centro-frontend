@@ -360,6 +360,21 @@ $level-colors: (
   .material-symbols-outlined { font-size: 13px; }
 }
 
+// ─── Selector / badge de género inline ───────────────────────────────────────
+.sce-gender-select {
+  padding: 2px 6px; font-size: .75rem;
+  border: 1px solid #d1d5db; border-radius: 6px;
+  background: #fff; cursor: pointer; color: #374151;
+  &:focus { outline: none; border-color: #3b82f6; }
+  &:disabled { opacity: .6; cursor: not-allowed; }
+}
+.sce-gender-badge {
+  font-size: .72rem; font-weight: 600;
+  background: #eff6ff; color: #1d4ed8;
+  border: 1px solid #bfdbfe; border-radius: 6px;
+  padding: 2px 7px; display: inline-flex; align-items: center;
+}
+
 // ─── Level badges ─────────────────────────────────────────────────────────────
 @each $n, $colors in $level-colors {
   .sce-level-badge--#{$n},
@@ -1967,6 +1982,11 @@ $level-colors: (
   &:hover:not(:disabled) { background: #dcfce7; border-color: #4ade80; }
 }
 
+.sce-kit-btn--edit-guest {
+  background: #eff6ff; border-color: #93c5fd; color: #1d4ed8;
+  &:hover:not(:disabled) { background: #dbeafe; border-color: #60a5fa; }
+}
+
 // Modal overlay
 .ewm-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.48);
@@ -2044,6 +2064,10 @@ $level-colors: (
   &--checked { border-color: #6366f1; background: #eef2ff; }
   &--paid {
     border-color: #bbf7d0; background: #f0fdf4; cursor: default;
+    input[type="checkbox"] { cursor: not-allowed; }
+  }
+  &--locked {
+    opacity: .45; cursor: not-allowed;
     input[type="checkbox"] { cursor: not-allowed; }
   }
 
@@ -2162,6 +2186,70 @@ $level-colors: (
   padding: 10px 14px; font-size: 12.5px; color: #92400e;
   .material-symbols-outlined { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
   &--error { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+}
+
+.ewm-paid-notice {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: #fef9c3; border: 1px solid #fde047; border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 12px; font-size: 12.5px; color: #713f12;
+  line-height: 1.45;
+  .material-symbols-outlined { font-size: 18px; flex-shrink: 0; margin-top: 1px; color: #a16207; }
+  &__diff  { display: block; margin-top: 4px; color: #ef4444; font-weight: 600; }
+  &__steps { display: flex; flex-direction: column; gap: 2px; margin-top: 5px; }
+  &__hint  { display: block; margin-top: 4px; font-style: italic; }
+}
+
+// ── Resumen de movimiento (modo paid) ─────────────────────────────────────
+.ewm-move-summary {
+  background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 12px;
+  &__title {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #475569; text-transform: uppercase;
+    letter-spacing: .04em; margin-bottom: 10px;
+    .material-symbols-outlined { font-size: 18px; }
+  }
+  &__flow {
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  &__ok {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 10px; padding: 6px 10px; border-radius: 6px;
+    background: #f0fdf4; color: #166534; font-size: 12.5px; font-weight: 500;
+    .material-symbols-outlined { font-size: 16px; }
+  }
+  &__pending {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 10px; padding: 6px 10px; border-radius: 6px;
+    background: #fff7ed; color: #9a3412; font-size: 12.5px;
+    .material-symbols-outlined { font-size: 16px; }
+  }
+}
+.ewm-move-col {
+  flex: 1; min-width: 0;
+  &__label {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: .04em; margin-bottom: 6px;
+    .material-symbols-outlined { font-size: 14px; }
+  }
+  &__week {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+    padding: 4px 8px; font-size: 12.5px; color: #1e293b;
+    margin-bottom: 4px;
+    &--empty { color: #94a3b8; border-style: dashed; text-align: center; }
+  }
+  &--remove {
+    .ewm-move-col__label { color: #991b1b; }
+    .ewm-move-col__week { border-color: #fecaca; background: #fef2f2; color: #991b1b; }
+  }
+  &--add {
+    .ewm-move-col__label { color: #166534; }
+    .ewm-move-col__week { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
+  }
+}
+.ewm-move-arrow {
+  font-size: 24px; color: #94a3b8; flex-shrink: 0; margin-top: 24px;
 }
 
 .ewm-footer {

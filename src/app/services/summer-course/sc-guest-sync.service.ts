@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   ScGuest,
   CreateGuestPayload,
+  UpdateGuestPayload,
   GuestResult,
   ScGuestListResponse,
 } from '../../models/summer-course/summer-course.model';
@@ -52,6 +53,19 @@ export class ScGuestSyncService {
    */
   retrySync(guestId: number): Observable<GuestResult> {
     return this.http.patch<GuestResult>(`${this.base}/${guestId}/sync`, {});
+  }
+
+  /** Obtiene un invitado por ID */
+  getGuestById(guestId: number): Observable<GuestResult> {
+    return this.http.get<GuestResult>(`${this.base}/${guestId}`);
+  }
+
+  /**
+   * Actualiza datos de un invitado SOLO en BD (sin sync NS).
+   * Campos permitidos: first_name, last_name, second_last_name, email, phone, birth_date, rfc, relationship
+   */
+  updateGuest(guestId: number, payload: UpdateGuestPayload): Observable<GuestResult> {
+    return this.http.patch<GuestResult>(`${this.base}/${guestId}`, payload);
   }
 
   /** Helper: calcula edad en años desde una fecha de nacimiento (YYYY-MM-DD) */

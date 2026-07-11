@@ -8,7 +8,12 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScInstructorsService } from '../../../services/summer-course/sc-instructors.service';
-import { ScInstructor } from '../../../models/summer-course/summer-course.model';
+import { ScCoursesService } from '../../../services/summer-course/sc-courses.service';
+import {
+  ScInstructor,
+  ScInstructorCredentialPreview,
+  ScCourse,
+} from '../../../models/summer-course/summer-course.model';
 
 @Component({
   selector: 'app-summer-course-instructors',
@@ -19,7 +24,8 @@ import { ScInstructor } from '../../../models/summer-course/summer-course.model'
   styleUrl: './summer-course-instructors.scss',
 })
 export class SummerCourseInstructorsComponent implements OnInit {
-  private svc = inject(ScInstructorsService);
+  private svc        = inject(ScInstructorsService);
+  private coursesSvc = inject(ScCoursesService);
 
   // ── State ──────────────────────────────────────────────────────────────────
   instructors   = signal<ScInstructor[]>([]);
@@ -28,7 +34,7 @@ export class SummerCourseInstructorsComponent implements OnInit {
   toast         = signal<string | null>(null);
   toastType     = signal<'success' | 'danger'>('success');
 
-  // Modal
+  // Modal crear/editar
   formOpen      = signal(false);
   editTarget    = signal<ScInstructor | null>(null);
   deleteTarget  = signal<ScInstructor | null>(null);
@@ -55,14 +61,40 @@ export class SummerCourseInstructorsComponent implements OnInit {
   formEmail      = signal('');
   formSpecialty  = signal('');
 
-  // Last created credentials (shown once after create)
+  // Credenciales generadas al crear
   createdCredentials = signal<{username: string; password: string} | null>(null);
 
   get isEdit(): boolean { return this.editTarget() !== null; }
 
+  // ── Credencial ─────────────────────────────────────────────────────────────
+  courses            = signal<ScCourse[]>([]);
+  credModalOpen      = signal(false);
+  credModalLoading   = signal(false);
+  credModalData      = signal<ScInstructorCredentialPreview | null>(null);
+  credInstructor     = signal<ScInstructor | null>(null);
+  credSelectedCourse = signal<number | null>(null);   // course_id seleccionado en el modal
+  credNotes          = signal('');
+  credDelivering     = signal(false);
+  // Cámara
+  credCameraStream   = signal<MediaStream | null>(null);
+  credCameraFacing   = signal<'user' | 'environment'>('user');
+  private _credCameraStarting = false;
+  credPhotoPreview   = signal<string | null>(null);   // base64 antes de guardar
+  credPhotoSaving    = signal(false);
+  credCameraMode     = signal<'camera' | 'file'>('camera');
+  photoBaseUrl       = `${window.location.origin}/`;
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadInstructors();
+    this._loadCourses();
+  }
+
+  _loadCourses(): void {
+    this.coursesSvc.getAll().subscribe({
+      next: res => this.courses.set(res.data?.courses ?? []),
+      error: () => {},
+    });
   }
 
   loadInstructors(): void {
@@ -190,4 +222,196 @@ export class SummerCourseInstructorsComponent implements OnInit {
   }
 
   clearError(): void { this.error.set(null); }
+
+  // ── Credencial ────────────────────────────────────────────────────────────
+
+  openCredentialModal(inst: ScInstructor): void {
+    this.credInstructor.set(inst);
+    this.credModalData.set(null);
+    this.credPhotoPreview.set(null);
+    this.credNotes.set('');
+    this.credDelivering.set(false);
+    this.credCameraMode.set('camera');
+    // Preseleccionar primer curso si solo hay uno
+    const courses = this.courses();
+    this.credSelectedCourse.set(courses.length === 1 ? courses[0].id : null);
+    this.credModalOpen.set(true);
+    if (courses.length === 1) {
+      this._loadCredentialPreview(inst.id, courses[0].id);
+    }
+  }
+
+  onCredCourseChange(courseId: number): void {
+    this.credSelectedCourse.set(courseId);
+    const inst = this.credInstructor();
+    if (inst && courseId) this._loadCredentialPreview(inst.id, courseId);
+  }
+
+  _loadCredentialPreview(instructorId: number, courseId: number): void {
+    this.credModalLoading.set(true);
+    this.credModalData.set(null);
+    this.svc.getCredentialPreview(instructorId, courseId).subscribe({
+      next: res => { this.credModalData.set(res.data); this.credModalLoading.set(false); },
+      error: () => { this.credModalLoading.set(false); this.showToast('Error al cargar credencial', 'danger'); },
+    });
+  }
+
+  closeCredentialModal(): void {
+    this._stopCredCamera();
+    this.credModalOpen.set(false);
+    this.credModalData.set(null);
+    this.credPhotoPreview.set(null);
+  }
+
+  // Cámara
+  async startCredCamera(videoEl: HTMLVideoElement): Promise<void> {
+    if (this._credCameraStarting || this.credCameraStream()) return;
+    this._credCameraStarting = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: this.credCameraFacing() }, audio: false });
+      this.credCameraStream.set(stream);
+      videoEl.srcObject = stream;
+    } catch {
+      this.showToast('No se pudo acceder a la cámara', 'danger');
+      this.credCameraMode.set('file');
+    } finally {
+      this._credCameraStarting = false;
+    }
+  }
+
+  async toggleCredCamera(videoEl: HTMLVideoElement): Promise<void> {
+    this._stopCredCamera();
+    this.credCameraFacing.set(this.credCameraFacing() === 'user' ? 'environment' : 'user');
+    await this.startCredCamera(videoEl);
+  }
+
+  captureCredPhoto(videoEl: HTMLVideoElement): void {
+    const canvas = document.createElement('canvas');
+    canvas.width  = videoEl.videoWidth  || 640;
+    canvas.height = videoEl.videoHeight || 480;
+    canvas.getContext('2d')!.drawImage(videoEl, 0, 0);
+    this.credPhotoPreview.set(canvas.toDataURL('image/jpeg', 0.85));
+    this._stopCredCamera();
+  }
+
+  onCredFileSelected(event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => this.credPhotoPreview.set(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  saveCredPhoto(): void {
+    const base64   = this.credPhotoPreview();
+    const inst     = this.credInstructor();
+    const courseId = this.credSelectedCourse();
+    if (!base64 || !inst || !courseId) return;
+
+    this.credPhotoSaving.set(true);
+    this.svc.uploadInstructorPhoto(inst.id, courseId, base64).subscribe({
+      next: () => {
+        this.credPhotoSaving.set(false);
+        this.credPhotoPreview.set(null);
+        this.showToast('Fotografía guardada correctamente ✓', 'success');
+        this._loadCredentialPreview(inst.id, courseId);
+      },
+      error: err => {
+        this.credPhotoSaving.set(false);
+        this.showToast(err?.error?.message ?? 'Error al guardar fotografía', 'danger');
+      },
+    });
+  }
+
+  deliverInstructorCredential(): void {
+    const inst     = this.credInstructor();
+    const courseId = this.credSelectedCourse();
+    if (!inst || !courseId) return;
+
+    this.credDelivering.set(true);
+    this.svc.deliverCredential(inst.id, courseId, this.credNotes() || undefined).subscribe({
+      next: () => {
+        this.credDelivering.set(false);
+        this.showToast('Credencial marcada como entregada ✓', 'success');
+        this._loadCredentialPreview(inst.id, courseId);
+      },
+      error: err => {
+        this.credDelivering.set(false);
+        this.showToast(err?.error?.message ?? 'Error al registrar entrega', 'danger');
+      },
+    });
+  }
+
+  printInstructorCredential(): void {
+    const data = this.credModalData();
+    const card = document.querySelector('.credential-card') as HTMLElement | null;
+    if (!card) return;
+
+    const openPrintWindow = (cardHtml: string) => {
+      const win = window.open('', '_blank', 'width=350,height=550');
+      if (!win) return;
+      let stylesHtml = '';
+      document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
+        stylesHtml += el.outerHTML;
+      });
+      win.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Credencial - ${data?.full_name || ''}</title>
+${stylesHtml}
+<style>
+  @page { size: 54mm 85mm; margin: 0; }
+  body { margin: 0; padding: 0; background: white; display: flex; justify-content: center; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .credential-card { transform: none !important; box-shadow: none !important; border: none !important; margin: 0 !important; }
+</style>
+</head>
+<body>${cardHtml}</body>
+</html>`);
+      win.document.close();
+      win.focus();
+      setTimeout(() => { win.print(); win.close(); }, 600);
+    };
+
+    const toBase64 = (url: string): Promise<string> =>
+      fetch(url)
+        .then(r => r.blob())
+        .then(blob => new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        }));
+
+    const logoUrl       = '/assets/images/logo-centro-libanes.png';
+    const courseLogoUrl = '/assets/images/logocurso2026.webp';
+    const photoUrl      = data?.photo_url ? this.photoBaseUrl + data.photo_url : null;
+
+    const logoP       = toBase64(logoUrl).catch(() => null);
+    const courseLogoP = toBase64(courseLogoUrl).catch(() => null);
+    const photoP      = photoUrl ? toBase64(photoUrl).catch(() => null) : Promise.resolve(null);
+
+    Promise.all([logoP, courseLogoP, photoP]).then(([logoB64, courseLogoB64, photoB64]) => {
+      let html = card.outerHTML;
+      if (logoB64) {
+        html = html.replace(/src="\/assets\/images\/logo-centro-libanes\.png"/g, `src="${logoB64}"`);
+      }
+      if (courseLogoB64) {
+        html = html.replace(/src="\/assets\/images\/logocurso2026\.webp"/g, `src="${courseLogoB64}"`);
+      }
+      if (photoB64) {
+        html = html.replace(/<img[^>]*class="cred-photo-img"[^>]*src="([^"]+)"[^>]*>/, (match, p1) => {
+          return match.replace(p1, photoB64);
+        });
+      }
+      openPrintWindow(html);
+    });
+  }
+
+  _stopCredCamera(): void {
+    this.credCameraStream()?.getTracks().forEach(t => t.stop());
+    this.credCameraStream.set(null);
+  }
 }

@@ -4,9 +4,9 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScGuestSyncService } from '../../../services/summer-course/sc-guest-sync.service';
-import { ScGuest, CreateGuestPayload } from '../../../models/summer-course/summer-course.model';
+import { ScGuest, CreateGuestPayload, UpdateGuestPayload } from '../../../models/summer-course/summer-course.model';
 
-export type GuestModalTab = 'search' | 'new';
+export type GuestModalTab = 'search' | 'new' | 'edit';
 
 @Component({
   selector: 'app-guest-modal',
@@ -31,8 +31,13 @@ export class GuestModalComponent implements OnInit {
   /** IDs de invitados ya agregados al wizard (para marcarlos como 'Ya agregado') */
   readonly enrolledGuestIds = input<number[]>([]);
 
+  /** Si se proporciona, el modal abre directamente en modo edición */
+  readonly guestToEdit = input<ScGuest | null>(null);
+
   /** Emite el guest seleccionado/creado para inscribirlo */
   readonly guestSelected = output<ScGuest>();
+  /** Emite el guest actualizado (modo edición) */
+  readonly guestUpdated = output<ScGuest>();
   /** Emite cuando el usuario cierra sin seleccionar */
   readonly closed = output<void>();
 
@@ -88,13 +93,29 @@ export class GuestModalComponent implements OnInit {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.loadGuests();
-    if (!this.isEmp()) {
-      this.form.update(f => ({
-        ...f,
-        email: this.socioEmail() || '',
-        phone: this.socioPhone() || '',
-      }));
+    const editGuest = this.guestToEdit();
+    if (editGuest) {
+      // Modo edición: prefill y abrir en pestaña edit
+      this.tab.set('edit');
+      this.form.set({
+        first_name:       editGuest.first_name ?? '',
+        last_name:        editGuest.last_name ?? '',
+        second_last_name: editGuest.second_last_name ?? '',
+        email:            editGuest.email ?? '',
+        phone:            editGuest.phone ?? '',
+        birth_date:       editGuest.birth_date ?? '',
+        rfc:              editGuest.rfc ?? '',
+        relationship:     editGuest.relationship ?? '',
+      });
+    } else {
+      this.loadGuests();
+      if (!this.isEmp()) {
+        this.form.update(f => ({
+          ...f,
+          email: this.socioEmail() || '',
+          phone: this.socioPhone() || '',
+        }));
+      }
     }
   }
 
@@ -211,6 +232,37 @@ export class GuestModalComponent implements OnInit {
       error: (err) => {
         this.saving.set(false);
         this.errorMsg.set(err?.error?.message ?? 'Error al guardar el invitado.');
+      },
+    });
+  }
+
+  saveEditGuest(): void {
+    const editGuest = this.guestToEdit();
+    if (!editGuest) return;
+    const f = this.form();
+    const payload: UpdateGuestPayload = {
+      first_name:       f.first_name.trim()        || undefined,
+      last_name:        f.last_name.trim()          || undefined,
+      second_last_name: f.second_last_name.trim()  || undefined,
+      email:            f.email.trim()              || undefined,
+      phone:            f.phone.trim()              || undefined,
+      birth_date:       f.birth_date               || undefined,
+      rfc:              f.rfc.trim().toUpperCase()  || undefined,
+      relationship:     f.relationship.trim()       || undefined,
+    };
+    this.saving.set(true);
+    this.errorMsg.set(null);
+    this.guestSvc.updateGuest(editGuest.id, payload).subscribe({
+      next: r => {
+        this.saving.set(false);
+        if (r.data?.guest) {
+          this.successMsg.set(`✓ ${r.data.guest.full_name} actualizado correctamente`);
+          setTimeout(() => this.guestUpdated.emit(r.data.guest), 900);
+        }
+      },
+      error: err => {
+        this.saving.set(false);
+        this.errorMsg.set(err?.error?.message ?? 'Error al actualizar el invitado.');
       },
     });
   }

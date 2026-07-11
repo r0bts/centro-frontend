@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -7,6 +7,7 @@ import {
   ScInstructorResponse,
   CreateScInstructorRequest,
   UpdateScInstructorRequest,
+  ScInstructorCredentialPreviewResponse,
 } from '../../models/summer-course/summer-course.model';
 
 @Injectable({ providedIn: 'root' })
@@ -33,5 +34,33 @@ export class ScInstructorsService {
 
   delete(id: number): Observable<{ success: boolean; message: string }> {
     return this.http.delete<{ success: boolean; message: string }>(`${this.base}/${id}`);
+  }
+
+  // ── Credencial ─────────────────────────────────────────────────────────────
+
+  /** GET /api/summer-course/instructors/{id}/credential-preview?course_id= */
+  getCredentialPreview(instructorId: number, courseId: number): Observable<ScInstructorCredentialPreviewResponse> {
+    const params = new HttpParams()
+      .set('course_id', courseId)
+      .set('_t', Date.now().toString());
+    return this.http.get<ScInstructorCredentialPreviewResponse>(
+      `${this.base}/${instructorId}/credential-preview`, { params }
+    );
+  }
+
+  /** POST /api/summer-course/instructors/{id}/photo */
+  uploadInstructorPhoto(instructorId: number, courseId: number, photoBase64: string): Observable<{ success: boolean; data: { photo_url: string } }> {
+    return this.http.post<{ success: boolean; data: { photo_url: string } }>(
+      `${this.base}/${instructorId}/photo`,
+      { photo_base64: photoBase64, course_id: courseId }
+    );
+  }
+
+  /** POST /api/summer-course/instructors/{id}/deliver-credential */
+  deliverCredential(instructorId: number, courseId: number, notes?: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.base}/${instructorId}/deliver-credential`,
+      { course_id: courseId, notes: notes ?? undefined }
+    );
   }
 }
