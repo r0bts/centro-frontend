@@ -920,8 +920,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     });
   }
 
-  groupsForLevel(levelId: number): LevelGroupFD[] {
-    return this.levelGroupsFD().filter(g => g.level_id === levelId);
+  groupsForLevel(levelId: number | null): LevelGroupFD[] {
+    if (!levelId) return [];
+    return this.levelGroupsFD().filter(g => g.level_id === levelId || g.level_id === 99);
   }
 
   openLevelModal(p: ScRegisteredParticipant, titularId: string | null): void {

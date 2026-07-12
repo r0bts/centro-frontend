@@ -71,7 +71,12 @@
                   </ng-template>
                   <div>
                     <h5 class="fw-bold mb-1 text-dark">{{ scannedData?.participant?.first_name }} {{ scannedData?.participant?.last_name }}</h5>
-                    <p class="mb-0 text-muted small">Edad: {{ scannedData?.participant?.age }} años</p>
+                    <p class="mb-0 text-muted small">
+                      Edad: {{ scannedData?.participant?.age }} años
+                      <span *ngIf="scannedData?.group_alias">
+                        | Grupo: <strong>{{ scannedData?.group_alias }}</strong>
+                      </span>
+                    </p>
                   </div>
                 </div>
                 <p class="text-muted small">Escaneando siguiente código en breve...</p>

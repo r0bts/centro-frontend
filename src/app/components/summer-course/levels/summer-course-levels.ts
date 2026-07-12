@@ -43,7 +43,7 @@ export class SummerCourseLevelsComponent implements OnInit {
   groupSaving     = signal(false);
 
   readonly levelLabels = SC_LEVEL_LABELS;
-  readonly levelList   = Array.from({ length: 8 }, (_, i) => i + 1);
+  readonly levelList   = [...Array.from({ length: 8 }, (_, i) => i + 1), 99];
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {

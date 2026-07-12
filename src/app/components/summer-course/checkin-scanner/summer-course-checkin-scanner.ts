@@ -137,15 +137,16 @@ export class SummerCourseCheckinScannerComponent implements OnInit, OnDestroy {
             position: 'top-end',
             icon: 'success',
             title: '¡Registrado: ' + this.scannedData.participant.first_name
-              + (this.scannedData.level_roman ? ' · Nivel ' + this.scannedData.level_roman : '') + '!',
+              + (this.scannedData.level_roman ? ' · Nivel ' + this.scannedData.level_roman : '')
+              + (this.scannedData.group_alias ? ' · Grupo ' + this.scannedData.group_alias : '') + '!',
             showConfirmButton: false,
-            timer: 1500
+            timer: 5000
           });
           
           // Flash success screen briefly, then restart
           setTimeout(() => {
              this.startScanner();
-          }, 1500); // Muestra la foto por 1.5 segundos
+          }, 5000); // Muestra la foto por 5 segundos
           
         } else {
           this.showError(res.message || 'Token inválido');
