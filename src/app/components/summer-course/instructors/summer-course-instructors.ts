@@ -14,6 +14,7 @@ import {
   ScInstructorCredentialPreview,
   ScCourse,
 } from '../../../models/summer-course/summer-course.model';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-summer-course-instructors',
@@ -224,6 +225,12 @@ export class SummerCourseInstructorsComponent implements OnInit {
   }
 
   clearError(): void { this.error.set(null); }
+
+  getQrUrl(token: string | null | undefined): string {
+    if (!token) return '';
+    const baseUrl = environment.apiUrl.replace(/\/api\/?$/, '');
+    return encodeURIComponent(`${baseUrl}/${token}`);
+  }
 
   // ── Credencial ────────────────────────────────────────────────────────────
 
