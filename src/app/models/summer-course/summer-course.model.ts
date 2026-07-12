@@ -153,6 +153,10 @@ export interface ScInstructor {
   /** 'instructor' = is_instructor=1 | 'coordinator' = dept Coord. Deportiva | 'both' = ambos */
   source?: 'instructor' | 'coordinator' | 'both';
   department?: string;
+  // Nivel y grupo asignado en sc_level_groups
+  level_roman?:  string | null;
+  level_number?: number | null;
+  group_alias?:  string | null;
   // Computed
   full_name?: string;
   initials?: string;            // 2 letras para avatar

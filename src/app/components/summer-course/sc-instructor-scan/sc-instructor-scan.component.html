@@ -1,0 +1,33 @@
+<div class="sc-iscan">
+  @switch (state()) {
+    @case ('loading') {
+      <div class="sc-iscan__state sc-iscan__state--loading">
+        <div class="sc-iscan__spinner"></div>
+        <p class="sc-iscan__msg">Buscando tu grupo...</p>
+      </div>
+    }
+    @case ('redirecting') {
+      <div class="sc-iscan__state sc-iscan__state--ok">
+        <span class="sc-iscan__icon sc-iscan__icon--ok">✓</span>
+        <p class="sc-iscan__msg">
+          Nivel {{ levelRoman() }} · {{ groupAlias() }}
+        </p>
+        <p class="sc-iscan__sub">Redirigiendo a tu grupo...</p>
+      </div>
+    }
+    @case ('not-assigned') {
+      <div class="sc-iscan__state sc-iscan__state--warn">
+        <span class="sc-iscan__icon sc-iscan__icon--warn">!</span>
+        <p class="sc-iscan__msg">No está asignado a ningún grupo</p>
+        <p class="sc-iscan__sub">Comunícate con la coordinación del curso para que te asignen un nivel y grupo.</p>
+      </div>
+    }
+    @case ('error') {
+      <div class="sc-iscan__state sc-iscan__state--error">
+        <span class="sc-iscan__icon sc-iscan__icon--error">✕</span>
+        <p class="sc-iscan__msg">{{ errorMessage() }}</p>
+        <p class="sc-iscan__sub">Si el problema persiste, reporta la credencial a coordinación.</p>
+      </div>
+    }
+  }
+</div>

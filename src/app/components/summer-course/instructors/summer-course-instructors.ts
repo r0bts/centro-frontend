@@ -83,6 +83,8 @@ export class SummerCourseInstructorsComponent implements OnInit {
   credPhotoSaving    = signal(false);
   credCameraMode     = signal<'camera' | 'file'>('camera');
   photoBaseUrl       = `${window.location.origin}/`;
+  readonly origin     = window.location.origin;
+  readonly encodeURI  = encodeURIComponent;
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {

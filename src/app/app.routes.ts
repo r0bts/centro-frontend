@@ -385,6 +385,12 @@ export const routes: Routes = [
       import('./components/summer-course/sc-scan/sc-scan.component').then(m => m.ScScanComponent)
   },
   {
+    // Redirect de QR de credencial de instructor → página de escaneo de su grupo
+    path: 'sc-instructor-scan/:token',
+    loadComponent: () =>
+      import('./components/summer-course/sc-instructor-scan/sc-instructor-scan.component').then(m => m.ScInstructorScanComponent)
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }
