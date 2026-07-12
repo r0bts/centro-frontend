@@ -201,14 +201,24 @@ export class ScScanComponent implements OnInit, OnDestroy {
     this.state.set('idle');
     this.errorMsg.set(null);
     this.lastToken.set('');
-    // Reactivar lectura de cámara en 1 s
+    
+    // Forzar el paro de la cámara si sigue en memoria
+    if (this.html5QrCode) {
+      try {
+        if (this.html5QrCode.isScanning) {
+          this.html5QrCode.stop().catch(() => {});
+        }
+      } catch (e) {}
+      this.html5QrCode = null;
+    }
+    this.scanning.set(false);
+
+    // Reactivar lectura de cámara dando tiempo a que el DOM renderice el #sc-scan-reader
     setTimeout(() => {
-      if (!this.html5QrCode?.isScanning && !this.cameraError()) {
-        this.stopCamera();
-        this.html5QrCode = null;
-        setTimeout(() => this.startCamera(), 300);
+      if (!this.cameraError()) {
+        this.startCamera();
       }
-    }, 1000);
+    }, 300);
   }
 
   // ── API ENTRADA ────────────────────────────────────────────────────────────
