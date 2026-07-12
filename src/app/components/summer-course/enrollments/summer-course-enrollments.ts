@@ -572,11 +572,6 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return environment.apiUrl.replace('/api', '/'); 
   }
 
-  isPhoneValid(phone: string | null): boolean {
-    if (!phone) return false;
-    return phone.replace(/\D/g, '').length >= 10;
-  }
-
   // ── Step 2 ────────────────────────────────────────────────────────────────
   get courseWeeks() { return this.selectedCourse()?.sc_weeks ?? []; }
 
@@ -641,7 +636,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   canConfirm(): boolean {
     const active = this.activePending;
     if (!active.length) return false;
-    return active.every(p => this.isPhoneValid(p.emergency_phone));
+    return active.every(p => p.emergency_phone && p.emergency_phone.trim().length >= 8);
   }
 
   goToConfirm(): void {
@@ -803,6 +798,17 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.showToast('Error al cargar los datos del invitado', 'danger');
       },
     });
+  }
+
+  /** Alias para llamadas desde la plantilla en la lista de inscritos */
+  editGuestName(p: ScRegisteredParticipant, _event?: Event): void {
+    this.openEditGuest(p);
+  }
+
+  /** Valida que el teléfono tenga al menos 10 dígitos numéricos */
+  isPhoneValid(phone: string | null | undefined): boolean {
+    if (!phone) return false;
+    return (phone.replace(/\D/g, '').length >= 10);
   }
 
   closeEditGuest(): void {
@@ -1516,39 +1522,6 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
             this.showToast('Teléfono guardado correctamente.', 'success');
           },
           error: () => this.showToast('Error al guardar el teléfono', 'danger')
-        });
-      }
-    });
-  }
-
-  editGuestName(p: ScRegisteredParticipant, event: Event): void {
-    event.stopPropagation();
-    
-    Swal.fire({
-      title: 'Editar nombre del invitado',
-      input: 'text',
-      inputValue: p.full_name,
-      showCancelButton: true,
-      confirmButtonText: 'Guardar',
-      cancelButtonText: 'Cancelar',
-      inputValidator: (value) => {
-        if (!value || value.trim().length === 0) {
-          return 'El nombre no puede estar vacío';
-        }
-        return null;
-      }
-    }).then((result) => {
-      if (result.isConfirmed) {
-        const newName = result.value.trim();
-        this.svc.updateParticipantName(p.participant_id, newName).subscribe({
-          next: () => {
-            p.full_name = newName.toUpperCase();
-            this.showToast('Nombre guardado correctamente.', 'success');
-          },
-          error: (err) => {
-            const msg = err.error?.message || 'Error al guardar el nombre';
-            this.showToast(msg, 'danger');
-          }
         });
       }
     });
