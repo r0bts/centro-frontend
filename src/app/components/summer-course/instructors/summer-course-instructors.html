@@ -326,7 +326,7 @@
                           </div>
                           <div class="cred-media-box cred-media-box--qr">
                             <div class="cred-qr-inner">
-                              <img [src]="'https://quickchart.io/qr?size=150&margin=0&text=' + cd.qr_token" class="cred-qr-img" crossorigin="anonymous" />
+                              <img [src]="'https://quickchart.io/qr?size=150&margin=0&text=' + getQrUrl(cd.qr_token)" class="cred-qr-img" crossorigin="anonymous" />
                             </div>
                             <div class="cred-qr-label">RECEPCIÓN/ENTREGA</div>
                           </div>
