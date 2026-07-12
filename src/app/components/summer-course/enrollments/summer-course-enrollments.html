@@ -303,11 +303,12 @@
                                 }
                               } @else if (p.group_id) {
                                 <!-- intensivo con grupo: solo permitir quitar -->
-                                <button class="sce-assign-btn sce-assign-btn--group"
+                                <button class="sce-assign-badge sce-assign-badge--group"
                                         (click)="openGroupModal(p, group.titular_id)"
-                                        title="Quitar grupo (es inscripción intensiva)">
+                                        title="Cambiar o quitar grupo (inscripción intensiva)">
                                   <span class="material-symbols-outlined">groups</span>
-                                  Quitar grupo
+                                  {{ p.group_alias ?? 'Grupo' }}
+                                  <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
                                 </button>
                               } @else {
                                 <!-- intensivo sin grupo: solo badge informativo -->

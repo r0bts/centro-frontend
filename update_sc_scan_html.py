@@ -1,4 +1,6 @@
-<div class="sc-scan-page">
+import os
+
+content = """<div class="sc-scan-page">
 
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <div class="sc-scan-header">
@@ -191,7 +193,7 @@
               
               <div class="card bg-light border-0 rounded-4 mt-3">
                 <div class="card-body p-3">
-                  <ng-container *ngIf="checkoutResult()?.participant?.photo_url; else noParticipantPhotoY">
+                  <ng-container *if="checkoutResult()?.participant?.photo_url; else noParticipantPhotoY">
                     <img [src]="checkoutResult()?.participant?.photo_url" class="rounded-circle mb-2 object-fit-cover shadow border border-3 border-white" style="width: 75px; height: 75px;">
                   </ng-container>
                   <ng-template #noParticipantPhotoY>
@@ -337,7 +339,7 @@
               <div class="d-grid gap-2">
                 <button class="btn btn-success py-3 rounded-3 fw-bold shadow-sm d-flex justify-content-center align-items-center" 
                         (click)="processCheckout()"
-                        [disabled]="processing()">
+                        [disabled]="processing() || (checkoutResult()?.is_dynamic && checkoutResult()?.authorized_pickups?.length! > 1 && !selectedPickupName())">
                   <span class="material-symbols-outlined me-2">check_circle</span>
                   Registrar Primera Salida
                 </button>
@@ -403,3 +405,7 @@
   }
 
 </div>
+"""
+
+with open('/Volumes/SSD_MB/Desarrollo/Libanes/centro-frontend/src/app/components/summer-course/sc-scan/sc-scan.component.html', 'w') as f:
+    f.write(content)

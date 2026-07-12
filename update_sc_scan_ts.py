@@ -1,4 +1,6 @@
-import {
+import os
+
+content = """import {
   Component, OnInit, OnDestroy, signal, inject,
   ChangeDetectorRef, NgZone, ViewEncapsulation
 } from '@angular/core';
@@ -201,24 +203,14 @@ export class ScScanComponent implements OnInit, OnDestroy {
     this.state.set('idle');
     this.errorMsg.set(null);
     this.lastToken.set('');
-    
-    // Forzar el paro de la cámara si sigue en memoria
-    if (this.html5QrCode) {
-      try {
-        if (this.html5QrCode.isScanning) {
-          this.html5QrCode.stop().catch(() => {});
-        }
-      } catch (e) {}
-      this.html5QrCode = null;
-    }
-    this.scanning.set(false);
-
-    // Reactivar lectura de cámara dando tiempo a que el DOM renderice el #sc-scan-reader
+    // Reactivar lectura de cámara en 1 s
     setTimeout(() => {
-      if (!this.cameraError()) {
-        this.startCamera();
+      if (!this.html5QrCode?.isScanning && !this.cameraError()) {
+        this.stopCamera();
+        this.html5QrCode = null;
+        setTimeout(() => this.startCamera(), 300);
       }
-    }, 300);
+    }, 1000);
   }
 
   // ── API ENTRADA ────────────────────────────────────────────────────────────
@@ -341,11 +333,8 @@ export class ScScanComponent implements OnInit, OnDestroy {
             if (data.is_dynamic && data.authorized_pickups && data.authorized_pickups.length === 1) {
               this.selectedPickupName.set(data.authorized_pickups[0].name);
             }
-          } else if (data.status_color === 'yellow') {
+          } else {
             this.state.set('warning'); // yellow
-          } else if (data.status_color === 'red') {
-            this.state.set('error');
-            this.errorMsg.set(data.message || res.message || 'Error');
           }
         } else {
           this.state.set('error');
@@ -448,3 +437,7 @@ export class ScScanComponent implements OnInit, OnDestroy {
     }
   }
 }
+"""
+
+with open('/Volumes/SSD_MB/Desarrollo/Libanes/centro-frontend/src/app/components/summer-course/sc-scan/sc-scan.component.ts', 'w') as f:
+    f.write(content)

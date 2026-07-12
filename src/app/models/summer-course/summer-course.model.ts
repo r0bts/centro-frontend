@@ -249,6 +249,7 @@ export const SC_LEVEL_LABELS: Record<number, { roman: string; age: string }> = {
   6: { roman: 'VI',   age: '8-9 años'   },
   7: { roman: 'VII',  age: '10-12 años' },
   8: { roman: 'VIII', age: '13+ años'   },
+  99: { roman: 'INTENSIVOS', age: 'Global' },
 };
 
 // =====================================================================
