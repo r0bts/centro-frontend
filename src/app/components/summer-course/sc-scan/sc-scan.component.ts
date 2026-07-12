@@ -341,8 +341,11 @@ export class ScScanComponent implements OnInit, OnDestroy {
             if (data.is_dynamic && data.authorized_pickups && data.authorized_pickups.length === 1) {
               this.selectedPickupName.set(data.authorized_pickups[0].name);
             }
-          } else {
+          } else if (data.status_color === 'yellow') {
             this.state.set('warning'); // yellow
+          } else if (data.status_color === 'red') {
+            this.state.set('error');
+            this.errorMsg.set(data.message || res.message || 'Error');
           }
         } else {
           this.state.set('error');
