@@ -81,8 +81,4 @@ export class ScEnrollmentsService {
     const qp = new HttpParams({ fromObject: params as unknown as Record<string, string> });
     return this.http.get(`${this.base}/export-xlsx`, { params: qp, responseType: 'blob' });
   }
-
-  suggestGroup(levelId: number): Observable<{ success: boolean; data: { group_id: number | null; group_alias: string | null } }> {
-    return this.http.get<any>(`${this.base}/suggest-group`, { params: { level_id: levelId.toString() } });
-  }
 }

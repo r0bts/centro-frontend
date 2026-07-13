@@ -260,7 +260,6 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   lvlModalValue     = signal<number>(1);
   lvlModalNotes     = signal('');
   lvlModalSaving    = signal(false);
-  lvlModalSuggestedLevel = signal<number | null>(null);
 
   grpModalOpen      = signal(false);
   grpModalTarget    = signal<GrpModalTarget | null>(null);
@@ -500,18 +499,6 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return this.levels().find(l =>
       l.min_age <= age && (l.max_age === null || l.max_age >= age)
     ) ?? null;
-  }
-
-  /** Calcula la edad del participante a la fecha de inicio del curso activo */
-  private _ageAtCourseStart(birthDateStr: string | null): number | null {
-    if (!birthDateStr) return null;
-    const course = this.selectedCourse();
-    const ref    = course?.start_date ? new Date(course.start_date) : new Date();
-    const birth  = new Date(birthDateStr);
-    let age = ref.getFullYear() - birth.getFullYear();
-    const m = ref.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && ref.getDate() < birth.getDate())) age--;
-    return age >= 0 ? age : null;
   }
 
   selectTitular(s: ScSocioSearchResult): void {
@@ -946,9 +933,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   openLevelModal(p: ScRegisteredParticipant, titularId: string | null): void {
     this.lvlModalTarget.set({ enrollment_id: p.enrollment_id, titular_id: titularId, current_level: p.assigned_level ?? null });
-    const suggestedByAge = this._getLevelForAge(this._ageAtCourseStart(p.birth_date ?? null))?.level_number ?? null;
-    this.lvlModalSuggestedLevel.set(suggestedByAge);
-    this.lvlModalValue.set(p.assigned_level ?? suggestedByAge ?? 1);
+    this.lvlModalValue.set(p.assigned_level ?? 1);
     this.lvlModalNotes.set('');
     this.lvlModalOpen.set(true);
   }
@@ -986,13 +971,6 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.grpModalTarget.set({ enrollment_id: p.enrollment_id, titular_id: titularId, assigned_level: p.assigned_level });
     this.grpModalValue.set(p.group_id ?? null);
     this.grpModalOpen.set(true);
-    // Auto-sugerir el grupo con menos inscritos si el participante no tiene grupo
-    if (!p.group_id) {
-      this.enrollSvc.suggestGroup(p.assigned_level).subscribe({
-        next: res => { if (res.data?.group_id) this.grpModalValue.set(res.data.group_id); },
-        error: () => {},
-      });
-    }
   }
 
   closeGroupModal(): void { this.grpModalOpen.set(false); }
@@ -1039,7 +1017,6 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   // ── Level/Group assignment desde step DONE ───────────────────────────────
   openLevelModalFromDone(dp: DoneParticipant): void {
     this.lvlModalTarget.set({ enrollment_id: dp.enrollmentId, titular_id: null, current_level: dp.assignedLevel });
-    this.lvlModalSuggestedLevel.set(dp.suggestedLevel);
     this.lvlModalValue.set(dp.assignedLevel ?? dp.suggestedLevel ?? 1);
     this.lvlModalNotes.set('');
     this.lvlModalOpen.set(true);
