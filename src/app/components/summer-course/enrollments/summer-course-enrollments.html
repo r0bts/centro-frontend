@@ -302,21 +302,22 @@
                                   </button>
                                 }
                               } @else if (p.group_id) {
-                                <!-- intensivo con grupo: solo permitir quitar -->
+                                <!-- intensivo con grupo: permitir cambiar -->
                                 <button class="sce-assign-badge sce-assign-badge--group"
                                         (click)="openGroupModal(p, group.titular_id)"
-                                        title="Cambiar o quitar grupo (inscripción intensiva)">
+                                        title="Cambiar grupo">
                                   <span class="material-symbols-outlined">groups</span>
                                   {{ p.group_alias ?? 'Grupo' }}
                                   <span class="material-symbols-outlined sce-assign-badge__edit">edit</span>
                                 </button>
                               } @else {
-                                <!-- intensivo sin grupo: solo badge informativo -->
-                                <span class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled"
-                                      title="Inscripción intensiva · sin grupo">
-                                  <span class="material-symbols-outlined">bolt</span>
-                                  Intensivo
-                                </span>
+                                <!-- intensivo sin grupo: permitir asignar -->
+                                <button class="sce-assign-btn sce-assign-btn--group"
+                                        (click)="openGroupModal(p, group.titular_id)"
+                                        title="Asignar grupo">
+                                  <span class="material-symbols-outlined">groups</span>
+                                  Asignar grupo
+                                </button>
                               }
                             } @else {
                               <button class="sce-assign-btn sce-assign-btn--group sce-assign-btn--disabled" disabled
@@ -1147,9 +1148,13 @@
           @for (lvl of levels(); track lvl.level_number) {
             <button class="sce-level-btn"
                     [class.sce-level-btn--active]="lvlModalValue() === lvl.level_number"
+                    [class.sce-level-btn--suggested]="lvlModalSuggestedLevel() === lvl.level_number && lvlModalValue() !== lvl.level_number"
                     (click)="lvlModalValue.set(lvl.level_number)">
               <span class="sce-level-btn__roman">{{ lvl.roman }}</span>
               <span class="sce-level-btn__age">{{ lvl.age_label }}</span>
+              @if (lvlModalSuggestedLevel() === lvl.level_number) {
+                <span class="sce-level-btn__tag">sugerido</span>
+              }
             </button>
           }
         </div>
