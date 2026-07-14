@@ -1310,6 +1310,8 @@ $level-colors: (
   &__age   { font-size: .65rem; color: #64748b; text-align: center; line-height: 1.2; }
   &__tag   { font-size: .58rem; color: #2563eb; font-weight: 700; background: #dbeafe;
              border-radius: 4px; padding: 1px 4px; margin-top: 1px; }
+  &__hint  { font-size: .58rem; color: #2563eb; font-weight: 600; background: #dbeafe;
+             border-radius: 4px; padding: 1px 4px; margin-top: 1px; }
 
   &:hover { border-color: #93c5fd; background: #eff6ff; transform: translateY(-1px); }
 

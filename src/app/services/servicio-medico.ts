@@ -48,30 +48,9 @@ export class ServicioMedicoService {
   }
 
   /**
-   * Elimina una consulta médica existente
-   */
-  deleteConsulta(id: string): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/deleteConsulta/${id}`);
-  }
-
-  /**
    * Envía una notificación de WhatsApp al administrador de cursos de verano
    */
   notificarAdminCursos(payload: { name: string }): Observable<any> {
     return this.http.post(`${this.apiUrl}/notificar-admin-cursos`, payload);
-  }
-
-  /**
-   * Obtiene la lista de productos (insumos médicos) desde NetSuite
-   */
-  getProducts(search: string = ''): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/products?limit=1000&search=${search}`);
-  }
-
-  /**
-   * Obtiene la lista de ubicaciones
-   */
-  getLocations(): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/locations`);
   }
 }
