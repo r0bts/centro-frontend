@@ -46,3 +46,6 @@ src/environments/environment.ts
 src/environments/environment.prod.ts
 .env
 set-env.js
+
+# Proxy config — cada desarrollador apunta a su DDEV local
+proxy.conf.json
