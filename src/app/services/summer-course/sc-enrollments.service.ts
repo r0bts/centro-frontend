@@ -64,12 +64,6 @@ export class ScEnrollmentsService {
     return this.http.patch<ScEnrollmentResponse>(`${this.base}/${id}/group`, data);
   }
 
-  suggestGroup(levelId: number): Observable<{ success: boolean; data: { group_id: number | null; group_alias: string | null } }> {
-    return this.http.get<{ success: boolean; data: { group_id: number | null; group_alias: string | null } }>(
-      `${this.base}/suggest-group`, { params: { level_id: levelId } }
-    );
-  }
-
   updateWeeks(enrollmentId: number, weekIds: number[]): Observable<ScEnrollmentResponse> {
     return this.http.put<ScEnrollmentResponse>(`${this.base}/${enrollmentId}/weeks`, { weeks: weekIds });
   }
