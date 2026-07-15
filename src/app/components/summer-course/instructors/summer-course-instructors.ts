@@ -9,10 +9,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ScInstructorsService } from '../../../services/summer-course/sc-instructors.service';
 import { ScCoursesService } from '../../../services/summer-course/sc-courses.service';
+import { ScLevelGroupsService } from '../../../services/summer-course/sc-level-groups.service';
 import {
   ScInstructor,
   ScInstructorCredentialPreview,
   ScCourse,
+  ScLevelGroupByLevel,
 } from '../../../models/summer-course/summer-course.model';
 import { environment } from '../../../../environments/environment';
 
@@ -25,8 +27,9 @@ import { environment } from '../../../../environments/environment';
   styleUrl: './summer-course-instructors.scss',
 })
 export class SummerCourseInstructorsComponent implements OnInit {
-  private svc        = inject(ScInstructorsService);
-  private coursesSvc = inject(ScCoursesService);
+  private svc          = inject(ScInstructorsService);
+  private coursesSvc   = inject(ScCoursesService);
+  private lgSvc        = inject(ScLevelGroupsService);
 
   // ── State ──────────────────────────────────────────────────────────────────
   instructors   = signal<ScInstructor[]>([]);
@@ -61,6 +64,41 @@ export class SummerCourseInstructorsComponent implements OnInit {
   formLastName   = signal('');
   formEmail      = signal('');
   formSpecialty  = signal('');
+
+  // Nivel y grupo en el formulario
+  formGroupId    = signal<number | null>(null);   // grupo seleccionado (id)
+  formLevelId    = signal<number | null>(null);   // nivel seleccionado (level_id)
+  levelGroupsAll = signal<ScLevelGroupByLevel[]>([]);
+  levelGroupsLoading = signal(false);
+
+  get formLevels(): ScLevelGroupByLevel[] {
+    return this.levelGroupsAll();
+  }
+
+  get formGroupsForLevel(): { id: number; alias: string }[] {
+    const lvl = this.formLevelId();
+    if (!lvl) return [];
+    return (this.levelGroupsAll().find(l => l.level_id === lvl)?.groups ?? [])
+      .map(g => ({ id: g.id, alias: g.alias }));
+  }
+
+  private _loadLevelGroups(): void {
+    if (this.levelGroupsAll().length > 0) return;
+    this.levelGroupsLoading.set(true);
+    this.lgSvc.getAll().subscribe({
+      next: res => {
+        this.levelGroupsAll.set(res.data?.groups_by_level ?? []);
+        this.levelGroupsLoading.set(false);
+        // Si estamos editando, re-calcular level_id ahora que tenemos datos
+        const target = this.editTarget();
+        if (target && this.formLevelId() === null && target.level_number != null) {
+          const lvl = this.levelGroupsAll().find(l => l.level_number === target.level_number);
+          this.formLevelId.set(lvl?.level_id ?? null);
+        }
+      },
+      error: () => this.levelGroupsLoading.set(false),
+    });
+  }
 
   // Credenciales generadas al crear
   createdCredentials = signal<{username: string; password: string} | null>(null);
@@ -121,7 +159,10 @@ export class SummerCourseInstructorsComponent implements OnInit {
     this.formLastName.set('');
     this.formEmail.set('');
     this.formSpecialty.set('');
+    this.formLevelId.set(null);
+    this.formGroupId.set(null);
     this.formSaving.set(false);
+    this._loadLevelGroups();
     this.formOpen.set(true);
   }
 
@@ -132,6 +173,12 @@ export class SummerCourseInstructorsComponent implements OnInit {
     this.formEmail.set(inst.email ?? '');
     this.formSpecialty.set(inst.specialty ?? '');
     this.formSaving.set(false);
+    this._loadLevelGroups();
+    // Pre-populate level/group
+    // level_id: find by level_number in the loaded groups
+    const lvl = this.levelGroupsAll().find(l => l.level_number === inst.level_number);
+    this.formLevelId.set(lvl?.level_id ?? inst.level_number ?? null);
+    this.formGroupId.set(inst.group_id ?? null);
     this.formOpen.set(true);
   }
 
@@ -153,15 +200,43 @@ export class SummerCourseInstructorsComponent implements OnInit {
       specialty:  this.formSpecialty().trim(),
     };
 
+    const afterSave = (savedInstructor: ScInstructor) => {
+      const selectedGroup = this.formGroupId();
+      const originalGroup = this.editTarget()?.group_id ?? null;
+      const groupChanged  = selectedGroup !== originalGroup;
+
+      if (groupChanged) {
+        this.svc.assignGroup(savedInstructor.id, selectedGroup).subscribe({
+          next: res => {
+            this.instructors.update(list =>
+              list.map(i => i.id === res.data.id ? res.data : i)
+            );
+            this.formSaving.set(false);
+            this.formOpen.set(false);
+            this.showToast(this.isEdit ? 'Instructor actualizado.' : 'Instructor creado correctamente.', 'success');
+          },
+          error: () => {
+            this.formSaving.set(false);
+            this.formOpen.set(false);
+            this.showToast('Datos guardados. Error al asignar grupo.', 'danger');
+          },
+        });
+      } else {
+        this.instructors.update(list =>
+          list.some(i => i.id === savedInstructor.id)
+            ? list.map(i => i.id === savedInstructor.id ? savedInstructor : i)
+            : [...list, savedInstructor]
+        );
+        this.formSaving.set(false);
+        this.formOpen.set(false);
+        this.showToast(this.isEdit ? 'Instructor actualizado.' : 'Instructor creado correctamente.', 'success');
+      }
+    };
+
     if (this.isEdit) {
       const id = this.editTarget()!.id;
       this.svc.update(id, payload).subscribe({
-        next: res => {
-          this.instructors.update(list => list.map(i => i.id === id ? res.data : i));
-          this.formSaving.set(false);
-          this.formOpen.set(false);
-          this.showToast('Instructor actualizado.', 'success');
-        },
+        next: res => afterSave(res.data),
         error: () => {
           this.formSaving.set(false);
           this.error.set('Error al actualizar instructor.');
@@ -170,14 +245,10 @@ export class SummerCourseInstructorsComponent implements OnInit {
     } else {
       this.svc.create(payload).subscribe({
         next: res => {
-          this.instructors.update(list => [...list, res.data]);
-          this.formSaving.set(false);
-          this.formOpen.set(false);
-          // Show credentials if backend returns them
           if ((res as any).credentials) {
             this.createdCredentials.set((res as any).credentials);
           }
-          this.showToast('Instructor creado correctamente.', 'success');
+          afterSave(res.data);
         },
         error: () => {
           this.formSaving.set(false);
