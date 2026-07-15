@@ -1438,7 +1438,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     const canvas = document.createElement('canvas');
     canvas.width  = videoEl.videoWidth  || 640;
     canvas.height = videoEl.videoHeight || 480;
-    canvas.getContext('2d')!.drawImage(videoEl, 0, 0);
+    canvas.getContext('2d')!.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
     this.photoPreviewUrl.set(canvas.toDataURL('image/jpeg', 0.85));
     this._stopCamera();
   }
