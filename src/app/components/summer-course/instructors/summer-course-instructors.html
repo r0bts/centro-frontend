@@ -215,26 +215,81 @@
               </div>
               @if (isEdit && editTarget()) {
                 <div class="col-12">
-                  <label class="form-label fw-semibold text-muted">Nivel y grupo asignado</label>
-                  @if (editTarget()!.level_roman || editTarget()!.group_alias) {
-                    <div class="d-flex gap-2 flex-wrap">
-                      @if (editTarget()!.level_roman) {
-                        <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle fs-6 fw-semibold">
-                          <i class="bi bi-layers me-1"></i>Nivel {{ editTarget()!.level_roman }}
-                        </span>
-                      }
-                      @if (editTarget()!.group_alias) {
-                        <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle fs-6">
-                          <i class="bi bi-people me-1"></i>{{ editTarget()!.group_alias }}
-                        </span>
+                  <label class="form-label fw-semibold">Nivel y grupo</label>
+                  @if (levelGroupsLoading()) {
+                    <div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>Cargando grupos…</div>
+                  } @else {
+                    <div class="d-flex flex-column gap-2">
+                      <!-- Selector de nivel -->
+                      <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-sm"
+                                [class.btn-primary]="formLevelId() === null"
+                                [class.btn-outline-secondary]="formLevelId() !== null"
+                                (click)="formLevelId.set(null); formGroupId.set(null)">
+                          Sin nivel
+                        </button>
+                        @for (lvl of formLevels; track lvl.level_id) {
+                          <button type="button" class="btn btn-sm"
+                                  [class.btn-primary]="formLevelId() === lvl.level_id"
+                                  [class.btn-outline-secondary]="formLevelId() !== lvl.level_id"
+                                  (click)="formLevelId.set(lvl.level_id); formGroupId.set(null)">
+                            Nivel {{ lvl.roman }}
+                          </button>
+                        }
+                      </div>
+                      <!-- Selector de grupo -->
+                      @if (formLevelId() !== null) {
+                        <select class="form-select form-select-sm"
+                                [ngModel]="formGroupId()"
+                                (ngModelChange)="formGroupId.set($event ? +$event : null)">
+                          <option [ngValue]="null">— Sin grupo —</option>
+                          @for (g of formGroupsForLevel; track g.id) {
+                            <option [ngValue]="g.id">{{ g.alias }}</option>
+                          }
+                        </select>
                       }
                     </div>
-                  } @else {
-                    <p class="form-control-plaintext text-muted fst-italic mb-0">No aplica</p>
                   }
                 </div>
               }
               @if (!isEdit) {
+                <div class="col-12">
+                  <label class="form-label fw-semibold">Nivel y grupo</label>
+                  @if (levelGroupsLoading()) {
+                    <div class="text-muted small"><span class="spinner-border spinner-border-sm me-1"></span>Cargando grupos…</div>
+                  } @else {
+                    <div class="d-flex flex-column gap-2">
+                      <!-- Selector de nivel -->
+                      <div class="d-flex flex-wrap gap-1">
+                        <button type="button" class="btn btn-sm"
+                                [class.btn-primary]="formLevelId() === null"
+                                [class.btn-outline-secondary]="formLevelId() !== null"
+                                (click)="formLevelId.set(null); formGroupId.set(null)">
+                          Sin nivel
+                        </button>
+                        @for (lvl of formLevels; track lvl.level_id) {
+                          <button type="button" class="btn btn-sm"
+                                  [class.btn-primary]="formLevelId() === lvl.level_id"
+                                  [class.btn-outline-secondary]="formLevelId() !== lvl.level_id"
+                                  (click)="formLevelId.set(lvl.level_id); formGroupId.set(null)">
+                            Nivel {{ lvl.roman }}
+                          </button>
+                        }
+                      </div>
+                      <!-- Selector de grupo -->
+                      @if (formLevelId() !== null) {
+                        <select class="form-select form-select-sm"
+                                [ngModel]="formGroupId()"
+                                (ngModelChange)="formGroupId.set($event ? +$event : null)">
+                          <option [ngValue]="null">— Sin grupo —</option>
+                          @for (g of formGroupsForLevel; track g.id) {
+                            <option [ngValue]="g.id">{{ g.alias }}</option>
+                          }
+                        </select>
+                      }
+                    </div>
+                  }
+                </div>
                 <div class="col-12">
                   <div class="alert alert-info py-2 small mb-0">
                     <i class="bi bi-info-circle me-1"></i>

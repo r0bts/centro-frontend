@@ -56,6 +56,14 @@ export class ScInstructorsService {
     );
   }
 
+  /** PATCH /api/summer-course/instructors/{id}/assign-group */
+  assignGroup(instructorId: number, groupId: number | null): Observable<ScInstructorResponse> {
+    return this.http.patch<ScInstructorResponse>(
+      `${this.base}/${instructorId}/assign-group`,
+      { group_id: groupId }
+    );
+  }
+
   /** POST /api/summer-course/instructors/{id}/deliver-credential */
   deliverCredential(instructorId: number, courseId: number, notes?: string): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(

@@ -157,6 +157,7 @@ export interface ScInstructor {
   level_roman?:  string | null;
   level_number?: number | null;
   group_alias?:  string | null;
+  group_id?:     number | null;
   // Computed
   full_name?: string;
   initials?: string;            // 2 letras para avatar
