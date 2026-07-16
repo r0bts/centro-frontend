@@ -12,11 +12,120 @@
       </button>
     </div>
 
+    <!-- Filtros -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-body">
+        <form (ngSubmit)="aplicarFiltros()" class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label text-muted small fw-bold mb-1">Fecha Inicio</label>
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.fecha_inicio" (ngModelChange)="aplicarFiltros()" name="fecha_inicio">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted small fw-bold mb-1">Fecha Fin</label>
+            <input type="date" class="form-control form-control-sm" [(ngModel)]="filters.fecha_fin" (ngModelChange)="aplicarFiltros()" name="fecha_fin">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted small fw-bold mb-1">Ubicación</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filters.ubicacion" (ngModelChange)="aplicarFiltros()" name="ubicacion">
+              <option value="">Todas</option>
+              <option *ngFor="let loc of locations" [value]="loc.id">{{ loc.name }}</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted small fw-bold mb-1">Médico</label>
+            <div class="dropdown position-relative">
+              <button class="btn border btn-sm w-100 text-start bg-white d-flex justify-content-between align-items-center" type="button" (click)="toggleMedicoDropdown()" style="height: 31px;">
+                <span class="text-truncate">{{ filters.medico_search || 'Todos' }}</span>
+                <i class="bi bi-chevron-down small"></i>
+              </button>
+              <div class="dropdown-menu w-100 p-2 shadow-sm position-absolute" [class.d-block]="isMedicoDropdownOpen" style="max-height: 250px; overflow-y: auto; z-index: 1050;">
+                <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar..." [(ngModel)]="medicoSearchText" name="medicoSearchText" (click)="$event.stopPropagation()">
+                <a class="dropdown-item cursor-pointer small py-1" style="cursor:pointer;" (click)="selectMedico(null)">Todos</a>
+                <a class="dropdown-item cursor-pointer small py-1" style="cursor:pointer;" *ngFor="let med of filteredMedicos" (click)="selectMedico(med)">
+                  {{ med.first_name }} {{ med.last_name }}
+                </a>
+                <div class="text-muted small text-center py-2" *ngIf="filteredMedicos.length === 0">Sin resultados</div>
+              </div>
+            </div>
+            <!-- Backdrop para cerrar al hacer clic fuera -->
+            <div *ngIf="isMedicoDropdownOpen" class="position-fixed top-0 start-0 w-100 h-100" style="z-index: 1040;" (click)="isMedicoDropdownOpen = false"></div>
+          </div>
+          <div class="col-md-9">
+            <label class="form-label text-muted small fw-bold mb-1">Buscar (Nombre o Credencial)</label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0 ps-0 bg-light" style="background-color: transparent;" placeholder="Ej. Alejandro Perez, ZC478GL3..." [(ngModel)]="filters.search" (ngModelChange)="onSearchChange($event)" name="search">
+            </div>
+          </div>
+          <div class="col-md-3">
+            <button type="button" class="btn btn-light btn-sm w-100" (click)="limpiarFiltros()">Limpiar Filtros</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <div class="card border-0 shadow-sm custom-card">
-      <div class="card-body p-4 text-center">
-        <i class="bi bi-heart-pulse text-muted mb-3" style="font-size: 3rem;"></i>
-        <h5 class="fw-bold">No hay visitas registradas hoy</h5>
-        <p class="text-muted">Las consultas médicas activas aparecerán aquí.</p>
+      <div class="card-body p-0">
+        
+        <div *ngIf="isLoadingConsultas" class="text-center text-muted p-5">
+          <div class="spinner-grow text-primary mb-3" role="status"></div>
+          <p>Cargando visitas...</p>
+        </div>
+
+        <div *ngIf="!isLoadingConsultas && consultas.length === 0" class="text-center p-5">
+          <i class="bi bi-heart-pulse text-muted mb-3" style="font-size: 3rem;"></i>
+          <h5 class="fw-bold">No hay visitas registradas hoy</h5>
+          <p class="text-muted">Las consultas médicas activas aparecerán aquí.</p>
+        </div>
+
+        <div *ngIf="!isLoadingConsultas && consultas.length > 0" class="p-3 p-md-4">
+          <div *ngFor="let c of consultas" class="visita-item p-4 d-flex flex-column flex-md-row gap-4">
+            
+            <div class="flex-grow-1 min-w-0">
+              <!-- Top Header Row -->
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                  <!-- Paciente info -->
+                  <div class="d-flex align-items-center flex-wrap">
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold px-2 py-1 me-2" [title]="c.patient_type | uppercase">
+                      <i class="bi bi-person-badge me-1"></i> {{ c.patient_credential || c.patient_token }}
+                    </span>
+                    <span class="text-dark fw-bold me-2">{{ c.patient_name || 'Paciente' }}</span>
+                  </div>
+                  
+                  <!-- Meta info (Fecha, Ubicacion, Medico) -->
+                  <div class="d-flex align-items-center gap-3 flex-wrap border-start ps-3">
+                    <span class="text-secondary small fw-medium"><i class="bi bi-clock text-primary me-1"></i> {{ c.created | date:'dd MMM yyyy, HH:mm' }}</span>
+                    <span class="text-secondary small fw-medium"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ getLocationName(c.ubicacion_netsuite) }}</span>
+                    <span class="text-secondary small fw-medium" *ngIf="c.medico_name"><i class="bi bi-heart-pulse-fill text-info me-1"></i> Atendió: <b>{{ c.medico_name }}</b></span>
+                  </div>
+                </div>
+
+                <!-- Status Badge -->
+                <div>
+                  <span class="badge" 
+                        [ngClass]="c.status === 'abierta' ? 'bg-success' : 'custom-gold-bg'">
+                    {{ c.status | uppercase }}
+                  </span>
+                </div>
+              </div>
+              
+              <!-- Main Content (Diagnosis) -->
+              <h6 class="fw-bold mb-0 text-dark">
+                {{ c.diagnostico || 'Atención Médica' }}
+              </h6>
+            </div>
+            
+            <!-- Action Button -->
+            <div class="action-btn-container mt-3 mt-md-0 border-start ps-md-4">
+              <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id }" class="btn btn-primary btn-sm px-3 py-1.5 fw-semibold shadow-sm rounded-pill w-100 text-nowrap d-flex justify-content-center align-items-center gap-2">
+                Ver Consulta <i class="bi bi-arrow-right"></i>
+              </a>
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

@@ -1,0 +1,64 @@
+.visita-item {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid transparent !important;
+  
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+    border-color: rgba(0,0,0,.05) !important;
+  }
+}
+
+.info-box {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+  }
+}
+
+.box-motivo {
+  background: linear-gradient(135deg, #f0f4f8 0%, #e6eef5 100%);
+  border: 1px solid rgba(13, 110, 253, 0.08);
+}
+
+.box-plan {
+  background: linear-gradient(135deg, #f0fdf4 0%, #e6f6eb 100%);
+  border: 1px solid rgba(25, 135, 84, 0.08);
+}
+
+.icon-circle {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1rem;
+  background-color: #ffffff;
+}
+
+.icon-circle-primary {
+  color: #0d6efd;
+}
+
+.icon-circle-success {
+  color: #198754;
+}
+
+.decorative-icon {
+  position: absolute;
+  right: -10px;
+  bottom: -15px;
+  font-size: 5.5rem;
+  z-index: 0;
+  transform: rotate(-15deg);
+  pointer-events: none;
+}
+
+/* Badge custom */
+.custom-gold-bg {
+  background-color: #d4af37;
+  color: #fff;
+}
