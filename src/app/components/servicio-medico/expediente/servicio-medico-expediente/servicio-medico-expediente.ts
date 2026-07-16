@@ -42,8 +42,10 @@ export class ServicioMedicoExpediente implements OnInit {
   nuevoMaterial: any = { product_id: null, product_name: '', cantidad: 0 };
 
   consultaSeleccionada: any = null;
-  isEditingConsulta: boolean = false;
-  consultaEditId: string | null = null;
+  isEditingConsulta = false;
+  consultaEditId: number | null = null;
+  
+  showValidationErrors = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -187,6 +189,15 @@ export class ServicioMedicoExpediente implements OnInit {
       .pipe(finalize(() => {
         this.isLoadingConsultas = false;
         this.cdr.detectChanges();
+        
+        // Auto-open consultation if query param is present
+        const consultaId = this.route.snapshot.queryParamMap.get('consulta_id');
+        if (consultaId && this.consultas.length > 0) {
+          const cToEdit = this.consultas.find(c => String(c.id) === consultaId);
+          if (cToEdit && !this.isEditingConsulta) {
+            this.editarConsulta(cToEdit);
+          }
+        }
       }))
       .subscribe({
         next: (res: any) => {
@@ -428,10 +439,12 @@ export class ServicioMedicoExpediente implements OnInit {
 
   guardarConsulta(cerrar: boolean) {
     if (!this.nuevaConsultaData.motivo_consulta) {
+      this.showValidationErrors = true;
       Swal.fire('Atención', 'El motivo de la consulta es obligatorio', 'warning');
       return;
     }
 
+    this.showValidationErrors = false;
     this.isSavingConsulta = true;
     const payload = {
       ...this.nuevaConsultaData,
