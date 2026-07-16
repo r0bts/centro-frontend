@@ -36,14 +36,33 @@ export class ServicioMedicoService {
   /**
    * Obtiene el historial de consultas de un paciente
    */
-  getConsultas(token: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/consultas?token=${token}`);
+  getConsultas(token: string, filters?: any): Observable<any> {
+    let params = [];
+    if (token) params.push(`token=${token}`);
+    
+    if (filters) {
+      if (filters.fecha_inicio) params.push(`fecha_inicio=${filters.fecha_inicio}`);
+      if (filters.fecha_fin) params.push(`fecha_fin=${filters.fecha_fin}`);
+      if (filters.ubicacion) params.push(`ubicacion=${filters.ubicacion}`);
+      if (filters.medico) params.push(`medico=${filters.medico}`);
+      if (filters.search) params.push(`search=${filters.search}`);
+    }
+
+    const queryString = params.length > 0 ? `?${params.join('&')}` : '';
+    return this.http.get(`${this.apiUrl}/consultas${queryString}`);
+  }
+
+  /**
+   * Obtiene la lista de médicos disponibles
+   */
+  getMedicos(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/medicos`);
   }
 
   /**
    * Actualiza una consulta médica existente
    */
-  updateConsulta(id: string, payload: any): Observable<any> {
+  updateConsulta(id: string | number, payload: any): Observable<any> {
     return this.http.put(`${this.apiUrl}/updateConsulta/${id}`, payload);
   }
 

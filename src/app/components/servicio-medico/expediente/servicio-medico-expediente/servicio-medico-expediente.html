@@ -383,9 +383,14 @@
                   <div class="soap-section h-100 border rounded-3 p-3 pt-4 position-relative bg-white">
                     <span class="soap-badge bg-primary">S - SUBJETIVO</span>
                     <label class="form-label fw-bold text-dark small mb-1">Motivo de consulta <span class="text-danger">*</span></label>
-                    <textarea class="form-control premium-textarea py-2 mb-3" rows="2" [(ngModel)]="nuevaConsultaData.motivo_consulta" placeholder="Principal molestia..."></textarea>
+                    <textarea class="form-control premium-textarea py-2 mb-1" 
+                              [class.is-invalid]="showValidationErrors && !nuevaConsultaData.motivo_consulta"
+                              rows="2" [(ngModel)]="nuevaConsultaData.motivo_consulta" placeholder="Principal molestia..."></textarea>
+                    <div class="invalid-feedback mb-2" *ngIf="showValidationErrors && !nuevaConsultaData.motivo_consulta">
+                      El motivo de consulta es obligatorio.
+                    </div>
                     
-                    <label class="form-label fw-bold text-dark small mb-1">Padecimiento actual</label>
+                    <label class="form-label fw-bold text-dark small mb-1 mt-2">Padecimiento actual</label>
                     <textarea class="form-control premium-textarea py-2" rows="3" [(ngModel)]="nuevaConsultaData.padecimiento_actual" placeholder="Evolución y sintomatología..."></textarea>
                   </div>
                 </div>
