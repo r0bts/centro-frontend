@@ -1,20 +1,19 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ContentMenu } from '../../../content-menu/content-menu';
-import { ServicioMedicoService } from '../../../../services/servicio-medico';
-import { Router, RouterModule } from '@angular/router';
-import { finalize, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, finalize } from 'rxjs/operators';
+import { ServicioMedicoService } from '../../../services/servicio-medico';
 
 @Component({
-  selector: 'app-servicio-medico-visitas',
+  selector: 'app-summer-course-medical-visits',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, RouterModule],
-  templateUrl: './servicio-medico-visitas.html',
-  styleUrl: './servicio-medico-visitas.scss'
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './summer-course-medical-visits.html',
+  styleUrls: ['./summer-course-medical-visits.scss']
 })
-export class ServicioMedicoVisitas implements OnInit {
+export class SummerCourseMedicalVisitsComponent implements OnInit {
   consultas: any[] = [];
   locations: any[] = [];
   medicos: any[] = [];
@@ -28,7 +27,8 @@ export class ServicioMedicoVisitas implements OnInit {
     ubicacion: '',
     medico: '',
     medico_search: '',
-    search: ''
+    search: '',
+    patient_type: 'CURSO_VERANO'
   };
 
   isMedicoDropdownOpen = false;
@@ -63,7 +63,6 @@ export class ServicioMedicoVisitas implements OnInit {
 
   constructor(
     private servicioMedico: ServicioMedicoService,
-    private router: Router,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -132,10 +131,6 @@ export class ServicioMedicoVisitas implements OnInit {
       });
   }
 
-  nuevaVisita() {
-    this.router.navigate(['/servicio-medico/escaner']);
-  }
-
   aplicarFiltros() {
     this.loadConsultas();
   }
@@ -151,10 +146,9 @@ export class ServicioMedicoVisitas implements OnInit {
       ubicacion: '',
       medico: '',
       medico_search: '',
-      search: ''
+      search: '',
+      patient_type: 'CURSO_VERANO'
     };
     this.loadConsultas();
   }
-
 }
-
