@@ -84,32 +84,37 @@
               </button>
             </div>
 
-            <!-- Lista vacía -->
-            <div class="notif-panel__empty" *ngIf="notifService.notifications().length === 0">
-              <i class="bi bi-bell-slash"></i>
-              <span>Sin notificaciones</span>
-            </div>
+            <!-- Cuerpo scrollable -->
+            <div class="notif-panel__body">
 
-            <!-- Lista de notificaciones -->
-            <div class="notif-panel__list" *ngIf="notifService.notifications().length > 0">
-              <div *ngFor="let n of notifService.notifications()"
-                   class="notif-item"
-                   [class.notif-item--unread]="!n.is_read"
-                   (click)="navigateFromNotif(n)"
-                   title="Ir a la requisición">
-                <!-- Chip de tipo -->
-                <span class="notif-item__chip"
-                      [style.background]="notifService.chipColor(n.type)">
-                  <i [class]="'bi ' + notifService.chipIcon(n.type)"></i>
-                  {{ notifService.chipLabel(n.type) }}
-                </span>
-                <!-- Contenido -->
-                <div class="notif-item__content">
-                  <p class="notif-item__title">{{ n.title }}</p>
-                  <p class="notif-item__body" *ngIf="n.body">{{ n.body }}</p>
-                  <span class="notif-item__time">{{ notifService.timeAgo(n.created_at) }}</span>
+              <!-- Lista vacía -->
+              <div class="notif-panel__empty" *ngIf="notifService.notifications().length === 0">
+                <i class="bi bi-bell-slash"></i>
+                <span>Sin notificaciones</span>
+              </div>
+
+              <!-- Lista de notificaciones -->
+              <div class="notif-panel__list" *ngIf="notifService.notifications().length > 0">
+                <div *ngFor="let n of notifService.notifications()"
+                     class="notif-item"
+                     [class.notif-item--unread]="!n.is_read"
+                     (click)="navigateFromNotif(n)"
+                     title="Ir a la requisición">
+                  <!-- Chip de tipo -->
+                  <span class="notif-item__chip"
+                        [style.background]="notifService.chipColor(n.type)">
+                    <i [class]="'bi ' + notifService.chipIcon(n.type)"></i>
+                    {{ notifService.chipLabel(n.type) }}
+                  </span>
+                  <!-- Contenido -->
+                  <div class="notif-item__content">
+                    <p class="notif-item__title">{{ n.title }}</p>
+                    <p class="notif-item__body" *ngIf="n.body">{{ n.body }}</p>
+                    <span class="notif-item__time">{{ notifService.timeAgo(n.created_at) }}</span>
+                  </div>
                 </div>
               </div>
+
             </div>
           </div>
         </div>

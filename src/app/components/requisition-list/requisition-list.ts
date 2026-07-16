@@ -36,8 +36,8 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   filterStartDate = signal('');
   filterEndDate = signal('');
   
-  // Filtros adicionales
-  filterStatus = signal('');
+  // Filtros adicionales (inicia mostrando solo Solicitadas)
+  filterStatus = signal('solicitado');
   filterLocation = signal('');
   
   // Verificar si el usuario puede filtrar por ubicación (location_id = 0)
@@ -150,7 +150,10 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       limit: this.itemsPerPage()
     };
     
-    if (this.searchTerm()) params.search = this.searchTerm();
+    if (this.searchTerm()) {
+      // Normalizar: "REQ-0014" → "14", "14" → "14"
+      params.search = this.searchTerm().replace(/^REQ-0*/i, '');
+    }
     if (this.filterStatus()) params.status = this.filterStatus();
     if (this.filterLocation()) params.location_id = this.filterLocation();
     if (this.filterStartDate()) params.start_date = this.filterStartDate();
@@ -540,10 +543,10 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Método para limpiar TODOS los filtros
+  // Método para limpiar TODOS los filtros (vuelve al estado inicial: Solicitadas)
   clearAllFilters(): void {
     this.searchTerm.set('');
-    this.filterStatus.set('');
+    this.filterStatus.set('solicitado');
     this.filterLocation.set('');
     this.filterStartDate.set('');
     this.filterEndDate.set('');
