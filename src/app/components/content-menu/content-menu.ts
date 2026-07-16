@@ -370,6 +370,9 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
   }
 
   navigateFromNotif(n: AppNotification): void {
+    if (!n.is_read) {
+      this.notifService.markOneRead(n.id);
+    }
     this.isNotifOpen.set(false);
     switch (n.type) {
       case 'solicitado':
