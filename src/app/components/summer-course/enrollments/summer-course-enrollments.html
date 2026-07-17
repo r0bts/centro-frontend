@@ -692,7 +692,8 @@
         <div class="wz-participants-list">
           @for (p of pendingParticipants(); track p.socio_id; let i = $index) {
             <div class="wz-p-card"
-                 [class.wz-p-card--enrolled]="p.alreadyEnrolled"
+                 [class.wz-p-card--enrolled]="p.alreadyEnrolled && !p.isReEnrollment"
+                 [class.wz-p-card--reenrollment]="p.isReEnrollment"
                  [class.wz-p-card--out-of-range]="p.outOfRange"
                  [class.wz-p-card--expanded]="pendingExpandIdx() === i">
 
@@ -722,13 +723,18 @@
                         Fuera de rango (3–15 años)
                       </span>
                     }
-                    @if (p.alreadyEnrolled) {
+                    @if (p.isReEnrollment) {
+                      <span class="wz-chip wz-chip--reenrollment wz-chip--xs">
+                        <span class="material-symbols-outlined" style="font-size:11px">add_circle</span>
+                        Agregar semanas
+                      </span>
+                    } @else if (p.alreadyEnrolled) {
                       <span class="wz-chip wz-chip--enrolled wz-chip--xs">Ya inscrito</span>
                     }
                   </div>
                 </div>
                 <!-- Estado nivel/grupo asignado en cabecera -->
-                @if (!p.outOfRange && !p.alreadyEnrolled) {
+                @if (!p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment)) {
                   <div class="wz-p-card__status">
                     @if (levelByNumber(p.selectedLevel ?? undefined); as lvl) {
                       <span class="sce-assign-badge sce-assign-badge--level sce-assign-badge--lvl-{{ lvl.level_number }}" style="cursor:default">
@@ -745,13 +751,13 @@
                   </div>
                 }
                 <button class="wz-remove-btn" (click)="removeParticipant(i)"
-                        [disabled]="p.alreadyEnrolled || p.outOfRange" title="Quitar">
+                        [disabled]="(p.alreadyEnrolled && !p.isReEnrollment) || p.outOfRange" title="Quitar">
                   <span class="material-symbols-outlined">close</span>
                 </button>
               </div>
 
               <!-- ── Sección semanas ── -->
-              @if (!p.outOfRange && !p.alreadyEnrolled) {
+              @if (!p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment)) {
                 <div class="wz-p-card__section">
                   <span class="wz-p-card__section-label">
                     <span class="wz-p-card__step-num">1</span>
@@ -759,7 +765,11 @@
                   </span>
                   <div class="wz-p-card__weeks">
                     @for (w of courseWeeks; track w.id) {
-                      @if (isWeekSelected(i, w.week_number)) {
+                      @if (p.isReEnrollment && p.lockedWeekNumbers.includes(w.week_number)) {
+                        <button class="wz-week-chip wz-week-chip--locked" disabled [title]="'Sem ' + w.week_number + ' ya inscrita'">
+                          <span class="material-symbols-outlined" style="font-size:11px;line-height:1">lock</span>
+                        </button>
+                      } @else if (isWeekSelected(i, w.week_number)) {
                         <div class="wz-week-selected-pill">
                           <button class="wz-week-chip wz-week-chip--on"
                                   (click)="toggleWeek(i, w.week_number)"
@@ -802,7 +812,7 @@
               }
 
               <!-- ── Sección Teléfono de Emergencia ── -->
-              @if (!p.outOfRange && !p.alreadyEnrolled) {
+              @if (!p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment)) {
                 <div class="wz-p-card__section">
                   <div class="sce-form-field" style="margin-bottom:0">
                     <label class="sce-form-label" style="font-size: 0.8rem; color: #64748b; font-weight: 500;">
@@ -821,14 +831,14 @@
                 </div>
               }
 
-              @if (p.alreadyEnrolled) {
+              @if (p.alreadyEnrolled && !p.isReEnrollment) {
                 <div class="wz-p-card__section">
                   <span style="font-size:.78rem;color:#92400e">Este participante ya está inscrito en este curso.</span>
                 </div>
               }
 
               <!-- ── Sección nivel y grupo ── -->
-              @if (!p.outOfRange && !p.alreadyEnrolled) {
+              @if (!p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment)) {
                 <div class="wz-p-card__section wz-p-card__section--level">
                   <button class="wz-p-card__section-label wz-p-card__section-label--btn"
                           (click)="togglePendingExpand(i)">
