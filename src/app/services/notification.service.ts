@@ -120,6 +120,28 @@ export class NotificationService {
     });
   }
 
+  // ── Marcar una notificación como leída ───────────────────────────────────
+
+  markOneRead(id: number): void {
+    const headers = this.authHeaders();
+    if (!headers) return;
+
+    this.http.patch<{ success: boolean }>(
+      `${this.API}/notifications/${id}/read`,
+      {},
+      { headers }
+    ).subscribe({
+      next: (res) => {
+        if (res.success) {
+          this.notifications.update(list =>
+            list.map(n => n.id === id ? { ...n, is_read: true } : n)
+          );
+        }
+      },
+      error: () => { /* silencioso */ }
+    });
+  }
+
   // ── Helpers UI ────────────────────────────────────────────────────────────
 
   chipColor(type: AppNotification['type']): string {

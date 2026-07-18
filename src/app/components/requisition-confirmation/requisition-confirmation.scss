@@ -1,15 +1,72 @@
 /* Estilos mínimos usando principalmente Bootstrap */
 
-/* Solo animaciones suaves y transiciones básicas */
-.card {
-  transition: transform 0.2s ease-in-out;
-}
-
-/* Prevenir desbordamiento vertical */
-.container-fluid {
-  max-height: 100vh;
+/* ── Desktop (≥ lg): layout fijo 100vh — scroll interno en cada card ── */
+.req-conf-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   overflow: hidden;
 }
+
+.req-conf-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.req-conf-row {
+  height: 100%;
+}
+
+/* Cadena flex para que el scroll-panel funcione en desktop:
+   col-lg-6 recibe la altura del row, card-body se achica en lugar de
+   crecer indefinidamente (Bootstrap usa flex: 1 1 auto por defecto) */
+.req-conf-row > [class*="col-"] {
+  height: 100%;
+}
+
+.req-conf-row .card-body {
+  flex: 1 1 0 !important;  /* sobreescribir Bootstrap */
+  min-height: 0;            /* permite que flex-child se achique */
+  overflow: hidden;
+}
+
+/* ── Móvil (< lg = 992px): scroll de página, cards de altura natural ── */
+@media (max-width: 991.98px) {
+  .req-conf-wrapper {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .req-conf-body {
+    flex: 1 1 auto;
+    overflow: visible;
+  }
+
+  .req-conf-row {
+    height: auto;
+  }
+
+  /* En móvil las cards no tienen altura fija */
+  .req-conf-row .card.h-100 {
+    height: auto !important;
+  }
+
+  .req-conf-row .card.h-100 > .card-body {
+    flex: none !important;
+    min-height: unset !important;
+  }
+
+  /* scroll-panel pasa a mostrar todo el contenido sin recortar */
+  .req-conf-row .scroll-panel {
+    flex: none !important;
+    min-height: unset !important;
+    overflow-y: visible !important;
+    height: auto !important;
+  }
+}
+
 
 /* Panel de scroll interno: ocupa el espacio flex disponible sin altura fija */
 .scroll-panel {

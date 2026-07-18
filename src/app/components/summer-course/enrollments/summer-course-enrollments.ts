@@ -10,14 +10,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 
-import { ScRegistrationsService }   from '../../../services/summer-course/sc-registrations.service';
-import { ScCoursesService }         from '../../../services/summer-course/sc-courses.service';
+import { ScRegistrationsService } from '../../../services/summer-course/sc-registrations.service';
+import { ScCoursesService } from '../../../services/summer-course/sc-courses.service';
 import { SummerCourseScannerService } from '../../../services/summer-course/sc-scanner.service';
 import Swal from 'sweetalert2';
-import { ScKitDeliveriesService }   from '../../../services/summer-course/sc-kit-deliveries.service';
+import { ScKitDeliveriesService } from '../../../services/summer-course/sc-kit-deliveries.service';
 import { ScCredentialDeliveriesService } from '../../../services/summer-course/sc-credential-deliveries.service';
-import { ScEnrollmentsService }     from '../../../services/summer-course/sc-enrollments.service';
-import { ScGuestSyncService }       from '../../../services/summer-course/sc-guest-sync.service';
+import { ScEnrollmentsService } from '../../../services/summer-course/sc-enrollments.service';
+import { ScGuestSyncService } from '../../../services/summer-course/sc-guest-sync.service';
 import { environment } from '../../../../environments/environment';
 import { UserService } from '../../../services/user.service';
 import { AuthService } from '../../../services/auth.service';
@@ -73,24 +73,27 @@ interface PendingParticipant {
   age: number | null;
   memberType: string;
   alreadyEnrolled: boolean;
+  isReEnrollment: boolean;  // inscrito con pago => se permite agregar semanas
+  participant_id: number | null; // ID real en sc_participants si ya estaba inscrito
   suggestedLevel: ScLevel | null;
   outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
   guest_db_id?: number; // ID real en summer_course_guests (solo para invitados)
   emergency_phone: string | null;
+  lockedWeekNumbers: number[];  // semanas ya inscritas (paid) — no se pueden desmarcar
   // Nivel/grupo elegido antes de inscribir
-  selectedLevel:      number | null;
-  selectedGroupId:    number | null;
+  selectedLevel: number | null;
+  selectedGroupId: number | null;
   selectedGroupAlias: string | null;
 }
 
 interface DoneParticipant {
-  enrollmentId:    number;
+  enrollmentId: number;
   participantName: string;
-  accessCode:      string;
-  suggestedLevel:  number | null;
-  assignedLevel:   number | null;
-  groupId:         number | null;
-  groupAlias:      string | null;
+  accessCode: string;
+  suggestedLevel: number | null;
+  assignedLevel: number | null;
+  groupId: number | null;
+  groupAlias: string | null;
 }
 
 @Component({
@@ -102,29 +105,29 @@ interface DoneParticipant {
   styleUrl: './summer-course-enrollments.scss',
 })
 export class SummerCourseEnrollmentsComponent implements OnInit {
-  private svc          = inject(ScRegistrationsService);
-  private coursesSvc   = inject(ScCoursesService);
-  private kitSvc       = inject(ScKitDeliveriesService);
-  private credSvc      = inject(ScCredentialDeliveriesService);
-  private enrollSvc    = inject(ScEnrollmentsService);
-  private guestSvc     = inject(ScGuestSyncService);
-  private userSvc      = inject(UserService);
-  private authSvc      = inject(AuthService);
-  private scannerSvc   = inject(SummerCourseScannerService);
+  private svc = inject(ScRegistrationsService);
+  private coursesSvc = inject(ScCoursesService);
+  private kitSvc = inject(ScKitDeliveriesService);
+  private credSvc = inject(ScCredentialDeliveriesService);
+  private enrollSvc = inject(ScEnrollmentsService);
+  private guestSvc = inject(ScGuestSyncService);
+  private userSvc = inject(UserService);
+  private authSvc = inject(AuthService);
+  private scannerSvc = inject(SummerCourseScannerService);
 
   // ── Global ────────────────────────────────────────────────────────────────
-  courses        = signal<ScCourse[]>([]);
+  courses = signal<ScCourse[]>([]);
   selectedCourse = signal<ScCourse | null>(null);
-  loading        = signal(true);
-  toast          = signal<string | null>(null);
-  toastType      = signal<'success' | 'danger' | 'info'>('success');
-  error          = signal<string | null>(null);
+  loading = signal(true);
+  toast = signal<string | null>(null);
+  toastType = signal<'success' | 'danger' | 'info'>('success');
+  error = signal<string | null>(null);
 
   // ── Admin table ───────────────────────────────────────────────────────────
-  registrations      = signal<ScRegistrationGroup[]>([]);
-  tableLoading       = signal(false);
-  searchFilter       = signal('');
-  expandedGroups     = signal<Set<string>>(new Set());
+  registrations = signal<ScRegistrationGroup[]>([]);
+  tableLoading = signal(false);
+  searchFilter = signal('');
+  expandedGroups = signal<Set<string>>(new Set());
 
   filteredRegistrations = computed(() => {
     const q = this.searchFilter().toLowerCase();
@@ -140,68 +143,68 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   );
 
   // ── Kit delivery ─────────────────────────────────────────────────────────
-  kitItems        = signal<ScKitDeliveryItem[]>([]);
-  kitSummary      = signal<ScKitDeliverySummary>({ total: 0, delivered: 0, pending: 0 });
-  kitLoading      = signal(false);
-  kitModalOpen    = signal(false);
-  kitModalGroup   = signal<ScRegistrationGroup | null>(null);
+  kitItems = signal<ScKitDeliveryItem[]>([]);
+  kitSummary = signal<ScKitDeliverySummary>({ total: 0, delivered: 0, pending: 0 });
+  kitLoading = signal(false);
+  kitModalOpen = signal(false);
+  kitModalGroup = signal<ScRegistrationGroup | null>(null);
   kitGroupChecked = signal<Set<number>>(new Set());
-  kitReceivedBy   = signal('');
-  kitNotes        = signal('');
-  kitSaving       = signal(false);
+  kitReceivedBy = signal('');
+  kitNotes = signal('');
+  kitSaving = signal(false);
 
   // ── Foto de perfil ────────────────────────────────────────────────────────
-  photoModalOpen        = signal(false);
+  photoModalOpen = signal(false);
   photoModalParticipant = signal<ScRegisteredParticipant | null>(null);
-  
+
   // Authorized Pickups modal
   authorizedPickupsParticipant = signal<any | null>(null);
-  
+
   credParticipant = signal<ScRegisteredParticipant | null>(null);
   photoModalGroupTitular = signal<ScRegistrationGroup | null>(null);
   photoCameraStream = signal<MediaStream | null>(null);
   photoCameraFacingMode = signal<'user' | 'environment'>('user');
-  photoPreviewUrl       = signal<string | null>(null);   // base64 capturado antes de guardar
-  photoSaving           = signal(false);
-  photoCameraMode       = signal<'camera' | 'file'>('camera');
+  photoPreviewUrl = signal<string | null>(null);   // base64 capturado antes de guardar
+  photoSaving = signal(false);
+  photoCameraMode = signal<'camera' | 'file'>('camera');
 
   // ── Credencial ────────────────────────────────────────────────────────────
-  credItems         = signal<ScCredentialDeliveryItem[]>([]);
-  credLoading       = signal(false);
-  credModalOpen     = signal(false);
-  credModalData     = signal<ScCredentialPreview | null>(null);
-  credModalLoading  = signal(false);
-  credSaving        = signal(false);
-  credNotes         = signal('');
+  credItems = signal<ScCredentialDeliveryItem[]>([]);
+  credLoading = signal(false);
+  credModalOpen = signal(false);
+  credModalData = signal<ScCredentialPreview | null>(null);
+  credModalLoading = signal(false);
+  credSaving = signal(false);
+  credNotes = signal('');
   credReplacementLoading = signal(false);
-  credReplacementResult  = signal<ScCredentialReplacementResult | null>(null);
-  credReplacementList    = signal<ScCredentialReplacementResult[]>([]);
+  credReplacementResult = signal<ScCredentialReplacementResult | null>(null);
+  credReplacementList = signal<ScCredentialReplacementResult[]>([]);
   credReplacementSyncing = signal(false);
-  credDeliveringId       = signal<number | null>(null); // id de la reposición que se está entregando
+  credDeliveringId = signal<number | null>(null); // id de la reposición que se está entregando
 
   // ── Edit weeks ────────────────────────────────────────────────────────────
-  canEditWeeks           = signal<boolean>(false);
-  canPrintFormato        = signal<boolean>(false);
-  canExportCsv           = signal<boolean>(false);
+  canEditWeeks = signal<boolean>(false);
+  canPrintFormato = signal<boolean>(false);
+  canExportCsv = signal<boolean>(false);
   // ── Export CSV signals ────────────────────────────────────────────────────
-  exportFilter           = signal<'all' | 'day' | 'week' | 'month'>('all');
-  exportDate             = signal<string>('');
-  exportWeekId           = signal<number>(0);
-  exportMonth            = signal<string>('');
+  exportFilter = signal<'all' | 'day' | 'week' | 'month'>('all');
+  exportDate = signal<string>('');
+  exportWeekId = signal<number>(0);
+  exportMonth = signal<string>('');
   // ── Género inline ────────────────────────────────────────────────────────
-  updatingGenderId       = signal<number | null>(null);
+  updatingGenderId = signal<number | null>(null);
   // ── Edit guest signals ─────────────────────────────────────────────────
-  editGuestOpen          = signal(false);
-  editGuestData          = signal<ScGuest | null>(null);
-  editGuestLoading       = signal(false);
+  editGuestOpen = signal(false);
+  editGuestData = signal<ScGuest | null>(null);
+  editGuestLoading = signal(false);
   // ── Wizard: validación teléfono ─────────────────────────────────────────
-  confirmAttempted       = signal(false);
+  confirmAttempted = signal(false);
   // ── Bypass de límite de edad ─────────────────────────────────────────
-  canBypassAge           = signal<boolean>(false);
-  editWeeksParticipant   = signal<ScRegisteredParticipant | null>(null);  // participante en modal
-  editWeeksIds           = signal<number[]>([]);          // selección actual (sc_week ids)
-  editWeeksSaving        = signal(false);
-  editWeeksDetail        = signal<ScEnrollmentWeek[]>([]);  // semanas con payment_status
+  canBypassAge = signal<boolean>(false);
+  editWeeksParticipant = signal<ScRegisteredParticipant | null>(null);  // participante en modal
+  editWeeksIds = signal<number[]>([]);          // selección actual (sc_week ids)
+  editWeeksSaving = signal(false);
+  editWeeksDetail = signal<ScEnrollmentWeek[]>([]);  // semanas con payment_status
 
   get editingWeeksForId(): number | null { return this.editWeeksParticipant()?.enrollment_id ?? null; }
 
@@ -242,56 +245,56 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   editWeeksRemovedLabels(): string {
     return this.editWeeksRemoved().map(id => this.courseWeekLabel(id)).join(', ');
   }
-  
+
   // ── Enviar Liga ───────────────────────────────────────────────────────────
-  sendingLinkMap    = signal<Record<number, boolean>>({});
+  sendingLinkMap = signal<Record<number, boolean>>({});
 
   // ── Permisos ──────────────────────────────────────────────────────────────
-  canAdd                = signal<boolean>(false);
+  canAdd = signal<boolean>(false);
 
   // ── Level / Group assignment ──────────────────────────────────────────────
-  canReasignar          = signal<boolean>(false);
-  canVerPagos           = signal<boolean>(false);
-  syncingEnrollmentId   = signal<number | null>(null);
-  levelGroupsFD     = signal<LevelGroupFD[]>([]);
+  canReasignar = signal<boolean>(false);
+  canVerPagos = signal<boolean>(false);
+  syncingEnrollmentId = signal<number | null>(null);
+  levelGroupsFD = signal<LevelGroupFD[]>([]);
 
-  lvlModalOpen           = signal(false);
-  lvlModalTarget         = signal<LvlModalTarget | null>(null);
-  lvlModalValue          = signal<number>(1);
+  lvlModalOpen = signal(false);
+  lvlModalTarget = signal<LvlModalTarget | null>(null);
+  lvlModalValue = signal<number>(1);
   lvlModalSuggestedLevel = signal<number | null>(null);
-  lvlModalNotes     = signal('');
-  lvlModalSaving    = signal(false);
+  lvlModalNotes = signal('');
+  lvlModalSaving = signal(false);
 
-  grpModalOpen      = signal(false);
-  grpModalTarget    = signal<GrpModalTarget | null>(null);
-  grpModalValue     = signal<number | null>(null);
-  grpModalSaving    = signal(false);
+  grpModalOpen = signal(false);
+  grpModalTarget = signal<GrpModalTarget | null>(null);
+  grpModalValue = signal<number | null>(null);
+  grpModalSaving = signal(false);
 
   // índice del PendingParticipant cuyo panel inline está abierto (-1 = ninguno)
-  pendingExpandIdx   = signal<number>(-1);
+  pendingExpandIdx = signal<number>(-1);
 
   // ── Wizard ────────────────────────────────────────────────────────────────
-  wizardOpen         = signal(false);
-  wizardStep         = signal<WizardStep>('search');
-  wizardMode         = signal<'socio'|'colaborador'|'colaborador_externo'>('socio');
-  createNsOrder      = signal(false);
-  colaboradorNo      = signal('');
-  colaboradorName    = signal('');
+  wizardOpen = signal(false);
+  wizardStep = signal<WizardStep>('search');
+  wizardMode = signal<'socio' | 'colaborador' | 'colaborador_externo'>('socio');
+  createNsOrder = signal(false);
+  colaboradorNo = signal('');
+  colaboradorName = signal('');
 
-  searchQuery        = signal('');
-  searchResults      = signal<ScSocioSearchResult[]>([]);
-  searching          = signal(false);
-  selectedTitular    = signal<ScSocioSearchResult | null>(null);
+  searchQuery = signal('');
+  searchResults = signal<ScSocioSearchResult[]>([]);
+  searching = signal(false);
+  selectedTitular = signal<ScSocioSearchResult | null>(null);
   pendingParticipants = signal<PendingParticipant[]>([]);
-  costs              = signal<ScCostWithTotal[]>([]);
-  levels             = signal<ScLevel[]>([]);
+  costs = signal<ScCostWithTotal[]>([]);
+  levels = signal<ScLevel[]>([]);
   intensiveActivities = signal<ScIntensiveActivity[]>([]);
-  saving             = signal(false);
+  saving = signal(false);
   registrationResult = signal<any>(null);
-  doneParticipants   = signal<DoneParticipant[]>([]);
+  doneParticipants = signal<DoneParticipant[]>([]);
 
   // ── Guest modal ───────────────────────────────────────────────────────────
-  guestModalOpen     = signal(false);
+  guestModalOpen = signal(false);
 
   private search$ = new Subject<string>();
   private colabSearch$ = new Subject<string>();
@@ -299,7 +302,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   totalAmount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
+      .filter(p => p.weeks.length > 0 && !p.outOfRange)
       .reduce((sum, p) => sum + this.participantCost(p), 0)
   );
 
@@ -336,12 +339,12 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     // Cargar niveles al inicio (necesario para los badges de nivel en la tabla)
     this.svc.getLevels().subscribe({
       next: res => this.levels.set(res.data ?? []),
-      error: () => {},
+      error: () => { },
     });
 
     this.svc.getIntensiveActivities().subscribe({
       next: res => this.intensiveActivities.set(res.data ?? []),
-      error: () => {},
+      error: () => { },
     });
 
     this.coursesSvc.getAll({ status: 'active' }).subscribe({
@@ -373,13 +376,13 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       next: (res: any) => {
         let results: ScSocioSearchResult[] = res?.data ?? [];
         if (this.wizardMode() === 'colaborador_externo') {
-          results = results.filter(s => 
-            s.membershipNumber?.toUpperCase().startsWith('CL') || 
+          results = results.filter(s =>
+            s.membershipNumber?.toUpperCase().startsWith('CL') ||
             s.fullName.toUpperCase().startsWith('CL')
           );
         }
-        this.searchResults.set(results); 
-        this.searching.set(false); 
+        this.searchResults.set(results);
+        this.searching.set(false);
       },
       error: () => this.searching.set(false),
     });
@@ -461,7 +464,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this._loadCosts();
   }
 
-  setWizardMode(mode: 'socio'|'colaborador'|'colaborador_externo'): void {
+  setWizardMode(mode: 'socio' | 'colaborador' | 'colaborador_externo'): void {
     this.wizardMode.set(mode);
     this.colaboradorNo.set('');
     this.colaboradorName.set('');
@@ -477,11 +480,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     const cId = this.selectedCourse()?.id;
     this.svc.getCosts(cId).subscribe({
       next: res => this.costs.set(res.data ?? []),
-      error: () => {},
+      error: () => { },
     });
     this.svc.getLevels().subscribe({
       next: res => this.levels.set(res.data ?? []),
-      error: () => {},
+      error: () => { },
     });
   }
 
@@ -505,8 +508,8 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private _ageAtCourseStart(birthDateStr: string | null): number | null {
     if (!birthDateStr) return null;
     const course = this.selectedCourse();
-    const ref    = course?.start_date ? new Date(course.start_date) : new Date();
-    const birth  = new Date(birthDateStr);
+    const ref = course?.start_date ? new Date(course.start_date) : new Date();
+    const birth = new Date(birthDateStr);
     let age = ref.getFullYear() - birth.getFullYear();
     const m = ref.getMonth() - birth.getMonth();
     if (m < 0 || (m === 0 && ref.getDate() < birth.getDate())) age--;
@@ -523,7 +526,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     let realTitularPhone = s.phone;
     const realTitularInFamily = s.family.find(f => f.memberType === 'Titular');
     if (realTitularInFamily && realTitularInFamily.phone) {
-        realTitularPhone = realTitularInFamily.phone;
+      realTitularPhone = realTitularInFamily.phone;
     }
     const defaultPhone = realTitularPhone ?? null;
 
@@ -531,21 +534,48 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       socio_id: s.id, fullName: s.fullName, type: tType,
       weeks: [], birth_date: s.birth_date, age: s.age,
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
+      isReEnrollment: s.enrolled, // Tratamos cualquier enrollado previo como re-enrollment para ui
+      participant_id: s.participant_id ?? null,
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
-      emergency_phone: s.phone ?? defaultPhone,
+
+      emergency_phone: s.emergency_phone ?? s.phone ?? defaultPhone,
+      lockedWeekNumbers: s.enrolled ? (s.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
-    const family: PendingParticipant[] = s.family.map(f => ({
-      socio_id: f.id, fullName: f.fullName, type: tType as 'member'|'staff',
-      weeks: [], birth_date: f.birth_date, age: f.age,
-      memberType: f.memberType, alreadyEnrolled: f.enrolled,
-      suggestedLevel: this._getLevelForAge(f.age),
-      outOfRange: this._isOutOfRange(f.age),
-      emergency_phone: f.phone ?? defaultPhone,
-      selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
-    }));
-    this.pendingParticipants.set([titular, ...family]);
+    const family: PendingParticipant[] = s.family.map(f => {
+      let fType = tType as 'member' | 'staff' | 'guest' | 'staff_guest';
+      if (f.memberType === 'Invitado') {
+        if (this.wizardMode() === 'colaborador' || this.wizardMode() === 'colaborador_externo') {
+          fType = 'staff_guest';
+        } else {
+          fType = 'guest';
+        }
+      }
+
+      return {
+        socio_id: f.id, fullName: f.fullName, type: fType,
+        weeks: [], birth_date: f.birth_date, age: f.age,
+        memberType: f.memberType, alreadyEnrolled: f.enrolled,
+        isReEnrollment: f.enrolled,
+        participant_id: f.participant_id ?? null,
+        suggestedLevel: this._getLevelForAge(f.age),
+        outOfRange: this._isOutOfRange(f.age),
+
+        emergency_phone: f.emergency_phone ?? f.phone ?? defaultPhone,
+
+        lockedWeekNumbers: f.enrolled ? (f.enrolled_week_numbers ?? []) : [],
+        selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
+      };
+    });
+
+    // Un colaborador no se inscribe a sí mismo, solo a sus invitados (family)
+    if (this.wizardMode() === 'colaborador' || this.wizardMode() === 'colaborador_externo') {
+      this.pendingParticipants.set([...family]);
+    } else {
+      this.pendingParticipants.set([titular, ...family]);
+    }
+
     this.wizardStep.set('participants');
   }
 
@@ -555,33 +585,106 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       this.showToast('El número de empleado es requerido', 'danger');
       return;
     }
-    
-    let colName = this.colaboradorName().trim();
-    if (!colName) {
-      colName = 'Colaborador #' + colNo;
+
+    this.colaboradorLoading.set(true);
+    const courseId = this.selectedCourse()?.id;
+    this.svc.searchSocios('EMP-' + colNo, courseId).subscribe({
+      next: (res: any) => {
+        this.colaboradorLoading.set(false);
+        if (res.success && res.data && res.data.length > 0) {
+          const s = res.data[0];
+          // Use the provided name if it's not a real user yet? Actually the backend will return the real name.
+          if (this.colaboradorName().trim()) {
+            s.fullName = this.colaboradorName().trim();
+          }
+          this.selectTitular(s);
+        } else {
+          // Si el colaborador no existe en backend (no se ha logueado / no hay tabla users), mock fallback
+          let colName = this.colaboradorName().trim();
+          if (!colName) colName = 'Colaborador #' + colNo;
+
+          const s: ScSocioSearchResult = {
+            id: 'EMP-' + colNo,
+            fullName: colName,
+            membershipNumber: 'EMP-' + colNo,
+            birth_date: null,
+            age: null,
+            enrolled: false,
+            family: []
+          };
+          this.selectTitular(s);
+        }
+      },
+      error: () => {
+        this.colaboradorLoading.set(false);
+        this.showToast('Error al buscar colaborador', 'danger');
+      }
+    });
+  }
+
+  isEmp(group: ScRegistrationGroup): boolean {
+    return typeof group.titular_id === 'string' && group.titular_id.startsWith('EMP-');
+  }
+
+  enrollMoreWeeks(group: ScRegistrationGroup, p: ScRegisteredParticipant): void {
+    const isEmp = this.isEmp(group);
+
+    // Set wizard mode
+    this.wizardMode.set(isEmp ? 'colaborador' : 'socio');
+    if (isEmp) {
+      this.colaboradorNo.set((group.titular_id as string).replace('EMP-', ''));
+      this.colaboradorName.set(group.titular_name ?? '');
+    } else {
+      this.searchQuery.set(String(group.titular_id ?? ''));
     }
-    
-    const s: ScSocioSearchResult = {
-      id: 'EMP-' + colNo,
-      fullName: colName,
-      membershipNumber: 'EMP-' + colNo,
+
+    // Instead of calling backend, build mock search result
+    const titularIdStr = String(group.titular_id ?? '');
+    const familyMemberId = p.participant_type === 'guest' || p.participant_type === 'staff_guest'
+      ? `guest_${p.guest_id}`
+      : `emp_part_${p.participant_id}`;
+
+    // Collect locked weeks
+    const lockedWeeks = (p.weeks ?? [])
+      .filter(w => w.week_number != null)
+      .map(w => w.week_number!);
+
+    const mockFamily = [{
+      id: familyMemberId,
+      fullName: p.full_name,
+      memberType: p.participant_type === 'guest' || p.participant_type === 'staff_guest' ? 'Invitado' : 'Familiar',
+      birth_date: p.birth_date,
+      age: this._ageAtCourseStart(p.birth_date ?? null),
+      email: null,
+      phone: p.phone ?? null,
+      enrolled: true,
+      enrolled_status: p.payment_status ?? 'pending',
+      enrolled_week_numbers: lockedWeeks,
+      participant_id: p.participant_id
+    }];
+
+    const mockResult: ScSocioSearchResult = {
+      id: titularIdStr,
+      fullName: group.titular_name ?? 'Titular',
+      membershipNumber: titularIdStr,
       birth_date: null,
       age: null,
       enrolled: false,
-      family: []
+      family: mockFamily
     };
-    
-    this.selectedTitular.set(s);
-    // Un colaborador no se inscribe a sí mismo, solo invitados
-    this.pendingParticipants.set([]);
-    this.wizardStep.set('participants');
+
+    // Open Wizard
+    this.wizardOpen.set(true);
+
+    // Inject directly into step 2
+    this.selectTitular(mockResult);
   }
 
   backToSearch(): void { this.wizardStep.set('search'); this.selectedTitular.set(null); }
 
   // ── Utils ─────────────────────────────────────────────────────────────────
-  photoBaseUrl(): string { 
-    return environment.apiUrl.replace('/api', '/'); 
+  photoBaseUrl(): string {
+    return environment.apiUrl.replace('/api', '/');
   }
 
   // ── Step 2 ────────────────────────────────────────────────────────────────
@@ -589,7 +692,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   toggleWeek(pIdx: number, weekNum: number): void {
     const p = this.pendingParticipants()[pIdx];
-    if (p?.alreadyEnrolled || p?.outOfRange) return;
+    if (p?.outOfRange || p?.lockedWeekNumbers.includes(weekNum)) return;
     this.pendingParticipants.update(list => {
       const updated = [...list];
       const participant = { ...updated[pIdx] };
@@ -667,13 +770,13 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return weekly ? (Number(weekly.cost_per_week) || 0) * weeksCount : 0;
   }
 
-  formatPendingWeeks(weeks: {week_number: number, intensive_activity_id: number | null}[]): string {
+  formatPendingWeeks(weeks: { week_number: number, intensive_activity_id: number | null }[]): string {
     const sorted = [...weeks].sort((a, b) => a.week_number - b.week_number);
     return sorted.map(w => {
       let lbl = `${w.week_number}`;
       if (w.intensive_activity_id) {
-         const act = this.intensiveActivities().find(a => a.id === w.intensive_activity_id);
-         if (act) lbl += ` (${act.name})`;
+        const act = this.intensiveActivities().find(a => a.id === w.intensive_activity_id);
+        if (act) lbl += ` (${act.name})`;
       }
       return lbl;
     }).join(', ');
@@ -717,20 +820,20 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   /** Total de descuentos de todos los participantes activos */
   totalDiscount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
+      .filter(p => p.weeks.length > 0 && !p.outOfRange)
       .reduce((sum, p) => sum + this.participantDiscount(p), 0)
   );
 
   /** Total precio lista de todos los participantes activos */
   totalListPrice = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
+      .filter(p => p.weeks.length > 0 && !p.outOfRange)
       .reduce((sum, p) => sum + this.participantListPrice(p), 0)
   );
 
   saveRegistration(): void {
     const titular = this.selectedTitular();
-    const course  = this.selectedCourse();
+    const course = this.selectedCourse();
     if (!titular || !course || !this.activePending.length) return;
 
     this.saving.set(true);
@@ -741,20 +844,21 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       titular.family?.find(f => f.memberType === 'Titular')
     )?.id ?? titular.id;
     const payload = {
-      titular_id:   realTitularId,
-      course_id:    course.id,
+      titular_id: realTitularId,
+      course_id: course.id,
       total_amount: this.totalAmount(),
       create_ns_order: this.wizardMode() === 'colaborador_externo' ? this.createNsOrder() : true,
       participants: this.activePending.map(p => ({
-        socio_id:        p.socio_id,
-        guest_db_id:     p.guest_db_id ?? null,
+        socio_id: p.socio_id,
+        participant_id: p.participant_id,
+        guest_db_id: p.guest_db_id ?? null,
         emergency_phone: p.emergency_phone ?? null,
-        type:            p.type,
-        weeks:           p.weeks,
-        birth_date:      p.birth_date,
+        type: p.type,
+        weeks: p.weeks,
+        birth_date: p.birth_date,
         suggested_level: p.suggestedLevel?.level_number ?? null,
-        assigned_level:  p.selectedLevel,
-        group_id:        p.weeks.some(w => w.intensive_activity_id) ? null : p.selectedGroupId,
+        assigned_level: p.selectedLevel,
+        group_id: p.weeks.some(w => w.intensive_activity_id) ? null : p.selectedGroupId,
       })),
     };
 
@@ -763,16 +867,16 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         this.saving.set(false);
         this.registrationResult.set(res.data);
         // Construir lista de participantes del step done para asignar nivel/grupo
-        const tokens: Array<{participantId:string; participantName:string; accessCode:string; enrollmentId:number; suggestedLevel:number|null; assignedLevel:number|null; groupId:number|null}>
+        const tokens: Array<{ participantId: string; participantName: string; accessCode: string; enrollmentId: number; suggestedLevel: number | null; assignedLevel: number | null; groupId: number | null }>
           = res.data?.pick_up_tokens ?? [];
         this.doneParticipants.set(tokens.map(t => ({
-          enrollmentId:    t.enrollmentId,
+          enrollmentId: t.enrollmentId,
           participantName: t.participantName,
-          accessCode:      t.accessCode,
-          suggestedLevel:  t.suggestedLevel ?? null,
-          assignedLevel:   t.assignedLevel  ?? null,
-          groupId:         t.groupId        ?? null,
-          groupAlias:      null,
+          accessCode: t.accessCode,
+          suggestedLevel: t.suggestedLevel ?? null,
+          assignedLevel: t.assignedLevel ?? null,
+          groupId: t.groupId ?? null,
+          groupAlias: null,
         })));
         this.wizardStep.set('done');
         this.refreshTable();
@@ -861,28 +965,31 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
     const age = guest.birth_date
       ? (() => {
-          const b = new Date(guest.birth_date!);
-          const n = new Date();
-          let a = n.getFullYear() - b.getFullYear();
-          const m = n.getMonth() - b.getMonth();
-          if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
-          return a;
-        })()
+        const b = new Date(guest.birth_date!);
+        const n = new Date();
+        let a = n.getFullYear() - b.getFullYear();
+        const m = n.getMonth() - b.getMonth();
+        if (m < 0 || (m === 0 && n.getDate() < b.getDate())) a--;
+        return a;
+      })()
       : null;
 
     const participant: PendingParticipant = {
-      socio_id:       guestUniqueId,
-      fullName:       guest.full_name,
-      type:           'guest',
-      weeks:          [],
-      birth_date:     guest.birth_date,
+      socio_id: guestUniqueId,
+      fullName: guest.full_name,
+      type: 'guest',
+      weeks: [],
+      birth_date: guest.birth_date,
       age,
-      memberType:     'Invitado',
-      alreadyEnrolled: false,
-      suggestedLevel:  this._getLevelForAge(age),
-      outOfRange:      this._isOutOfRange(age),
-      guest_db_id:     guest.id,
-      emergency_phone: null,
+      memberType: 'Invitado',
+      alreadyEnrolled: !!guest.enrolled,
+      isReEnrollment: !!guest.enrolled,
+      participant_id: guest.participant_id ?? null,
+      suggestedLevel: this._getLevelForAge(age),
+      outOfRange: this._isOutOfRange(age),
+      guest_db_id: guest.id,
+      emergency_phone: guest.emergency_phone ?? null,
+      lockedWeekNumbers: guest.enrolled ? (guest.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
 
@@ -934,7 +1041,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   private _loadLevelGroups(): void {
     this.enrollSvc.getFormData().subscribe({
       next: res => this.levelGroupsFD.set(res.data?.level_groups ?? []),
-      error: () => {},
+      error: () => { },
     });
   }
 
@@ -994,7 +1101,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
             this.grpModalValue.set(res.data.group_id);
           }
         },
-        error: () => {}
+        error: () => { }
       });
     }
   }
@@ -1008,7 +1115,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.grpModalSaving.set(true);
     this.enrollSvc.assignGroup(target.enrollment_id, { group_id: this.grpModalValue() }).subscribe({
       next: res => {
-        const newGroupId   = res.data?.group_id ?? this.grpModalValue();
+        const newGroupId = res.data?.group_id ?? this.grpModalValue();
         const matchedGroup = this.levelGroupsFD().find(g => g.id === newGroupId);
         this._patchParticipant(target.titular_id, target.enrollment_id, p => ({
           ...p, group_id: newGroupId ?? null, group_alias: matchedGroup?.alias ?? null,
@@ -1033,9 +1140,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.registrations.update(groups =>
       groups.map(g => {
         if ((g.titular_id ?? '__none__') !== (titularId ?? '__none__')) return g;
-        return { ...g, participants: g.participants.map(p =>
-          p.enrollment_id === enrollmentId ? patcher(p) : p
-        )};
+        return {
+          ...g, participants: g.participants.map(p =>
+            p.enrollment_id === enrollmentId ? patcher(p) : p
+          )
+        };
       })
     );
   }
@@ -1123,18 +1232,18 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     const receivedBy = this.kitReceivedBy().trim();
     if (!receivedBy) { this.showToast('El nombre de quien recibe es requerido', 'danger'); return; }
 
-    const courseId   = this.selectedCourse()!.id;
+    const courseId = this.selectedCourse()!.id;
     const checkedIds = this.kitGroupChecked();
-    const items      = this.kitGroupItems(this.kitModalGroup()!).filter(i => !i.kit_delivered && checkedIds.has(i.enrollment_id));
+    const items = this.kitGroupItems(this.kitModalGroup()!).filter(i => !i.kit_delivered && checkedIds.has(i.enrollment_id));
     if (!items.length) { this.showToast('No hay participantes seleccionados', 'danger'); return; }
 
     this.kitSaving.set(true);
     let done = 0; let delivered = 0;
     items.forEach(item => {
       this.kitSvc.deliver({
-        enrollment_id:    item.enrollment_id,
+        enrollment_id: item.enrollment_id,
         received_by_name: receivedBy,
-        notes:            this.kitNotes() || undefined,
+        notes: this.kitNotes() || undefined,
       }).subscribe({
         next: () => {
           delivered++;
@@ -1164,11 +1273,11 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   // ── Helpers ───────────────────────────────────────────────────────────────
   paymentClass(s: string): string {
-    return ({ paid:'badge-success', pending:'badge-warning', partial:'badge-info', cancelled:'badge-danger' })[s] ?? 'badge-secondary';
+    return ({ paid: 'badge-success', pending: 'badge-warning', partial: 'badge-info', cancelled: 'badge-danger' })[s] ?? 'badge-secondary';
   }
 
   paymentLabel(s: string): string {
-    return ({ paid:'Pagado', pending:'Pendiente', partial:'Parcial', cancelled:'Cancelado' })[s] ?? s;
+    return ({ paid: 'Pagado', pending: 'Pendiente', partial: 'Parcial', cancelled: 'Cancelado' })[s] ?? s;
   }
 
   syncOnePayment(p: ScRegisteredParticipant, event: Event): void {
@@ -1244,7 +1353,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return p.weeks.some(w => !!w.intensive_activity_id);
   }
 
-  weekChips(weeks: Array<{week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number}>): Array<{short: string; dates: string; intensiveActivityId?: number | null; intensiveActivityName?: string | null; enrollmentWeekId?: number}> {
+  weekChips(weeks: Array<{ week_number: number; label: string; intensive_activity_id?: number | null; intensive_activity_name?: string | null; enrollment_week_id?: number }>): Array<{ short: string; dates: string; intensiveActivityId?: number | null; intensiveActivityName?: string | null; enrollmentWeekId?: number }> {
     if (!weeks.length) return [];
     return weeks.map(w => {
       const courseWeek = this.courseWeeks.find(cw => cw.week_number === w.week_number);
@@ -1256,9 +1365,9 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   }
 
   private _fmtWeekRange(start: string, end: string): string {
-    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const s = new Date(start.substring(0, 10) + 'T12:00:00');
-    const e = new Date(end.substring(0, 10)   + 'T12:00:00');
+    const e = new Date(end.substring(0, 10) + 'T12:00:00');
     const dS = s.getDate();
     const dE = e.getDate();
     const mS = months[s.getMonth()];
@@ -1285,7 +1394,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     return p.amount_paid ?? 0;
   }
 
-  showToast(msg: string, type: 'success'|'danger'|'info' = 'success'): void {
+  showToast(msg: string, type: 'success' | 'danger' | 'info' = 'success'): void {
     this.toast.set(msg);
     this.toastType.set(type);
     setTimeout(() => this.toast.set(null), 4000);
@@ -1355,7 +1464,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   /** Abre el modal de foto del primer participante sin foto del grupo */
   openPhotoModalGroup(group: ScRegistrationGroup, event: Event): void {
     event.stopPropagation();
-    const items   = this.credGroupItems(group);
+    const items = this.credGroupItems(group);
     const pending = group.participants.find(p => {
       const ci = items.find(i => i.enrollment_id === p.enrollment_id);
       return !ci?.has_photo;
@@ -1366,7 +1475,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   /** Abre el modal de credencial del primer participante con foto pero sin credencial entregada */
   openCredentialModalGroup(group: ScRegistrationGroup, event: Event): void {
     event.stopPropagation();
-    const items   = this.credGroupItems(group);
+    const items = this.credGroupItems(group);
     const pending = group.participants.find(p => {
       const ci = items.find(i => i.enrollment_id === p.enrollment_id);
       return ci?.has_photo && !ci?.credential_delivered;
@@ -1389,7 +1498,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     this.photoPreviewUrl.set(null);
     this.photoCameraMode.set('camera');
     this.photoModalOpen.set(true);
-    
+
     // Cargar previsualización de credencial
     this.photoModalCredLoading.set(true);
     this.photoModalCredData.set(null);
@@ -1400,7 +1509,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       },
       error: () => this.photoModalCredLoading.set(false)
     });
-    
+
     // Iniciar cámara automáticamente
     setTimeout(() => {
       const videoEl = document.querySelector('video.photo-video') as HTMLVideoElement;
@@ -1436,7 +1545,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   capturePhoto(videoEl: HTMLVideoElement): void {
     const canvas = document.createElement('canvas');
-    canvas.width  = videoEl.videoWidth  || 640;
+    canvas.width = videoEl.videoWidth || 640;
     canvas.height = videoEl.videoHeight || 480;
     canvas.getContext('2d')!.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
     this.photoPreviewUrl.set(canvas.toDataURL('image/jpeg', 0.85));
@@ -1453,7 +1562,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   savePhoto(): void {
     const base64 = this.photoPreviewUrl();
-    const p      = this.photoModalParticipant();
+    const p = this.photoModalParticipant();
     if (!base64 || !p) return;
 
     this.photoSaving.set(true);
@@ -1499,7 +1608,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         if (res.data?.credential_delivered && p.enrollment_id) {
           this.credSvc.getReplacementList(p.enrollment_id).subscribe({
             next: r => this.credReplacementList.set(r.data?.replacements ?? []),
-            error: () => {},
+            error: () => { },
           });
         }
       },
@@ -1513,10 +1622,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   openAuthorizedPickupsModal(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
     const participantInfo = {
-       id: p.participant_id,
-       full_name: p.full_name,
-       socio_id: p.socio_id,
-       titular_id: p.titular_id
+      id: p.participant_id,
+      full_name: p.full_name,
+      socio_id: p.socio_id,
+      titular_id: p.titular_id
     };
     this.authorizedPickupsParticipant.set(participantInfo as any);
   }
@@ -1524,7 +1633,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   editPhone(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
     let currentPhone = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/[^0-9]/g, '') : '';
-    
+
     Swal.fire({
       title: 'Editar teléfono',
       text: 'Ingresa el número a 10 dígitos. A este número se enviará la liga.',
@@ -1555,13 +1664,13 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   sendPortalLink(p: ScRegisteredParticipant, event: Event): void {
     event.stopPropagation();
-    
+
     if (this.sendingLinkMap()[p.participant_id]) {
       return;
     }
 
     const phoneToUse = p.phone && p.phone !== 'Sin teléfono' ? p.phone.replace(/[^0-9]/g, '') : '';
-    
+
     if (!phoneToUse || phoneToUse.length !== 10) {
       Swal.fire({
         icon: 'warning',
@@ -1573,12 +1682,12 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     }
 
     const url = window.location.origin + '/tutor-portal/login';
-    
-    this.sendingLinkMap.update(m => ({...m, [p.participant_id]: true}));
+
+    this.sendingLinkMap.update(m => ({ ...m, [p.participant_id]: true }));
 
     this.svc.sendPortalLinkWhatsapp(p.enrollment_id, phoneToUse, url).subscribe({
       next: () => {
-        this.sendingLinkMap.update(m => ({...m, [p.participant_id]: false}));
+        this.sendingLinkMap.update(m => ({ ...m, [p.participant_id]: false }));
         Swal.fire({
           icon: 'success',
           title: '¡Enviado!',
@@ -1588,7 +1697,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
         });
       },
       error: () => {
-        this.sendingLinkMap.update(m => ({...m, [p.participant_id]: false}));
+        this.sendingLinkMap.update(m => ({ ...m, [p.participant_id]: false }));
         Swal.fire({
           icon: 'error',
           title: 'Error',
@@ -1612,7 +1721,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
     const openPrintWindow = (cardHtml: string) => {
       const win = window.open('', '_blank', 'width=350,height=550');
       if (!win) return;
-      
+
       let stylesHtml = '';
       document.querySelectorAll('style, link[rel="stylesheet"]').forEach(el => {
         stylesHtml += el.outerHTML;
@@ -1763,7 +1872,7 @@ ${stylesHtml}
 
   syncCredentialReplacementStatus(): void {
     const list = this.credReplacementList();
-    const p    = this.credParticipant();
+    const p = this.credParticipant();
     if (!p?.enrollment_id) return;
 
     this.credReplacementSyncing.set(true);
@@ -1825,17 +1934,21 @@ ${stylesHtml}
     return this.editWeeksDetail().some(w => w.payment_status === 'paid');
   }
 
-  /** True cuando la inscripción en edición tiene al menos una semana pagada (paid o partial) */
-  isPaidEnrollmentEdit = computed(() =>
-    this.editWeeksParticipant() !== null &&
-    (
-      this.editWeeksParticipant()?.payment_status === 'paid' ||
-      this.editWeeksDetail().some(w => w.payment_status === 'paid')
-    )
-  );
+  /** True cuando la inscripción en edición tiene al menos una semana pagada (paid o partial) y está bloqueada a swaps */
+  isPaidEnrollmentEdit = computed(() => {
+    const p = this.editWeeksParticipant();
+    if (!p) return false;
+
+    // Los colaboradores (staff y staff_guest) nunca están bloqueados, pueden agregar/quitar libremente
+    if (p.participant_type === 'staff' || p.participant_type === 'staff_guest') {
+      return false;
+    }
+
+    return p.payment_status === 'paid' || this.editWeeksDetail().some(w => w.payment_status === 'paid');
+  });
 
   toggleEditWeek(weekId: number): void {
-    const current   = this.editWeeksIds();
+    const current = this.editWeeksIds();
     const isChecked = current.includes(weekId);
 
     if (this.isPaidEnrollmentEdit()) {
@@ -1912,12 +2025,12 @@ ${stylesHtml}
               participants: g.participants.map(part =>
                 part.enrollment_id === enrollmentId
                   ? {
-                      ...part,
-                      weeks:           newWeeks,
-                      amount_paid:     updated.amount_paid     ?? part.amount_paid,
-                      list_price:      updated.list_price      ?? part.list_price,
-                      discount_amount: updated.discount_amount ?? part.discount_amount,
-                    }
+                    ...part,
+                    weeks: newWeeks,
+                    amount_paid: updated.amount_paid ?? part.amount_paid,
+                    list_price: updated.list_price ?? part.list_price,
+                    discount_amount: updated.discount_amount ?? part.discount_amount,
+                  }
                   : part
               ),
             }))
@@ -1954,21 +2067,21 @@ ${stylesHtml}
     if (!course) return;
     const params: Record<string, string> = {
       course_id: String(course.id),
-      filter:    this.exportFilter(),
+      filter: this.exportFilter(),
     };
-    if (this.exportFilter() === 'day'   && this.exportDate())   params['date']    = this.exportDate();
-    if (this.exportFilter() === 'week'  && this.exportWeekId()) params['week_id'] = String(this.exportWeekId());
-    if (this.exportFilter() === 'month' && this.exportMonth())  params['month']   = this.exportMonth();
+    if (this.exportFilter() === 'day' && this.exportDate()) params['date'] = this.exportDate();
+    if (this.exportFilter() === 'week' && this.exportWeekId()) params['week_id'] = String(this.exportWeekId());
+    if (this.exportFilter() === 'month' && this.exportMonth()) params['month'] = this.exportMonth();
 
     this.enrollSvc.exportXlsx(params as any).subscribe({
       next: blob => {
-        const suffix = this.exportFilter() === 'day'   ? this.exportDate().replace(/-/g, '') :
-                       this.exportFilter() === 'week'  ? `S${this.exportWeekId()}` :
-                       this.exportFilter() === 'month' ? this.exportMonth() :
-                       new Date().getFullYear().toString();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
+        const suffix = this.exportFilter() === 'day' ? this.exportDate().replace(/-/g, '') :
+          this.exportFilter() === 'week' ? `S${this.exportWeekId()}` :
+            this.exportFilter() === 'month' ? this.exportMonth() :
+              new Date().getFullYear().toString();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
         a.download = `INSCRITOS_CVERANO_${suffix}.xlsx`;
         a.click();
         URL.revokeObjectURL(url);
