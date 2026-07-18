@@ -73,12 +73,10 @@ interface PendingParticipant {
   age: number | null;
   memberType: string;
   alreadyEnrolled: boolean;
-  isReEnrollment: boolean;  // inscrito con pago => se permite agregar semanas
   suggestedLevel: ScLevel | null;
   outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
   guest_db_id?: number; // ID real en summer_course_guests (solo para invitados)
   emergency_phone: string | null;
-  lockedWeekNumbers: number[];  // semanas ya inscritas (paid) — no se pueden desmarcar
   // Nivel/grupo elegido antes de inscribir
   selectedLevel:      number | null;
   selectedGroupId:    number | null;
@@ -301,7 +299,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   totalAmount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment))
+      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
       .reduce((sum, p) => sum + this.participantCost(p), 0)
   );
 
@@ -533,22 +531,18 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       socio_id: s.id, fullName: s.fullName, type: tType,
       weeks: [], birth_date: s.birth_date, age: s.age,
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
-      isReEnrollment: s.enrolled && s.enrollment_payment_status === 'paid',
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
       emergency_phone: s.phone ?? defaultPhone,
-      lockedWeekNumbers: (s.enrolled && s.enrollment_payment_status === 'paid') ? (s.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
     const family: PendingParticipant[] = s.family.map(f => ({
       socio_id: f.id, fullName: f.fullName, type: tType as 'member'|'staff',
       weeks: [], birth_date: f.birth_date, age: f.age,
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
-      isReEnrollment: f.enrolled && f.enrollment_payment_status === 'paid',
       suggestedLevel: this._getLevelForAge(f.age),
       outOfRange: this._isOutOfRange(f.age),
       emergency_phone: f.phone ?? defaultPhone,
-      lockedWeekNumbers: (f.enrolled && f.enrollment_payment_status === 'paid') ? (f.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     }));
     this.pendingParticipants.set([titular, ...family]);
@@ -595,8 +589,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   toggleWeek(pIdx: number, weekNum: number): void {
     const p = this.pendingParticipants()[pIdx];
-    if ((p?.alreadyEnrolled && !p?.isReEnrollment) || p?.outOfRange) return;
-    if (p?.lockedWeekNumbers?.includes(weekNum)) return;  // semana ya inscrita (paid)
+    if (p?.alreadyEnrolled || p?.outOfRange) return;
     this.pendingParticipants.update(list => {
       const updated = [...list];
       const participant = { ...updated[pIdx] };
@@ -724,14 +717,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   /** Total de descuentos de todos los participantes activos */
   totalDiscount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment))
+      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
       .reduce((sum, p) => sum + this.participantDiscount(p), 0)
   );
 
   /** Total precio lista de todos los participantes activos */
   totalListPrice = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment))
+      .filter(p => p.weeks.length > 0 && !p.outOfRange && !p.alreadyEnrolled)
       .reduce((sum, p) => sum + this.participantListPrice(p), 0)
   );
 
@@ -886,12 +879,10 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       age,
       memberType:     'Invitado',
       alreadyEnrolled: false,
-      isReEnrollment: false,
       suggestedLevel:  this._getLevelForAge(age),
       outOfRange:      this._isOutOfRange(age),
       guest_db_id:     guest.id,
       emergency_phone: null,
-      lockedWeekNumbers: [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
 
