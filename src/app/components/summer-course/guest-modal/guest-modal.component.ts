@@ -28,6 +28,9 @@ export class GuestModalComponent implements OnInit {
   readonly socioEmail = input<string>('');
   readonly socioPhone = input<string>('');
 
+  /** ID del curso para consultar estatus de inscripciones */
+  readonly courseId = input<number | null>(null);
+
   /** IDs de invitados ya agregados al wizard (para marcarlos como 'Ya agregado') */
   readonly enrolledGuestIds = input<number[]>([]);
 
@@ -128,9 +131,11 @@ export class GuestModalComponent implements OnInit {
 
   loadGuests(): void {
     this.loadingList.set(true);
-    this.guestSvc.getGuestsBySocio(this.socioId()).subscribe({
-      next: (r) => {
-        this.guests.set(r.data?.guests ?? []);
+    this.guestSvc.getGuestsBySocio(this.socioId(), this.courseId()).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.guests.set(res.data.guests ?? []);
+        }
         this.loadingList.set(false);
       },
       error: () => {
