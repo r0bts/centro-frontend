@@ -74,6 +74,7 @@ interface PendingParticipant {
   memberType: string;
   alreadyEnrolled: boolean;
   isReEnrollment: boolean;  // inscrito con pago => se permite agregar semanas
+  participant_id: number | null; // ID real en sc_participants si ya estaba inscrito
   suggestedLevel: ScLevel | null;
   outOfRange: boolean;  // age < 3 o age > 15 o sin fecha
   guest_db_id?: number; // ID real en summer_course_guests (solo para invitados)
@@ -301,7 +302,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   totalAmount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment))
+      .filter(p => p.weeks.length > 0 && !p.outOfRange)
       .reduce((sum, p) => sum + this.participantCost(p), 0)
   );
 
@@ -533,25 +534,34 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       socio_id: s.id, fullName: s.fullName, type: tType,
       weeks: [], birth_date: s.birth_date, age: s.age,
       memberType: 'Titular', alreadyEnrolled: s.enrolled,
-      isReEnrollment: s.enrolled && s.enrollment_payment_status === 'paid',
+      isReEnrollment: s.enrolled, // Tratamos cualquier enrollado previo como re-enrollment para ui
+      participant_id: s.participant_id ?? null,
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
       emergency_phone: s.phone ?? defaultPhone,
-      lockedWeekNumbers: (s.enrolled && s.enrollment_payment_status === 'paid') ? (s.enrolled_week_numbers ?? []) : [],
+      lockedWeekNumbers: s.enrolled ? (s.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
     const family: PendingParticipant[] = s.family.map(f => ({
       socio_id: f.id, fullName: f.fullName, type: tType as 'member'|'staff',
       weeks: [], birth_date: f.birth_date, age: f.age,
       memberType: f.memberType, alreadyEnrolled: f.enrolled,
-      isReEnrollment: f.enrolled && f.enrollment_payment_status === 'paid',
+      isReEnrollment: f.enrolled,
+      participant_id: f.participant_id ?? null,
       suggestedLevel: this._getLevelForAge(f.age),
       outOfRange: this._isOutOfRange(f.age),
       emergency_phone: f.phone ?? defaultPhone,
-      lockedWeekNumbers: (f.enrolled && f.enrollment_payment_status === 'paid') ? (f.enrolled_week_numbers ?? []) : [],
+      lockedWeekNumbers: f.enrolled ? (f.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     }));
-    this.pendingParticipants.set([titular, ...family]);
+    
+    // Un colaborador no se inscribe a sí mismo, solo a sus invitados (family)
+    if (this.wizardMode() === 'colaborador' || this.wizardMode() === 'colaborador_externo') {
+      this.pendingParticipants.set([...family]);
+    } else {
+      this.pendingParticipants.set([titular, ...family]);
+    }
+    
     this.wizardStep.set('participants');
   }
 
@@ -562,25 +572,98 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       return;
     }
     
-    let colName = this.colaboradorName().trim();
-    if (!colName) {
-      colName = 'Colaborador #' + colNo;
-    }
+    this.colaboradorLoading.set(true);
+    const courseId = this.selectedCourse()?.id;
+    this.svc.searchSocios('EMP-' + colNo, courseId).subscribe({
+      next: (res: any) => {
+        this.colaboradorLoading.set(false);
+        if (res.success && res.data && res.data.length > 0) {
+          const s = res.data[0];
+          // Use the provided name if it's not a real user yet? Actually the backend will return the real name.
+          if (this.colaboradorName().trim()) {
+             s.fullName = this.colaboradorName().trim();
+          }
+          this.selectTitular(s);
+        } else {
+          // Si el colaborador no existe en backend (no se ha logueado / no hay tabla users), mock fallback
+          let colName = this.colaboradorName().trim();
+          if (!colName) colName = 'Colaborador #' + colNo;
+          
+          const s: ScSocioSearchResult = {
+            id: 'EMP-' + colNo,
+            fullName: colName,
+            membershipNumber: 'EMP-' + colNo,
+            birth_date: null,
+            age: null,
+            enrolled: false,
+            family: []
+          };
+          this.selectTitular(s);
+        }
+      },
+      error: () => {
+        this.colaboradorLoading.set(false);
+        this.showToast('Error al buscar colaborador', 'danger');
+      }
+    });
+  }
+
+  isEmp(group: ScRegistrationGroup): boolean {
+    return typeof group.titular_id === 'string' && group.titular_id.startsWith('EMP-');
+  }
+
+  enrollMoreWeeks(group: ScRegistrationGroup, p: ScRegisteredParticipant): void {
+    const isEmp = this.isEmp(group);
     
-    const s: ScSocioSearchResult = {
-      id: 'EMP-' + colNo,
-      fullName: colName,
-      membershipNumber: 'EMP-' + colNo,
+    // Set wizard mode
+    this.wizardMode.set(isEmp ? 'colaborador' : 'socio');
+    if (isEmp) {
+      this.colaboradorNo.set((group.titular_id as string).replace('EMP-', ''));
+      this.colaboradorName.set(group.titular_name ?? '');
+    } else {
+      this.searchQuery.set(String(group.titular_id ?? ''));
+    }
+
+    // Instead of calling backend, build mock search result
+    const titularIdStr = String(group.titular_id ?? '');
+    const familyMemberId = p.participant_type === 'guest' || p.participant_type === 'staff_guest' 
+      ? `guest_${p.guest_id}` 
+      : `emp_part_${p.participant_id}`;
+
+    // Collect locked weeks
+    const lockedWeeks = (p.weeks ?? [])
+      .filter(w => w.week_number != null)
+      .map(w => w.week_number!);
+
+    const mockFamily = [{
+      id: familyMemberId,
+      fullName: p.full_name,
+      memberType: p.participant_type === 'guest' || p.participant_type === 'staff_guest' ? 'Invitado' : 'Familiar',
+      birth_date: p.birth_date,
+      age: this._ageAtCourseStart(p.birth_date ?? null),
+      email: null,
+      phone: p.phone ?? null,
+      enrolled: true,
+      enrolled_status: p.payment_status ?? 'pending',
+      enrolled_week_numbers: lockedWeeks,
+      participant_id: p.participant_id
+    }];
+
+    const mockResult: ScSocioSearchResult = {
+      id: titularIdStr,
+      fullName: group.titular_name ?? 'Titular',
+      membershipNumber: titularIdStr,
       birth_date: null,
       age: null,
       enrolled: false,
-      family: []
+      family: mockFamily
     };
+
+    // Open Wizard
+    this.wizardOpen.set(true);
     
-    this.selectedTitular.set(s);
-    // Un colaborador no se inscribe a sí mismo, solo invitados
-    this.pendingParticipants.set([]);
-    this.wizardStep.set('participants');
+    // Inject directly into step 2
+    this.selectTitular(mockResult);
   }
 
   backToSearch(): void { this.wizardStep.set('search'); this.selectedTitular.set(null); }
@@ -595,8 +678,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
 
   toggleWeek(pIdx: number, weekNum: number): void {
     const p = this.pendingParticipants()[pIdx];
-    if ((p?.alreadyEnrolled && !p?.isReEnrollment) || p?.outOfRange) return;
-    if (p?.lockedWeekNumbers?.includes(weekNum)) return;  // semana ya inscrita (paid)
+    if (p?.outOfRange || p?.lockedWeekNumbers.includes(weekNum)) return;
     this.pendingParticipants.update(list => {
       const updated = [...list];
       const participant = { ...updated[pIdx] };
@@ -724,14 +806,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
   /** Total de descuentos de todos los participantes activos */
   totalDiscount = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment))
+      .filter(p => p.weeks.length > 0 && !p.outOfRange)
       .reduce((sum, p) => sum + this.participantDiscount(p), 0)
   );
 
   /** Total precio lista de todos los participantes activos */
   totalListPrice = computed(() =>
     this.pendingParticipants()
-      .filter(p => p.weeks.length > 0 && !p.outOfRange && (!p.alreadyEnrolled || p.isReEnrollment))
+      .filter(p => p.weeks.length > 0 && !p.outOfRange)
       .reduce((sum, p) => sum + this.participantListPrice(p), 0)
   );
 
@@ -754,6 +836,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       create_ns_order: this.wizardMode() === 'colaborador_externo' ? this.createNsOrder() : true,
       participants: this.activePending.map(p => ({
         socio_id:        p.socio_id,
+        participant_id:  p.participant_id,
         guest_db_id:     p.guest_db_id ?? null,
         emergency_phone: p.emergency_phone ?? null,
         type:            p.type,
@@ -885,13 +968,14 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       birth_date:     guest.birth_date,
       age,
       memberType:     'Invitado',
-      alreadyEnrolled: false,
-      isReEnrollment: false,
+      alreadyEnrolled: !!guest.enrolled,
+      isReEnrollment:  !!guest.enrolled,
+      participant_id:  guest.participant_id ?? null,
       suggestedLevel:  this._getLevelForAge(age),
       outOfRange:      this._isOutOfRange(age),
       guest_db_id:     guest.id,
-      emergency_phone: null,
-      lockedWeekNumbers: [],
+      emergency_phone: guest.emergency_phone ?? null,
+      lockedWeekNumbers: guest.enrolled ? (guest.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
 
@@ -1834,14 +1918,18 @@ ${stylesHtml}
     return this.editWeeksDetail().some(w => w.payment_status === 'paid');
   }
 
-  /** True cuando la inscripción en edición tiene al menos una semana pagada (paid o partial) */
-  isPaidEnrollmentEdit = computed(() =>
-    this.editWeeksParticipant() !== null &&
-    (
-      this.editWeeksParticipant()?.payment_status === 'paid' ||
-      this.editWeeksDetail().some(w => w.payment_status === 'paid')
-    )
-  );
+  /** True cuando la inscripción en edición tiene al menos una semana pagada (paid o partial) y está bloqueada a swaps */
+  isPaidEnrollmentEdit = computed(() => {
+    const p = this.editWeeksParticipant();
+    if (!p) return false;
+
+    // Los colaboradores (staff y staff_guest) nunca están bloqueados, pueden agregar/quitar libremente
+    if (p.participant_type === 'staff' || p.participant_type === 'staff_guest') {
+      return false;
+    }
+
+    return p.payment_status === 'paid' || this.editWeeksDetail().some(w => w.payment_status === 'paid');
+  });
 
   toggleEditWeek(weekId: number): void {
     const current   = this.editWeeksIds();

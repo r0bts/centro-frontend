@@ -396,6 +396,15 @@
                         </button>
                       }
 
+                      <!-- Botón Inscribir Semanas Adicionales (Re-enrollment) -->
+                      @if (isEmp(group)) {
+                        <button class="sce-kit-btn sce-kit-btn--add-weeks" style="margin-left: 6px; background-color: #e0f2fe; color: #0284c7; border-color: #bae6fd;"
+                          (click)="enrollMoreWeeks(group, p)" title="Inscribir semanas adicionales (nuevo registro)">
+                          <span class="material-symbols-outlined">post_add</span>
+                          + Semanas
+                        </button>
+                      }
+
                       <!-- Botón Formato PDF (solo staff_guest/staff, excluir titulares CL* y participantes CL*) -->
                       @if (canPrintFormato() && (p.participant_type === 'staff_guest' || p.participant_type === 'staff') && !(group.titular_name ?? '').toUpperCase().startsWith('CL') && !p.full_name.toUpperCase().startsWith('CL')) {
                         <button class="sce-kit-btn sce-kit-btn--pdf" style="margin-left: 6px;"
@@ -1303,6 +1312,7 @@
     [socioId]="wizardMode() === 'colaborador' ? 'EMP-' + colaboradorNo() : +selectedTitular()!.id"
     [socioName]="selectedTitular()!.fullName"
     [enrolledGuestIds]="guestIds()"
+    [courseId]="selectedCourse()?.id ?? null"
     (guestSelected)="onGuestSelected($event)"
     (closed)="closeGuestModal()" />
 }

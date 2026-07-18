@@ -537,6 +537,7 @@ export interface ScSocioSearchResult {
   enrolled: boolean;            // ya inscrito en el curso seleccionado
   enrollment_payment_status?: 'pending' | 'paid' | 'partial' | 'cancelled' | null;
   enrolled_week_numbers?: number[] | null;  // semanas ya pagas (para bloquear en wizard)
+  participant_id?: number | null; // ID del participante si ya está inscrito
   family: ScSocioFamilyMember[];
 }
 
@@ -551,12 +552,14 @@ export interface ScSocioFamilyMember {
   enrolled: boolean;
   enrollment_payment_status?: 'pending' | 'paid' | 'partial' | 'cancelled' | null;
   enrolled_week_numbers?: number[] | null;  // semanas ya pagas (para bloquear en wizard)
+  participant_id?: number | null; // ID del participante si ya está inscrito
   isinactive?: boolean;         // true si la membresía está inactiva en NS
 }
 
 /** Participante a inscribir (paso 2 del wizard) */
 export interface ScRegistrationParticipant {
   socio_id: string | null;
+  participant_id?: number | null; // se envía al backend si el participante ya existe
   fullName: string;
   type: 'member' | 'guest' | 'staff' | 'staff_guest';
   weeks: { week_number: number; intensive_activity_id: number | null }[]; // week_numbers seleccionados con su modalidad
@@ -771,6 +774,10 @@ export interface ScGuest {
   netsuite_synced_at?: string | null;
   ns_sync_error?: string | null;
   ns_synced: boolean;
+  enrolled?: boolean;
+  enrolled_week_numbers?: number[];
+  participant_id?: number | null;
+  emergency_phone?: string | null;
   created?: string;
 }
 
