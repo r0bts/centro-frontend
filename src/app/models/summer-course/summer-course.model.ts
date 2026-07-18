@@ -534,6 +534,7 @@ export interface ScSocioSearchResult {
   age: number | null;
   email?: string | null;
   phone?: string | null;
+  emergency_phone?: string | null;
   enrolled: boolean;            // ya inscrito en el curso seleccionado
   enrollment_payment_status?: 'pending' | 'paid' | 'partial' | 'cancelled' | null;
   enrolled_week_numbers?: number[] | null;  // semanas ya pagas (para bloquear en wizard)
@@ -549,6 +550,7 @@ export interface ScSocioFamilyMember {
   age: number | null;
   email?: string | null;
   phone?: string | null;
+  emergency_phone?: string | null;
   enrolled: boolean;
   enrollment_payment_status?: 'pending' | 'paid' | 'partial' | 'cancelled' | null;
   enrolled_week_numbers?: number[] | null;  // semanas ya pagas (para bloquear en wizard)

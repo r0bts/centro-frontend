@@ -538,7 +538,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       participant_id: s.participant_id ?? null,
       suggestedLevel: this._getLevelForAge(s.age),
       outOfRange: this._isOutOfRange(s.age),
-      emergency_phone: s.phone ?? defaultPhone,
+      emergency_phone: s.emergency_phone ?? s.phone ?? defaultPhone,
       lockedWeekNumbers: s.enrolled ? (s.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
@@ -550,7 +550,7 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       participant_id: f.participant_id ?? null,
       suggestedLevel: this._getLevelForAge(f.age),
       outOfRange: this._isOutOfRange(f.age),
-      emergency_phone: f.phone ?? defaultPhone,
+      emergency_phone: f.emergency_phone ?? f.phone ?? defaultPhone,
       lockedWeekNumbers: f.enrolled ? (f.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     }));
