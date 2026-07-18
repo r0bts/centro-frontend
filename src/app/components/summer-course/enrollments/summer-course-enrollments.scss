@@ -562,6 +562,7 @@ $level-colors: (
   display: inline-flex; align-items: center; gap: 3px;
   font-size: .72rem; font-weight: 600; padding: 3px 8px; border-radius: 20px;
   &--enrolled     { background: #dcfce7; color: #15803d; }
+  &--reenrollment { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
   &--out-of-range { background: #fee2e2; color: #b91c1c; }
   &--guest        { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
   &--xs { font-size: .68rem; padding: 2px 6px; }
@@ -626,7 +627,8 @@ $level-colors: (
 
   &:hover { border-color: #cbd5e1; }
   &--expanded { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
-  &--enrolled  { background: #fffbeb; opacity: .85; }
+  &--enrolled     { background: #fffbeb; opacity: .85; }
+  &--reenrollment { background: #eff6ff; border-color: #93c5fd; }
   &--out-of-range { background: #fff5f5; opacity: .75; }
 
   // Cabecera: avatar + nombre + badges de estado + botón quitar
@@ -722,8 +724,10 @@ $level-colors: (
   align-items: center; justify-content: center;
   flex-shrink: 0;
   &--on { background: $c-primary; border-color: $c-primary; color: #fff; box-shadow: 0 2px 6px rgba(59,130,246,.35); }
+  &--locked { background: #f1f5f9; border-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; opacity: 1; }
   &:hover:not(:disabled):not(.wz-week-chip--on) { border-color: $c-primary; color: $c-primary; }
   &:disabled { opacity: .4; cursor: not-allowed; }
+  &--locked:disabled { opacity: 1; }
 }
 
 .wz-week-selected-pill {
