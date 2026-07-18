@@ -543,20 +543,31 @@ export class SummerCourseEnrollmentsComponent implements OnInit {
       lockedWeekNumbers: s.enrolled ? (s.enrolled_week_numbers ?? []) : [],
       selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
     };
-    const family: PendingParticipant[] = s.family.map(f => ({
-      socio_id: f.id, fullName: f.fullName, type: tType as 'member' | 'staff',
-      weeks: [], birth_date: f.birth_date, age: f.age,
-      memberType: f.memberType, alreadyEnrolled: f.enrolled,
-      isReEnrollment: f.enrolled,
-      participant_id: f.participant_id ?? null,
-      suggestedLevel: this._getLevelForAge(f.age),
-      outOfRange: this._isOutOfRange(f.age),
+    const family: PendingParticipant[] = s.family.map(f => {
+      let fType = tType as 'member' | 'staff' | 'guest' | 'staff_guest';
+      if (f.memberType === 'Invitado') {
+        if (this.wizardMode() === 'colaborador' || this.wizardMode() === 'colaborador_externo') {
+          fType = 'staff_guest';
+        } else {
+          fType = 'guest';
+        }
+      }
 
-      emergency_phone: f.emergency_phone ?? f.phone ?? defaultPhone,
+      return {
+        socio_id: f.id, fullName: f.fullName, type: fType,
+        weeks: [], birth_date: f.birth_date, age: f.age,
+        memberType: f.memberType, alreadyEnrolled: f.enrolled,
+        isReEnrollment: f.enrolled,
+        participant_id: f.participant_id ?? null,
+        suggestedLevel: this._getLevelForAge(f.age),
+        outOfRange: this._isOutOfRange(f.age),
 
-      lockedWeekNumbers: f.enrolled ? (f.enrolled_week_numbers ?? []) : [],
-      selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
-    }));
+        emergency_phone: f.emergency_phone ?? f.phone ?? defaultPhone,
+
+        lockedWeekNumbers: f.enrolled ? (f.enrolled_week_numbers ?? []) : [],
+        selectedLevel: null, selectedGroupId: null, selectedGroupAlias: null,
+      };
+    });
 
     // Un colaborador no se inscribe a sí mismo, solo a sus invitados (family)
     if (this.wizardMode() === 'colaborador' || this.wizardMode() === 'colaborador_externo') {
