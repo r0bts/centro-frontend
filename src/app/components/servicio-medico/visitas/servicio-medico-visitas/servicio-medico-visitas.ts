@@ -96,11 +96,7 @@ export class ServicioMedicoVisitas implements OnInit {
     this.servicioMedico.getLocations().subscribe({
       next: (res: any) => {
         if (res.success) {
-          const allLocs = res.data.locations || res.data;
-          this.locations = allLocs.filter((l: any) => {
-            const name = (l.name || '').toLowerCase();
-            return name.includes('servicio médico') || name.includes('servicio medico');
-          });
+          this.locations = res.data.locations || res.data;
           this.cdr.detectChanges();
         }
       },

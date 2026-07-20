@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ServicioMedicoService } from '../../../../services/servicio-medico';
+import { AuthService } from '../../../../services/auth.service';
 import { ContentMenu } from '../../../content-menu/content-menu';
 import { finalize } from 'rxjs/operators';
 import Swal from 'sweetalert2';
@@ -19,6 +20,16 @@ export class ServicioMedicoExpediente implements OnInit {
   medicalProfile: any = null;
   consultas: any[] = [];
   locations: any[] = [];
+  medicos: any[] = [];
+  filteredMedicos: any[] = [];
+  medicoSearchTerm: string = '';
+  medicoDropdownOpen: boolean = false;
+  
+  enfermeras: any[] = [];
+  filteredEnfermeras: any[] = [];
+  enfermeraSearchTerm: string = '';
+  enfermeraDropdownOpen: boolean = false;
+
   products: any[] = [];
   filteredProducts: any[] = [];
   productsLoading: boolean = false;
@@ -36,25 +47,28 @@ export class ServicioMedicoExpediente implements OnInit {
   // Tab control: 'expediente' o 'nueva_consulta'
   activeTab: string = 'expediente';
 
-  nuevaConsultaData: any = this.getDefaultConsultaData();
+  nuevaConsultaData: any = {};
   
   // Materiales temporales
-  nuevoMaterial: any = { product_id: null, product_name: '', cantidad: 0 };
+  nuevoMaterial: any = { product_id: null, product_name: '', cantidad: 0, descuenta_inventario: true };
 
   consultaSeleccionada: any = null;
   isEditingConsulta = false;
   consultaEditId: number | null = null;
   
   showValidationErrors = false;
+  backButtonText: string = 'Regresar al Escáner';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private servicioMedico: ServicioMedicoService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
+    this.nuevaConsultaData = this.getDefaultConsultaData();
     this.route.paramMap.subscribe(params => {
       const tokenParam = params.get('token');
       if (tokenParam) {
@@ -63,10 +77,21 @@ export class ServicioMedicoExpediente implements OnInit {
         this.loadConsultas();
         this.loadLocations();
         this.loadProducts();
+        this.loadMedicos();
+        this.loadEnfermeras();
       } else {
         this.errorProfile = 'Token no proporcionado';
         this.isLoadingProfile = false;
         this.isLoadingConsultas = false;
+      }
+    });
+
+    this.route.queryParamMap.subscribe(params => {
+      const source = params.get('source');
+      if (source === 'visitas') {
+        this.backButtonText = 'Regresar a Visitas';
+      } else {
+        this.backButtonText = 'Regresar al Escáner';
       }
     });
   }
@@ -76,14 +101,41 @@ export class ServicioMedicoExpediente implements OnInit {
       next: (res: any) => {
         if (res.success) {
           const allLocs = res.data.locations || res.data;
-          // Filtrar solo las que contengan 'Servicio Médico' o 'Servicio Medico'
-          this.locations = allLocs.filter((l: any) => {
-            const name = (l.name || '').toLowerCase();
-            return name.includes('servicio médico') || name.includes('servicio medico');
-          });
+          // Se cambió para obtener desde acceso_clubes. Ya no se filtra por "Servicio Médico"
+          this.locations = allLocs;
         }
       },
       error: (err) => console.error('Error al cargar locations', err)
+    });
+  }
+
+  loadMedicos() {
+    this.servicioMedico.getMedicos().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.medicos = res.data.map((m: any) => ({...m, fullName: `${m.first_name} ${m.last_name}`}));
+          this.filteredMedicos = [...this.medicos];
+          if (this.nuevaConsultaData.medico_user_id) {
+            this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
+          }
+        }
+      },
+      error: (err) => console.error('Error al cargar medicos', err)
+    });
+  }
+
+  loadEnfermeras() {
+    this.servicioMedico.getEnfermeras().subscribe({
+      next: (res: any) => {
+        if (res.success) {
+          this.enfermeras = res.data.map((e: any) => ({...e, fullName: `${e.first_name} ${e.last_name}`}));
+          this.filteredEnfermeras = [...this.enfermeras];
+          if (this.nuevaConsultaData.enfermera_user_id) {
+            this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
+          }
+        }
+      },
+      error: (err) => console.error('Error al cargar enfermeras', err)
     });
   }
 
@@ -108,15 +160,17 @@ export class ServicioMedicoExpediente implements OnInit {
   onProductSearchInput(event: any) {
     if (!this.nuevaConsultaData.ubicacion_netsuite) {
       event.target.value = '';
-      this.productDropdownOpen = false;
-      this.nuevoMaterial.product_name = '';
+      setTimeout(() => {
+        this.productDropdownOpen = false;
+        this.nuevoMaterial.product_name = '';
+      });
       Swal.fire('Atención', 'Por favor selecciona la ubicación antes de buscar materiales.', 'warning');
       return;
     }
 
     const term = event.target.value.toLowerCase();
     this.nuevoMaterial.product_id = null; // reset if typing
-    this.productDropdownOpen = true;
+    setTimeout(() => { this.productDropdownOpen = true; });
     
     // Búsqueda en servidor si hay al menos 3 caracteres
     if (term.length >= 3) {
@@ -147,7 +201,11 @@ export class ServicioMedicoExpediente implements OnInit {
   selectProduct(prod: any) {
     this.nuevoMaterial.product_id = prod.id;
     this.nuevoMaterial.product_name = prod.name || prod.displayname;
-    this.productDropdownOpen = false;
+    setTimeout(() => { this.productDropdownOpen = false; });
+  }
+
+  openProductDropdown() {
+    setTimeout(() => { this.productDropdownOpen = true; });
   }
 
   onBlurProductDropdown() {
@@ -157,6 +215,86 @@ export class ServicioMedicoExpediente implements OnInit {
       // Revert if no valid selection was made
       if (!this.nuevoMaterial.product_id) {
         this.nuevoMaterial.product_name = '';
+      }
+    }, 200);
+  }
+
+  getMedicoName(id: number | null): string {
+    if (!id) return '';
+    const med = this.medicos.find(m => m.id === id);
+    return med ? `${med.first_name} ${med.last_name}` : '';
+  }
+
+  getEnfermeraName(id: number | null): string {
+    if (!id) return '';
+    const enf = this.enfermeras.find(e => e.id === id);
+    return enf ? `${enf.first_name} ${enf.last_name}` : '';
+  }
+
+  onMedicoSearchInput(event: any) {
+    const term = event.target.value.toLowerCase();
+    this.nuevaConsultaData.medico_user_id = null; // reset if typing
+    setTimeout(() => { this.medicoDropdownOpen = true; });
+    this.filteredMedicos = this.medicos.filter(m => 
+      `${m.first_name} ${m.last_name}`.toLowerCase().includes(term)
+    );
+  }
+
+  selectMedico(med: any) {
+    this.nuevaConsultaData.medico_user_id = med ? med.id : null;
+    this.medicoSearchTerm = med ? `${med.first_name} ${med.last_name}` : '';
+    setTimeout(() => { this.medicoDropdownOpen = false; });
+  }
+
+  openMedicoDropdown() {
+    setTimeout(() => { 
+      this.medicoDropdownOpen = true; 
+      this.medicoSearchTerm = '';
+      this.filteredMedicos = [...this.medicos];
+    });
+  }
+
+  onBlurMedicoDropdown() {
+    setTimeout(() => {
+      this.medicoDropdownOpen = false;
+      if (!this.nuevaConsultaData.medico_user_id) {
+        this.medicoSearchTerm = '';
+      } else {
+        this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
+      }
+    }, 200);
+  }
+
+  onEnfermeraSearchInput(event: any) {
+    const term = event.target.value.toLowerCase();
+    this.nuevaConsultaData.enfermera_user_id = null;
+    setTimeout(() => { this.enfermeraDropdownOpen = true; });
+    this.filteredEnfermeras = this.enfermeras.filter(e => 
+      `${e.first_name} ${e.last_name}`.toLowerCase().includes(term)
+    );
+  }
+
+  selectEnfermera(enf: any) {
+    this.nuevaConsultaData.enfermera_user_id = enf ? enf.id : null;
+    this.enfermeraSearchTerm = enf ? `${enf.first_name} ${enf.last_name}` : '';
+    setTimeout(() => { this.enfermeraDropdownOpen = false; });
+  }
+
+  openEnfermeraDropdown() {
+    setTimeout(() => { 
+      this.enfermeraDropdownOpen = true; 
+      this.enfermeraSearchTerm = '';
+      this.filteredEnfermeras = [...this.enfermeras];
+    });
+  }
+
+  onBlurEnfermeraDropdown() {
+    setTimeout(() => {
+      this.enfermeraDropdownOpen = false;
+      if (!this.nuevaConsultaData.enfermera_user_id) {
+        this.enfermeraSearchTerm = '';
+      } else {
+        this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
       }
     }, 200);
   }
@@ -187,17 +325,19 @@ export class ServicioMedicoExpediente implements OnInit {
     this.isLoadingConsultas = true;
     this.servicioMedico.getConsultas(this.token)
       .pipe(finalize(() => {
-        this.isLoadingConsultas = false;
-        this.cdr.detectChanges();
-        
-        // Auto-open consultation if query param is present
-        const consultaId = this.route.snapshot.queryParamMap.get('consulta_id');
-        if (consultaId && this.consultas.length > 0) {
-          const cToEdit = this.consultas.find(c => String(c.id) === consultaId);
-          if (cToEdit && !this.isEditingConsulta) {
-            this.editarConsulta(cToEdit);
+        setTimeout(() => {
+          this.isLoadingConsultas = false;
+          
+          // Auto-open consultation if query param is present
+          const consultaId = this.route.snapshot.queryParamMap.get('consulta_id');
+          if (consultaId && this.consultas.length > 0) {
+            const cToEdit = this.consultas.find(c => String(c.id) === consultaId);
+            if (cToEdit && !this.isEditingConsulta) {
+              this.editarConsulta(cToEdit);
+            }
           }
-        }
+          this.cdr.detectChanges();
+        });
       }))
       .subscribe({
         next: (res: any) => {
@@ -210,7 +350,12 @@ export class ServicioMedicoExpediente implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/servicio-medico/escaner']);
+    const source = this.route.snapshot.queryParamMap.get('source');
+    if (source === 'visitas') {
+      this.router.navigate(['/servicio-medico/visitas']);
+    } else {
+      this.router.navigate(['/servicio-medico/escaner']);
+    }
   }
 
   guardarDatosGenerales() {
@@ -282,6 +427,8 @@ export class ServicioMedicoExpediente implements OnInit {
     this.nuevaConsultaData = this.getDefaultConsultaData();
     this.isEditingConsulta = false;
     this.consultaEditId = null;
+    this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
+    this.enfermeraSearchTerm = '';
     this.activeTab = 'nueva_consulta';
   }
 
@@ -380,7 +527,9 @@ export class ServicioMedicoExpediente implements OnInit {
       ubicacion_netsuite: consulta.ubicacion_netsuite ? String(consulta.ubicacion_netsuite) : '',
       materiales_json: parsedMateriales
     };
-    this.activeTab = 'nueva_consulta';
+    this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
+    this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
+    this.activeTab = 'editar_consulta';
   }
 
   cancelarConsulta() {
@@ -388,8 +537,14 @@ export class ServicioMedicoExpediente implements OnInit {
   }
 
   getDefaultConsultaData() {
+    const currentUser = this.authService.getCurrentUser();
     return {
       ubicacion_netsuite: '',
+      medico_user_id: currentUser ? currentUser.id : null,
+      enfermera_user_id: null,
+      tipo_atencion_id: 1, // 1 = Rutina, 2 = Urgencia
+      se_requirio_ambulancia: false,
+      nivel_atencion: false,
       status: 'abierta',
       ta_sistolica: null,
       ta_diastolica: null,
@@ -411,6 +566,10 @@ export class ServicioMedicoExpediente implements OnInit {
     };
   }
 
+  toggleTipoAtencion(event: any) {
+    this.nuevaConsultaData.tipo_atencion_id = event.target.checked ? 2 : 1;
+  }
+
   calcularIMC() {
     if (this.nuevaConsultaData.peso && this.nuevaConsultaData.talla) {
       const peso = parseFloat(this.nuevaConsultaData.peso);
@@ -429,8 +588,11 @@ export class ServicioMedicoExpediente implements OnInit {
       Swal.fire('Atención', 'Debe seleccionar un producto válido de NetSuite y una cantidad mayor a 0', 'warning');
       return;
     }
-    this.nuevaConsultaData.materiales_json.push({ ...this.nuevoMaterial });
-    this.nuevoMaterial = { product_id: null, product_name: '', cantidad: 0 };
+    this.nuevaConsultaData.materiales_json.push({ 
+      ...this.nuevoMaterial,
+      no_incluir: !this.nuevoMaterial.descuenta_inventario 
+    });
+    this.nuevoMaterial = { product_id: null, product_name: '', cantidad: 0, descuenta_inventario: true };
   }
 
   removerMaterial(index: number) {
@@ -438,6 +600,10 @@ export class ServicioMedicoExpediente implements OnInit {
   }
 
   guardarConsulta(cerrar: boolean) {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
     if (!this.nuevaConsultaData.motivo_consulta) {
       this.showValidationErrors = true;
       Swal.fire('Atención', 'El motivo de la consulta es obligatorio', 'warning');

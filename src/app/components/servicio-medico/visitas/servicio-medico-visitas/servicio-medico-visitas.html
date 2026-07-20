@@ -118,8 +118,8 @@
             
             <!-- Action Button -->
             <div class="action-btn-container mt-3 mt-md-0 border-start ps-md-4">
-              <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id }" class="btn btn-primary btn-sm px-3 py-1.5 fw-semibold shadow-sm rounded-pill w-100 text-nowrap d-flex justify-content-center align-items-center gap-2">
-                Ver Consulta <i class="bi bi-arrow-right"></i>
+              <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id, source: 'visitas' }" class="btn btn-primary btn-sm px-3 py-1.5 fw-semibold shadow-sm rounded-pill w-100 text-nowrap d-flex justify-content-center align-items-center gap-2">
+                Ver Expediente <i class="bi bi-arrow-right"></i>
               </a>
             </div>
 

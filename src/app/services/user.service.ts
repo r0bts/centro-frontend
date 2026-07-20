@@ -11,6 +11,7 @@ export interface User {
   firstName: string;
   lastName: string;
   employeeNumber: string;
+  jobdescription?: string;
   role: string;
   isActive: boolean;
   createdAt: Date;
@@ -119,6 +120,7 @@ export class UserService {
             firstName: user.first_name || user.firstName,
             lastName: user.last_name || user.lastName,
             employeeNumber: user.number_employee || user.employeeNumber,
+            jobdescription: user.jobdescription,
             locationId: user.location_id || user.locationId,
             locationName: user.location?.name || user.locationName,
             departmentId: user.department_id || user.departmentId,
@@ -152,6 +154,7 @@ export class UserService {
         firstName: 'Administrador',
         lastName: 'Sistema',
         employeeNumber: 'EMP001',
+        jobdescription: 'Gerente General',
         role: 'Administrador',
         isActive: true,
         createdAt: new Date('2024-01-15'),

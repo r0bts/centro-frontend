@@ -6,7 +6,7 @@
     <!-- Header Actions -->
     <div class="d-flex align-items-center mb-4">
       <button class="btn custom-btn-outline px-4 d-flex align-items-center me-3 shadow-sm bg-white" (click)="goBack()">
-        <i class="bi bi-arrow-left me-2"></i> Volver al Escáner
+        <i class="bi bi-arrow-left me-2"></i> {{ backButtonText }}
       </button>
     </div>
 
@@ -111,7 +111,15 @@
                     [class.active]="activeTab === 'nueva_consulta'"
                     [class.bg-dark]="activeTab === 'nueva_consulta'"
                     (click)="iniciarNuevaConsulta()">
-              <i class="bi bi-plus-circle me-2"></i> {{ isEditingConsulta ? 'Editar Consulta' : 'Nueva Consulta' }}
+              <i class="bi bi-plus-circle me-2"></i> Nueva Consulta
+            </button>
+          </li>
+          <li class="nav-item ms-2" *ngIf="isEditingConsulta">
+            <button class="nav-link rounded-pill fw-semibold px-4 transition-all" 
+                    [class.active]="activeTab === 'editar_consulta'"
+                    [class.bg-dark]="activeTab === 'editar_consulta'"
+                    (click)="activeTab = 'editar_consulta'">
+              <i class="bi bi-pencil-fill me-2"></i> Editar Consulta
             </button>
           </li>
         </ul>
@@ -240,27 +248,131 @@
           </div>
         </div>
 
-        <!-- VISTA NUEVA CONSULTA -->
-        <div *ngIf="activeTab === 'nueva_consulta'" class="fade show position-relative pb-5">
+        <!-- VISTA NUEVA CONSULTA / EDITAR CONSULTA -->
+        <div *ngIf="activeTab === 'nueva_consulta' || activeTab === 'editar_consulta'" class="fade show position-relative pb-5">
           
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-3 gap-3">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
             <div>
               <h4 class="fw-bold text-dark mb-1">{{ isEditingConsulta ? 'Edición de Atención Médica' : 'Registro de Atención Médica' }}</h4>
               <p class="text-muted small mb-0">Captura de nota médica formato SOAP e insumos.</p>
             </div>
             
-            <!-- Ubicación inline -->
-            <div class="d-flex align-items-center bg-white border rounded-pill px-3 py-1 shadow-sm">
-              <i class="bi bi-geo-alt-fill text-primary me-2"></i>
-              <select name="ubicacion_netsuite" class="form-select border-0 shadow-none bg-transparent fw-semibold text-dark py-1 pe-4" style="min-width: 200px;" [(ngModel)]="nuevaConsultaData.ubicacion_netsuite" [disabled]="nuevaConsultaData.status === 'cerrada'">
-                <option value="">Ubicación...</option>
-                <option *ngFor="let loc of locations" value="{{ loc.id }}">{{ loc.name }}</option>
-              </select>
+            <div class="d-flex align-items-center">
+              <button class="btn btn-light border shadow-sm text-danger fw-bold rounded-pill px-3 py-2 d-flex align-items-center" (click)="cancelarConsulta()">
+                <i class="bi bi-x-lg me-2"></i> Cancelar
+              </button>
             </div>
-            
-            <button class="btn btn-light border shadow-sm text-danger fw-bold rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;" (click)="cancelarConsulta()" title="Cancelar Consulta">
-              <i class="bi bi-x-lg"></i>
-            </button>
+          </div>
+
+          <!-- Datos de Atención Card -->
+          <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white">
+            <div class="card-body p-4">
+              <div class="row g-4">
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-geo-alt-fill text-primary me-1"></i> Ubicación</label>
+                  <select name="ubicacion_netsuite" class="form-select premium-input" [(ngModel)]="nuevaConsultaData.ubicacion_netsuite" [disabled]="nuevaConsultaData.status === 'cerrada'">
+                    <option value="">Seleccione ubicación...</option>
+                    <option *ngFor="let loc of locations" value="{{ loc.id }}">{{ loc.name }}</option>
+                  </select>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-heart text-danger me-1"></i> Enfermera / Asistente</label>
+                  <div class="dropdown w-100 position-relative" [class.show]="enfermeraDropdownOpen">
+                    <input type="text" class="form-control premium-input py-2" 
+                           placeholder="Seleccionar enfermera..." 
+                           [(ngModel)]="enfermeraSearchTerm"
+                           (focus)="openEnfermeraDropdown()"
+                           (blur)="onBlurEnfermeraDropdown()"
+                           (input)="onEnfermeraSearchInput($event)"
+                           [disabled]="nuevaConsultaData.status === 'cerrada'">
+                    <ul *ngIf="enfermeraDropdownOpen" class="dropdown-menu w-100 shadow-lg border-1 border-light d-block mb-1" style="max-height: 280px; overflow-y: auto; position: absolute; top: 100%; left: 0; z-index: 9999;">
+                      <li>
+                        <a class="dropdown-item py-2 border-bottom" href="javascript:void(0)" (mousedown)="selectEnfermera(null)">
+                          <div class="text-danger fw-medium fst-italic">Ninguna / Quitar selección</div>
+                        </a>
+                      </li>
+                      <li *ngFor="let enf of filteredEnfermeras">
+                        <a class="dropdown-item py-2 border-bottom" href="javascript:void(0)" (mousedown)="selectEnfermera(enf)">
+                          <div class="text-dark fw-medium">{{ enf.first_name }} {{ enf.last_name }}</div>
+                        </a>
+                      </li>
+                      <li *ngIf="filteredEnfermeras.length === 0">
+                        <span class="dropdown-item text-muted small py-2">Sin resultados</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="col-md-4">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-badge-fill text-primary me-1"></i> Médico Tratante</label>
+                  <div class="dropdown w-100 position-relative" [class.show]="medicoDropdownOpen">
+                    <input type="text" class="form-control premium-input py-2" 
+                           placeholder="Seleccionar médico..." 
+                           [(ngModel)]="medicoSearchTerm"
+                           (focus)="openMedicoDropdown()"
+                           (blur)="onBlurMedicoDropdown()"
+                           (input)="onMedicoSearchInput($event)"
+                           [disabled]="nuevaConsultaData.status === 'cerrada'">
+                    <ul *ngIf="medicoDropdownOpen" class="dropdown-menu w-100 shadow-lg border-1 border-light d-block mb-1" style="max-height: 280px; overflow-y: auto; position: absolute; top: 100%; left: 0; z-index: 9999;">
+                      <li>
+                        <a class="dropdown-item py-2 border-bottom" href="javascript:void(0)" (mousedown)="selectMedico(null)">
+                          <div class="text-danger fw-medium fst-italic">Ninguno / Quitar selección</div>
+                        </a>
+                      </li>
+                      <li *ngFor="let med of filteredMedicos">
+                        <a class="dropdown-item py-2 border-bottom" href="javascript:void(0)" (mousedown)="selectMedico(med)">
+                          <div class="text-dark fw-medium">{{ med.first_name }} {{ med.last_name }}</div>
+                        </a>
+                      </li>
+                      <li *ngIf="filteredMedicos.length === 0">
+                        <span class="dropdown-item text-muted small py-2">Sin resultados</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="col-md-4 d-flex flex-column justify-content-center">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-heart-pulse-fill text-danger me-1"></i> Tipo de Atención</label>
+                  <div class="form-check form-switch pt-1">
+                    <input class="form-check-input shadow-none" type="checkbox" role="switch" id="tipoAtencionSwitch" 
+                           [checked]="nuevaConsultaData.tipo_atencion_id === 2"
+                           (change)="toggleTipoAtencion($event)"
+                           [disabled]="nuevaConsultaData.status === 'cerrada'"
+                           style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                    <label class="form-check-label fw-semibold ms-2 text-dark" for="tipoAtencionSwitch" style="cursor: pointer; user-select: none;">
+                      {{ nuevaConsultaData.tipo_atencion_id === 2 ? 'Urgencia' : 'Rutina' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div class="col-md-4 d-flex flex-column justify-content-center">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-truck-front-fill text-warning me-1"></i> Se Requirió Ambulancia</label>
+                  <div class="form-check form-switch pt-1">
+                    <input class="form-check-input shadow-none" type="checkbox" role="switch" id="ambulanciaSwitch" 
+                           [(ngModel)]="nuevaConsultaData.se_requirio_ambulancia"
+                           [disabled]="nuevaConsultaData.status === 'cerrada'"
+                           style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                    <label class="form-check-label fw-semibold ms-2 text-dark" for="ambulanciaSwitch" style="cursor: pointer; user-select: none;">
+                      {{ nuevaConsultaData.se_requirio_ambulancia ? 'Sí' : 'No' }}
+                    </label>
+                  </div>
+                </div>
+
+                <div class="col-md-4 d-flex flex-column justify-content-center">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-layers-fill text-info me-1"></i> Nivel de Atención</label>
+                  <div class="form-check form-switch pt-1">
+                    <input class="form-check-input shadow-none" type="checkbox" role="switch" id="nivelAtencionSwitch" 
+                           [(ngModel)]="nuevaConsultaData.nivel_atencion"
+                           [disabled]="nuevaConsultaData.status === 'cerrada'"
+                           style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                    <label class="form-check-label fw-semibold ms-2 text-dark" for="nivelAtencionSwitch" style="cursor: pointer; user-select: none;">
+                      {{ nuevaConsultaData.nivel_atencion ? 'Alto' : 'Básico' }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Signos Vitales -->
@@ -440,7 +552,7 @@
                         <input type="text" class="form-control border-0 py-1 shadow-none fw-medium dropdown-toggle" 
                                placeholder="Buscar producto..." 
                                [(ngModel)]="nuevoMaterial.product_name"
-                               (focus)="productDropdownOpen = true"
+                               (focus)="openProductDropdown()"
                                (blur)="onBlurProductDropdown()"
                                (input)="onProductSearchInput($event)">
                       </div>
@@ -474,6 +586,7 @@
                     </button>
                   </div>
                 </div>
+
               </div>
 
               <!-- Lista de Materiales -->
@@ -483,13 +596,36 @@
 
               <div class="list-group list-group-flush border rounded-3 overflow-hidden shadow-sm" *ngIf="nuevaConsultaData.materiales_json.length > 0">
                 <div class="list-group-item px-3 py-2 d-flex align-items-center material-item bg-white" *ngFor="let m of nuevaConsultaData.materiales_json; let i = index">
-                  <div style="width: 50%;" class="fw-bold text-dark small"><i class="bi bi-box me-2 text-muted"></i> {{ m.product_name || m.material }}</div>
-                  <div style="width: 15%; text-align: center;">
+                  <!-- Columna 1: Nombre (35%) -->
+                  <div style="width: 35%;" class="fw-bold text-dark small d-flex align-items-center text-wrap pe-2">
+                    <i class="bi bi-box me-2 text-muted"></i> 
+                    <span style="word-break: break-word;">{{ m.product_name || m.material }}</span>
+                  </div>
+                  
+                  <!-- Columna 2: Switch/Badge (25%) -->
+                  <div style="width: 25%;" class="d-flex align-items-center">
+                    <div class="form-check form-switch mb-0 d-flex align-items-center" *ngIf="nuevaConsultaData.status !== 'cerrada'">
+                      <input class="form-check-input m-0 me-2" type="checkbox" role="switch" id="switchDescuenta{{i}}" 
+                             [ngModel]="!m.no_incluir" (ngModelChange)="m.no_incluir = !$event" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                      <label class="form-check-label fw-bold text-dark" for="switchDescuenta{{i}}" style="font-size: 0.75rem; cursor: pointer; white-space: nowrap; margin-top: 1px;">
+                        {{ !m.no_incluir ? 'Descuenta' : 'No descuenta' }}
+                      </label>
+                    </div>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" *ngIf="!m.no_incluir && nuevaConsultaData.status === 'cerrada'" style="font-size: 0.6rem;">Descuenta</span>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" *ngIf="m.no_incluir && nuevaConsultaData.status === 'cerrada'" style="font-size: 0.6rem;">No Descuenta</span>
+                  </div>
+
+                  <!-- Columna 3: Cantidad (10%) -->
+                  <div style="width: 10%; text-align: center;">
                     <span class="badge bg-primary rounded-pill px-2 py-1 shadow-sm">{{ m.cantidad }}</span>
                   </div>
-                  <div style="width: 30%;" class="text-muted small fst-italic">{{ m.observaciones || '--' }}</div>
+
+                  <!-- Columna 4: Observaciones (25%) -->
+                  <div style="width: 25%;" class="text-muted small fst-italic ps-2 text-truncate" [title]="m.observaciones || ''">{{ m.observaciones || '--' }}</div>
+
+                  <!-- Columna 5: Botón Eliminar (5%) -->
                   <div style="width: 5%; text-align: right;">
-                    <button class="btn btn-sm btn-link text-danger p-0" (click)="removerMaterial(i)" title="Eliminar">
+                    <button class="btn btn-sm btn-link text-danger p-0" (click)="removerMaterial(i)" title="Eliminar" *ngIf="nuevaConsultaData.status !== 'cerrada'">
                       <i class="bi bi-trash-fill"></i>
                     </button>
                   </div>
