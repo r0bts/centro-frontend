@@ -1,3 +1,4 @@
+//Comentario solo de actualización
 import {
   Component,
   ChangeDetectionStrategy,
