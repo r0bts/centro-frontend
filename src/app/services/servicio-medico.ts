@@ -57,8 +57,6 @@ export class ServicioMedicoService {
    */
   getMedicos(): Observable<any> {
     return this.http.get(`${this.apiUrl}/medicos`);
-<<<<<<< HEAD
-=======
   }
 
   /**
@@ -66,7 +64,6 @@ export class ServicioMedicoService {
    */
   getEnfermeras(): Observable<any> {
     return this.http.get(`${this.apiUrl}/enfermeras`);
->>>>>>> 4dff368c2e3eb7fb0faf4351c7950409103ec695
   }
 
   /**

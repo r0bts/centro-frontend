@@ -57,10 +57,7 @@ export class ServicioMedicoExpediente implements OnInit {
   consultaEditId: number | null = null;
   
   showValidationErrors = false;
-<<<<<<< HEAD
-=======
   backButtonText: string = 'Regresar al Escáner';
->>>>>>> 4dff368c2e3eb7fb0faf4351c7950409103ec695
 
   constructor(
     private route: ActivatedRoute,
@@ -328,19 +325,6 @@ export class ServicioMedicoExpediente implements OnInit {
     this.isLoadingConsultas = true;
     this.servicioMedico.getConsultas(this.token)
       .pipe(finalize(() => {
-<<<<<<< HEAD
-        this.isLoadingConsultas = false;
-        this.cdr.detectChanges();
-        
-        // Auto-open consultation if query param is present
-        const consultaId = this.route.snapshot.queryParamMap.get('consulta_id');
-        if (consultaId && this.consultas.length > 0) {
-          const cToEdit = this.consultas.find(c => String(c.id) === consultaId);
-          if (cToEdit && !this.isEditingConsulta) {
-            this.editarConsulta(cToEdit);
-          }
-        }
-=======
         setTimeout(() => {
           this.isLoadingConsultas = false;
           
@@ -354,7 +338,6 @@ export class ServicioMedicoExpediente implements OnInit {
           }
           this.cdr.detectChanges();
         });
->>>>>>> 4dff368c2e3eb7fb0faf4351c7950409103ec695
       }))
       .subscribe({
         next: (res: any) => {
