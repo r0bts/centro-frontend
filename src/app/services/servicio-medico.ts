@@ -60,6 +60,13 @@ export class ServicioMedicoService {
   }
 
   /**
+   * Obtiene la lista de enfermeras disponibles
+   */
+  getEnfermeras(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/enfermeras`);
+  }
+
+  /**
    * Actualiza una consulta médica existente
    */
   updateConsulta(id: string | number, payload: any): Observable<any> {
@@ -84,13 +91,13 @@ export class ServicioMedicoService {
    * Obtiene la lista de productos (insumos médicos) desde NetSuite
    */
   getProducts(search: string = ''): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/products?limit=1000&search=${search}`);
+    return this.http.get(`${environment.apiUrl}/products?limit=1000&search=${search}&active=true`);
   }
 
   /**
    * Obtiene la lista de ubicaciones
    */
   getLocations(): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/locations`);
+    return this.http.get(`${environment.apiUrl}/acceso-clubes`);
   }
 }

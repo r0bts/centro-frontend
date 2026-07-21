@@ -14,6 +14,7 @@ export interface User {
   firstName: string;
   lastName: string;
   employeeNumber: string;
+  jobdescription?: string;
   locationId?: number;
   locationName?: string;
   departmentId?: number;
@@ -159,6 +160,15 @@ export class UsersListComponent implements OnInit, AfterViewInit, OnDestroy {
                   <small class="text-muted">No. ${data.employeeNumber}</small>
                 </div>
               `;
+            }
+          },
+          {
+            // Puesto
+            data: null,
+            render: (data: User) => {
+              return data.jobdescription 
+                ? `<span>${data.jobdescription}</span>`
+                : '<span class="text-muted">Sin puesto</span>';
             }
           },
           {
