@@ -495,7 +495,9 @@ export class ServicioMedicoExpediente implements OnInit {
             }
           },
           error: (err) => {
-            Swal.fire('Error', 'No se pudo enviar la consulta.', 'error');
+            console.error(err);
+            const errorMsg = err.error && err.error.message ? err.error.message : 'No se pudo enviar la consulta.';
+            Swal.fire('Error', errorMsg, 'error');
           }
         });
       }
@@ -606,7 +608,6 @@ export class ServicioMedicoExpediente implements OnInit {
     
     if (!this.nuevaConsultaData.motivo_consulta || 
         !this.nuevaConsultaData.ubicacion_netsuite || 
-        !this.nuevaConsultaData.enfermera_user_id || 
         !this.nuevaConsultaData.medico_user_id) {
       this.showValidationErrors = true;
       Swal.fire('Atención', 'Por favor complete todos los campos obligatorios (*).', 'warning');
@@ -648,7 +649,8 @@ export class ServicioMedicoExpediente implements OnInit {
         },
         error: (err) => {
           console.error(err);
-          Swal.fire('Error', 'Error al guardar la consulta', 'error');
+          const errorMsg = err.error && err.error.message ? err.error.message : 'Error al guardar la consulta';
+          Swal.fire('Error', errorMsg, 'error');
         }
       });
   }

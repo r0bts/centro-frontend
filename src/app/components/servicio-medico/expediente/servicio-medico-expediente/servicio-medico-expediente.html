@@ -279,11 +279,10 @@
                 </div>
 
                 <div class="col-md-4">
-                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-heart text-danger me-1"></i> Enfermera / Asistente <span class="text-danger">*</span></label>
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-heart text-danger me-1"></i> Enfermera / Asistente</label>
                   <div class="dropdown w-100 position-relative" [class.show]="enfermeraDropdownOpen">
                     <input type="text" class="form-control premium-input py-2" 
-                           [class.is-invalid]="showValidationErrors && !nuevaConsultaData.enfermera_user_id"
-                           placeholder="Seleccionar enfermera..." 
+                           placeholder="Seleccionar enfermera (opcional)..." 
                            [(ngModel)]="enfermeraSearchTerm"
                            (focus)="openEnfermeraDropdown()"
                            (blur)="onBlurEnfermeraDropdown()"
