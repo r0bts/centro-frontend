@@ -98,6 +98,6 @@ export class ServicioMedicoService {
    * Obtiene la lista de ubicaciones
    */
   getLocations(): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/acceso-clubes`);
+    return this.http.get(`${environment.apiUrl}/locations?limit=1000&search=medico`);
   }
 }

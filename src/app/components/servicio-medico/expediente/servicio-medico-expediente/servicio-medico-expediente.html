@@ -269,17 +269,20 @@
             <div class="card-body p-4">
               <div class="row g-4">
                 <div class="col-md-4">
-                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-geo-alt-fill text-primary me-1"></i> Ubicación</label>
-                  <select name="ubicacion_netsuite" class="form-select premium-input" [(ngModel)]="nuevaConsultaData.ubicacion_netsuite" [disabled]="nuevaConsultaData.status === 'cerrada'">
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-geo-alt-fill text-primary me-1"></i> Ubicación <span class="text-danger">*</span></label>
+                  <select name="ubicacion_netsuite" class="form-select premium-input" 
+                          [class.is-invalid]="showValidationErrors && !nuevaConsultaData.ubicacion_netsuite"
+                          [(ngModel)]="nuevaConsultaData.ubicacion_netsuite" [disabled]="nuevaConsultaData.status === 'cerrada'">
                     <option value="">Seleccione ubicación...</option>
                     <option *ngFor="let loc of locations" value="{{ loc.id }}">{{ loc.name }}</option>
                   </select>
                 </div>
 
                 <div class="col-md-4">
-                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-heart text-danger me-1"></i> Enfermera / Asistente</label>
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-heart text-danger me-1"></i> Enfermera / Asistente <span class="text-danger">*</span></label>
                   <div class="dropdown w-100 position-relative" [class.show]="enfermeraDropdownOpen">
                     <input type="text" class="form-control premium-input py-2" 
+                           [class.is-invalid]="showValidationErrors && !nuevaConsultaData.enfermera_user_id"
                            placeholder="Seleccionar enfermera..." 
                            [(ngModel)]="enfermeraSearchTerm"
                            (focus)="openEnfermeraDropdown()"
@@ -305,9 +308,10 @@
                 </div>
 
                 <div class="col-md-4">
-                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-badge-fill text-primary me-1"></i> Médico Tratante</label>
+                  <label class="form-label small fw-bold text-muted mb-2"><i class="bi bi-person-badge-fill text-primary me-1"></i> Médico Tratante <span class="text-danger">*</span></label>
                   <div class="dropdown w-100 position-relative" [class.show]="medicoDropdownOpen">
                     <input type="text" class="form-control premium-input py-2" 
+                           [class.is-invalid]="showValidationErrors && !nuevaConsultaData.medico_user_id"
                            placeholder="Seleccionar médico..." 
                            [(ngModel)]="medicoSearchTerm"
                            (focus)="openMedicoDropdown()"
