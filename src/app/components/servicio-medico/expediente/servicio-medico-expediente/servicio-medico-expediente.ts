@@ -102,7 +102,7 @@ export class ServicioMedicoExpediente implements OnInit {
         if (res.success) {
           const allLocs = res.data.locations || res.data;
           // Se cambió para obtener desde acceso_clubes. Ya no se filtra por "Servicio Médico"
-          this.locations = allLocs;
+          this.locations = Array.isArray(allLocs) ? allLocs : [];
         }
       },
       error: (err) => console.error('Error al cargar locations', err)
@@ -495,7 +495,9 @@ export class ServicioMedicoExpediente implements OnInit {
             }
           },
           error: (err) => {
-            Swal.fire('Error', 'No se pudo enviar la consulta.', 'error');
+            console.error(err);
+            const errorMsg = err.error && err.error.message ? err.error.message : 'No se pudo enviar la consulta.';
+            Swal.fire('Error', errorMsg, 'error');
           }
         });
       }
@@ -604,9 +606,11 @@ export class ServicioMedicoExpediente implements OnInit {
       document.activeElement.blur();
     }
     
-    if (!this.nuevaConsultaData.motivo_consulta) {
+    if (!this.nuevaConsultaData.motivo_consulta || 
+        !this.nuevaConsultaData.ubicacion_netsuite || 
+        !this.nuevaConsultaData.medico_user_id) {
       this.showValidationErrors = true;
-      Swal.fire('Atención', 'El motivo de la consulta es obligatorio', 'warning');
+      Swal.fire('Atención', 'Por favor complete todos los campos obligatorios (*).', 'warning');
       return;
     }
 
@@ -645,7 +649,8 @@ export class ServicioMedicoExpediente implements OnInit {
         },
         error: (err) => {
           console.error(err);
-          Swal.fire('Error', 'Error al guardar la consulta', 'error');
+          const errorMsg = err.error && err.error.message ? err.error.message : 'Error al guardar la consulta';
+          Swal.fire('Error', errorMsg, 'error');
         }
       });
   }
