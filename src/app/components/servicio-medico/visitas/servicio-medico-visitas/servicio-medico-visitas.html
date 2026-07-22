@@ -78,51 +78,49 @@
           <p class="text-muted">Las consultas médicas activas aparecerán aquí.</p>
         </div>
 
-        <div *ngIf="!isLoadingConsultas && consultas.length > 0" class="p-3 p-md-4">
-          <div *ngFor="let c of consultas" class="visita-item p-4 d-flex flex-column flex-md-row gap-4">
-            
-            <div class="flex-grow-1 min-w-0">
-              <!-- Top Header Row -->
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                  <!-- Paciente info -->
-                  <div class="d-flex align-items-center flex-wrap">
-                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle fw-bold px-2 py-1 me-2" [title]="c.patient_type | uppercase">
-                      <i class="bi bi-person-badge me-1"></i> {{ c.patient_credential || c.patient_token }}
-                    </span>
-                    <span class="text-dark fw-bold me-2">{{ c.patient_name || 'Paciente' }}</span>
-                  </div>
-                  
-                  <!-- Meta info (Fecha, Ubicacion, Medico) -->
-                  <div class="d-flex align-items-center gap-3 flex-wrap border-start ps-3">
-                    <span class="text-secondary small fw-medium"><i class="bi bi-clock text-primary me-1"></i> {{ c.created | date:'dd MMM yyyy, HH:mm' }}</span>
-                    <span class="text-secondary small fw-medium"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ getLocationName(c.ubicacion_netsuite) }}</span>
-                    <span class="text-secondary small fw-medium" *ngIf="c.medico_name"><i class="bi bi-heart-pulse-fill text-info me-1"></i> Atendió: <b>{{ c.medico_name }}</b></span>
+        <div *ngIf="!isLoadingConsultas && consultas.length > 0" class="p-2 p-md-3">
+          <div *ngFor="let c of consultas" class="visita-card position-relative mb-2">
+            <div class="card-body p-2 px-3">
+              <div class="row align-items-center g-2">
+                
+                <!-- Patient Info & Primary Details -->
+                <div class="col-12 col-xl-3 d-flex flex-column gap-1 border-end-xl pe-xl-2">
+                  <div class="d-flex flex-column">
+                    <span class="text-dark fw-bold fs-6 mb-1">{{ c.patient_name || 'Paciente' }}</span>
+                    <div>
+                      <span class="badge bg-light text-primary border border-primary-subtle px-2 py-1" [title]="c.patient_type | uppercase">
+                        <i class="bi bi-person-badge me-1"></i> {{ c.patient_credential || c.patient_token }}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Status Badge -->
-                <div>
-                  <span class="badge" 
-                        [ngClass]="c.status === 'abierta' ? 'bg-success' : 'custom-gold-bg'">
-                    {{ c.status | uppercase }}
+                <!-- Diagnosis & Meta -->
+                <div class="col-12 col-xl-6 ps-xl-3">
+                  <h6 class="fw-bold text-dark mb-1 text-truncate-2" [title]="c.diagnostico || 'Atención Médica'">
+                    {{ c.diagnostico || 'Atención Médica' }}
+                  </h6>
+                  <div class="d-flex flex-wrap gap-3 mt-1">
+                    <span class="text-secondary small"><i class="bi bi-clock-history text-primary"></i> {{ c.created | date:'dd MMM yyyy, HH:mm' }}</span>
+                    <span class="text-secondary small"><i class="bi bi-geo-alt-fill text-danger"></i> {{ getLocationName(c.ubicacion_netsuite) }}</span>
+                    <span class="text-secondary small" *ngIf="c.medico_name"><i class="bi bi-heart-pulse-fill text-info"></i> {{ c.medico_name }}</span>
+                  </div>
+                </div>
+
+                <!-- Action & Status -->
+                <div class="col-12 col-xl-3 d-flex flex-row justify-content-end align-items-center gap-2 border-start-xl ps-xl-2">
+                  <span class="status-badge" 
+                        [ngClass]="c.status === 'abierta' ? 'status-abierta' : 'status-cerrada'">
+                    <i class="bi me-1" [ngClass]="c.status === 'abierta' ? 'bi-circle-fill' : 'bi-check-circle-fill'"></i>
+                    {{ c.status === 'cerrada' ? 'ENVIADA A NS' : (c.status | uppercase) }}
                   </span>
+                  <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id, source: 'visitas' }" class="btn btn-primary btn-sm text-nowrap px-3 py-1 fw-medium shadow-sm">
+                    Ver <i class="bi bi-arrow-right"></i>
+                  </a>
                 </div>
-              </div>
-              
-              <!-- Main Content (Diagnosis) -->
-              <h6 class="fw-bold mb-0 text-dark">
-                {{ c.diagnostico || 'Atención Médica' }}
-              </h6>
-            </div>
-            
-            <!-- Action Button -->
-            <div class="action-btn-container mt-3 mt-md-0 border-start ps-md-4">
-              <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id, source: 'visitas' }" class="btn btn-primary btn-sm px-3 py-1.5 fw-semibold shadow-sm rounded-pill w-100 text-nowrap d-flex justify-content-center align-items-center gap-2">
-                Ver Expediente <i class="bi bi-arrow-right"></i>
-              </a>
-            </div>
 
+              </div>
+            </div>
           </div>
         </div>
 
