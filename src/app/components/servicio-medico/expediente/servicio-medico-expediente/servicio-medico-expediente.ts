@@ -102,7 +102,7 @@ export class ServicioMedicoExpediente implements OnInit {
         if (res.success) {
           const allLocs = res.data.locations || res.data;
           // Se cambió para obtener desde acceso_clubes. Ya no se filtra por "Servicio Médico"
-          this.locations = allLocs;
+          this.locations = Array.isArray(allLocs) ? allLocs : [];
         }
       },
       error: (err) => console.error('Error al cargar locations', err)
@@ -604,9 +604,12 @@ export class ServicioMedicoExpediente implements OnInit {
       document.activeElement.blur();
     }
     
-    if (!this.nuevaConsultaData.motivo_consulta) {
+    if (!this.nuevaConsultaData.motivo_consulta || 
+        !this.nuevaConsultaData.ubicacion_netsuite || 
+        !this.nuevaConsultaData.enfermera_user_id || 
+        !this.nuevaConsultaData.medico_user_id) {
       this.showValidationErrors = true;
-      Swal.fire('Atención', 'El motivo de la consulta es obligatorio', 'warning');
+      Swal.fire('Atención', 'Por favor complete todos los campos obligatorios (*).', 'warning');
       return;
     }
 
