@@ -292,8 +292,8 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
     moveItemInArray(reordered, event.previousIndex, event.currentIndex);
     this.reglas.set(reordered);
 
-    // 2. Collect IDs in the new order
-    const ids = reordered.map((r) => r.id);
+    // 2. Collect IDs in the new order — only same category as moved item
+    const ids = reordered.filter((r) => r.categoria === movedItem.categoria).map((r) => r.id);
     this.isReordering.set(true);
 
     // 3. Persist on backend
