@@ -61,8 +61,11 @@
     @if (estado === 'results' && membresia) {
 
       <!-- CARD: datos de la membresía -->
-      <div class="card">
-        <div class="card-title">Membresía {{ membresia.numeroHumano }}</div>
+      <div class="card" [ngClass]="cardBorderClass(membresia.estado)">
+        <div class="card-title">
+          Membresía {{ membresia.numeroHumano }}
+          <span class="badge" [ngClass]="badgeEstadoClass(membresia.estado)">{{ membresia.estado }}</span>
+        </div>
         <div class="mem-fields">
           <div class="mem-field">
             <div class="mem-field-label">Titular</div>
@@ -179,8 +182,8 @@
                     </span>
                   </td>
                   <td>
-                    <span class="acceso-bio">
-                      {{ s.acceso.cumple ? 'Acceso' : 'Sin acceso' }}
+                    <span class="acceso-badge" [class.acceso-ok]="s.acceso.cumple" [class.acceso-block]="!s.acceso.cumple">
+                      {{ s.acceso.cumple ? '✅ Acceso' : '🚫 Bloqueado' }}
                     </span>
                   </td>
                 </tr>

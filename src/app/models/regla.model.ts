@@ -16,6 +16,8 @@ export interface ReglaListItem {
   nombre: string;
   tipo: 'GENERAL' | 'PARTICULAR';
   accion: 'PERMITIR' | 'BLOQUEAR';
+  /** categoria — jerarquía de evaluación: EXCEPCIONES evalúa primero */
+  categoria: 'EXCEPCIONES' | 'NEGOCIO';
   activa: boolean;
   condicionesCount: number;
   fechaInicio: string | null;
@@ -127,6 +129,8 @@ export interface AddReglaPayload {
   condiciones: AddReglaCondicion[];
   /** Key matches what the backend reads: data['entidades'] */
   entidades: AddReglaEntidad[];
+  /** Si se omite, el backend asigna 'NEGOCIO' por defecto */
+  categoria?: 'EXCEPCIONES' | 'NEGOCIO';
 }
 
 /** Response envelope from POST /api/reglas-negocio (HTTP 201) */
@@ -138,8 +142,7 @@ export interface AddReglaResponse {
     numero_regla: number;
     nombre: string;
     tipo: 'GENERAL' | 'PARTICULAR';
-    accion: 'PERMITIR' | 'BLOQUEAR';
-    activa: boolean;
+    accion: 'PERMITIR' | 'BLOQUEAR';    categoria: 'EXCEPCIONES' | 'NEGOCIO';    activa: boolean;
   };
 }
 
@@ -173,6 +176,7 @@ export interface ReglaDetalle {
   nombre: string;
   tipo: 'GENERAL' | 'PARTICULAR';
   accion: 'PERMITIR' | 'BLOQUEAR';
+  categoria: 'EXCEPCIONES' | 'NEGOCIO';
   activa: boolean;
   mensaje_cumplimiento: string | null;
   mensaje_acuerdo: string | null;

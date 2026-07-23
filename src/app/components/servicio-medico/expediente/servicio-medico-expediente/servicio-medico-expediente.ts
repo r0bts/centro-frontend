@@ -201,6 +201,8 @@ export class ServicioMedicoExpediente implements OnInit {
   selectProduct(prod: any) {
     this.nuevoMaterial.product_id = prod.id;
     this.nuevoMaterial.product_name = prod.name || prod.displayname;
+    // Set descuenta_inventario to inverse of no_incluir_ajuste if available, else true
+    this.nuevoMaterial.descuenta_inventario = prod.no_incluir_ajuste !== undefined ? !prod.no_incluir_ajuste : true;
     setTimeout(() => { this.productDropdownOpen = false; });
   }
 

@@ -76,6 +76,19 @@
                 </select>
               </div>
 
+              <!-- Filtro Categoría -->
+              <div class="col-6 col-md-2">
+                <label class="form-label mb-1 small text-muted fw-semibold">Categoría</label>
+                <select
+                  class="form-select"
+                  [ngModel]="filterCategoria()"
+                  (ngModelChange)="filterCategoria.set($event); onFilterChange()">
+                  <option value="">Todas</option>
+                  <option value="EXCEPCIONES">⚠️ EXCEPCIONES</option>
+                  <option value="NEGOCIO">🏢 NEGOCIO</option>
+                </select>
+              </div>
+
               <!-- Filtro Estado -->
               <div class="col-6 col-md-2">
                 <label class="form-label mb-1 small text-muted fw-semibold">Estado</label>
@@ -198,138 +211,129 @@
                   (cdkDropListDropped)="onDropRegla($event)"
                   [cdkDropListDisabled]="!dragEnabled()">
 
-                  @for (regla of reglas(); track regla.id) {
-                    <!--
-                      cdkDrag — hace esta fila arrastrable
-                      .opacity-50 mientras se persiste el nuevo orden
-                    -->
-                    <tr
-                      cdkDrag
-                      [cdkDragData]="regla"
-                      [class.opacity-50]="isReordering()">
-
-                      <!-- ── Handle de arrastre ──────────────────────── -->
-                      <td class="border text-center">
-                        @if (dragEnabled()) {
-                          <!--
-                            cdkDragHandle — restringe el área de arrastre a este elemento.
-                            Sin él, toda la fila sería el área de agarre.
-                          -->
-                          <span
-                            cdkDragHandle
-                            class="drag-handle"
-                            title="Arrastra para reordenar">
-                            <i class="bi bi-grip-vertical fs-5 text-secondary"></i>
-                          </span>
-                        } @else {
-                          <span class="text-muted small">—</span>
-                        }
+                  @if (hasSections()) {
+                    <!-- ── Sección EXCEPCIONES ────────────────────────────────────── -->
+                    <tr class="table-dark" style="border-top: none;">
+                      <td colspan="9" class="py-2 ps-3 small fw-bold">
+                        <i class="bi bi-shield-fill-exclamation me-1"></i> EXCEPCIONES
+                        <span class="badge bg-secondary ms-2 fw-normal">{{ reglasExcepciones().length }}</span>
+                        <small class="ms-2 text-white-50 fw-normal">Evalúan primero</small>
                       </td>
-
-                      <!-- ── Número de regla ──────────────────────────── -->
-                      <td class="border ps-2">
-                        <span class="fw-bold text-primary">#{{ regla.numeroRegla }}</span>
-                      </td>
-
-                      <!-- ── Nombre ───────────────────────────────────── -->
-                      <td class="border">
-                        <div class="fw-semibold">{{ regla.nombre }}</div>
-                        <small class="text-muted">Creada: {{ formatDate(regla.fechaCreacion) }}</small>
-                      </td>
-
-                      <!-- ── Tipo ─────────────────────────────────────── -->
-                      <td class="border text-center">
-                        <span [class]="getTipoBadgeClass(regla.tipo)">
-                          {{ regla.tipo === 'GENERAL' ? '🌐' : '👤' }} {{ regla.tipo }}
-                        </span>
-                      </td>
-
-                      <!-- ── Acción ───────────────────────────────────── -->
-                      <td class="border text-center">
-                        <span [class]="getAccionBadgeClass(regla.accion)">
-                          {{ regla.accion === 'PERMITIR' ? '✅' : '🚫' }} {{ regla.accion }}
-                        </span>
-                      </td>
-
-                      <!-- ── Estado ──────────────────────────────────── -->
-                      <td class="border text-center">
-                        <span [class]="getEstadoBadgeClass(regla.activa)">
-                          {{ regla.activa ? 'Activa' : 'Inactiva' }}
-                        </span>
-                      </td>
-
-                      <!-- ── Condiciones ─────────────────────────────── -->
-                      <td class="border text-center">
-                        <span class="badge bg-secondary rounded-pill">
-                          {{ regla.condicionesCount }}
-                        </span>
-                      </td>
-
-                      <!-- ── Vigencia ─────────────────────────────────── -->
-                      <td class="border">
-                        @if (!regla.fechaInicio && !regla.fechaFin) {
-                          <span class="text-muted small">
-                            <i class="bi bi-infinity me-1"></i>Permanente
-                          </span>
-                        } @else {
-                          <span class="small text-warning-emphasis">
-                            <i class="bi bi-calendar-range me-1"></i>{{ getVigenciaText(regla) }}
-                          </span>
-                        }
-                      </td>
-
-                      <!-- ── Acciones ─────────────────────────────────── -->
-                      <td class="border text-center">
-                        <div class="d-flex gap-1 justify-content-center">
-
-                          <!-- Ver -->
-                          <button
-                            type="button"
-                            class="btn btn-outline-secondary btn-sm"
-                            (click)="onVerRegla(regla)"
-                            title="Ver detalle">
-                            <i class="bi bi-eye"></i>
-                          </button>
-
-                          <!-- Editar -->
-                          <button
-                            type="button"
-                            class="btn btn-outline-primary btn-sm"
-                            (click)="onEditarRegla(regla)"
-                            title="Editar regla">
-                            <i class="bi bi-pencil"></i>
-                          </button>
-
-                          <!-- Activar / Desactivar -->
-                          <button
-                            type="button"
-                            class="btn btn-sm"
-                            [class]="regla.activa ? 'btn-outline-warning' : 'btn-outline-success'"
-                            (click)="onToggleEstado(regla)"
-                            [title]="regla.activa ? 'Desactivar' : 'Activar'">
-                            <i [class]="regla.activa ? 'bi bi-pause-circle' : 'bi bi-play-circle'"></i>
-                          </button>
-
-                          <!-- Eliminar -->
-                          <button
-                            type="button"
-                            class="btn btn-outline-danger btn-sm"
-                            (click)="onEliminarRegla(regla)"
-                            title="Eliminar regla">
-                            <i class="bi bi-trash"></i>
-                          </button>
-
-                        </div>
-                      </td>
-
-                      <!-- Placeholder visual de la fila mientras se arrastra -->
-                      <div *cdkDragPlaceholder class="drag-placeholder"></div>
-
                     </tr>
+                    @for (regla of reglasExcepciones(); track regla.id) {
+                      <tr cdkDrag [cdkDragData]="regla" [class.opacity-50]="isReordering()">
+                        <ng-container *ngTemplateOutlet="rowContent; context: { regla: regla }"></ng-container>
+                        <div *cdkDragPlaceholder class="drag-placeholder"></div>
+                      </tr>
+                    }
+                    <!-- ── Sección NEGOCIO ─────────────────────────────── -->
+                    <tr class="table-secondary" style="border-top: 2px solid #dee2e6;">
+                      <td colspan="9" class="py-2 ps-3 small fw-bold text-dark">
+                        <i class="bi bi-building me-1"></i> NEGOCIO
+                        <span class="badge bg-info text-dark ms-2 fw-normal">{{ reglasNegocio().length }}</span>
+                        <small class="ms-2 text-muted fw-normal">Evalúan después</small>
+                      </td>
+                    </tr>
+                    @for (regla of reglasNegocio(); track regla.id) {
+                      <tr cdkDrag [cdkDragData]="regla" [class.opacity-50]="isReordering()">
+                        <ng-container *ngTemplateOutlet="rowContent; context: { regla: regla }"></ng-container>
+                        <div *cdkDragPlaceholder class="drag-placeholder"></div>
+                      </tr>
+                    }
+                  } @else {
+                    @for (regla of reglas(); track regla.id) {
+                      <tr cdkDrag [cdkDragData]="regla" [class.opacity-50]="isReordering()">
+                        <ng-container *ngTemplateOutlet="rowContent; context: { regla: regla }"></ng-container>
+                        <div *cdkDragPlaceholder class="drag-placeholder"></div>
+                      </tr>
+                    }
                   }
 
                 </tbody>
               </table>
+
+              <!-- Template reutilizable para celdas de fila -->
+              <ng-template #rowContent let-regla="regla">
+                <!-- ── Handle de arrastre ──────────────────────────────────── -->
+                <td class="border text-center">
+                  @if (dragEnabled() && canEditRegla(regla)) {
+                    <span cdkDragHandle class="drag-handle" title="Arrastra para reordenar">
+                      <i class="bi bi-grip-vertical fs-5 text-secondary"></i>
+                    </span>
+                  } @else {
+                    <span class="text-muted small">—</span>
+                  }
+                </td>
+                <!-- ── Número de regla ──────────────────────────── -->
+                <td class="border ps-2">
+                  <span class="fw-bold text-primary">#{{ regla.numeroRegla }}</span>
+                </td>
+                <!-- ── Nombre ───────────────────────────────────── -->
+                <td class="border">
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <div class="fw-semibold">{{ regla.nombre }}</div>
+                    <span [class]="getCategoriaBadgeClass(regla.categoria)" style="font-size:10px">
+                      {{ regla.categoria === 'EXCEPCIONES' ? '⚠️' : '🏢' }} {{ regla.categoria }}
+                    </span>
+                  </div>
+                  <small class="text-muted">Creada: {{ formatDate(regla.fechaCreacion) }}</small>
+                </td>
+                <!-- ── Tipo ─────────────────────────────────────── -->
+                <td class="border text-center">
+                  <span [class]="getTipoBadgeClass(regla.tipo)">
+                    {{ regla.tipo === 'GENERAL' ? '🌐' : '👤' }} {{ regla.tipo }}
+                  </span>
+                </td>
+                <!-- ── Acción ───────────────────────────────────── -->
+                <td class="border text-center">
+                  <span [class]="getAccionBadgeClass(regla.accion)">
+                    {{ regla.accion === 'PERMITIR' ? '✅' : '🚫' }} {{ regla.accion }}
+                  </span>
+                </td>
+                <!-- ── Estado ──────────────────────────────────── -->
+                <td class="border text-center">
+                  <span [class]="getEstadoBadgeClass(regla.activa)">
+                    {{ regla.activa ? 'Activa' : 'Inactiva' }}
+                  </span>
+                </td>
+                <!-- ── Condiciones ─────────────────────────────── -->
+                <td class="border text-center">
+                  <span class="badge bg-secondary rounded-pill">{{ regla.condicionesCount }}</span>
+                </td>
+                <!-- ── Vigencia ─────────────────────────────────── -->
+                <td class="border">
+                  @if (!regla.fechaInicio && !regla.fechaFin) {
+                    <span class="text-muted small"><i class="bi bi-infinity me-1"></i>Permanente</span>
+                  } @else {
+                    <span class="small text-warning-emphasis">
+                      <i class="bi bi-calendar-range me-1"></i>{{ getVigenciaText(regla) }}
+                    </span>
+                  }
+                </td>
+                <!-- ── Acciones ─────────────────────────────────── -->
+                <td class="border text-center">
+                  <div class="d-flex gap-1 justify-content-center">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="onVerRegla(regla)" title="Ver detalle">
+                      <i class="bi bi-eye"></i>
+                    </button>
+                    @if (canEditRegla(regla)) {
+                      <button type="button" class="btn btn-outline-primary btn-sm" (click)="onEditarRegla(regla)" title="Editar regla">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    }
+                    <button type="button" class="btn btn-sm"
+                      [class]="regla.activa ? 'btn-outline-warning' : 'btn-outline-success'"
+                      (click)="onToggleEstado(regla)"
+                      [title]="regla.activa ? 'Desactivar' : 'Activar'">
+                      <i [class]="regla.activa ? 'bi bi-pause-circle' : 'bi bi-play-circle'"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-sm" (click)="onEliminarRegla(regla)" title="Eliminar regla">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </ng-template>
+
             </div>
           </div>
         }

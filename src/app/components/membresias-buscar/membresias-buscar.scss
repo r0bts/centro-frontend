@@ -114,6 +114,20 @@ $r-lg:         10px;
   border-radius: $r-lg;
   margin-bottom: 16px;
   overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+
+  &.card-borde-activo {
+    border-color: $green;
+    box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.12);
+  }
+  &.card-borde-baja {
+    border-color: $red;
+    box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.12);
+  }
+  &.card-borde-suspendido {
+    border-color: $amber;
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.12);
+  }
 }
 
 .card-title {
@@ -124,6 +138,10 @@ $r-lg:         10px;
   border-bottom: 1px solid $card-border;
   text-align: center;
   letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 // ── Campos de membresía ────────────────────────────────────────────────────
@@ -285,6 +303,26 @@ table.ben-table {
 .socio-edad  { color: $text-2; text-align: center; }
 .socio-par   { color: $text-2; }
 .acceso-bio  { font-size: 12px; color: $text-2; }
+
+.acceso-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.02em;
+
+  &.acceso-ok {
+    background: rgba(22, 163, 74, 0.12);
+    color: #15803d;
+    border: 1px solid rgba(22, 163, 74, 0.3);
+  }
+  &.acceso-block {
+    background: rgba(220, 38, 38, 0.12);
+    color: #b91c1c;
+    border: 1px solid rgba(220, 38, 38, 0.3);
+  }
+}
 
 // ── Badges ─────────────────────────────────────────────────────────────────
 .badge {
