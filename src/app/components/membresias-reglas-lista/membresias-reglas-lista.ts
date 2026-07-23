@@ -13,6 +13,7 @@ import { Subject, debounceTime, takeUntil } from 'rxjs';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { ContentMenu } from '../content-menu/content-menu';
 import { ReglaService } from '../../services/regla.service';
+import { AuthService } from '../../services/auth.service';
 import { ReglaListItem } from '../../models/regla.model';
 import Swal from 'sweetalert2';
 
@@ -36,6 +37,7 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
   searchTerm = signal('');
   filterTipo = signal('');
   filterAccion = signal('');
+  filterCategoria = signal('');
   filterEstado = signal('');
 
   // ── Paginación server-side ───────────────────────────────
@@ -52,8 +54,15 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
       !!this.searchTerm() ||
       !!this.filterTipo() ||
       !!this.filterAccion() ||
+      !!this.filterCategoria() ||
       this.filterEstado() !== ''
   );
+
+  /** Reglas agrupadas por categoría para mostrar secciones en la tabla */
+  reglasExcepciones = computed(() => this.reglas().filter(r => r.categoria === 'EXCEPCIONES'));
+  reglasNegocio     = computed(() => this.reglas().filter(r => r.categoria === 'NEGOCIO'));
+  hasSections       = computed(() => !this.hasActiveFilters() &&
+    this.reglasExcepciones().length > 0 && this.reglasNegocio().length > 0);
 
   /**
    * Drag & Drop is disabled when any filter/search is active.
@@ -70,7 +79,8 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
 
   constructor(
     private router: Router,
-    private reglaService: ReglaService
+    private reglaService: ReglaService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -245,8 +255,39 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
     if (event.previousIndex === event.currentIndex) return;
     if (!this.dragEnabled()) return;
 
-    // 1. Optimistic local reorder
     const snapshot = [...this.reglas()];
+
+    // Bloquear movimiento entre categorías distintas
+    const movedItem  = snapshot[event.previousIndex];
+    const targetItem = snapshot[event.currentIndex];
+    if (movedItem.categoria !== targetItem.categoria) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'No permitido',
+        text: 'No puedes mover reglas de EXCEPCIONES a la sección NEGOCIO ni viceversa.',
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+      return;
+    }
+
+    // Bloquear si no tiene permiso de edición para esta categoría
+    if (!this.canEditRegla(movedItem)) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Sin permisos',
+        text: `No tienes permiso para reordenar reglas de ${movedItem.categoria}.`,
+        timer: 3000,
+        showConfirmButton: false,
+        toast: true,
+        position: 'top-end',
+      });
+      return;
+    }
+
+    // 1. Optimistic local reorder
     const reordered = [...snapshot];
     moveItemInArray(reordered, event.previousIndex, event.currentIndex);
     this.reglas.set(reordered);
@@ -311,6 +352,7 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.filterTipo.set('');
     this.filterAccion.set('');
+    this.filterCategoria.set('');
     this.filterEstado.set('');
     this.currentPage.set(1);
     this.loadReglas();
@@ -336,6 +378,10 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
 
   getTipoBadgeClass(tipo: string): string {
     return tipo === 'GENERAL' ? 'badge bg-primary' : 'badge bg-purple';
+  }
+
+  getCategoriaBadgeClass(cat: string): string {
+    return cat === 'EXCEPCIONES' ? 'badge bg-dark' : 'badge bg-info text-dark';
   }
 
   getAccionBadgeClass(accion: string): string {
@@ -366,5 +412,13 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
 
   trackById(_index: number, regla: ReglaListItem): number {
     return regla.id;
+  }
+
+  /** Verifica si el usuario tiene permiso para editar la regla (según su categoría) */
+  canEditRegla(regla: ReglaListItem): boolean {
+    const perm = regla.categoria === 'EXCEPCIONES'
+      ? 'reglas_editar_excepciones'
+      : 'reglas_editar_negocio';
+    return this.authService.hasPermission('membresias_reglas', perm);
   }
 }

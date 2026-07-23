@@ -84,21 +84,23 @@
                 <div class="sec-icon sec-blue"><i class="bi bi-pencil-square"></i></div>
                 <div>
                   <div class="fw-bold">Identidad de la regla</div>
-                  <div class="text-muted small">Número de evaluación y nombre descriptivo</div>
+                  <div class="text-muted small">Nombre descriptivo de la regla</div>
                 </div>
               </div>
 
               <div class="row g-3">
-                <div class="col-auto" style="width:140px">
-                  <label class="form-label fw-semibold small text-uppercase text-muted">
-                    Regla # <span class="text-danger">*</span>
-                  </label>
-                  <input type="number" class="form-control"
-                    [ngModel]="numeroRegla()"
-                    (ngModelChange)="numeroRegla.set($event)"
-                    min="1" max="9999" step="10" placeholder="10">
-                  <div class="form-text">Menor # = evalúa primero</div>
-                </div>
+                @if (isEditMode()) {
+                  <div class="col-auto" style="width:140px">
+                    <label class="form-label fw-semibold small text-uppercase text-muted">
+                      Regla #
+                    </label>
+                    <input type="number" class="form-control"
+                      [ngModel]="numeroRegla()"
+                      (ngModelChange)="numeroRegla.set($event)"
+                      min="1" max="9999" step="1" placeholder="1">
+                    <div class="form-text">Menor # = evalúa primero</div>
+                  </div>
+                }
                 <div class="col">
                   <label class="form-label fw-semibold small text-uppercase text-muted">
                     Nombre de la regla <span class="text-danger">*</span>
@@ -138,6 +140,40 @@
                     <div class="oc-sub">Solo para <strong>membresías o socios específicos</strong> (paso 4)</div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PANEL: Categoría -->
+          <div class="card shadow-sm mb-3">
+            <div class="card-body">
+              <div class="sec-head mb-3">
+                <div class="sec-icon sec-dark"><i class="bi bi-layers-fill"></i></div>
+                <div>
+                  <div class="fw-bold">Categoría <span class="text-danger">*</span></div>
+                  <div class="text-muted small">¿En qué momento del motor de reglas se evalúa?</div>
+                </div>
+              </div>
+
+              <div class="row g-2">
+                @if (canManageExcepciones()) {
+                  <div class="col-6">
+                    <div class="opt-card" [class.sel-dark]="categoria() === 'EXCEPCIONES'" (click)="categoria.set('EXCEPCIONES')">
+                      <div class="opt-check" *ngIf="categoria() === 'EXCEPCIONES'"><i class="bi bi-check-lg"></i></div>
+                      <div class="oc-top"><span class="oc-icon">⚠️</span><span class="oc-label">EXCEPCIONES</span></div>
+                      <div class="oc-sub">Evalúa <strong>primero</strong>. Si bloquea, no llega a las reglas de Negocio</div>
+                    </div>
+                  </div>
+                }
+                @if (canManageNegocio()) {
+                  <div class="col-6">
+                    <div class="opt-card" [class.sel-info]="categoria() === 'NEGOCIO'" (click)="categoria.set('NEGOCIO')">
+                      <div class="opt-check" *ngIf="categoria() === 'NEGOCIO'"><i class="bi bi-check-lg"></i></div>
+                      <div class="oc-top"><span class="oc-icon">🏢</span><span class="oc-label">NEGOCIO</span></div>
+                      <div class="oc-sub">Evalúa <strong>segundo</strong>. Reglas operativas del área de membresías</div>
+                    </div>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -662,6 +698,44 @@
                 </div>
               </div>
 
+              <!-- Buscador con autocompletado -->
+              <div class="position-relative mb-3">
+                <div class="input-group">
+                  <span class="input-group-text bg-white">
+                    <i class="bi bi-search text-muted" *ngIf="!entitySearchLoading()"></i>
+                    <span class="spinner-border spinner-border-sm text-primary" *ngIf="entitySearchLoading()"></span>
+                  </span>
+                  <input type="text" class="form-control"
+                    [ngModel]="entitySearchQuery()"
+                    (ngModelChange)="onEntitySearchChange($event)"
+                    (blur)="hideEntityResults()"
+                    placeholder="Busca por número de membresía o nombre del titular…"
+                    autocomplete="off">
+                </div>
+                <!-- Dropdown de resultados -->
+                <div *ngIf="showEntityResults() && entitySearchResults().length > 0"
+                     class="dropdown-results border rounded shadow-sm bg-white position-absolute w-100"
+                     style="z-index:1000; top:100%; max-height:260px; overflow-y:auto;">
+                  <div *ngFor="let r of entitySearchResults()"
+                       class="dropdown-result-item px-3 py-2 cursor-pointer d-flex align-items-center gap-2"
+                       (mousedown)="selectEntityFromSearch(r)">
+                    <span class="badge" [class.bg-primary]="r.tipo === 'SOCIO'" [class.ent-badge-mem]="r.tipo === 'MEMBRESIA'" style="flex-shrink:0">
+                      {{ r.tipo === 'MEMBRESIA' ? 'MEMBRESÍA' : 'SOCIO' }}
+                    </span>
+                    <span class="small">{{ r.nombre }}</span>
+                    <span class="ms-auto text-success small" *ngIf="isEntityAlreadyAdded(r.tipo, r.numero)">
+                      <i class="bi bi-check-circle-fill"></i>
+                    </span>
+                  </div>
+                </div>
+                <div *ngIf="showEntityResults() && entitySearchResults().length === 0 && !entitySearchLoading()"
+                     class="border rounded shadow-sm bg-white position-absolute w-100 px-3 py-2 text-muted small"
+                     style="z-index:1000; top:100%;">
+                  Sin resultados para "{{ entitySearchQuery() }}"
+                </div>
+              </div>
+
+              <!-- Agregar manualmente por número 
               <div class="d-flex gap-2 mb-3">
                 <select class="form-select" style="width:160px;flex-shrink:0"
                   [ngModel]="newEntityTipo()"
@@ -673,11 +747,11 @@
                   [ngModel]="newEntityNumero()"
                   (ngModelChange)="newEntityNumero.set($event)"
                   (keydown)="onEntityKeydown($event)"
-                  placeholder="Número (ej: 888)" maxlength="50">
-                <button class="btn btn-primary px-3" type="button" (click)="addEntity()">
+                  placeholder="Número manual (ej: 888)" maxlength="50">
+                <button class="btn btn-outline-primary px-3" type="button" (click)="addEntity()">
                   <i class="bi bi-plus-lg"></i> Agregar
                 </button>
-              </div>
+              </div>-->
 
               <div *ngIf="entities().length === 0" class="ent-empty text-center text-muted py-3">
                 <i class="bi bi-person-slash d-block fs-3 mb-1"></i>
@@ -712,7 +786,8 @@
             </button>
             <button class="btn btn-success px-4 fw-bold"
                     (click)="saveRule()"
-                    [disabled]="isSaving()">
+                    [disabled]="isSaving() || !canSaveByCategoria()"
+                    [title]="!canSaveByCategoria() ? 'Sin permiso para guardar reglas de ' + categoria() : ''">
               <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1" role="status"></span>
               <i *ngIf="!isSaving()" class="bi bi-floppy me-1"></i>
               {{ isSaving() ? (isEditMode() ? 'Actualizando...' : 'Guardando...') : (isEditMode() ? 'Actualizar regla' : 'Guardar regla') }}
@@ -863,7 +938,8 @@
           <div class="card-body">
             <button class="btn btn-success w-100 fw-bold"
                     (click)="saveRule()"
-                    [disabled]="isSaving()">
+                    [disabled]="isSaving() || !canSaveByCategoria()"
+                    [title]="!canSaveByCategoria() ? 'Sin permiso para guardar reglas de ' + categoria() : ''">
               <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1" role="status"></span>
               <i *ngIf="!isSaving()" class="bi bi-floppy me-1"></i>
               {{ isSaving() ? (isEditMode() ? 'Actualizando...' : 'Guardando...') : (isEditMode() ? 'Actualizar regla' : 'Guardar regla') }}
