@@ -28,7 +28,8 @@ export class ServicioMedicoVisitas implements OnInit {
     ubicacion: '',
     medico: '',
     medico_search: '',
-    search: ''
+    search: '',
+    patient_type: ''
   };
 
   isMedicoDropdownOpen = false;
@@ -147,7 +148,8 @@ export class ServicioMedicoVisitas implements OnInit {
       ubicacion: '',
       medico: '',
       medico_search: '',
-      search: ''
+      search: '',
+      patient_type: ''
     };
     this.loadConsultas();
   }
