@@ -150,3 +150,22 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--primary-dark);
 }
+
+/* ------------------------ Badges de Identidad ------------------------ */
+.badge-socio {
+  background-color: var(--primary-color);
+  color: #ffffff;
+  border: 1px solid #a9a9a9;
+  font-weight: 500;
+  padding: 1px 10px;
+  font-size: 0.8rem;
+}
+
+.badge-invitado {
+  background-color: #f8f9fa; /* Gris muy claro */
+  color: #6c757d; /* Gris texto */
+  border: 1px solid #dee2e6;
+  font-weight: 500;
+  padding: 1px 10px;
+  font-size: 0.8rem;
+}

@@ -50,12 +50,20 @@
             <!-- Backdrop para cerrar al hacer clic fuera -->
             <div *ngIf="isMedicoDropdownOpen" class="position-fixed top-0 start-0 w-100 h-100" style="z-index: 1040;" (click)="isMedicoDropdownOpen = false"></div>
           </div>
-          <div class="col-md-9">
+          <div class="col-md-6">
             <label class="form-label text-muted small fw-bold mb-1">Buscar (Nombre o Credencial)</label>
             <div class="input-group input-group-sm">
               <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
               <input type="text" class="form-control border-start-0 ps-0 bg-light" style="background-color: transparent;" placeholder="Ej. Alejandro Perez, ZC478GL3..." [(ngModel)]="filters.search" (ngModelChange)="onSearchChange($event)" name="search">
             </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted small fw-bold mb-1">Identificación</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filters.patient_type" (ngModelChange)="aplicarFiltros()" name="patient_type">
+              <option value="">Todos</option>
+              <option value="socio">Socio</option>
+              <option value="invitado">Invitado</option>
+            </select>
           </div>
           <div class="col-md-3">
             <button type="button" class="btn btn-light btn-sm w-100" (click)="limpiarFiltros()">Limpiar Filtros</button>
@@ -87,9 +95,13 @@
                 <div class="col-12 col-xl-3 d-flex flex-column gap-1 border-end-xl pe-xl-2">
                   <div class="d-flex flex-column">
                     <span class="text-dark fw-bold fs-6 mb-1">{{ c.patient_name || 'Paciente' }}</span>
-                    <div>
-                      <span class="badge bg-light text-primary border border-primary-subtle px-2 py-1" [title]="c.patient_type | uppercase">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-light text-secondary border border-secondary-subtle px-2 py-1" [title]="c.patient_type | uppercase">
                         <i class="bi bi-person-badge me-1"></i> {{ c.patient_credential || c.patient_token }}
+                      </span>
+                      <span class="rounded"
+                            [ngClass]="c.is_socio ? 'badge-socio' : 'badge-invitado'">
+                        {{ c.is_socio ? 'Socio' : 'Invitado' }}
                       </span>
                     </div>
                   </div>

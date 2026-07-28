@@ -46,6 +46,7 @@ export class ServicioMedicoService {
       if (filters.ubicacion) params.push(`ubicacion=${filters.ubicacion}`);
       if (filters.medico) params.push(`medico=${filters.medico}`);
       if (filters.search) params.push(`search=${filters.search}`);
+      if (filters.patient_type) params.push(`patient_type=${filters.patient_type}`);
     }
 
     const queryString = params.length > 0 ? `?${params.join('&')}` : '';

@@ -391,7 +391,7 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
       case 'entregado':
         this.router.navigate(
           ['/requisicion/confirmacion'],
-          { queryParams: { id: n.requisition_id, mode: 'view' } }
+          { queryParams: { id: n.requisition_id, mode: 'edit' } }
         );
         break;
     }

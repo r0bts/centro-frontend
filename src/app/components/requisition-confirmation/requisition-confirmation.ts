@@ -240,6 +240,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
           const data = response.data;
           
           // Mapear datos principales
+          this.requisitionId = data.id;  // Siempre 'REQ-0030', independiente de cómo llegó la URL
           this.deliveryDate = data.deliveryDateTime ? new Date(data.deliveryDateTime) : null;
           this.isDevolucion = data.awaitingReturn;
           this.businessUnit = data.businessUnit || '';
@@ -352,6 +353,20 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
 
   onSectionChange(section: string): void {
     this.activeSection = section;
+  }
+
+  getStatusBadgeClass(status: string): string {
+    const map: Record<string, string> = {
+      'Solicitado':             'bg-warning text-dark',
+      'Autorizada':             'bg-success text-white',
+      'En Proceso':             'bg-primary text-white',
+      'Listo para Recoger':     'bg-info text-white',
+      'Parcialmente Entregado': 'bg-warning text-dark',
+      'Entregado':              'bg-secondary text-white',
+      'Espera Devolución':      'bg-warning text-dark',
+      'Cancelado':              'bg-danger text-white',
+    };
+    return map[status] ?? 'bg-secondary text-white';
   }
 
   ngOnDestroy(): void {

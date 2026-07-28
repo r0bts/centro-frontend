@@ -82,11 +82,22 @@
               </div>
             </div>
 
-            <div class="d-flex align-items-center text-muted">
+            <div class="d-flex align-items-center mb-3 text-muted">
               <i class="bi bi-person-hearts me-3 fs-5 text-primary"></i>
               <div>
                 <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Responsable</small>
                 <span class="fw-medium text-dark">{{ medicalProfile.responsable || 'N/A' }}</span>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center text-muted">
+              <i class="bi bi-person-bounding-box me-3 fs-5" [ngStyle]="{'color': medicalProfile.is_socio ? 'var(--primary-color)' : '#d97706'}"></i>
+              <div>
+                <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Identificación</small>
+                <span class="rounded"
+                      [ngClass]="medicalProfile.is_socio ? 'badge-socio' : 'badge-invitado'">
+                  {{ medicalProfile.is_socio ? 'Socio' : 'Invitado' }}
+                </span>
               </div>
             </div>
           </div>
