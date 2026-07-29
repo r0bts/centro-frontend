@@ -21,9 +21,13 @@
                     <i class="bi bi-eye me-2"></i>Vista de Requisición: {{ requisitionId }}
                   </span>
                 </h4>
-                <span class="badge bg-light text-dark fs-6">
-                  {{ totalAreasCount }} área(s)
-                </span>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-light text-dark fs-6">{{ totalAreasCount }} área(s)</span>
+                  <span class="badge fs-6" [ngClass]="getStatusBadgeClass(requisitionStatus)"
+                        *ngIf="isFromList && requisitionStatus">
+                    {{ requisitionStatus }}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -338,9 +342,8 @@
                 </button>
               </div>
 
-              <!-- Botones para modo edición - Panel derecho -->
-              <!-- Mostrar botones según el estado de la requisición -->
-              <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList && viewMode === 'edit'">
+              <!-- Botones de acción - Panel derecho (visibles según status, sin depender de viewMode) -->
+              <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList">
                 <div class="d-flex gap-2">
                   <!-- Botón Guardar como frecuente - Solo si está Entregado -->
                   <button 
