@@ -54,7 +54,7 @@ export class MembresiaService {
             data: {
               membresia: {
                 id:            m.id,
-                numeroHumano:  String(m.membership_id),
+                numeroHumano:  String(m.numero_humano),
                 nombreTitular: m.nombre_titular,
                 patrimonio:    m.patrimonio,
                 estado:        m.estado,

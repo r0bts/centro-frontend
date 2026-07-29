@@ -83,7 +83,7 @@ export interface SocioMembresia {
 // ─────────────────────────────────────────────────────────────────────────────
 export interface MembresiaRaw {
   id: number;
-  membership_id: string;
+  numero_humano: string;
   nombre_titular: string;
   patrimonio: string | null;
   estado: string;

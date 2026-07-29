@@ -59,6 +59,7 @@ interface RawRule {
   nombre: string;
   tipo: 'GENERAL' | 'PARTICULAR';
   accion: 'PERMITIR' | 'BLOQUEAR';
+  categoria: 'EXCEPCIONES' | 'NEGOCIO';
   activa: boolean;
   condiciones_count: number;
   fecha_inicio: string | null;
@@ -207,6 +208,7 @@ export class ReglaService {
       nombre: raw.nombre,
       tipo: raw.tipo,
       accion: raw.accion,
+      categoria: raw.categoria,
       activa: raw.activa,
       condicionesCount: raw.condiciones_count,
       fechaInicio: raw.fecha_inicio,

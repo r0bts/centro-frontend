@@ -193,6 +193,12 @@ export class MembresiasBuscarComponent {
   // Helpers de UI
   // ─────────────────────────────────────────────────────────────────────────────
 
+  /** Clase CSS del borde de la card según estado */
+  cardBorderClass(estado: string): string {
+    const key = this.badgeEstadoClass(estado);
+    return key ? `card-borde-${key}` : '';
+  }
+
   /** Clase CSS del badge de estado de la membresía */
   badgeEstadoClass(estado: string): string {
     const map: Record<string, string> = {

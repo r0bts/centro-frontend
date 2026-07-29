@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ChangeDetectionStrategy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -6,6 +6,8 @@ import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
 import { ReglaService, VarDef, VarValor } from '../../services/regla.service';
+import { MembresiaService } from '../../services/membresia.service';
+import { AuthService } from '../../services/auth.service';
 import { ReglaDetalle } from '../../models/regla.model';
 import Swal from 'sweetalert2';
 
@@ -51,6 +53,7 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   numeroRegla = signal<number | null>(null);
   nombre = signal('');
   tipo = signal<'GENERAL' | 'PARTICULAR'>('GENERAL');
+  categoria = signal<'EXCEPCIONES' | 'NEGOCIO'>('NEGOCIO');
   accion = signal<'PERMITIR' | 'BLOQUEAR' | null>(null);
   activa = signal(true);
   fechaInicio = signal('');
@@ -70,6 +73,13 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   entities = signal<Entity[]>([]);
   newEntityTipo = signal<'MEMBRESIA' | 'SOCIO'>('MEMBRESIA');
   newEntityNumero = signal('');
+
+  // ── Búsqueda de entidades ──
+  entitySearchQuery = signal('');
+  entitySearchResults = signal<Array<{ numero: string; nombre: string; tipo: 'MEMBRESIA' | 'SOCIO' }>>([]);
+  entitySearchLoading = signal(false);
+  showEntityResults = signal(false);
+  private entitySearchTimer: ReturnType<typeof setTimeout> | null = null;
 
   // ── Estado de guardado / modo ──
   isSaving = signal(false);
@@ -117,10 +127,23 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     return m.length > 50 ? m.slice(0, 50) + '…' : m;
   });
 
+  // ── Permisos por categoría ────────────────────────────────────────────
+  canManageExcepciones = computed(() =>
+    this.authService.hasPermission('membresias_reglas', 'reglas_crear_excepciones')
+  );
+  canManageNegocio = computed(() =>
+    this.authService.hasPermission('membresias_reglas', 'reglas_crear_negocio')
+  );
+  canSaveByCategoria = computed(() =>
+    this.categoria() === 'EXCEPCIONES' ? this.canManageExcepciones() : this.canManageNegocio()
+  );
+
   constructor(
     private router: Router,
     private route: ActivatedRoute,
     private reglaService: ReglaService,
+    private membresiaService: MembresiaService,
+    private authService: AuthService,
   ) {}
 
   ngOnInit(): void {
@@ -183,6 +206,7 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
           this.numeroRegla.set(r.numero_regla);
           this.nombre.set(r.nombre);
           this.tipo.set(r.tipo as 'GENERAL' | 'PARTICULAR');
+          this.categoria.set((r.categoria ?? 'NEGOCIO') as 'EXCEPCIONES' | 'NEGOCIO');
           this.accion.set(r.accion as 'PERMITIR' | 'BLOQUEAR');
           this.activa.set(r.activa);
           if (r.fecha_inicio || r.fecha_fin) {
@@ -247,7 +271,7 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   validateStep(s: number): boolean {
     if (s === 1) {
-      if (!this.numeroRegla() || this.numeroRegla()! < 1) {
+      if (this.isEditMode() && (!this.numeroRegla() || this.numeroRegla()! < 1)) {
         this.showToast('⚠ Ingresa el número de regla (mayor a 0)', 'warning');
         return false;
       }
@@ -407,6 +431,64 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   // PASO 4 — Entidades
   // ════════════════════════════════════
 
+  onEntitySearchChange(q: string): void {
+    this.entitySearchQuery.set(q);
+    if (this.entitySearchTimer) clearTimeout(this.entitySearchTimer);
+    if (!q.trim()) {
+      this.entitySearchResults.set([]);
+      this.showEntityResults.set(false);
+      return;
+    }
+    this.entitySearchTimer = setTimeout(() => {
+      this.entitySearchLoading.set(true);
+      this.membresiaService.buscar(q.trim())
+        .pipe(takeUntil(this.destroy$), finalize(() => this.entitySearchLoading.set(false)))
+        .subscribe({
+          next: (res) => {
+            if (!res.success || !res.data) {
+              this.entitySearchResults.set([]);
+            } else {
+              const results: Array<{ numero: string; nombre: string; tipo: 'MEMBRESIA' | 'SOCIO' }> = [];
+              // Add membership result
+              results.push({
+                tipo: 'MEMBRESIA',
+                numero: res.data.membresia.numeroHumano,
+                nombre: `Membresía ${res.data.membresia.numeroHumano} — ${res.data.membresia.nombreTitular}`,
+              });
+              // Add individual socios
+              for (const s of res.data.socios) {
+                results.push({
+                  tipo: 'SOCIO',
+                  numero: s.numeroHumano,
+                  nombre: `${s.nombreCompleto} (${s.numeroHumano})`,
+                });
+              }
+              this.entitySearchResults.set(results);
+            }
+            this.showEntityResults.set(true);
+          },
+          error: () => {
+            this.entitySearchResults.set([]);
+            this.showEntityResults.set(false);
+          },
+        });
+    }, 350);
+  }
+
+  selectEntityFromSearch(result: { numero: string; nombre: string; tipo: 'MEMBRESIA' | 'SOCIO' }): void {
+    const exists = this.entities().find(e => e.tipo === result.tipo && e.numero === result.numero);
+    if (!exists) {
+      this.entities.update(es => [...es, { id: Date.now(), tipo: result.tipo, numero: result.numero }]);
+    }
+    this.entitySearchQuery.set('');
+    this.entitySearchResults.set([]);
+    this.showEntityResults.set(false);
+  }
+
+  hideEntityResults(): void {
+    setTimeout(() => this.showEntityResults.set(false), 200);
+  }
+
   addEntity(): void {
     const num = this.newEntityNumero().trim();
     if (!num) {
@@ -426,6 +508,10 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     this.entities.update(es => es.filter(e => e.id !== id));
   }
 
+  isEntityAlreadyAdded(tipo: 'MEMBRESIA' | 'SOCIO', numero: string): boolean {
+    return !!this.entities().find(e => e.tipo === tipo && e.numero === numero);
+  }
+
   onEntityKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter') this.addEntity();
   }
@@ -439,10 +525,10 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
     if (!this.validateStep(3)) { this.goTo(3); return; }
     if (!this.validateStep(4)) return;
 
-    const payload = {
-      numero_regla:          this.numeroRegla()!,
+    const payload: Record<string, unknown> = {
       nombre:                this.nombre().trim(),
       tipo:                  this.tipo(),
+      categoria:             this.categoria(),
       accion:                this.accion()!,
       activa:                this.activa(),
       mensaje_cumplimiento:  this.mensajeCumplimiento().trim() || null,
@@ -464,6 +550,11 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
           }))
         : [],
     };
+
+    // En modo edición, incluir numero_regla si el usuario lo cambió
+    if (this.isEditMode() && this.numeroRegla()) {
+      payload['numero_regla'] = this.numeroRegla()!;
+    }
 
     this.isSaving.set(true);
 
@@ -495,14 +586,6 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
           const message = err?.error?.message ?? err?.message ?? 'Error desconocido';
           const field   = err?.error?.error?.field;
 
-          if (status === 400 && field === 'numero_regla') {
-            this.showToast(
-              `⚠ El número de regla #${this.numeroRegla()} ya existe. Elige otro número.`,
-              'warning',
-            );
-            this.goTo(1);
-            return;
-          }
 
           if (status === 422) {
             Swal.fire({

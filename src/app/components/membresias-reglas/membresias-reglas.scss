@@ -172,6 +172,7 @@
   &.sec-warning { background: rgba(244,211,94,.18);  color: #b08a00; }
   &.sec-purple  { background: rgba(130,80,200,.12);  color: #7c3aed; }
   &.sec-danger  { background: rgba(218,62,62,.10);   color: var(--danger-color);  }
+  &.sec-dark    { background: rgba(30,30,30,.10);    color: #1a1a2e;              }
 }
 
 // ══════════════════════════════════════
@@ -212,6 +213,16 @@
     border-color: #7c3aed;
     background: rgba(130,80,200,.07);
   }
+
+  &.sel-dark {
+    border-color: #1a1a2e;
+    background: rgba(30,30,30,.06);
+  }
+
+  &.sel-info {
+    border-color: #0891b2;
+    background: rgba(8,145,178,.07);
+  }
 }
 
 .opt-check {
@@ -231,6 +242,8 @@
   .sel-success  & { background: var(--success-color); color: #fff; }
   .sel-danger   & { background: var(--danger-color);  color: #fff; }
   .sel-purple   & { background: #7c3aed;              color: #fff; }
+  .sel-dark     & { background: #1a1a2e;              color: #fff; }
+  .sel-info     & { background: #0891b2;              color: #fff; }
 }
 
 .oc-top {
@@ -511,6 +524,16 @@
 .ent-badge-mem {
   background: rgba(130,80,200,.12) !important;
   color: #7c3aed !important;
+}
+
+// Dropdown de búsqueda de entidades
+.dropdown-result-item {
+  cursor: pointer;
+  transition: background 0.13s;
+  border-bottom: 1px solid #f3f4f6;
+
+  &:last-child { border-bottom: none; }
+  &:hover { background: #f0f4ff; }
 }
 
 // ══════════════════════════════════════
