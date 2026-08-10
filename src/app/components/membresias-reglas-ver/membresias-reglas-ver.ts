@@ -6,6 +6,7 @@ import { takeUntil } from 'rxjs/operators';
 import { ContentMenu } from '../content-menu/content-menu';
 import { ReglaService, VarDef } from '../../services/regla.service';
 import { ReglaDetalle } from '../../models/regla.model';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-membresias-reglas-ver',
@@ -21,6 +22,7 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
 
   regla = signal<ReglaDetalle | null>(null);
   isLoading = signal(true);
+  isTogglingActiva = signal(false);
   errorMsg = signal<string | null>(null);
   /** clave → label legible, cargado dinámicamente desde el API */
   varsMap = signal<Record<string, string>>({});
@@ -100,6 +102,49 @@ export class MembresiasReglasVerComponent implements OnInit, OnDestroy {
 
   onVolver(): void {
     this.router.navigate(['/membresias/reglas']);
+  }
+
+  onToggleActiva(): void {
+    const r = this.regla();
+    if (!r || this.isTogglingActiva()) return;
+    const nuevoEstado = !r.activa;
+    Swal.fire({
+      title: nuevoEstado ? '¿Activar regla?' : '¿Desactivar regla?',
+      html: `La regla <strong>#${r.numero_regla} — ${r.nombre}</strong> quedará <strong>${nuevoEstado ? 'activa' : 'inactiva'}</strong> inmediatamente.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: nuevoEstado ? 'Sí, activar' : 'Sí, desactivar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: nuevoEstado ? '#43B581' : '#F4D35E',
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      this.isTogglingActiva.set(true);
+      this.reglaService.toggleRegla(r.id_regla)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (res) => {
+            this.isTogglingActiva.set(false);
+            this.regla.update(prev => prev ? { ...prev, activa: res.data.activa } : prev);
+            Swal.fire({
+              icon: 'success',
+              title: res.data.activa ? 'Regla activada' : 'Regla desactivada',
+              timer: 1800,
+              showConfirmButton: false,
+              toast: true,
+              position: 'top-end',
+            });
+          },
+          error: () => {
+            this.isTogglingActiva.set(false);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al cambiar estado',
+              text: 'No se pudo cambiar el estado de la regla.',
+              confirmButtonColor: '#DA3E3E',
+            });
+          },
+        });
+    });
   }
 
   // ── Helpers de formato ───────────────────────────────────

@@ -102,6 +102,19 @@
                 </select>
               </div>
 
+              <!-- Filtro Vencidas -->
+              <div class="col-6 col-md-2">
+                <label class="form-label mb-1 small text-muted fw-semibold">Vencidas</label>
+                <select
+                  class="form-select"
+                  [ngModel]="filterVencida()"
+                  (ngModelChange)="filterVencida.set($event); onFilterChange()">
+                  <option value="">Ocultar vencidas</option>
+                  <option value="incluir">Mostrar todas</option>
+                  <option value="1">Solo vencidas</option>
+                </select>
+              </div>
+
               <!-- Botón limpiar -->
               <div class="col-6 col-md-2 d-flex align-items-end">
                 <button
@@ -305,9 +318,12 @@
                   @if (!regla.fechaInicio && !regla.fechaFin) {
                     <span class="text-muted small"><i class="bi bi-infinity me-1"></i>Permanente</span>
                   } @else {
-                    <span class="small text-warning-emphasis">
+                    <span class="small" [class.text-danger]="isVencida(regla)" [class.text-warning-emphasis]="!isVencida(regla)">
                       <i class="bi bi-calendar-range me-1"></i>{{ getVigenciaText(regla) }}
                     </span>
+                    @if (isVencida(regla)) {
+                      <span class="badge bg-danger ms-1" style="font-size:10px">Vencida</span>
+                    }
                   }
                 </td>
                 <!-- ── Acciones ─────────────────────────────────── -->
