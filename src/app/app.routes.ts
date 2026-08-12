@@ -78,6 +78,23 @@ export const routes: Routes = [
     loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
     canActivate: [authGuard]
   },
+  // ── Ruta PÚBLICA: landing de evento — NO requiere login (SCR-003) ───────────
+  {
+    path: 'eventos/landing/:id',
+    loadComponent: () => import('./features/institutional-events/pages/event-landing-page/event-landing-page').then(m => m.EventLandingPageComponent),
+    // Sin canActivate — accesible sin sesión
+  },
+  {
+    path: 'eventos',
+    loadChildren: () => import('./features/institutional-events/institutional-events.routes').then(m => m.INSTITUTIONAL_EVENTS_ROUTES),
+    canActivate: [authGuard]
+  },
+  {
+    // Alias: por si el menú del backend tiene la ruta almacenada como /institutional-events
+    path: 'institutional-events',
+    redirectTo: '/eventos',
+    pathMatch: 'prefix'
+  },
   {
     path: 'reportes/historial',
     loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
@@ -278,6 +295,12 @@ export const routes: Routes = [
         path: 'comunicados',
         loadComponent: () =>
           import('./components/deportivo/comunicados/deportivo-comunicados').then(m => m.DeportivoComunicadosComponent)
+      },
+      {
+        // /deportivo/eventos no tiene módulo propio — redirige al módulo institucional
+        path: 'eventos',
+        redirectTo: '/eventos',
+        pathMatch: 'full'
       },
       {
         path: 'usuarios',

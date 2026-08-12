@@ -1,0 +1,458 @@
+<!-- SCR-003 — Landing Page pública del evento (fiel al mockup 03-event-landing.html) -->
+
+<!-- ── Loader ──────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="lp-loading">
+    <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;">
+      <span class="visually-hidden">Cargando…</span>
+    </div>
+    <p class="mt-3 text-muted">Cargando información del evento…</p>
+  </div>
+}
+
+<!-- ── Error ───────────────────────────────────────────────────────────────── -->
+@if (error()) {
+  <div class="lp-error">
+    <i class="bi bi-calendar-x" style="font-size:3rem;color:#6c757d;"></i>
+    <h4 class="mt-3">Evento no disponible</h4>
+    <p class="text-muted">{{ error() }}</p>
+    <button class="btn btn-outline-primary" (click)="volverALista()">
+      <i class="bi bi-arrow-left me-2"></i>Volver a eventos
+    </button>
+  </div>
+}
+
+<!-- ── Contenido principal (solo cuando hay evento) ───────────────────────── -->
+@if (!loading() && !error() && event(); as ev) {
+
+  <!-- Barra de administración (visible solo para usuarios autenticados) -->
+  @if (isAuthenticated()) {
+    <div class="admin-bar">
+      <span class="badge-admin">ADMIN</span>
+      <span>Vista previa de la landing pública del evento</span>
+      <div style="flex:1"></div>
+      <button class="admin-bar-btn" (click)="editarEvento()">
+        <i class="bi bi-pencil"></i> Editar evento
+      </button>
+      <button class="admin-bar-btn" (click)="volverALista()">
+        <i class="bi bi-list-ul"></i> Ver lista
+      </button>
+      <span class="admin-bar-btn green">
+        <i class="bi bi-broadcast"></i> {{ ev.status === 'published' ? 'Publicado' : (ev.status === 'ongoing' ? 'En curso' : ev.status) }}
+      </span>
+    </div>
+  }
+
+  <!-- ─────────────── HEADER PÚBLICO DEL EVENTO ─────────────── -->
+  <header class="sitio">
+    <div class="contenedor header-inner">
+      <a class="logo" (click)="volverALista()" style="cursor:pointer;">
+        <span class="marca">CL</span>
+        <span>{{ ev.name }}</span>
+      </a>
+      <nav class="principal">
+        @if (ev.description) { <a href="#sobre">Sobre el evento</a> }
+        @if (ev.institutional_event_subevents?.length) { <a href="#programa">Programa</a> }
+        @if (ev.speakers?.length) { <a href="#ponentes">Ponentes</a> }
+        <a href="#faq">FAQ</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <div class="header-acciones">
+        <button type="button" class="btn btn-primario" (click)="abrirModal()">
+          Registrarme{{ ev.cost && ev.cost > 0 ? ' — $' + ev.cost : ' gratis' }}
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─────────────── HERO ─────────────── -->
+  <section class="hero fondo-arena" id="inicio">
+    <div class="contenedor grid grid-2">
+      <div>
+        <div class="hero-badge">
+          📍 {{ ev.location?.name || '—' }} &nbsp;·&nbsp; 🏷️ {{ eventTypeMeta[ev.event_type].label }}
+        </div>
+        <h1>{{ ev.name }}</h1>
+        <p class="lead">{{ ev.kicker || ev.description }}</p>
+        <div class="hero-meta">
+          <span class="hero-meta-item">📅 {{ formatFechaLarga(ev.start_date) }}</span>
+          @if (ev.end_date && ev.end_date !== ev.start_date) {
+            <span class="hero-meta-item"> — {{ formatFechaLarga(ev.end_date) }}</span>
+          }
+          @if (ev.location?.name) {
+            <span class="hero-meta-item">📍 {{ ev.location!.name }}</span>
+          }
+        </div>
+        <div class="hero-acciones">
+          <button type="button" class="btn btn-primario" (click)="abrirModal()">
+            {{ ev.cost && ev.cost > 0 ? 'Comprar entrada — $' + ev.cost : 'Registrarme gratis' }}
+          </button>
+          @if (ev.institutional_event_subevents?.length) {
+            <a href="#programa" class="btn btn-secundario">Ver programa</a>
+          }
+        </div>
+        <div class="hero-datos">
+          @if (ev.max_capacity && ev.max_capacity > 0) {
+            <div><b>{{ ev.max_capacity }}</b><span>cupos</span></div>
+          }
+          @if (ev.institutional_event_subevents?.length) {
+            <div><b>{{ ev.institutional_event_subevents!.length }}</b><span>módulos</span></div>
+          }
+          <div>
+            <b>{{ ev.current_attendee_count }}</b>
+            <span>inscritos</span>
+          </div>
+        </div>
+      </div>
+      <div class="img-placeholder" style="min-height:360px;">
+        BANNER PRINCIPAL
+        @if (ev.banner_image_url) {
+          <img [src]="ev.banner_image_url" [alt]="ev.name" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── SOBRE EL EVENTO ─────────────── -->
+  @if (ev.description) {
+    <section id="sobre">
+      <div class="contenedor grid grid-2">
+        <div class="img-placeholder" style="min-height:300px;">FOTO: escena representativa del evento</div>
+        <div>
+          <p class="eyebrow">Sobre el evento</p>
+          <h2 class="titulo-seccion">{{ ev.name }}</h2>
+          <p class="subtitulo">{{ ev.description }}</p>
+          <ul style="margin-top:20px;list-style:none;display:grid;gap:10px;">
+            <li><b>Acceso:</b> {{ ev.access_types?.join(', ') }}</li>
+            <li>
+              @if (ev.cost && ev.cost > 0) {
+                <b>Costo:</b> ${{ ev.cost }}
+              } @else {
+                <b>Inscripción:</b> Gratuita
+              }
+            </li>
+            @if (ev.max_capacity && ev.max_capacity > 0) {
+              <li><b>Capacidad:</b> {{ ev.max_capacity }} personas</li>
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── IMPACTO / MÉTRICAS ─────────────── -->
+  <section class="fondo-verde" id="impacto">
+    <div class="contenedor">
+      <p class="eyebrow" style="color:#a8c4ea;">Impacto del evento</p>
+      <h2 class="titulo-seccion">¿Qué esperar?</h2>
+      <div class="grid grid-3" style="margin-top:36px;">
+        @if (ev.max_capacity && ev.max_capacity > 0) {
+          <div class="metrica">
+            <b>{{ ev.max_capacity }}</b>
+            <span>Cupos disponibles</span>
+          </div>
+        }
+        @if (ev.institutional_event_subevents?.length) {
+          <div class="metrica">
+            <b>{{ ev.institutional_event_subevents!.length }}</b>
+            <span>Módulos / subeventos</span>
+          </div>
+        }
+        <div class="metrica">
+          <b>{{ ev.cost && ev.cost > 0 ? '$' + ev.cost : 'Gratis' }}</b>
+          <span>Costo de inscripción</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── PROGRAMA / SUBEVENTOS ─────────────── -->
+  @if (ev.institutional_event_subevents?.length) {
+    <section id="programa" class="fondo-arena">
+      <div class="contenedor">
+        <p class="eyebrow">Programa</p>
+        <h2 class="titulo-seccion">Módulos del evento</h2>
+        <p class="subtitulo">Cada módulo tiene su propio horario, lugar y tipo de acceso.</p>
+        <div class="grid grid-3" style="margin-top:36px;">
+          @for (sub of ev.institutional_event_subevents!; track sub.id) {
+            <div class="card">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                <div style="width:36px;height:36px;border-radius:8px;background:rgba(64,110,186,.12);
+                            display:flex;align-items:center;justify-content:center;color:#406eba;font-size:1.1rem;flex-shrink:0;">
+                  <i class="bi bi-calendar-event"></i>
+                </div>
+                <h3 style="font-size:16px;margin:0;">{{ sub.name }}</h3>
+              </div>
+              @if (sub.description) {
+                <p style="font-size:.85rem;color:#5b7089;margin-bottom:12px;">{{ sub.description }}</p>
+              }
+              <div style="font-size:.8rem;color:#5b7089;display:grid;gap:6px;">
+                @if (sub.start_date) {
+                  <span><i class="bi bi-clock me-1"></i>{{ formatFechaLarga(sub.start_date) }}</span>
+                }
+                @if (sub.venue) {
+                  <span><i class="bi bi-geo-alt me-1"></i>{{ sub.venue }}</span>
+                }
+                @if (sub.max_capacity > 0) {
+                  <span><i class="bi bi-people me-1"></i>{{ sub.max_capacity }} cupos</span>
+                }
+                @if (sub.instructor_name) {
+                  <span><i class="bi bi-person me-1"></i>{{ sub.instructor_name }}</span>
+                }
+              </div>
+              <div style="margin-top:12px;">
+                <span class="badge bg-light text-dark border" style="font-size:.72rem;">
+                  {{ sub.access_type | titlecase }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── PONENTES / SPEAKERS ─────────────── -->
+  @if (ev.speakers?.length) {
+    <section id="ponentes">
+      <div class="contenedor">
+        <p class="eyebrow">Ponentes</p>
+        <h2 class="titulo-seccion">Conoce a los expertos</h2>
+        <div class="grid grid-3" style="margin-top:36px;">
+          @for (sp of ev.speakers!; track sp.name) {
+            <div class="card" style="text-align:center;">
+              <div class="avatar" style="width:70px;height:70px;margin:0 auto 12px;font-size:1.4rem;
+                                         background:#406eba;color:#fff;border-radius:50%;
+                                         display:flex;align-items:center;justify-content:center;">
+                {{ sp.name.charAt(0) }}
+              </div>
+              <h3 style="font-size:16px;margin-bottom:4px;">{{ sp.name }}</h3>
+              <p style="font-size:.8rem;color:#5b7089;margin-bottom:10px;">{{ sp.role }}</p>
+              @if (sp.bio) {
+                <p style="font-size:.82rem;color:#6c757d;">{{ sp.bio }}</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── TESTIMONIOS ─────────────── -->
+  @if (ev.testimonials?.length) {
+    <section id="testimonios" class="fondo-arena">
+      <div class="contenedor">
+        <p class="eyebrow">Testimonios</p>
+        <h2 class="titulo-seccion">Lo que dicen los participantes</h2>
+        <div class="grid grid-3" style="margin-top:36px;">
+          @for (t of ev.testimonials!; track t.name) {
+            <div class="card testimonio">
+              <p>"{{ t.quote }}"</p>
+              @if (t.stars) {
+                <div style="color:#f59e0b;font-size:1rem;margin-top:8px;">
+                  @for (s of [1,2,3,4,5]; track s) {
+                    <i class="bi" [class]="s <= t.stars! ? 'bi-star-fill' : 'bi-star'"></i>
+                  }
+                </div>
+              }
+              <div class="autor">
+                <div class="avatar" style="width:46px;height:46px;font-size:.9rem;
+                                           background:#e2e8f0;color:#475569;border-radius:50%;
+                                           display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  {{ t.name.charAt(0) }}
+                </div>
+                <div>
+                  <div style="font-weight:700;font-size:.875rem;">{{ t.name }}</div>
+                  <div style="font-size:.75rem;color:#6c757d;">{{ t.role }}</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── FAQ ─────────────── -->
+  @if (ev.faqs?.length) {
+    <section id="faq" class="fondo-arena">
+      <div class="contenedor">
+        <p class="eyebrow">Dudas frecuentes</p>
+        <h2 class="titulo-seccion">Preguntas frecuentes</h2>
+        <div style="margin-top:24px;max-width:760px;">
+          @for (faq of ev.faqs!; track faq.question) {
+            <details>
+              <summary>{{ faq.question }}</summary>
+              <p>{{ faq.answer }}</p>
+            </details>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── CONTACTO + CTA ─────────────── -->
+  <section id="contacto" class="fondo-arena">
+    <div class="contenedor grid grid-2">
+      <div>
+        <p class="eyebrow">Contacto</p>
+        <h2 class="titulo-seccion">¿Tienes preguntas?</h2>
+        <p class="subtitulo">Resolvemos tus dudas sobre inscripción, acceso o el programa.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size:20px;margin-bottom:12px;">Regístrate al evento</h3>
+        <p class="subtitulo" style="margin-bottom:18px;">
+          Completa tu inscripción en menos de un minuto. Aceptamos socios, invitados de socio, staff y público externo.
+        </p>
+        <button type="button" class="btn btn-primario" style="width:100%;" (click)="abrirModal()">
+          Registrarme gratis
+        </button>
+        <p style="font-size:12px;color:#5b7089;margin-top:10px;">Al registrarte aceptas los términos del evento.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── FOOTER ─────────────── -->
+  <footer class="sitio">
+    <div class="contenedor">
+      <div class="legal">
+        <span>© 2026 Centro Libanés. Todos los derechos reservados.</span>
+        <span>
+          <a href="#">Aviso de privacidad</a> ·
+          <a href="#">Términos</a>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── MODAL DE INSCRIPCIÓN PÚBLICA ─────────────────────────────────────── -->
+  @if (modalAbierto()) {
+    <div class="modal-inscripcion open" (click)="cerrarModal()">
+      <div class="insc-modal-box" (click)="$event.stopPropagation()">
+
+        <!-- Header del modal -->
+        <div class="insc-modal-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="insc-modal-icon">
+              <i class="bi bi-person-check-fill"></i>
+            </div>
+            <h5 style="font-weight:700;margin:0;">Regístrate al evento</h5>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cerrarModal()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Body del modal -->
+        <div class="insc-modal-body">
+
+          <!-- Paso: ¿Eres socio? -->
+          @if (modalPaso() === 'inicio') {
+            <label class="insc-label">¿Eres socio del club?</label>
+            <div class="insc-pills">
+              <div class="insc-pill" [class.sel]="esSocio() === true" (click)="elegirEsSocio(true)">
+                <i class="bi bi-person-badge"></i> Sí, soy socio
+              </div>
+              <div class="insc-pill" [class.sel]="esSocio() === false" (click)="elegirEsSocio(false)">
+                <i class="bi bi-person"></i> No, soy externo
+              </div>
+            </div>
+          }
+
+          <!-- Paso: Número de socio -->
+          @if (modalPaso() === 'socio') {
+            <label class="insc-label">Número de socio o credencial</label>
+            <div class="input-group input-group-sm mb-2">
+              <input type="text" class="form-control" placeholder="Ej. 1084604"
+                     [value]="socioNumero()"
+                     (input)="socioNumero.set($any($event.target).value)">
+            </div>
+            <div style="margin-top:12px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                      (click)="modalPaso.set('inicio')">
+                <i class="bi bi-arrow-left me-1"></i>Regresar
+              </button>
+              <button type="button" class="btn btn-sm btn-primary"
+                      (click)="elegirModo('titular')">
+                Continuar
+              </button>
+            </div>
+          }
+
+          <!-- Paso: ¿Para quién? -->
+          @if (modalPaso() === 'modo') {
+            <label class="insc-label">¿Para quién es esta inscripción?</label>
+            <div class="insc-pills">
+              <div class="insc-pill" (click)="elegirModo('titular')">
+                <i class="bi bi-person-fill"></i> Para mí
+              </div>
+              <div class="insc-pill" (click)="elegirModo('invitado')">
+                <i class="bi bi-people-fill"></i> Invitado(s) de mi membresía
+              </div>
+            </div>
+          }
+
+          <!-- Paso: Externo -->
+          @if (modalPaso() === 'externo') {
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="insc-label">Nombre completo</label>
+                <input type="text" class="form-control"
+                       [value]="nombreExterno()"
+                       (input)="nombreExterno.set($any($event.target).value)">
+              </div>
+              <div class="col-sm-6">
+                <label class="insc-label">Correo electrónico</label>
+                <input type="email" class="form-control"
+                       [value]="correoExterno()"
+                       (input)="correoExterno.set($any($event.target).value)">
+              </div>
+            </div>
+            <div style="margin-top:16px;">
+              <button type="button" class="btn btn-sm btn-outline-secondary me-2"
+                      (click)="modalPaso.set('inicio')">
+                <i class="bi bi-arrow-left me-1"></i>Regresar
+              </button>
+              <button type="button" class="btn btn-sm btn-primary"
+                      (click)="modalPaso.set('exito')">
+                Confirmar inscripción
+              </button>
+            </div>
+          }
+
+          <!-- Paso: Éxito -->
+          @if (modalPaso() === 'exito') {
+            <div class="alert alert-success d-flex align-items-start gap-2">
+              <i class="bi bi-check-circle-fill" style="font-size:1.5rem;"></i>
+              <div>
+                <strong>¡Inscripción recibida!</strong>
+                <div class="small mt-1">
+                  Tu inscripción al evento <strong>{{ ev.name }}</strong> fue registrada.
+                  Recibirás una confirmación por correo electrónico.
+                </div>
+              </div>
+            </div>
+          }
+
+        </div><!-- /insc-modal-body -->
+
+        <!-- Footer del modal -->
+        @if (modalPaso() !== 'exito') {
+          <div class="insc-modal-footer">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">
+              Cancelar
+            </button>
+          </div>
+        } @else {
+          <div class="insc-modal-footer">
+            <button type="button" class="btn btn-primary" (click)="cerrarModal()">
+              Cerrar
+            </button>
+          </div>
+        }
+
+      </div><!-- /insc-modal-box -->
+    </div><!-- /modal-inscripcion -->
+  }
+
+}<!-- /if event -->

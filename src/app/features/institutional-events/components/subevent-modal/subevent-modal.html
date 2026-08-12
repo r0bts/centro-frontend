@@ -1,0 +1,92 @@
+<div class="sub-modal-overlay" (click)="cerrar()">
+  <div class="sub-modal-box" (click)="$event.stopPropagation()">
+
+    <div class="sub-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <div class="sec-icon sec-purple"><i class="bi bi-calendar2-plus-fill"></i></div>
+        <h5 class="fw-bold mb-0">{{ subevento ? 'Editar subevento' : 'Agregar subevento' }}</h5>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" (click)="cerrar()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="sub-modal-body">
+      @if (errorMsg) {
+        <div class="alert alert-danger py-2 small">{{ errorMsg }}</div>
+      }
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Nombre <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="form.name" placeholder="Ej. Módulo 1 — Inauguración">
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Inicio</label>
+          <input type="datetime-local" class="form-control" [(ngModel)]="form.start_date">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Fin</label>
+          <input type="datetime-local" class="form-control" [(ngModel)]="form.end_date">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Lugar</label>
+        <input type="text" class="form-control" [(ngModel)]="form.venue" placeholder="Ej. Salón Los Cedros">
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Cupo</label>
+          <input type="number" class="form-control" min="0" [(ngModel)]="form.max_capacity">
+          <div class="form-text">0 = sin límite.</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Costo</label>
+          <div class="input-group"><span class="input-group-text">$</span>
+            <input type="number" class="form-control" min="0" [(ngModel)]="form.cost">
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Acceso</label>
+          <select class="form-select" [(ngModel)]="form.access_type">
+            @for (t of accessTypes; track t) {
+              <option [value]="t">{{ accessTypeMeta[t].label }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Estado</label>
+          <select class="form-select" [(ngModel)]="form.status">
+            @for (s of statuses; track s) {
+              <option [value]="s">{{ subeventStatusMeta[s].label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Instructor / Responsable</label>
+        <input type="text" class="form-control" [(ngModel)]="form.instructor_name">
+      </div>
+
+      <div class="mb-0">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Descripción</label>
+        <textarea class="form-control" rows="2" [(ngModel)]="form.description"></textarea>
+      </div>
+    </div>
+
+    <div class="sub-modal-footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="guardar()">
+        <i class="bi bi-check-lg me-1"></i>Guardar subevento
+      </button>
+    </div>
+
+  </div>
+</div>

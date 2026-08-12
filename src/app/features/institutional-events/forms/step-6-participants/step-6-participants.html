@@ -1,0 +1,146 @@
+<div class="pane-anim">
+  <div class="pane-header">
+    <h2>Memoria Post-Evento</h2>
+    <p class="text-muted small">Galería de fotos, métricas logradas y resumen narrativo del evento para la Landing.</p>
+  </div>
+
+  <!-- ══ GALERÍA DE FOTOS ═════════════════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-blue"><i class="bi bi-images"></i></div>
+        <div>
+          <div class="fw-bold">Galería de fotos del evento</div>
+          <div class="text-muted small">Fotos que se mostrarán en la sección de galería de la Landing</div>
+        </div>
+      </div>
+
+      @for (item of gallery; track $index) {
+        <div class="testimonio-row mb-2 d-flex align-items-center gap-3">
+          <div class="flex-shrink-0">
+            @if (item.value.url) {
+              <img [src]="item.value.url" alt="Foto" style="width:60px;height:45px;object-fit:cover;border-radius:.4rem;border:1px solid #dee2e6;">
+            } @else {
+              <div style="width:60px;height:45px;background:#f1f5f9;border-radius:.4rem;border:1px solid #dee2e6;display:flex;align-items:center;justify-content:center;color:#b0b0b0;">
+                <i class="bi bi-image"></i>
+              </div>
+            }
+          </div>
+          <div class="flex-grow-1">
+            <div class="small text-muted text-truncate">{{ item.value.url || 'Sin URL' }}</div>
+            <div class="small text-muted fst-italic">{{ item.value.caption }}</div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger py-0 px-2 flex-shrink-0" (click)="eliminarFoto($index)">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+      }
+
+      <!-- Agregar foto -->
+      <div class="card card-body bg-light p-3 mb-2">
+        <div class="row g-2">
+          <div class="col-12">
+            <input type="url" class="form-control form-control-sm" placeholder="URL de la foto *"
+                   [(ngModel)]="nuevaFotoUrl">
+          </div>
+          <div class="col-12">
+            <input type="text" class="form-control form-control-sm" placeholder="Pie de foto (opcional)"
+                   [(ngModel)]="nuevaFotoCaption">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-sm w-100" style="border:2px dashed #cbd5e1;color:#406eba;border-radius:.75rem;padding:.5rem;"
+                    (click)="agregarFoto()" [disabled]="!nuevaFotoUrl.trim()">
+              <i class="bi bi-plus-circle me-1"></i>Agregar foto
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MÉTRICAS ALCANZADAS ══════════════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-success"><i class="bi bi-trophy-fill"></i></div>
+        <div>
+          <div class="fw-bold">Métricas logradas</div>
+          <div class="text-muted small">Cifras e indicadores de impacto del evento (aparecen en la Landing)</div>
+        </div>
+      </div>
+
+      @for (m of metrics; track $index) {
+        <div class="indicador-row mb-2">
+          <div class="row g-2 align-items-center w-100">
+            <div class="col-sm-3">
+              <span class="fw-bold text-primary" style="font-size:1.1rem;">{{ m.value.prefix }}{{ m.value.value }}</span>
+            </div>
+            <div class="col-sm-5">
+              <span class="text-muted small">{{ m.value.label }}</span>
+            </div>
+            <div class="col-sm-4 text-end">
+              <button class="btn btn-sm btn-outline-danger py-0 px-2" (click)="eliminarMetrica($index)">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Agregar métrica -->
+      <div class="card card-body bg-light p-3 mb-2">
+        <div class="row g-2">
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Prefijo ($, +, %)"
+                   [(ngModel)]="nuevaMetricaPrefijo">
+          </div>
+          <div class="col-sm-3">
+            <input type="text" class="form-control form-control-sm" placeholder="Valor *"
+                   [(ngModel)]="nuevaMetricaValor">
+          </div>
+          <div class="col-sm-6">
+            <input type="text" class="form-control form-control-sm" placeholder="Etiqueta *"
+                   [(ngModel)]="nuevaMetricaLabel">
+          </div>
+          <div class="col-12">
+            <button class="btn btn-sm w-100" style="border:2px dashed #cbd5e1;color:#406eba;border-radius:.75rem;padding:.5rem;"
+                    (click)="agregarMetrica()" [disabled]="!nuevaMetricaValor.trim() || !nuevaMetricaLabel.trim()">
+              <i class="bi bi-plus-circle me-1"></i>Agregar métrica
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESUMEN NARRATIVO ═════════════════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-3" [formGroup]="group">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-purple"><i class="bi bi-journal-richtext"></i></div>
+        <div>
+          <div class="fw-bold">Resumen / Memoria del evento</div>
+          <div class="text-muted small">Narrativa del evento: lo que se logró, momentos clave, conclusiones</div>
+        </div>
+      </div>
+      <textarea class="form-control" rows="5" formControlName="summary"
+                placeholder="Escribe aquí el resumen o memoria del evento. Se mostrará en la Landing como cierre."></textarea>
+      <div class="form-text">Opcional — se recomienda completar después de realizado el evento.</div>
+    </div>
+  </div>
+
+  <div class="alert alert-secondary small">
+    <i class="bi bi-info-circle me-1"></i>
+    Esta sección está pensada para completarse <strong>durante o después del evento</strong>.
+    Puedes guardar el evento sin llenar este paso y volver a editarlo más tarde.
+  </div>
+
+  <div class="form-nav-footer">
+    <button class="btn btn-outline-secondary" (click)="irAtras()">
+      <i class="bi bi-chevron-left me-1"></i>Atrás
+    </button>
+    <button class="btn btn-primary px-4" (click)="irSiguiente()">
+      Siguiente: Documentos <i class="bi bi-chevron-right ms-1"></i>
+    </button>
+  </div>
+</div>

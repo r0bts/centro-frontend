@@ -169,3 +169,179 @@ html, body {
   padding: 1px 10px;
   font-size: 0.8rem;
 }
+
+/* ==========================================================================
+   Wizard de Eventos Institucionales (features/institutional-events)
+   Clases compartidas por los 9 pasos del formulario y por event-form-page,
+   replicando el mockup docs/mockups/Events/02-event-form.html.
+   ========================================================================== */
+
+.pane-header { margin-bottom: 20px; }
+.pane-header h2 { font-size: 19px; font-weight: 800; margin-bottom: 2px; color: #141414; }
+.pane-anim { animation: wizPaneIn .22s ease; }
+@keyframes wizPaneIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.sec-head { display: flex; align-items: center; gap: 10px; }
+.sec-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+.sec-blue    { background: rgba(64,110,186,.12); color: #406eba; }
+.sec-success { background: rgba(67,181,129,.12); color: #43B581; }
+.sec-warning { background: rgba(244,211,94,.18); color: #b08a00; }
+.sec-purple  { background: rgba(130,80,200,.12); color: #7c3aed; }
+.sec-danger  { background: rgba(218,62,62,.10);  color: #DA3E3E; }
+.sec-dark    { background: rgba(30,30,30,.10);   color: #1a1a2e; }
+.sec-teal    { background: rgba(13,148,136,.10); color: #0d9488; }
+.sec-rose    { background: rgba(225,29,72,.10);  color: #e11d48; }
+
+.opt-card { position: relative; border: 2px solid #d0d0d0; border-radius: 12px; padding: 14px; cursor: pointer; transition: all .18s; background: #fff; }
+.opt-card:hover { border-color: #b9b9b9; box-shadow: 0 2px 8px rgba(0,0,0,.07); }
+.opt-card.sel-primary { border-color: #406eba; background: rgba(64,110,186,.06); }
+.opt-card.sel-success { border-color: #43B581; background: rgba(67,181,129,.08); }
+.opt-check { position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: #fff; }
+.opt-card.sel-primary .opt-check { display: flex; background: #406eba; }
+.opt-card.sel-success .opt-check { display: flex; background: #43B581; }
+.oc-top { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.oc-icon { font-size: 17px; }
+.oc-label { font-size: 13px; font-weight: 700; color: #141414; }
+.oc-sub   { font-size: 11.5px; color: #8a8a8a; line-height: 1.5; }
+
+.acceso-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border: 2px solid #dee2e6; border-radius: 999px;
+  cursor: pointer; font-size: .82rem; font-weight: 600;
+  transition: all .15s; background: #fff; user-select: none;
+}
+.acceso-badge:hover { border-color: #406eba; }
+.acceso-badge.sel { border-color: #406eba; background: #eff6ff; color: #406eba; }
+.acceso-badge .ab-check { display: none; }
+.acceso-badge.sel .ab-check { display: inline; }
+
+.sub-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.sub-table th { background: #f8fafc; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #8a8a8a; padding: .5rem .75rem; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
+.sub-table td { padding: .55rem .75rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.sub-table tr:last-child td { border-bottom: none; }
+.sub-table tr:hover td { background: #f8fafc; }
+.sub-empty { text-align: center; padding: 2rem; color: #8a8a8a; }
+
+.rev-section-title { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #8a8a8a; margin-bottom: .6rem; margin-top: .5rem; }
+.rev-item { background: #f8fafc; border-radius: 8px; padding: .5rem .75rem; margin-bottom: .4rem; }
+.rev-item-label { font-size: .7rem; text-transform: uppercase; letter-spacing: .04em; color: #8a8a8a; }
+.rev-item-val   { font-size: .85rem; font-weight: 600; color: #141414; }
+
+.donativo-config { background: #fffbeb; border: 1.5px solid #fde68a; border-radius: .75rem; padding: 1rem; margin-top: .75rem; }
+.monto-chip { display: inline-flex; align-items: center; gap: .35rem; border: 1.5px solid #fde68a; border-radius: 8px; padding: .25rem .65rem; font-size: .8rem; font-weight: 600; background: #fff; }
+.monto-chip .remove { cursor: pointer; color: #b08a00; line-height: 1; }
+
+.form-nav-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid #dee2e6; gap: .5rem; }
+
+/* ── Campos inválidos (después de intentar avanzar) ── */
+.form-control.ng-invalid.ng-touched,
+.form-select.ng-invalid.ng-touched {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .12);
+}
+
+.faq-row { background: #f8fafc; border: 1px solid #dee2e6; border-radius: .75rem; padding: 1rem; margin-bottom: .75rem; }
+
+/* ── Stepper bar (event-form-page) ── */
+.stepper-bar {
+  background: #fff; border-bottom: 1px solid #dee2e6;
+  padding: 14px 20px; display: flex; align-items: center; justify-content: center;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow-x: auto;
+}
+.step-wrap { display: flex; align-items: center; }
+.step-item-bar { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 68px; cursor: pointer; }
+.step-circle { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #b9b9b9; background: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #a1a1a1; transition: all .25s; }
+.step-item-bar.active .step-circle { border-color: #406eba; background: #406eba; color: #fff; }
+.step-item-bar.done   .step-circle { border-color: #43B581; background: #43B581; color: #fff; }
+.step-name { font-size: 10px; font-weight: 500; color: #a1a1a1; white-space: nowrap; }
+.step-item-bar.active .step-name { color: #406eba; font-weight: 700; }
+.step-item-bar.done   .step-name { color: #43B581; }
+.step-line-bar { width: 36px; height: 2px; background: #d0d0d0; margin-bottom: 18px; flex-shrink: 0; transition: background .25s; }
+.step-line-bar.done { background: #43B581; }
+
+/* ── Sidebar preview card (event-form-page) ── */
+.preview-card { position: sticky; top: 84px; background: #fff; border: 1px solid #dee2e6; border-radius: 1rem; overflow: hidden; }
+.preview-meta-row { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: #64748b; margin-bottom: .3rem; }
+.preview-progress { height: 5px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-top: .5rem; }
+.preview-progress-fill { height: 100%; background: #406eba; border-radius: 4px; transition: width .4s ease; }
+
+/* ==========================================================================
+   Shared layout — Events module (calca _shared.css de mockups/Events/)
+   Disponibles globalmente para todas las páginas administrativas de eventos.
+   ========================================================================== */
+
+/* ── Page layout ── */
+.page-content { padding: 0 1.5rem 2rem; }
+
+.page-header {
+  border-bottom: 1px solid var(--bs-border-color, #dee2e6);
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem !important;
+}
+
+/* ── KPI strip ── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  display: flex; align-items: center; gap: 14px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+  border: 1px solid #f1f5f9;
+  transition: box-shadow .15s;
+}
+.kpi-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+
+.kpi-icon {
+  width: 44px; height: 44px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.kpi-body  { display: flex; flex-direction: column; }
+.kpi-value { font-size: 1.6rem; font-weight: 800; line-height: 1.1; color: #0f172a; }
+.kpi-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--neutral-600, #727272); margin-top: 2px; }
+
+.kpi-blue   .kpi-icon { background: #eff6ff; color: #2563eb; }
+.kpi-green  .kpi-icon { background: #f0fdf4; color: #16a34a; }
+.kpi-yellow .kpi-icon { background: #fefce8; color: #ca8a04; }
+.kpi-red    .kpi-icon { background: #fef2f2; color: #dc2626; }
+.kpi-violet .kpi-icon { background: #f5f3ff; color: #7c3aed; }
+.kpi-teal   .kpi-icon { background: #f0fdfa; color: #0d9488; }
+
+/* ── Table action buttons (icon-only) ── */
+.btn-table-action {
+  width: 28px; height: 28px;
+  padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: .4rem;
+  font-size: .8rem;
+}
+
+/* ── Event icon (colored gradient square in list table) ── */
+.evento-icon {
+  width: 36px; height: 36px;
+  border-radius: .5rem;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: .9rem; flex-shrink: 0;
+}
+.evento-name { font-weight: 600; font-size: .875rem; max-width: 220px; }
+.evento-meta { font-size: .75rem; color: #6c757d; margin-top: 2px; }
+
+/* ── Wizard: indicador-row + testimonio-row ── */
+.indicador-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: .5rem; padding: .5rem .75rem;
+}
+.testimonio-row {
+  background: #f8fafc; border: 1px solid #dee2e6;
+  border-radius: .6rem; padding: .75rem; margin-bottom: .5rem;
+}

@@ -97,6 +97,27 @@ export const serverRoutes: ServerRoute[] = [
     path: 'membresias/reglas/:id',
     renderMode: RenderMode.Client,
   },
+  // Eventos institucionales — rutas protegidas
+  {
+    path: 'eventos',
+    renderMode: RenderMode.Client,
+  },
+  {
+    path: 'eventos/crear',
+    renderMode: RenderMode.Client,
+  },
+  {
+    path: 'eventos/editar/:id',
+    renderMode: RenderMode.Client,
+  },
+  // Landing pública del evento — RenderMode.Client (authGuard lee localStorage, no disponible en servidor)
+  {
+    path: 'eventos/landing/:id',
+    renderMode: RenderMode.Client,
+  },
+  { path: 'eventos/:id/inscritos', renderMode: RenderMode.Client },
+  { path: 'eventos/:id/checkin',   renderMode: RenderMode.Client },
+  { path: 'eventos/:id/resumen',   renderMode: RenderMode.Client },
 
   // ── Catch-all ────────────────────────────────────────────────────────────
   {

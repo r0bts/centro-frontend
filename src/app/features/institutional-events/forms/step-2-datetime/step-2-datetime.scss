@@ -1,0 +1,50 @@
+:host { display: block; }
+
+/* ── Opt-card (tarjetas de selección de modalidad) ── */
+.opt-card {
+  position: relative;
+  border: 2px solid #d0d0d0;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all .18s;
+  background: #fff;
+  height: 100%;
+
+  &:hover {
+    border-color: #b9b9b9;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+  }
+
+  &.sel-primary {
+    border-color: #406eba;
+    background: rgba(64,110,186,.06);
+
+    .opt-check { display: flex; background: #406eba; }
+  }
+}
+
+.opt-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.oc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.oc-icon  { font-size: 17px; }
+.oc-label { font-size: 13px; font-weight: 700; color: #141414; }
+.oc-sub   { font-size: 11.5px; color: #8a8a8a; line-height: 1.5; }

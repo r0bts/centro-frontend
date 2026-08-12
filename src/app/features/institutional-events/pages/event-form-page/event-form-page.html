@@ -1,0 +1,156 @@
+<div class="container-fluid bg-light min-vh-100">
+  <app-content-menu></app-content-menu>
+
+  <div class="eventos-wrapper">
+
+    <!-- Page header -->
+    <div class="d-flex align-items-center justify-content-between px-4 pt-1"
+         style="max-width:1100px;margin:0 auto;">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-calendar-plus me-2 text-primary"></i>
+        {{ state.mode() === 'edit' ? 'Editar evento' : 'Nuevo evento' }}
+      </h5>
+      <div class="d-flex gap-2 align-items-center">
+        <button class="btn-preview" (click)="abrirPreview()">
+          <i class="bi bi-eye-fill"></i> Previsualizar Landing
+        </button>
+        <button class="btn btn-sm btn-outline-secondary" (click)="volver()">
+          <i class="bi bi-arrow-left me-1"></i>Volver
+        </button>
+      </div>
+    </div>
+
+    @if (state.loadError() && state.mode() === 'edit') {
+      <div class="alert alert-danger mx-4 mt-2">{{ state.loadError() }}</div>
+    }
+
+    <!-- Stepper -->
+    <div class="stepper-bar mt-3" id="stepper-bar">
+      <div class="step-wrap">
+        @for (step of steps; track step.id; let last = $last) {
+          <div class="step-item-bar"
+               [class.active]="state.currentStep() === step.id"
+               [class.done]="esPasoCompletado(step.id)"
+               (click)="state.goToStep(step.id)">
+            <div class="step-circle">
+              @if (esPasoCompletado(step.id)) {
+                <i class="bi bi-check-lg"></i>
+              } @else {
+                {{ step.id }}
+              }
+            </div>
+            <div class="step-name">{{ step.label }}</div>
+          </div>
+          @if (!last) {
+            <div class="step-line-bar" [class.done]="esPasoCompletado(step.id)"></div>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Layout: main form + sidebar -->
+    <div class="eventos-layout">
+
+      <!-- Columna principal: wizard steps -->
+      <div class="main-col">
+        @switch (state.currentStep()) {
+          @case (1) { <app-step-1-identity /> }
+          @case (2) { <app-step-2-datetime /> }
+          @case (3) { <app-step-3-access /> }
+          @case (4) { <app-step-4-subevents /> }
+          @case (5) { <app-step-5-hero /> }
+          @case (6) { <app-step-6-participants /> }
+          @case (7) { <app-step-7-documents /> }
+          @case (8) { <app-step-8-faq-contact /> }
+          @case (9) { <app-step-9-review /> }
+        }
+      </div>
+
+      <!-- Columna lateral: preview card -->
+      <div>
+        <div class="preview-card">
+          <div class="preview-banner">
+            <i class="bi bi-calendar-event"></i>
+          </div>
+          <div class="preview-body">
+            <div class="fw-bold" style="font-size:.88rem;min-height:1.2em;">
+              {{ nombreEvento() || 'Nombre del evento' }}
+            </div>
+            <div class="text-muted" style="font-size:.74rem;margin-top:2px;min-height:1em;">
+              {{ kickerEvento() || 'Kicker / subtítulo' }}
+            </div>
+            <hr class="my-2">
+            <div class="preview-meta-row">
+              <i class="bi bi-building"></i><span>{{ sedeNombre() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-calendar3"></i><span>{{ fechaInicio() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-geo-alt"></i><span>{{ lugarEvento() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-shield-lock"></i><span>{{ accesosLabel() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-people"></i><span>{{ capacidadLabel() }}</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between mb-1">
+              <span style="font-size:.7rem;color:#8a8a8a;">Completado</span>
+              <span style="font-size:.7rem;font-weight:700;color:#406eba;">{{ progresoPct() }}%</span>
+            </div>
+            <div class="preview-progress">
+              <div class="preview-progress-fill" [style.width.%]="progresoPct()"></div>
+            </div>
+            <div style="font-size:.68rem;color:#8a8a8a;margin-top:.35rem;">
+              Paso {{ state.currentStep() }} de {{ steps.length }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Consejo contextual -->
+        <div class="card mt-3 shadow-sm">
+          <div class="card-body p-3">
+            <div class="fw-semibold small mb-1">
+              <i class="bi bi-lightbulb-fill text-warning me-1"></i>Consejo
+            </div>
+            <p class="text-muted mb-0" style="font-size:.78rem;">
+              Completa los datos básicos. Nombre y sede son obligatorios.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /eventos-wrapper -->
+</div><!-- /container-fluid -->
+
+<!-- ════ PREVIEW OVERLAY ════ -->
+@if (showPreviewOverlay()) {
+  <div class="preview-overlay">
+    <div class="preview-overlay-adminbar">
+      <span class="preview-badge">VISTA PREVIA</span>
+      <span>Landing Page del evento — generada en tiempo real desde el formulario</span>
+      <div style="flex:1"></div>
+      <button class="preview-ab-btn preview-ab-btn--green" (click)="cerrarPreview()">
+        <i class="bi bi-x-lg me-1"></i>Cerrar vista previa
+      </button>
+    </div>
+    @if (state.eventId()) {
+      <iframe class="preview-iframe"
+              [src]="previewUrl"
+              title="Vista previa Landing Page"></iframe>
+    } @else {
+      <div class="preview-no-id">
+        <i class="bi bi-info-circle-fill" style="font-size:2rem;"></i>
+        <p class="mt-3 fw-semibold">Guarda el evento primero para ver la Landing Page</p>
+        <p class="text-muted" style="font-size:.85rem;">
+          La vista previa estará disponible después de guardar los datos básicos en el Paso 1.
+        </p>
+        <button class="btn btn-outline-light mt-2" (click)="cerrarPreview()">Cerrar</button>
+      </div>
+    }
+  </div>
+}
+

@@ -1,0 +1,96 @@
+<div class="pane-anim">
+  <div class="pane-header">
+    <h2>Revisión final</h2>
+    <p class="text-muted small">Verifica toda la información antes de guardar y publicar el evento.</p>
+  </div>
+
+  @if (state.loadError()) {
+    <div class="alert alert-danger py-2 small">{{ state.loadError() }}</div>
+  }
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <app-event-card [data]="previewData()"></app-event-card>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-blue"><i class="bi bi-clipboard2-check-fill"></i></div>
+        <div><div class="fw-bold">Resumen completo</div><div class="text-muted small">Confirma que todos los datos sean correctos</div></div>
+      </div>
+
+      <div class="rev-section-title">Identidad</div>
+      <div class="row g-2">
+        <div class="col-sm-8"><div class="rev-item"><div class="rev-item-label">Nombre</div><div class="rev-item-val">{{ identity.name || '—' }}</div></div></div>
+        <div class="col-sm-4"><div class="rev-item"><div class="rev-item-label">Sede</div><div class="rev-item-val" style="color:#406eba;">{{ sedeNombre }}</div></div></div>
+        <div class="col-sm-4"><div class="rev-item"><div class="rev-item-label">Tipo</div><div class="rev-item-val">{{ eventTypeLabel(identity.event_type) }}</div></div></div>
+        <div class="col-sm-4"><div class="rev-item"><div class="rev-item-label">Donativos</div><div class="rev-item-val" [style.color]="identity.has_donations ? '#43B581' : '#8a8a8a'">{{ identity.has_donations ? 'Sí, configurados' : 'Sin donativos' }}</div></div></div>
+      </div>
+
+      <div class="rev-section-title">Fecha</div>
+      <div class="row g-2">
+        <div class="col-sm-6"><div class="rev-item"><div class="rev-item-label">Inicio</div><div class="rev-item-val">{{ fmtFecha(datetime.start_date) }}</div></div></div>
+        <div class="col-sm-6"><div class="rev-item"><div class="rev-item-label">Fin</div><div class="rev-item-val">{{ fmtFecha(datetime.end_date) }}</div></div></div>
+      </div>
+
+      <div class="rev-section-title">Acceso y capacidad</div>
+      <div class="row g-2">
+        <div class="col-sm-6"><div class="rev-item"><div class="rev-item-label">Tipos de acceso</div><div class="rev-item-val" style="color:#406eba;">{{ access.access_types.length ? access.access_types.join(', ') : '—' }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Capacidad</div><div class="rev-item-val">{{ access.max_capacity ? access.max_capacity + ' lugares' : 'Ilimitada' }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Costo</div><div class="rev-item-val" [style.color]="!access.has_cost ? '#43B581' : ''">{{ access.has_cost ? ('$' + access.cost) : 'Gratuito' }}</div></div></div>
+      </div>
+
+      <div class="rev-section-title">Subeventos y contenido</div>
+      <div class="row g-2">
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Subeventos</div><div class="rev-item-val" style="color:#43B581;">{{ state.subeventsArray.length }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Documentos</div><div class="rev-item-val" style="color:#43B581;">{{ state.documentsArray.length }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">FAQ</div><div class="rev-item-val" style="color:#43B581;">{{ state.faqsArray.length }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Banner</div><div class="rev-item-val" [style.color]="hero.banner_image_url ? '#43B581' : '#8a8a8a'">{{ hero.banner_image_url ? 'Configurado' : 'Sin imagen' }}</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-success"><i class="bi bi-broadcast"></i></div>
+        <div><div class="fw-bold">Estado de publicación</div><div class="text-muted small">Elige cómo guardar el evento</div></div>
+      </div>
+      <div class="row g-2">
+        <div class="col-6">
+          <div class="opt-card" [class.sel-primary]="!publicarAlGuardar" (click)="publicarAlGuardar = false">
+            <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+            <div class="oc-top"><span class="oc-icon">👁️</span><span class="oc-label">Guardar como borrador</span></div>
+            <div class="oc-sub">Invisible al público.</div>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="opt-card" [class.sel-success]="publicarAlGuardar" (click)="publicarAlGuardar = true">
+            <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+            <div class="oc-top"><span class="oc-icon">✅</span><span class="oc-label">Publicar ahora</span></div>
+            <div class="oc-sub">Landing disponible al público.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-nav-footer">
+    <button class="btn btn-outline-secondary" (click)="irAtras()">
+      <i class="bi bi-chevron-left me-1"></i>Atrás
+    </button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button>
+      <button class="btn btn-success px-4" [disabled]="state.saving()" (click)="guardar()">
+        @if (state.saving()) {
+          <span class="spinner-border spinner-border-sm me-1"></span>
+        } @else {
+          <i class="bi bi-check-lg me-1"></i>
+        }
+        {{ publicarAlGuardar ? 'Guardar y publicar' : 'Guardar borrador' }}
+      </button>
+    </div>
+  </div>
+</div>

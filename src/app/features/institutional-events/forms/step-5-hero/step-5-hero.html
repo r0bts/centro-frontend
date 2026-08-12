@@ -1,0 +1,167 @@
+<div class="pane-anim" [formGroup]="group">
+  <div class="pane-header">
+    <h2>Hero &amp; Aliados — Multimedia Landing</h2>
+    <p class="text-muted small">Imágenes del banner principal y logotipos de patrocinadores o aliados.</p>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-blue"><i class="bi bi-image-fill"></i></div>
+        <div>
+          <div class="fw-bold">Banner / Hero principal</div>
+          <div class="text-muted small">Primera imagen que ve el visitante. Alta calidad, formato horizontal.</div>
+        </div>
+      </div>
+
+      <div class="hero-preview-box mb-3"
+           [style.background-image]="heroBgUrl() ? 'url(' + heroBgUrl() + ')' : null"
+           [class.has-bg]="!!heroBgUrl()">
+        <div class="hp-over">Vista previa del Hero</div>
+        <div class="hp-meta">{{ sedeLabel }} · {{ tipoLabel }}</div>
+        <div class="hp-title">{{ nombreEvento || "Nombre del evento" }}</div>
+        <div class="hp-kicker">{{ kickerEvento || "Kicker del evento" }}</div>
+        <div class="hp-badges">
+          <span><i class="bi bi-calendar3 me-1"></i>{{ fechaInicio }}</span>
+          <span><i class="bi bi-geo-alt me-1"></i>{{ lugarEvento || "Lugar del evento" }}</span>
+        </div>
+        <button class="btn btn-light btn-sm fw-bold" style="color:#406eba;pointer-events:none;">
+          {{ tieneCosto() ? "Comprar entrada" : "Registrarme gratis" }}
+        </button>
+      </div>
+      <div class="form-text mb-3">Así lucirá el Hero una vez que introduzcas el URL del banner real.</div>
+
+      <!-- Banner URL inputs + drop zones -->
+      <div class="row g-3 mb-3">
+        <!-- Banner Desktop -->
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Banner Desktop</label>
+          <!-- Drop zone -->
+          <div class="drop-zone" (click)="fileDesktop.click()"
+               (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'banner')">
+            @if (bannerPreviewUrl()) {
+              <img [src]="bannerPreviewUrl()" class="drop-zone-preview" alt="Preview banner">
+              <div class="drop-zone-label-over">Cambiar imagen</div>
+            } @else {
+              <i class="bi bi-cloud-arrow-up fs-3 text-muted d-block mb-1"></i>
+              <div class="text-muted small">Arrastra o <strong>selecciona</strong> un archivo</div>
+              <div class="text-muted" style="font-size:.72rem;">JPG/PNG/WEBP · 1920×600 px · Máx. 3 MB</div>
+            }
+          </div>
+          <input #fileDesktop type="file" accept="image/*" hidden (change)="onFileSelect($event, 'banner')">
+          <div class="mt-2">
+            <label class="form-label fw-semibold small text-uppercase text-muted">O introduce la URL</label>
+            <input type="url" class="form-control form-control-sm" formControlName="banner_image_url"
+                   placeholder="https://.../banner-desktop.jpg">
+          </div>
+        </div>
+        <!-- Banner Mobile -->
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Banner Mobile <span class="badge bg-light text-muted ms-1">Recomendado</span>
+          </label>
+          <div class="drop-zone" (click)="fileMobile.click()"
+               (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'mobile')">
+            @if (mobilePreviewUrl()) {
+              <img [src]="mobilePreviewUrl()" class="drop-zone-preview" alt="Preview mobile">
+              <div class="drop-zone-label-over">Cambiar imagen</div>
+            } @else {
+              <i class="bi bi-phone fs-3 text-muted d-block mb-1"></i>
+              <div class="text-muted small">Arrastra o <strong>selecciona</strong> un archivo</div>
+              <div class="text-muted" style="font-size:.72rem;">JPG/PNG/WEBP · 800×600 px · Máx. 2 MB</div>
+            }
+          </div>
+          <input #fileMobile type="file" accept="image/*" hidden (change)="onFileSelect($event, 'mobile')">
+          <div class="mt-2">
+            <label class="form-label fw-semibold small text-uppercase text-muted">O introduce la URL</label>
+            <input type="url" class="form-control form-control-sm" formControlName="banner_mobile_url"
+                   placeholder="https://.../banner-mobile.jpg">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-warning"><i class="bi bi-stars"></i></div>
+        <div>
+          <div class="fw-bold">Franja de aliados / patrocinadores</div>
+          <div class="text-muted small">Logos en la barra de confianza bajo el Hero de la Landing</div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Texto encabezado de la franja</label>
+        <input type="text" class="form-control" formControlName="allies_header" placeholder="Ej. Con el apoyo de">
+      </div>
+      <div class="row g-2 mb-3">
+        @for (ally of allies(); track $index) {
+          <div class="col-6 col-sm-3">
+            <div class="aliado-tile filled">
+              <div class="text-center">
+                <div class="fw-bold small" style="color:#406eba;">{{ ally }}</div>
+                <button class="btn btn-link btn-sm p-0 text-danger mt-1" style="font-size:.7rem;" (click)="eliminarAliado($index)">Eliminar</button>
+              </div>
+            </div>
+          </div>
+        }
+        <div class="col-6 col-sm-3">
+          <div class="aliado-tile" (click)="mostrarAgregarAliado = true" style="cursor:pointer;">
+            <div><i class="bi bi-plus-circle d-block mb-1" style="font-size:1.3rem;"></i>Agregar aliado</div>
+          </div>
+        </div>
+      </div>
+      @if (mostrarAgregarAliado) {
+        <div class="d-flex gap-2 align-items-center mb-2">
+          <input type="text" class="form-control form-control-sm" [(ngModel)]="nuevoAliado"
+                 [ngModelOptions]="{standalone: true}" placeholder="Nombre del aliado / patrocinador"
+                 (keyup.enter)="agregarAliado()">
+          <button class="btn btn-sm btn-primary" (click)="agregarAliado()">Agregar</button>
+          <button class="btn btn-sm btn-outline-secondary" (click)="mostrarAgregarAliado = false; nuevoAliado = ''">Cancelar</button>
+        </div>
+      }
+      <div class="form-text">Nombres de patrocinadores para la Landing.</div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-teal"><i class="bi bi-card-image"></i></div>
+        <div>
+          <div class="fw-bold">Imagen de portada interna</div>
+          <div class="text-muted small">Miniatura en el listado de eventos del sistema</div>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Imagen de portada</label>
+        <div class="drop-zone-sm" (click)="fileCover.click()"
+             (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'cover')">
+          @if (coverPreviewUrl()) {
+            <img [src]="coverPreviewUrl()" style="height:60px;object-fit:cover;border-radius:.4rem;" alt="Preview portada">
+            <span class="ms-2 text-muted small">Cambiar</span>
+          } @else {
+            <i class="bi bi-cloud-arrow-up me-1 text-muted"></i>
+            Arrastra o <strong>selecciona</strong> una imagen · JPG/PNG · 800×450 px
+          }
+        </div>
+        <input #fileCover type="file" accept="image/*" hidden (change)="onFileSelect($event, 'cover')">
+        <div class="mt-2">
+          <input type="url" class="form-control form-control-sm" formControlName="cover_image_url"
+                 placeholder="https://.../portada.jpg">
+          <div class="form-text">O introduce la URL directamente</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-nav-footer">
+    <button class="btn btn-outline-secondary" (click)="irAtras()">
+      <i class="bi bi-chevron-left me-1"></i>Atrás
+    </button>
+    <button class="btn btn-primary px-4" (click)="irSiguiente()">
+      Siguiente: Memoria <i class="bi bi-chevron-right ms-1"></i>
+    </button>
+  </div>
+</div>

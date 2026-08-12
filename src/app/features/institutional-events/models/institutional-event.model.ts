@@ -1,0 +1,264 @@
+/**
+ * Modelos del Módulo de Eventos Institucionales (MVP)
+ * Sincronizado con el schema real — docs/Events/12-EVENTOS-MVP-SCHEMA.sql
+ * Tablas: institutional_events, institutional_event_subevents,
+ *         institutional_event_attendees, institutional_event_attendee_subevents
+ *
+ * NO usar los modelos de docs/Events/08-MODULO-EVENTOS.md (OBSOLETO, prefijo `events`).
+ */
+
+// ─── Tipos (enums reales de la DB) ─────────────────────────────────────────────
+
+export type EventType = 'academic' | 'sports' | 'cultural' | 'social' | 'other';
+export type EventStatus = 'draft' | 'published' | 'ongoing' | 'closed' | 'cancelled';
+export type AccessType = 'public' | 'members_only' | 'registration' | 'restricted' | 'committee';
+export type EventModality = 'presencial' | 'virtual' | 'hibrido';
+export type SubeventStatus = 'confirmed' | 'tentative' | 'cancelled';
+export type AttendeeType = 'socio' | 'invitado' | 'staff' | 'externo';
+export type AttendeeStatus = 'confirmed' | 'pending' | 'cancelled';
+export type RegistrationChannel = 'public_self' | 'public_by_socio' | 'admin_manual';
+
+// ─── Metadatos de UI (labels/íconos/colores) ───────────────────────────────────
+
+export const EVENT_TYPE_META: Record<EventType, { label: string; icon: string; badgeClass: string; gradient: string }> = {
+  academic: { label: 'Académico', icon: 'bi-mortarboard-fill', badgeClass: 'bg-primary-subtle text-primary-emphasis border-primary-subtle', gradient: 'linear-gradient(135deg,#406eba,#1d3d79)' },
+  sports:   { label: 'Deportivo', icon: 'bi-trophy-fill',      badgeClass: 'bg-success-subtle text-success-emphasis border-success-subtle',   gradient: 'linear-gradient(135deg,#87700b,#b39716)' },
+  cultural: { label: 'Cultural',  icon: 'bi-music-note-beamed',badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle', gradient: 'linear-gradient(135deg,#7c3aed,#4f46e5)' },
+  social:   { label: 'Social',    icon: 'bi-people-fill',      badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle', gradient: 'linear-gradient(135deg,#4caf50,#1b5e20)' },
+  other:    { label: 'Otro',      icon: 'bi-calendar-event',   badgeClass: 'bg-light text-dark border-secondary-subtle',                          gradient: 'linear-gradient(135deg,#6c757d,#495057)' },
+};
+
+export const EVENT_STATUS_META: Record<EventStatus, { label: string; badgeClass: string }> = {
+  draft: { label: 'Borrador', badgeClass: 'bg-warning-subtle text-warning-emphasis border-warning-subtle' },
+  published: { label: 'Publicado', badgeClass: 'bg-success-subtle text-success-emphasis border-success-subtle' },
+  ongoing: { label: 'En curso', badgeClass: 'bg-info-subtle text-info-emphasis border-info-subtle' },
+  closed: { label: 'Cerrado', badgeClass: 'bg-danger-subtle text-danger-emphasis border-danger-subtle' },
+  cancelled: { label: 'Cancelado', badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle' },
+};
+
+export const ACCESS_TYPE_META: Record<AccessType, { label: string; icon: string; desc: string }> = {
+  public: { label: 'Público', icon: 'bi-globe2', desc: 'Cualquier persona puede ver e inscribirse' },
+  members_only: { label: 'Solo socios', icon: 'bi-person-badge-fill', desc: 'Requiere membresía vigente' },
+  registration: { label: 'Con registro', icon: 'bi-clipboard-check-fill', desc: 'Requiere registro previo' },
+  restricted: { label: 'Restringido', icon: 'bi-shield-lock-fill', desc: 'Solo invitados específicos' },
+  committee: { label: 'Comité', icon: 'bi-people-fill', desc: 'Uso interno, no público' },
+};
+
+export const SUBEVENT_STATUS_META: Record<SubeventStatus, { label: string; badgeClass: string }> = {
+  confirmed: { label: 'Confirmado', badgeClass: 'bg-success-subtle text-success-emphasis border-success-subtle' },
+  tentative: { label: 'Por confirmar', badgeClass: 'bg-warning-subtle text-warning-emphasis border-warning-subtle' },
+  cancelled: { label: 'Cancelado', badgeClass: 'bg-danger-subtle text-danger-emphasis border-danger-subtle' },
+};
+
+// ─── Entidades ──────────────────────────────────────────────────────────────────
+
+export interface InstitutionalEventSubevent {
+  id?: number;
+  event_id?: number;
+  name: string;
+  description?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  venue?: string | null;
+  max_capacity: number;
+  current_attendee_count?: number;
+  cost?: number | null;
+  access_type: AccessType;
+  instructor_name?: string | null;
+  status: SubeventStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface InstitutionalEventDocument {
+  name: string;
+  url: string;
+}
+
+export interface InstitutionalEventFaq {
+  question: string;
+  answer: string;
+}
+
+export interface InstitutionalEventSpeaker {
+  name: string;
+  role: string;
+  bio?: string | null;
+  photo_url?: string | null;
+}
+
+export interface InstitutionalEventTestimonial {
+  name: string;
+  role: string;
+  quote: string;
+  stars?: number | null;
+}
+
+/** Material post-evento: galería, métricas logradas, resumen narrativo. */
+export interface PostEventMetric {
+  value: string;
+  label: string;
+  prefix?: string;
+}
+
+export interface PostEventGalleryItem {
+  url: string;
+  caption?: string;
+}
+
+export interface PostEventData {
+  gallery?: PostEventGalleryItem[];
+  metrics?: PostEventMetric[];
+  summary?: string;
+}
+
+/** Datos extendidos de contacto, redes sociales e indicadores para la Landing. */
+export interface EventIndicator {
+  value: string;
+  label: string;
+  prefix?: string;
+}
+
+export interface EventExtraData {
+  contact_person?: string;
+  contact_schedule?: string;
+  maps_url?: string;
+  social_facebook?: string;
+  social_instagram?: string;
+  social_twitter?: string;
+  indicators?: EventIndicator[];
+  allies?: string[];
+  allies_header?: string;
+}
+
+export interface InstitutionalEvent {
+  id: number;
+  location_id: number;
+  location?: { id: number; name: string } | null;
+  name: string;
+  kicker?: string | null;
+  event_type: EventType;
+  description?: string | null;
+  banner_image_url?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  all_day: boolean;
+  venue?: string | null;
+  event_modality: EventModality;
+  stream_url?: string | null;
+  doors_open_time?: string | null;
+  access_types: AccessType[];
+  has_registration: boolean;
+  max_capacity?: number | null;
+  current_attendee_count: number;
+  has_cost: boolean;
+  cost?: number | null;
+  has_donations: boolean;
+  donation_amounts?: number[] | null;
+  documents?: InstitutionalEventDocument[] | null;
+  faqs?: InstitutionalEventFaq[] | null;
+  speakers?: InstitutionalEventSpeaker[] | null;
+  testimonials?: InstitutionalEventTestimonial[] | null;
+  post_event_data?: PostEventData | null;
+  extra_data?: EventExtraData | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  status: EventStatus;
+  published_at?: string | null;
+  closed_at?: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
+  created_by?: number | null;
+  updated_by?: number | null;
+  created_at: string;
+  updated_at: string;
+  institutional_event_subevents?: InstitutionalEventSubevent[];
+}
+
+export interface InstitutionalEventAttendee {
+  id: number;
+  event_id: number;
+  attendee_type: AttendeeType;
+  socio_id?: number | null;
+  host_socio_id?: number | null;
+  relationship_id?: number | null;
+  relationship_other_label?: string | null;
+  staff_role?: string | null;
+  full_name: string;
+  email?: string | null;
+  phone?: string | null;
+  access_type_selected?: AccessType | null;
+  registration_channel: RegistrationChannel;
+  status: AttendeeStatus;
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Respuestas de la API ───────────────────────────────────────────────────────
+
+export interface Pagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  error?: any;
+}
+
+export type EventListResponse = ApiResponse<{ events: InstitutionalEvent[]; pagination: Pagination }>;
+export type EventResponse = ApiResponse<{ event: InstitutionalEvent }>;
+export type AttendeeListResponse = ApiResponse<{ attendees: InstitutionalEventAttendee[] }>;
+export type AttendeeResponse = ApiResponse<{ attendee: InstitutionalEventAttendee }>;
+
+export interface EventListFilters {
+  page?: number;
+  limit?: number;
+  status?: EventStatus;
+  event_type?: EventType;
+  location_id?: number;
+}
+
+/** Ubicación / sede real donde puede realizarse un evento (catálogo `locations`). */
+export interface EventLocation {
+  id: number;
+  name: string;
+}
+
+/** Payload exacto que espera la API para crear/editar un evento (snake_case, 1:1 con la BD). */
+export interface InstitutionalEventPayload {
+  location_id: number;
+  name: string;
+  kicker?: string | null;
+  event_type: EventType;
+  description?: string | null;
+  banner_image_url?: string | null;
+  start_date: string;
+  end_date?: string | null;
+  all_day: boolean;
+  venue?: string | null;
+  event_modality?: EventModality;
+  stream_url?: string | null;
+  doors_open_time?: string | null;
+  access_types: AccessType[];
+  has_registration: boolean;
+  max_capacity?: number | null;
+  has_cost: boolean;
+  cost?: number | null;
+  has_donations: boolean;
+  donation_amounts?: number[] | null;
+  documents?: InstitutionalEventDocument[] | null;
+  faqs?: InstitutionalEventFaq[] | null;
+  speakers?: InstitutionalEventSpeaker[] | null;
+  testimonials?: InstitutionalEventTestimonial[] | null;
+  post_event_data?: PostEventData | null;
+  extra_data?: EventExtraData | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  institutional_event_subevents?: InstitutionalEventSubevent[];
+}

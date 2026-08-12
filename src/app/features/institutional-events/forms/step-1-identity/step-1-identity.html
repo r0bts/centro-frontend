@@ -1,0 +1,212 @@
+<div class="pane-anim" [formGroup]="group">
+  <div class="pane-header">
+    <h2>Identidad del evento</h2>
+    <p class="text-muted small">Información general que aparece en la Landing Page del evento.</p>
+  </div>
+
+  <!-- ── Sede ──────────────────────────────────────────────────────────── -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-blue"><i class="bi bi-building"></i></div>
+        <div>
+          <div class="fw-bold">Sede <span class="text-danger">*</span></div>
+          <div class="text-muted small">Instalación principal donde se desarrolla el evento</div>
+        </div>
+      </div>
+
+      <div class="row g-2">
+        @for (loc of state.locations(); track loc.id; let i = $index) {
+          <div class="col-6">
+            <div class="sede-option"
+                 [class.active]="group.get('location_id')!.value === loc.id"
+                 (click)="selectSede(loc.id)">
+              <div class="sede-icon-wrap"
+                   [style.background]="i === 0 ? '#eff6ff' : '#f0fdf4'"
+                   [style.color]="i === 0 ? '#2563eb' : '#16a34a'">
+                <i [class]="i === 0 ? 'bi bi-building' : 'bi bi-building-fill'"></i>
+              </div>
+              <div>
+                <div class="fw-bold small">{{ loc.name }}</div>
+                <div class="text-muted" style="font-size:.71rem;">
+                  {{ i === 0 ? 'Sede principal' : 'Sede secundaria' }}
+                </div>
+              </div>
+              @if (group.get('location_id')!.value === loc.id) {
+                <i class="bi bi-check-circle-fill ms-auto"
+                   [style.color]="i === 0 ? '#2563eb' : '#16a34a'"></i>
+              }
+            </div>
+          </div>
+        }
+        @if (state.locations().length === 0) {
+          <div class="col-12 text-muted small fst-italic">Cargando sedes…</div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Identidad y descripción ───────────────────────────────────────── -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-purple"><i class="bi bi-pencil-square"></i></div>
+        <div>
+          <div class="fw-bold">Identidad y descripción</div>
+          <div class="text-muted small">Nombre, kicker emotivo y categoría del evento</div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">
+          Nombre del evento <span class="text-danger">*</span>
+        </label>
+        <input type="text" class="form-control" formControlName="name" maxlength="150"
+               placeholder="Ej. Olimpiada Libanesa 2026">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">
+          Kicker / Subtítulo emotivo
+          <span class="badge bg-light text-muted ms-1" style="font-weight:500;">Landing Page</span>
+        </label>
+        <input type="text" class="form-control" formControlName="kicker" maxlength="150"
+               placeholder="Frase corta que aparece en el Hero de la Landing">
+        <div class="form-text">Frase corta que aparece bajo el título en el Hero de la Landing.</div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Tipo <span class="text-danger">*</span>
+          </label>
+          <select class="form-select" formControlName="event_type">
+            <option value="">— Selecciona tipo —</option>
+            <option value="academic">Académico</option>
+            <option value="sports">Deportivo</option>
+            <option value="cultural">Cultural</option>
+            <option value="social">Social</option>
+            <option value="other">Benéfico / Recaudación</option>
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Área (opcional)</label>
+          <select class="form-select" [(ngModel)]="areaLocal" [ngModelOptions]="{standalone:true}">
+            <option value="">— Sin asignar —</option>
+            <option>Deportes</option>
+            <option>Cultura</option>
+            <option>Fundación</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-0">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Descripción</label>
+        <textarea class="form-control" rows="3" formControlName="description"
+                  placeholder="Describe brevemente el evento."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Área de donativos ──────────────────────────────────────────────── -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-rose"><i class="bi bi-heart-fill"></i></div>
+        <div>
+          <div class="fw-bold">Área de donativos</div>
+          <div class="text-muted small">¿Este evento incluye recepción de apoyo económico?</div>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" role="switch"
+                 style="width:2.4rem;height:1.25rem;"
+                 [checked]="group.get('has_donations')!.value"
+                 (change)="toggleDonativos($any($event.target).checked)">
+        </div>
+        <div>
+          <span class="fw-semibold small">¿Tiene área de donativos / recepción de apoyo?</span>
+          <div class="text-muted" style="font-size:.75rem;">
+            Activa para configurar montos y leyenda de deducibilidad
+          </div>
+        </div>
+      </div>
+
+      @if (group.get('has_donations')!.value) {
+        <div class="donativo-config">
+
+          <!-- Frecuencia -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Frecuencia</label>
+            <div class="d-flex gap-2 flex-wrap">
+              <div class="frec-card" [class.sel]="frecuencias.includes('unico')"
+                   (click)="toggleFrecuencia('unico')">
+                <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+                <div class="oc-top">
+                  <span class="oc-icon">1️⃣</span>
+                  <span class="oc-label" style="font-size:12px;">Único</span>
+                </div>
+                <div class="oc-sub">Pago individual</div>
+              </div>
+              <div class="frec-card" [class.sel]="frecuencias.includes('mensual')"
+                   (click)="toggleFrecuencia('mensual')">
+                <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+                <div class="oc-top">
+                  <span class="oc-icon">🔄</span>
+                  <span class="oc-label" style="font-size:12px;">Mensual</span>
+                </div>
+                <div class="oc-sub">Recurrente</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Montos sugeridos -->
+          <label class="form-label fw-semibold small">Montos sugeridos</label>
+          <div class="d-flex gap-2 flex-wrap align-items-center mb-2">
+            @for (m of montos; track m) {
+              <span class="monto-chip">${{ m.toLocaleString('es-MX') }}
+                <span class="remove" (click)="quitarMonto(m)">×</span>
+              </span>
+            }
+          </div>
+          <div class="input-group input-group-sm mb-3" style="max-width:260px;">
+            <span class="input-group-text">$</span>
+            <input type="number" class="form-control" min="1" placeholder="Agregar monto"
+                   [(ngModel)]="nuevoMonto" [ngModelOptions]="{standalone: true}">
+            <button class="btn btn-outline-secondary" type="button" (click)="agregarMonto()">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+
+          <!-- Leyenda de deducibilidad -->
+          <div>
+            <label class="form-label fw-semibold small">
+              Leyenda de deducibilidad
+              <span class="badge bg-light text-muted ms-1" style="font-weight:500;">Landing</span>
+            </label>
+            <input type="text" class="form-control" [(ngModel)]="leyendaDon"
+                   [ngModelOptions]="{standalone:true}"
+                   placeholder="Tu donativo es deducible de impuestos…">
+          </div>
+
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (submitted && group.invalid) {
+    <div class="alert alert-danger py-2 px-3 d-flex align-items-center gap-2 mb-2" style="font-size:.85rem;">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span>Completa los campos requeridos: <strong>Sede</strong>, <strong>Nombre</strong> y <strong>Tipo</strong>.</span>
+    </div>
+  }
+
+  <div class="form-nav-footer">
+    <div></div>
+    <button class="btn btn-primary px-4" (click)="irSiguiente()">
+      Siguiente: Fecha y Lugar <i class="bi bi-chevron-right ms-1"></i>
+    </button>
+  </div>
+</div>
