@@ -1,19 +1,19 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { EventFormStateService } from '../../services/event-form-state.service';
 
 @Component({
   selector: 'app-step-1-identity',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, NgSelectModule],
   templateUrl: './step-1-identity.html',
   styleUrl: './step-1-identity.scss',
 })
 export class Step1IdentityComponent {
 
-  areaLocal = '';
   frecuencias: string[] = [];
   leyendaDon = '';
   nuevoMonto: number | null = null;

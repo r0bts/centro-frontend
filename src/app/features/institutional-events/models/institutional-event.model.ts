@@ -60,6 +60,8 @@ export interface InstitutionalEventSubevent {
   start_date?: string | null;
   end_date?: string | null;
   venue?: string | null;
+  area_id?: number | null;
+  area?: { id: number; name: string } | null;
   max_capacity: number;
   current_attendee_count?: number;
   cost?: number | null;
@@ -137,6 +139,8 @@ export interface InstitutionalEvent {
   id: number;
   location_id: number;
   location?: { id: number; name: string } | null;
+  area_id?: number | null;
+  area?: { id: number; name: string } | null;
   name: string;
   kicker?: string | null;
   event_type: EventType;
@@ -232,9 +236,15 @@ export interface EventLocation {
   name: string;
 }
 
+export interface EventArea {
+  id: number;
+  name: string;
+}
+
 /** Payload exacto que espera la API para crear/editar un evento (snake_case, 1:1 con la BD). */
 export interface InstitutionalEventPayload {
   location_id: number;
+  area_id?: number | null;
   name: string;
   kicker?: string | null;
   event_type: EventType;

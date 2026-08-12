@@ -17,6 +17,8 @@ import {
   PostEventData,
   PostEventGalleryItem,
   PostEventMetric,
+  EventArea,
+  EventStatus,
 } from '../models/institutional-event.model';
 
 export interface WizardStepMeta {
@@ -68,10 +70,16 @@ export class EventFormStateService {
   readonly saving = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly eventId = signal<number | null>(null);
+  /** Estado actual del evento cargado en el wizard (draft si es nuevo). */
+  readonly eventStatus = signal<EventStatus>('draft');
   readonly mode = computed<'create' | 'edit'>(() => (this.eventId() === null ? 'create' : 'edit'));
+  /** true cuando el evento ya no está en borrador y no necesita ser publicado de nuevo. */
+  readonly isAlreadyPublished = computed(() => this.eventStatus() !== 'draft');
 
   readonly locations = signal<EventLocation[]>([]);
   readonly loadingLocations = signal(false);
+  readonly areas = signal<EventArea[]>([]);
+  readonly loadingAreas = signal(false);
 
   /** Archivos pendientes de subir al backend — se procesan automáticamente dentro de save(). */
   readonly pendingImageUploads = new Map<string, File>();
@@ -84,6 +92,7 @@ export class EventFormStateService {
         name: ['', [Validators.required, Validators.maxLength(150)]],
         kicker: ['', Validators.maxLength(150)],
         event_type: ['' as EventType, Validators.required],
+        area_id: [null as number | null, Validators.required],
         location_id: [null as number | null, Validators.required],
         description: [''],
         has_donations: [false],
@@ -135,6 +144,7 @@ export class EventFormStateService {
       }),
     });
     this.loadLocations();
+    this.loadAreas();
   }
 
   // ── Getters de conveniencia ──────────────────────────────────────────────────
@@ -188,6 +198,18 @@ export class EventFormStateService {
     }
   }
 
+  async loadAreas(): Promise<void> {
+    this.loadingAreas.set(true);
+    try {
+      const lista = await firstValueFrom(this.svc.getAreas());
+      this.areas.set(lista);
+    } catch {
+      this.areas.set([]);
+    } finally {
+      this.loadingAreas.set(false);
+    }
+  }
+
   // ── Subeventos (FormArray) ───────────────────────────────────────────────────
 
   private buildSubeventGroup(s?: Partial<InstitutionalEventSubevent>): FormGroup {
@@ -198,6 +220,7 @@ export class EventFormStateService {
       start_date: [toDatetimeLocal(s?.start_date)],
       end_date: [toDatetimeLocal(s?.end_date)],
       venue: [s?.venue ?? ''],
+      area_id: [s?.area_id ?? null, Validators.required],
       max_capacity: [s?.max_capacity ?? 0],
       cost: [s?.cost ?? 0],
       access_type: [s?.access_type ?? 'public'],
@@ -348,10 +371,13 @@ export class EventFormStateService {
   }
 
   private patchFromEvent(event: InstitutionalEvent): void {
+    // Registrar el estado actual para que el Paso 9 pueda bloquearse si ya está publicado
+    this.eventStatus.set(event.status);
     this.identityGroup.patchValue({
       name: event.name,
       kicker: event.kicker ?? '',
       event_type: event.event_type,
+      area_id: event.area_id ?? null,
       location_id: event.location_id,
       description: event.description ?? '',
       has_donations: event.has_donations,
@@ -450,6 +476,7 @@ export class EventFormStateService {
 
     return {
       location_id: identity.location_id,
+      area_id: identity.area_id ?? null,
       name: identity.name,
       kicker: identity.kicker || null,
       event_type: identity.event_type,
@@ -484,6 +511,7 @@ export class EventFormStateService {
         start_date: toApiDateTime(s.start_date),
         end_date: toApiDateTime(s.end_date),
         venue: s.venue || null,
+        area_id: s.area_id || null,
         max_capacity: s.max_capacity || 0,
         cost: s.cost || 0,
         access_type: s.access_type,
@@ -502,6 +530,7 @@ export class EventFormStateService {
     if (!identity.location_id)          missing.push('Sede (Paso 1)');
     if (!identity.name?.trim())         missing.push('Nombre del evento (Paso 1)');
     if (!identity.event_type)           missing.push('Tipo de evento (Paso 1)');
+    if (!identity.area_id)              missing.push('Área (Paso 1)');
     if (!datetime.start_date)           missing.push('Fecha de inicio (Paso 2)');
     if (!access.access_types?.length)   missing.push('Tipos de acceso (Paso 3)');
     if (missing.length) {
@@ -566,9 +595,11 @@ export class EventFormStateService {
     this.saving.set(true);
     try {
       await firstValueFrom(this.svc.publish(this.eventId()!));
+      this.eventStatus.set('published');
       return true;
-    } catch {
-      this.loadError.set('El evento se guardó, pero no se pudo publicar.');
+    } catch (err: any) {
+      const msg: string = err?.error?.message ?? 'El evento se guardó, pero no se pudo publicar.';
+      this.loadError.set(msg);
       return false;
     } finally {
       this.saving.set(false);
@@ -578,9 +609,10 @@ export class EventFormStateService {
   /** Reinicia el formulario a su estado vacío inicial (modo creación). */
   reset(): void {
     this.eventId.set(null);
+    this.eventStatus.set('draft');
     this.currentStep.set(1);
     this.loadError.set(null);
-    this.identityGroup.reset({ name: '', kicker: '', event_type: '', location_id: null, description: '', has_donations: false, donation_amounts: [] });
+    this.identityGroup.reset({ name: '', kicker: '', event_type: '', area_id: null, location_id: null, description: '', has_donations: false, donation_amounts: [] });
     this.datetimeGroup.reset({ start_date: '', end_date: '', all_day: false, venue: '', event_modality: 'presencial', stream_url: '', doors_open_time: '' });
     this.accessGroup.reset({ access_types: [], has_registration: true, max_capacity: null, has_cost: false, cost: null });
     this.heroGroup.reset({ banner_image_url: '', banner_mobile_url: '', cover_image_url: '', allies_header: 'Con el apoyo de', allies: [] });

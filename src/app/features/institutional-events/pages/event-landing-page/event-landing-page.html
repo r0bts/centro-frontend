@@ -139,7 +139,12 @@
   @if (ev.description) {
     <section id="sobre">
       <div class="contenedor grid grid-2">
-        <div class="img-placeholder" style="min-height:300px;">FOTO: escena representativa del evento</div>
+        @let aboutImg = ev.extra_data?.['cover_image_url'] || ev.banner_image_url;
+        @if (aboutImg) {
+          <img class="sobre-img" [src]="aboutImg" [alt]="ev.name">
+        } @else {
+          <div class="img-placeholder" style="min-height:300px;"></div>
+        }
         <div>
           <p class="eyebrow">Sobre el evento</p>
           <h2 class="titulo-seccion">{{ ev.name }}</h2>

@@ -10,6 +10,7 @@ import {
   AttendeeResponse,
   InstitutionalEventPayload,
   EventLocation,
+  EventArea,
   ApiResponse,
 } from '../models/institutional-event.model';
 
@@ -115,6 +116,18 @@ export class InstitutionalEventsService {
         const sedes = activos.filter(l => InstitutionalEventsService.SEDES_EVENTOS.includes(String(l.name).toUpperCase()));
         const lista = sedes.length ? sedes : activos;
         return lista.map(l => ({ id: Number(l.id), name: l.name }));
+      })
+    );
+  }
+
+  /** GET /api/areas?active=true — catálogo de áreas activas del club (para campo area_id del evento). */
+  getAreas(): Observable<EventArea[]> {
+    return this.http.get<ApiResponse<{ areas: any[] }>>(`${environment.apiUrl}/areas`, {
+      params: new HttpParams().set('active', 'true').set('limit', '200'),
+    }).pipe(
+      map(res => {
+        const all = res.data?.areas ?? (res as any)?.data ?? [];
+        return all.filter((a: any) => !a.is_inactive).map((a: any) => ({ id: Number(a.id), name: a.name }));
       })
     );
   }

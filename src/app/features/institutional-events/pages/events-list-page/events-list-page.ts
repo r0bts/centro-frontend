@@ -139,8 +139,9 @@ export class EventsListPageComponent implements OnInit {
     try {
       await firstValueFrom(this.svc.publish(event.id));
       await this.loadEventos();
-    } catch {
-      this.error.set('No se pudo publicar el evento.');
+    } catch (err: any) {
+      const msg: string = err?.error?.message ?? 'No se pudo publicar el evento.';
+      this.error.set(msg);
     }
   }
 

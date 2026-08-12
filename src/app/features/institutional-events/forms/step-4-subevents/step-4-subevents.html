@@ -14,14 +14,6 @@
         </div>
       </div>
 
-      @if (state.mode() === 'edit') {
-        <div class="alert alert-secondary py-2 small mb-3">
-          <i class="bi bi-info-circle me-1"></i>
-          Al eliminar un subevento aquí y guardar, éste se oculta del formulario pero
-          <strong>no se elimina físicamente</strong> del servidor todavía (pendiente endpoint de borrado dedicado).
-        </div>
-      }
-
       @if (subeventos.length === 0) {
         <div class="sub-empty">
           <i class="bi bi-calendar2-x" style="font-size:2rem;color:#d0d0d0;"></i>
@@ -41,7 +33,7 @@
                 <tr>
                   <td class="fw-semibold">{{ s.value.name }}</td>
                   <td>{{ s.value.start_date ? (s.value.start_date | date:'d MMM, HH:mm') : '—' }}</td>
-                  <td>{{ s.value.venue || '—' }}</td>
+                  <td>{{ s.value.venue || s.value.area?.name || '—' }}</td>
                   <td><span class="badge rounded-pill bg-light text-dark border">{{ accessMeta(s.value.access_type).label }}</span></td>
                   <td>{{ s.value.max_capacity > 0 ? s.value.max_capacity : '∞' }}</td>
                   <td>

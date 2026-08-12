@@ -56,24 +56,43 @@
     <div class="card-body">
       <div class="sec-head mb-3">
         <div class="sec-icon sec-success"><i class="bi bi-broadcast"></i></div>
-        <div><div class="fw-bold">Estado de publicación</div><div class="text-muted small">Elige cómo guardar el evento</div></div>
-      </div>
-      <div class="row g-2">
-        <div class="col-6">
-          <div class="opt-card" [class.sel-primary]="!publicarAlGuardar" (click)="publicarAlGuardar = false">
-            <div class="opt-check"><i class="bi bi-check-lg"></i></div>
-            <div class="oc-top"><span class="oc-icon">👁️</span><span class="oc-label">Guardar como borrador</span></div>
-            <div class="oc-sub">Invisible al público.</div>
-          </div>
-        </div>
-        <div class="col-6">
-          <div class="opt-card" [class.sel-success]="publicarAlGuardar" (click)="publicarAlGuardar = true">
-            <div class="opt-check"><i class="bi bi-check-lg"></i></div>
-            <div class="oc-top"><span class="oc-icon">✅</span><span class="oc-label">Publicar ahora</span></div>
-            <div class="oc-sub">Landing disponible al público.</div>
-          </div>
+        <div><div class="fw-bold">Estado de publicación</div>
+          @if (state.isAlreadyPublished()) {
+            <div class="text-muted small">El evento ya está <strong>{{ state.eventStatus() }}</strong> y se actualiz&oacute; correctamente al guardar.</div>
+          } @else {
+            <div class="text-muted small">Elige cómo guardar el evento</div>
+          }
         </div>
       </div>
+
+      @if (state.isAlreadyPublished()) {
+        <!-- Evento ya publicado/en curso/cerrado — mostrar badge informativo -->
+        <div class="alert alert-success d-flex align-items-center gap-2 mb-0 py-2">
+          <i class="bi bi-broadcast-pin fs-5"></i>
+          <div>
+            <strong>Landing pública activa</strong> — Este evento ya está visible al público.
+            Guardar actualiza los datos sin cambiar el estado.
+          </div>
+        </div>
+      } @else {
+        <!-- Evento en draft — permitir elegir -->
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="opt-card" [class.sel-primary]="!publicarAlGuardar" (click)="publicarAlGuardar = false">
+              <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+              <div class="oc-top"><span class="oc-icon">👁️</span><span class="oc-label">Guardar como borrador</span></div>
+              <div class="oc-sub">Invisible al público.</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="opt-card" [class.sel-success]="publicarAlGuardar" (click)="publicarAlGuardar = true">
+              <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+              <div class="oc-top"><span class="oc-icon">✅</span><span class="oc-label">Publicar ahora</span></div>
+              <div class="oc-sub">Landing disponible al público.</div>
+            </div>
+          </div>
+        </div>
+      }
     </div>
   </div>
 
@@ -89,7 +108,7 @@
         } @else {
           <i class="bi bi-check-lg me-1"></i>
         }
-        {{ publicarAlGuardar ? 'Guardar y publicar' : 'Guardar borrador' }}
+        {{ state.isAlreadyPublished() ? 'Guardar cambios' : (publicarAlGuardar ? 'Guardar y publicar' : 'Guardar borrador') }}
       </button>
     </div>
   </div>

@@ -254,6 +254,11 @@ footer.sitio ul li { margin-bottom: 9px; }
   border-radius: 14px; overflow: hidden; min-height: 360px;
   box-shadow: 0 8px 32px rgba(28,36,64,.15);
 }
+.sobre-img {
+  width: 100%; min-height: 300px; max-height: 420px;
+  object-fit: cover; border-radius: 14px; display: block;
+  box-shadow: 0 6px 24px rgba(28,36,64,.12);
+}
 
 /* ── Galería post-evento ─────────────────────────────────────────────────────── */
 .gallery-img {

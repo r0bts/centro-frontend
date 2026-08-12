@@ -72,7 +72,8 @@ export class Step9ReviewComponent {
   async guardar(): Promise<void> {
     const evento = await this.state.save();
     if (!evento) return;
-    if (this.publicarAlGuardar) {
+    // Solo publicar si se eligió publicar Y el evento aún está en draft
+    if (this.publicarAlGuardar && !this.state.isAlreadyPublished()) {
       await this.state.publish();
     }
     if (!this.state.loadError()) {

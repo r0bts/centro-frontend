@@ -90,13 +90,25 @@
           </select>
         </div>
         <div class="col-6">
-          <label class="form-label fw-semibold small text-uppercase text-muted">Área (opcional)</label>
-          <select class="form-select" [(ngModel)]="areaLocal" [ngModelOptions]="{standalone:true}">
-            <option value="">— Sin asignar —</option>
-            <option>Deportes</option>
-            <option>Cultura</option>
-            <option>Fundación</option>
-          </select>
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Área <span class="text-danger">*</span>
+          </label>
+          <ng-select
+            formControlName="area_id"
+            [items]="state.areas()"
+            bindLabel="name"
+            bindValue="id"
+            placeholder="Buscar área…"
+            notFoundText="Sin resultados"
+            loadingText="Cargando…"
+            [loading]="state.loadingAreas()"
+            [searchable]="true"
+            [clearable]="true"
+            [class.is-invalid]="group.get('area_id')?.invalid && group.get('area_id')?.touched">
+          </ng-select>
+          @if (group.get('area_id')?.invalid && group.get('area_id')?.touched) {
+            <div class="invalid-feedback d-block">El área es obligatoria.</div>
+          }
         </div>
       </div>
 

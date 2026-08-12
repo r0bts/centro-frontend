@@ -33,8 +33,23 @@
       </div>
 
       <div class="mb-3">
-        <label class="form-label fw-semibold small text-uppercase text-muted">Lugar</label>
-        <input type="text" class="form-control" [(ngModel)]="form.venue" placeholder="Ej. Salón Los Cedros">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Lugar <span class="text-danger">*</span></label>
+        <ng-select
+          [(ngModel)]="form.area_id"
+          [items]="state.areas()"
+          bindLabel="name"
+          bindValue="id"
+          placeholder="Buscar lugar / área…"
+          notFoundText="Sin resultados"
+          loadingText="Cargando…"
+          [loading]="state.loadingAreas()"
+          [searchable]="true"
+          [clearable]="true"
+          (change)="onAreaChange($event)">
+        </ng-select>
+        @if (!form.area_id && errorMsg === 'El lugar (área) es obligatorio.') {
+          <div class="invalid-feedback d-block">El lugar es obligatorio.</div>
+        }
       </div>
 
       <div class="row g-3 mb-3">
