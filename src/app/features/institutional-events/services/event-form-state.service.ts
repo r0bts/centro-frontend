@@ -73,6 +73,9 @@ export class EventFormStateService {
   readonly locations = signal<EventLocation[]>([]);
   readonly loadingLocations = signal(false);
 
+  /** Archivos pendientes de subir al backend — se procesan automáticamente dentro de save(). */
+  readonly pendingImageUploads = new Map<string, File>();
+
   readonly root: FormGroup;
 
   constructor(private fb: FormBuilder, private svc: InstitutionalEventsService) {
@@ -435,6 +438,8 @@ export class EventFormStateService {
       indicators: this.indicatorsArray.value.length ? this.indicatorsArray.value : undefined,
       allies: hero.allies?.length ? hero.allies : undefined,
       allies_header: hero.allies_header || undefined,
+      banner_mobile_url: hero.banner_mobile_url || undefined,
+      cover_image_url: hero.cover_image_url || undefined,
     };
 
     const postEventData: PostEventData = {
@@ -512,6 +517,19 @@ export class EventFormStateService {
         ? await firstValueFrom(this.svc.create(payload))
         : await firstValueFrom(this.svc.update(this.eventId()!, payload));
       this.eventId.set(res.data.event.id);
+
+      // Subir imágenes pendientes elegidas en Step 5 antes de este save
+      if (this.pendingImageUploads.size > 0) {
+        const urlMap = await this.uploadPendingImages(this.eventId()!);
+        if (Object.keys(urlMap).length > 0) {
+          if (urlMap['hero_desktop']) this.heroGroup.get('banner_image_url')?.setValue(urlMap['hero_desktop']);
+          if (urlMap['hero_mobile'])  this.heroGroup.get('banner_mobile_url')?.setValue(urlMap['hero_mobile']);
+          if (urlMap['cover'])        this.heroGroup.get('cover_image_url')?.setValue(urlMap['cover']);
+          // Segundo PATCH para persistir las URLs reales en la BD
+          await firstValueFrom(this.svc.update(this.eventId()!, this.buildPayload()));
+        }
+      }
+
       return res.data.event;
     } catch (err: any) {
       const apiMsg: string = err?.error?.message ?? '';
@@ -526,6 +544,21 @@ export class EventFormStateService {
     } finally {
       this.saving.set(false);
     }
+  }
+
+  /** Sube al backend todos los archivos en pendingImageUploads y devuelve un mapa type→url. */
+  private async uploadPendingImages(eventId: number): Promise<Record<string, string>> {
+    const urlMap: Record<string, string> = {};
+    for (const [type, file] of this.pendingImageUploads) {
+      try {
+        const res = await firstValueFrom(this.svc.uploadImage(eventId, type, file));
+        if (res?.url) urlMap[type] = res.url;
+      } catch (err) {
+        console.error(`uploadPendingImages: error al subir "${type}"`, err);
+      }
+    }
+    this.pendingImageUploads.clear();
+    return urlMap;
   }
 
   async publish(): Promise<boolean> {

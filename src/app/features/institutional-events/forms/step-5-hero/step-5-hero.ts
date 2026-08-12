@@ -85,7 +85,12 @@ export class Step5HeroComponent {
     else if (field === 'mobile') this.mobilePreviewUrl.set(blobUrl);
     else this.coverPreviewUrl.set(blobUrl);
 
-    // Reset input para permitir seleccionar el mismo archivo de nuevo
+    // Registrar en el servicio para upload automático al guardar en Step 9
+    // Mapear el nombre local al tipo que acepta el backend
+    const apiType = field === 'banner' ? 'hero_desktop' : field === 'mobile' ? 'hero_mobile' : 'cover';
+    this.state.pendingImageUploads.set(apiType, file);
+
+    // Reset input
     input.value = '';
   }
 
@@ -93,10 +98,18 @@ export class Step5HeroComponent {
     event.preventDefault();
     const file = event.dataTransfer?.files[0];
     if (!file || !file.type.startsWith('image/')) return;
+    // Revocar URL anterior si existe
+    const prev = field === 'banner' ? this.bannerPreviewUrl()
+               : field === 'mobile' ? this.mobilePreviewUrl()
+               : this.coverPreviewUrl();
+    if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
     const blobUrl = URL.createObjectURL(file);
     if (field === 'banner') this.bannerPreviewUrl.set(blobUrl);
     else if (field === 'mobile') this.mobilePreviewUrl.set(blobUrl);
     else this.coverPreviewUrl.set(blobUrl);
+    // Registrar en pendingImageUploads para upload automático al guardar
+    const apiType = field === 'banner' ? 'hero_desktop' : field === 'mobile' ? 'hero_mobile' : 'cover';
+    this.state.pendingImageUploads.set(apiType, file);
   }
 
   agregarAliado(): void {

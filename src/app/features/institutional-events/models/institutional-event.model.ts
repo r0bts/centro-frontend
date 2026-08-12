@@ -129,6 +129,8 @@ export interface EventExtraData {
   indicators?: EventIndicator[];
   allies?: string[];
   allies_header?: string;
+  banner_mobile_url?: string;
+  cover_image_url?: string;
 }
 
 export interface InstitutionalEvent {

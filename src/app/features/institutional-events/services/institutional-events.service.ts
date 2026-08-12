@@ -68,6 +68,16 @@ export class InstitutionalEventsService {
     return this.http.patch<EventResponse>(`${this.base}/${id}/cancel`, { cancellation_reason });
   }
 
+  /** POST /api/institutional-events/:id/upload/:type — sube un archivo de imagen y devuelve la URL pública. */
+  uploadImage(eventId: number, type: string, file: File): Observable<{ success: boolean; url: string; type: string }> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<{ success: boolean; url: string; type: string }>(
+      `${this.base}/${eventId}/upload/${type}`,
+      formData
+    );
+  }
+
   // ── Endpoint público (sin JWT) ───────────────────────────────────────────────
 
   /** GET /api/public/events/:id — datos públicos del evento (landing sin login). */

@@ -47,6 +47,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 };
 
 function addToken(request: HttpRequest<any>, token: string): HttpRequest<any> {
+  // Si el body es FormData (upload multipart), NO sobreescribir Content-Type.
+  // Angular lo asigna automáticamente como multipart/form-data con boundary correcto.
+  if (request.body instanceof FormData) {
+    return request.clone({
+      setHeaders: { 'Authorization': `Bearer ${token}` }
+    });
+  }
   return request.clone({
     setHeaders: {
       'Authorization': `Bearer ${token}`,

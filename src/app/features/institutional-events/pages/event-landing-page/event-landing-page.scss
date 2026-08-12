@@ -3,12 +3,12 @@
    Basado fielmente en _shared.css del mockup 03-event-landing.html
    Todos los estilos de la landing pública están aquí, no en styles.scss
 ═══════════════════════════════════════════════════════════ */
+/* Definir las variables en :host para que cascaden a todos los hijos.
+   Angular con ViewEncapsulation.Emulated no propaga :root correctamente. */
 :host {
   display: block;
-}
-
-/* ── CSS variables del sistema de diseño ─────────────────────────────────────── */
-:root {
+  scroll-behavior: smooth;
+  /* ── Sistema de diseño Centro Libanés ── */
   --rojo-cedro: #406eba;
   --verde-cedro: #1d3d79;
   --arena: #f0f4fa;
@@ -210,10 +210,62 @@ footer.sitio { background: var(--tinta); color: #c0cde0; padding: 60px 0 24px; f
   align-items: center; justify-content: center; text-align: center; padding: 2rem;
 }
 
+/* ── Barra de confianza / aliados ────────────────────────────────────────────── */
+.confianza {
+  padding: 24px 0;
+  border-bottom: 1px solid #d5e0f0;
+  background: #fff;
+}
+.confianza-texto {
+  text-align: center; color: #5b7089; font-size: 13px; margin-bottom: 18px;
+}
+.logo-aliado {
+  height: 58px; font-size: 11px; min-height: 58px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Donativos ───────────────────────────────────────────────────────────────── */
+.montos { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+.monto {
+  padding: 13px 20px; border: 2px solid #d5e0f0; border-radius: 12px;
+  font-weight: 700; cursor: pointer; background: #fff; transition: .15s;
+}
+.monto:hover { border-color: #406eba; }
+.monto.activo { border-color: #406eba; background: #e8f0fd; color: #406eba; }
+
+/* ── Footer completo ──────────────────────────────────────────────────────────── */
+footer.sitio h4 {
+  font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #fff;
+  font-size: 13px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 14px;
+}
+footer.sitio a:hover { color: #fff; }
+footer.sitio ul { list-style: none; padding: 0; margin: 0; }
+footer.sitio ul li { margin-bottom: 9px; }
+.footer-cols {
+  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.4fr; gap: 32px; margin-bottom: 0;
+}
+
+/* ── Hero imagen (con imagen real) ────────────────────────────────────────────── */
+.hero-img-real {
+  width: 100%; height: 100%; min-height: 360px;
+  object-fit: cover; border-radius: 14px; display: block;
+}
+.hero-img-wrap {
+  border-radius: 14px; overflow: hidden; min-height: 360px;
+  box-shadow: 0 8px 32px rgba(28,36,64,.15);
+}
+
+/* ── Galería post-evento ─────────────────────────────────────────────────────── */
+.gallery-img {
+  width: 100%; height: 200px; object-fit: cover;
+  border-radius: 12px; display: block;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
   nav.principal { display: none; }
   .grid-3, .grid-4, .grid-2 { grid-template-columns: 1fr; }
+  .footer-cols { grid-template-columns: 1fr; }
   .hero h1 { font-size: 32px; }
   .titulo-seccion { font-size: 26px; }
   section { padding: 52px 0; }

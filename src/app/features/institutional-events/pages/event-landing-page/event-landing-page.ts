@@ -115,6 +115,10 @@ export class EventLandingPageComponent implements OnInit {
   }
 
   // ── Navegación ────────────────────────────────────────────────────────────────
+  scrollTo(id: string): void {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   volverALista(): void {
     this.router.navigate(['/eventos']);
   }

@@ -51,11 +51,17 @@
         <span>{{ ev.name }}</span>
       </a>
       <nav class="principal">
-        @if (ev.description) { <a href="#sobre">Sobre el evento</a> }
-        @if (ev.institutional_event_subevents?.length) { <a href="#programa">Programa</a> }
-        @if (ev.speakers?.length) { <a href="#ponentes">Ponentes</a> }
-        <a href="#faq">FAQ</a>
-        <a href="#contacto">Contacto</a>
+        @if (ev.description) {
+          <a (click)="scrollTo('sobre')" style="cursor:pointer;">Sobre el evento</a>
+        }
+        @if (ev.institutional_event_subevents?.length) {
+          <a (click)="scrollTo('programa')" style="cursor:pointer;">Programa</a>
+        }
+        @if (ev.speakers?.length) {
+          <a (click)="scrollTo('ponentes')" style="cursor:pointer;">Ponentes</a>
+        }
+        <a (click)="scrollTo('faq')" style="cursor:pointer;">FAQ</a>
+        <a (click)="scrollTo('contacto')" style="cursor:pointer;">Contacto</a>
       </nav>
       <div class="header-acciones">
         <button type="button" class="btn btn-primario" (click)="abrirModal()">
@@ -104,14 +110,30 @@
           </div>
         </div>
       </div>
-      <div class="img-placeholder" style="min-height:360px;">
-        BANNER PRINCIPAL
-        @if (ev.banner_image_url) {
-          <img [src]="ev.banner_image_url" [alt]="ev.name" style="width:100%;height:100%;object-fit:cover;border-radius:14px;">
-        }
-      </div>
+      @if (ev.banner_image_url) {
+        <div class="hero-img-wrap">
+          <img class="hero-img-real" [src]="ev.banner_image_url" [alt]="ev.name">
+        </div>
+      } @else {
+        <div class="img-placeholder" style="min-height:360px;">BANNER PRINCIPAL</div>
+      }
     </div>
   </section>
+
+  <!-- ───────────────── BARRA DE ALIADOS / CONFIANZA ───────────────── -->
+  @let allies = ev.extra_data?.['allies'];
+  @if (allies && allies.length) {
+    <div class="confianza">
+      <div class="contenedor">
+        <p class="confianza-texto">{{ ev.extra_data?.['allies_header'] || 'Con el apoyo de' }}</p>
+        <div class="grid grid-4">
+          @for (aliado of allies; track aliado) {
+            <div class="logo-aliado img-placeholder">{{ aliado }}</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- ─────────────── SOBRE EL EVENTO ─────────────── -->
   @if (ev.description) {
@@ -315,6 +337,57 @@
   <!-- ─────────────── FOOTER ─────────────── -->
   <footer class="sitio">
     <div class="contenedor">
+      <div class="footer-cols">
+        <div>
+          <div class="logo" style="color:#fff;margin-bottom:12px;">
+            <span class="marca">CL</span>
+            <span>{{ ev.name }}</span>
+          </div>
+          @if (ev.description) {
+            <p>{{ ev.description | slice:0:120 }}{{ ev.description.length > 120 ? '…' : '' }}</p>
+          }
+          @let fbUrl = ev.extra_data?.['social_facebook'];
+          @let igUrl = ev.extra_data?.['social_instagram'];
+          @let twUrl = ev.extra_data?.['social_twitter'];
+          @if (fbUrl || igUrl || twUrl) {
+            <div style="display:flex;gap:12px;margin-top:16px;font-size:1.2rem;">
+              @if (fbUrl) { <a [href]="fbUrl" target="_blank"><i class="bi bi-facebook"></i></a> }
+              @if (igUrl) { <a [href]="igUrl" target="_blank"><i class="bi bi-instagram"></i></a> }
+              @if (twUrl) { <a [href]="twUrl" target="_blank"><i class="bi bi-twitter-x"></i></a> }
+            </div>
+          }
+        </div>
+        <div>
+          <h4>Navegación</h4>
+          <ul>
+            @if (ev.description) { <li><a (click)="scrollTo('sobre')" style="cursor:pointer;">Sobre el evento</a></li> }
+            @if (ev.institutional_event_subevents?.length) { <li><a (click)="scrollTo('programa')" style="cursor:pointer;">Programa</a></li> }
+            @if (ev.speakers?.length) { <li><a (click)="scrollTo('ponentes')" style="cursor:pointer;">Ponentes</a></li> }
+            <li><a (click)="scrollTo('faq')" style="cursor:pointer;">FAQ</a></li>
+            <li><a (click)="scrollTo('contacto')" style="cursor:pointer;">Contacto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Participa</h4>
+          <ul>
+            <li><a (click)="abrirModal()" style="cursor:pointer;">Registrarme</a></li>
+            @if (ev.has_donations) { <li><a (click)="scrollTo('donar')" style="cursor:pointer;">Donar</a></li> }
+          </ul>
+        </div>
+        <div>
+          <h4>Sede</h4>
+          @if (ev.location?.name) { <p>{{ ev.location!.name }}</p> }
+          @if (ev.venue) { <p style="margin-top:6px;font-size:.85rem;color:#a8c4ea;">{{ ev.venue }}</p> }
+          @let cp = ev.extra_data?.['contact_person'];
+          @if (cp) { <p style="margin-top:8px;"><i class="bi bi-person me-1"></i>{{ cp }}</p> }
+          @if (ev.contact_email) {
+            <p><i class="bi bi-envelope me-1"></i>{{ ev.contact_email }}</p>
+          }
+          @if (ev.contact_phone) {
+            <p><i class="bi bi-telephone me-1"></i>{{ ev.contact_phone }}</p>
+          }
+        </div>
+      </div>
       <div class="legal">
         <span>© 2026 Centro Libanés. Todos los derechos reservados.</span>
         <span>
