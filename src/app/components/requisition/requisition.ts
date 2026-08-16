@@ -110,6 +110,21 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   currentQuantity: string = '';
   isResumeCollapsed: boolean = false;
 
+  // ── Requisición Extraordinaria ────────────────────────────────────────────
+  isExtraordinaryMode: boolean = false;
+  showExtraordinaryModal: boolean = false;
+  extProductSearch: string = '';
+  extAreaSearch: string = '';
+  extQuantity: number | null = null;
+  extSelectedProduct: RequisitionProduct | null = null;
+  extSelectedArea: RequisitionArea | null = null;
+  extFilteredProducts: RequisitionProduct[] = [];
+  extFilteredAreas: RequisitionArea[] = [];
+  extAllActiveProducts: RequisitionProduct[] = [];
+  isLoadingExtProducts: boolean = false;
+  showExtProductDropdown: boolean = false;
+  showExtAreaDropdown: boolean = false;
+
   // ✅ Datos del backend (se cargan en ngOnInit)
   backendProducts: RequisitionProduct[] = []; // Catálogo completo de productos del backend
   productNames: string[] = []; // Nombres para búsqueda
@@ -974,6 +989,7 @@ export class RequisitionComponent implements OnInit, OnDestroy {
         requisitionData: this.requisitionSummary,
         deliveryDate: this.currentDeliveryDate,
         isDevolucion: this.isDevolucion,
+        isExtraordinary: this.isExtraordinaryMode,
         selectedEventId: this.selectedEvent,
         businessUnit: this.businessUnit,
         selectedLocationId: this.selectedLocationId,
@@ -993,6 +1009,128 @@ export class RequisitionComponent implements OnInit, OnDestroy {
       this.products = [];
     }
   }
+
+  // ── Requisición Extraordinaria ────────────────────────────────────────────
+
+  openExtraordinaryModal(): void {
+    this.extProductSearch = '';
+    this.extAreaSearch = '';
+    this.extQuantity = null;
+    this.extSelectedProduct = null;
+    this.extSelectedArea = null;
+    this.showExtProductDropdown = false;
+    this.showExtAreaDropdown = false;
+
+    // Pre-cargar áreas desde los datos ya disponibles
+    this.extFilteredAreas = [...this.backendAreas];
+
+    if (this.extAllActiveProducts.length > 0) {
+      this.extFilteredProducts = [...this.extAllActiveProducts];
+      this.showExtraordinaryModal = true;
+      this.cdr.markForCheck();
+      return;
+    }
+
+    // Cargar todos los productos activos desde el backend
+    this.isLoadingExtProducts = true;
+    this.showExtraordinaryModal = true;
+    this.cdr.markForCheck();
+
+    this.requisitionService.getActiveProducts().subscribe({
+      next: (resp) => {
+        this.extAllActiveProducts = resp.data;
+        this.extFilteredProducts = [...resp.data];
+        this.isLoadingExtProducts = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isLoadingExtProducts = false;
+        this.cdr.markForCheck();
+        Swal.fire('Error', 'No se pudieron cargar los productos activos.', 'error');
+      }
+    });
+  }
+
+  onExtProductSearch(): void {
+    const term = this.extProductSearch.toLowerCase().trim();
+    this.extFilteredProducts = term
+      ? this.extAllActiveProducts.filter(p => p.name.toLowerCase().includes(term))
+      : [...this.extAllActiveProducts];
+    this.showExtProductDropdown = true;
+    this.extSelectedProduct = null;
+    this.cdr.markForCheck();
+  }
+
+  selectExtProduct(product: RequisitionProduct): void {
+    this.extSelectedProduct = product;
+    this.extProductSearch = product.name;
+    this.showExtProductDropdown = false;
+    this.cdr.markForCheck();
+  }
+
+  onExtAreaSearch(): void {
+    const term = this.extAreaSearch.toLowerCase().trim();
+    this.extFilteredAreas = term
+      ? this.backendAreas.filter(a => a.name.toLowerCase().includes(term))
+      : [...this.backendAreas];
+    this.showExtAreaDropdown = true;
+    this.extSelectedArea = null;
+    this.cdr.markForCheck();
+  }
+
+  selectExtArea(area: RequisitionArea): void {
+    this.extSelectedArea = area;
+    this.extAreaSearch = area.name;
+    this.showExtAreaDropdown = false;
+    this.cdr.markForCheck();
+  }
+
+  confirmExtraordinary(): void {
+    if (!this.extSelectedProduct) {
+      Swal.fire('Producto requerido', 'Debes seleccionar un producto.', 'warning');
+      return;
+    }
+    if (!this.extSelectedArea) {
+      Swal.fire('Área requerida', 'Debes seleccionar un área.', 'warning');
+      return;
+    }
+    if (!this.extQuantity || this.extQuantity <= 0) {
+      Swal.fire('Cantidad inválida', 'La cantidad debe ser mayor a 0.', 'warning');
+      return;
+    }
+
+    this.requisitionSummary = [{
+      area: this.extSelectedArea.name,
+      areaId: this.extSelectedArea.id,
+      products: [{
+        id: this.extSelectedProduct.id,
+        name: this.extSelectedProduct.name,
+        quantity: this.extQuantity,
+        unit: this.extSelectedProduct.unit,
+        actions: '',
+        maxQuantity: null
+      }]
+    }];
+
+    this.isExtraordinaryMode = true;
+    this.showExtraordinaryModal = false;
+    this.cdr.markForCheck();
+  }
+
+  cancelExtraordinaryModal(): void {
+    this.showExtraordinaryModal = false;
+    this.cdr.markForCheck();
+  }
+
+  resetExtraordinaryMode(): void {
+    this.isExtraordinaryMode = false;
+    this.requisitionSummary = [];
+    this.extSelectedProduct = null;
+    this.extSelectedArea = null;
+    this.cdr.markForCheck();
+  }
+
+  // ── Fin Requisición Extraordinaria ────────────────────────────────────────
 
   hasProductsInArea(area: string): boolean {
     return this.requisitionSummary.some(req => req.area === area && req.products.length > 0);
@@ -1411,6 +1549,14 @@ export class RequisitionComponent implements OnInit, OnDestroy {
   
   trackByProjectId(index: number, project: Project): string {
     return project.id;
+  }
+
+  trackByRequisitionProductId(index: number, product: RequisitionProduct): string {
+    return product.id;
+  }
+
+  trackByRequisitionAreaId(index: number, area: RequisitionArea): string {
+    return area.id;
   }
   
   ngOnDestroy(): void {

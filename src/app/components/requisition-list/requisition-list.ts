@@ -39,6 +39,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   // Filtros adicionales (inicia mostrando solo Solicitadas)
   filterStatus = signal('solicitado');
   filterLocation = signal('');
+  filterExtraordinary = signal(false);
   
   // Verificar si el usuario puede filtrar por ubicación (location_id = 0)
   canFilterLocation = signal(false);
@@ -156,6 +157,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     }
     if (this.filterStatus()) params.status = this.filterStatus();
     if (this.filterLocation()) params.location_id = this.filterLocation();
+    if (this.filterExtraordinary()) params.is_extraordinary = '1';
     if (this.filterStartDate()) params.start_date = this.filterStartDate();
     if (this.filterEndDate()) params.end_date = this.filterEndDate();
 
@@ -514,6 +516,12 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     this.loadRequisitions();
   }
 
+  onExtraordinaryChange(value: boolean): void {
+    this.filterExtraordinary.set(value);
+    this.currentPage.set(1);
+    this.loadRequisitions();
+  }
+
   // Métodos para filtro de ubicación
   onLocationChange(location: string): void {
     this.filterLocation.set(location);
@@ -548,6 +556,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.filterStatus.set('solicitado');
     this.filterLocation.set('');
+    this.filterExtraordinary.set(false);
     this.filterStartDate.set('');
     this.filterEndDate.set('');
     this.currentPage.set(1);

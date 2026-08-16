@@ -7,7 +7,7 @@ import { environment } from '../../environments/environment';
 
 export interface AppNotification {
   id: number;
-  type: 'solicitado' | 'autorizado' | 'listo_recoger' | 'entregado';
+  type: 'solicitado' | 'autorizado' | 'listo_recoger' | 'entregado' | 'extraordinario';
   title: string;
   body: string | null;
   is_read: boolean;
@@ -150,6 +150,7 @@ export class NotificationService {
       case 'autorizado':    return '#43B581'; // --bs-success del sistema
       case 'listo_recoger': return '#406eba'; // --primary-color del sistema
       case 'entregado':     return '#6c757d'; // gris Bootstrap estándar
+      case 'extraordinario': return '#dc3545'; // rojo — alerta especial
     }
   }
 
@@ -159,6 +160,7 @@ export class NotificationService {
       case 'autorizado':    return 'bi-check-circle-fill';
       case 'listo_recoger': return 'bi-bag-check-fill';
       case 'entregado':     return 'bi-box-seam-fill';
+      case 'extraordinario': return 'bi-lightning-charge-fill';
     }
   }
 
@@ -168,6 +170,7 @@ export class NotificationService {
       case 'autorizado':    return 'Autorizado';
       case 'listo_recoger': return 'Listo';
       case 'entregado':     return 'Entregado';
+      case 'extraordinario': return 'Extraordinaria';
     }
   }
 

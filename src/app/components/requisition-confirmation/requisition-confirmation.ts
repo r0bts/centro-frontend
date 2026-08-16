@@ -99,6 +99,11 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   
   // Propiedad para devolución
   isDevolucion: boolean = false;
+
+  // Requisición extraordinaria
+  isExtraordinary: boolean = false;
+  canAddUserLimit: boolean = false;
+  canAddDeptLimit: boolean = false;
   
   // Propiedad para almacenar el evento seleccionado
   selectedEventId: string = '';
@@ -129,6 +134,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       this.requisitionData = navigation.extras.state['requisitionData'] || [];
       this.deliveryDate = navigation.extras.state['deliveryDate'] || null;
       this.isDevolucion = navigation.extras.state['isDevolucion'] || false;
+      this.isExtraordinary = navigation.extras.state['isExtraordinary'] || false;
       this.selectedEventId = navigation.extras.state['selectedEventId'] || '';
       this.businessUnit = navigation.extras.state['businessUnit'] || '';
       this.selectedDepartmentId = navigation.extras.state['selectedDepartmentId'];
@@ -251,6 +257,11 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
           this.canClosePartial = this.authService.hasPermission('requisition_confirmation', 'close_partial');
           this.canAuthorize    = this.authService.hasPermission('requisition_confirmation', 'authorize');
           this.canCloseReturn  = this.authService.hasPermission('requisition_confirmation', 'return');
+
+          // Extraordinaria
+          this.isExtraordinary  = data.isExtraordinary ?? false;
+          this.canAddUserLimit  = this.authService.hasPermission('department_limits', 'add_user_limit');
+          this.canAddDeptLimit  = this.authService.hasPermission('department_limits', 'add_dept_limit');
           
           // Capturar PIN de la requisición
           this.requisitionPin = data.pin || '';
@@ -572,6 +583,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       delivery_time: deliveryTimeStr, // ⭐ CAMPO OBLIGATORIO (HH:MM:SS)
       location_id: this.selectedLocationId, // ⭐ CAMPO OBLIGATORIO (1=HERMES, 9=GLACIAR)
       awaiting_return: this.isDevolucion,
+      is_extraordinary: this.isExtraordinary,
       items: items
     };
 
@@ -791,6 +803,48 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ── Requisición Extraordinaria: agregar a límites ─────────────────────────
+
+  addToUserLimit(): void {
+    const numericId = this.requisitionId.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: 'Agregar a productos personales',
+      text: '¿Agregar el/los producto(s) de esta requisición al catálogo personal del empleado responsable?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, agregar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#0d6efd'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      this.requisitionService.addToUserLimit(numericId).subscribe({
+        next: (r) => Swal.fire('Listo', r.message, 'success'),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo completar la operación', 'error')
+      });
+    });
+  }
+
+  addToDeptLimit(): void {
+    const numericId = this.requisitionId.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: 'Agregar a productos de departamento',
+      text: '¿Agregar el/los producto(s) de esta requisición al catálogo del departamento del solicitante?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, agregar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#198754'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      this.requisitionService.addToDeptLimit(numericId).subscribe({
+        next: (r) => Swal.fire('Listo', r.message, 'success'),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo completar la operación', 'error')
+      });
+    });
+  }
+
+  // ── Fin Requisición Extraordinaria ────────────────────────────────────────
 
   cancelRequisition(): void {
     Swal.fire({

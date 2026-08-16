@@ -29,6 +29,7 @@ export interface APIRequisitionItem {
   deliveryDateTime?: string;  // v1.1.0 - Nuevo campo combinado
   deliveryDate?: string;      // v1.0.0 - Campo legacy
   businessUnit?: string;
+  isExtraordinary?: boolean;
 }
 
 /**
@@ -89,7 +90,8 @@ export class RequisitionGroupingHelper {
       creationDate: new Date(item.creationDate),
       // Soportar tanto deliveryDateTime (v1.1.0) como deliveryDate (v1.0.0)
       deliveryDate: new Date(item.deliveryDateTime || item.deliveryDate || item.creationDate),
-      businessUnit: item.businessUnit || ''
+      businessUnit: item.businessUnit || '',
+      isExtraordinary: item.isExtraordinary ?? false
     }));
   }
 

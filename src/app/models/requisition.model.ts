@@ -22,6 +22,7 @@ export interface RequisitionItem {
   creationDate: Date;
   deliveryDate: Date;
   businessUnit?: string;
+  isExtraordinary?: boolean;
 }
 
 export interface APIRequisitionItem {
@@ -34,6 +35,7 @@ export interface APIRequisitionItem {
   deliveryDateTime?: string;  // v1.1.0 - Nuevo campo combinado
   deliveryDate?: string;      // v1.0.0 - Campo legacy
   businessUnit?: string;
+  isExtraordinary?: boolean;
 }
 
 export interface GroupedRequisitions {
