@@ -444,9 +444,10 @@ export class RequisitionService {
    * Agregar productos de una req. extraordinaria a user_product_limits del pickup_user.
    * Endpoint: POST /api/requisitions/{id}/add-user-limit
    */
-  addToUserLimit(id: string): Observable<{ success: boolean; message: string }> {
+  addToUserLimit(id: string, maxQuantity?: number | null): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
-      `${this.API_URL}/requisitions/${id}/add-user-limit`, {}
+      `${this.API_URL}/requisitions/${id}/add-user-limit`,
+      { max_quantity: maxQuantity ?? null }
     ).pipe(catchError(this.handleError));
   }
 
@@ -454,9 +455,26 @@ export class RequisitionService {
    * Agregar productos de una req. extraordinaria a department_product_limits del dpto del solicitante.
    * Endpoint: POST /api/requisitions/{id}/add-dept-limit
    */
-  addToDeptLimit(id: string): Observable<{ success: boolean; message: string }> {
+  addToDeptLimit(id: string, maxQuantity?: number | null): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(
-      `${this.API_URL}/requisitions/${id}/add-dept-limit`, {}
+      `${this.API_URL}/requisitions/${id}/add-dept-limit`,
+      { max_quantity: maxQuantity ?? null }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /** Solicitar cancelación de una requisición ya autorizada */
+  requestCancelAuth(id: string, reason: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.API_URL}/requisitions/${id}/request-cancel-auth`,
+      { reason }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /** Autorizar la cancelación de una requisición en estado pendiente_cancelacion */
+  authorizeCancellation(id: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.API_URL}/requisitions/${id}/authorize-cancel`,
+      {}
     ).pipe(catchError(this.handleError));
   }
 

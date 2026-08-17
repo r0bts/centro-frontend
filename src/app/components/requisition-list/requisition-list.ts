@@ -76,13 +76,14 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   // Opciones de estado disponibles según permisos
   availableStatusOptions = computed(() => {
     const allStatuses = [
-      { value: 'solicitado', label: 'Solicitado' },
-      { value: 'autorizado', label: 'Autorizada' },
-      { value: 'listo_recoger', label: 'Listo para Recoger' },
-      { value: 'entrega_parcial', label: 'Parcialmente Entregado' },
-      { value: 'entregado', label: 'Entregado' },
-      { value: 'espera_devolucion', label: 'Espera Devolución' },
-      { value: 'cancelado', label: 'Cancelado' }
+      { value: 'solicitado',            label: 'Solicitado' },
+      { value: 'autorizado',            label: 'Autorizada' },
+      { value: 'listo_recoger',         label: 'Listo para Recoger' },
+      { value: 'entrega_parcial',       label: 'Parcialmente Entregado' },
+      { value: 'entregado',             label: 'Entregado' },
+      { value: 'espera_devolucion',     label: 'Espera Devolución' },
+      { value: 'cancelado',             label: 'Cancelado' },
+      { value: 'pendiente_cancelacion', label: 'Pendiente Cancelación' },
     ];
     
     const allowed = this.availableStatuses();
@@ -230,15 +231,15 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string): string {
-    // Mapeo de estados del API a clases Bootstrap
     const statusClasses: { [key: string]: string } = {
-      'Solicitado': 'badge bg-warning text-dark',           // usa --bs-warning
-      'Autorizada': 'badge bg-success text-white',          // usa --bs-success  
-      'En Proceso': 'badge bg-primary text-white',          // usa --bs-primary
-      'Listo para Recoger': 'badge bg-info text-white',     // usa --bs-info
-      'Entregado': 'badge bg-secondary text-white',         // Bootstrap estándar
-      'Espera Devolución': 'badge bg-warning text-dark',      // devolución pendiente
-      'Cancelado': 'badge bg-danger text-white'             // usa --bs-danger
+      'Solicitado':             'badge bg-warning text-dark',
+      'Autorizada':             'badge bg-success text-white',
+      'En Proceso':             'badge bg-primary text-white',
+      'Listo para Recoger':     'badge bg-info text-white',
+      'Entregado':              'badge bg-secondary text-white',
+      'Espera Devolución':      'badge bg-warning text-dark',
+      'Cancelado':              'badge bg-danger text-white',
+      'Pendiente Cancelación':  'badge bg-warning text-dark',
     };
     return statusClasses[status] || 'badge bg-secondary text-white';
   }

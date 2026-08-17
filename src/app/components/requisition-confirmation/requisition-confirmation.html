@@ -371,6 +371,24 @@
                     Cancelar Requisición
                   </button>
 
+                  <!-- Solicitar cancelación de req. Autorizada o Lista para Recoger (requiere permiso + status) -->
+                  <button
+                    *ngIf="canRequestCancelAuth && (requisitionStatus === 'Autorizada' || requisitionStatus === 'Listo para Recoger')"
+                    class="btn btn-outline-warning"
+                    (click)="requestCancelAuth()"
+                    title="Solicitar cancelación de esta requisición">
+                    <i class="bi bi-x-circle me-1"></i>Solicitar Cancelación
+                  </button>
+
+                  <!-- Autorizar cancelación — visible cuando está Pendiente Cancelación -->
+                  <button
+                    *ngIf="canAuthorizeCancel && requisitionStatus === 'Pendiente Cancelación'"
+                    class="btn btn-danger"
+                    (click)="authorizeCancellation()"
+                    title="Autorizar la cancelación de esta requisición">
+                    <i class="bi bi-slash-circle me-1"></i>Autorizar Cancelación
+                  </button>
+
                   <!-- Botones Extraordinaria: solo disponibles cuando la req. ya fue Entregada -->
                   <ng-container *ngIf="isExtraordinary && requisitionStatus === 'Entregado'">
                     <button
