@@ -20,19 +20,22 @@
 .main-col { min-width: 0; }
 
 /* ── Columna lateral sticky ───────────────────────── */
+/* top: 4rem = stepper sticky (~58px) + 6px buffer */
 .sidebar-col {
   position: sticky;
-  top: 1rem;
+  top: 4rem;
   align-self: start;
   display: flex;
   flex-direction: column;
   gap: .75rem;
-  max-height: calc(100vh - 2rem);
-  overflow-y: auto;
 }
 
 /* Pasos apilados — los estilos de ocultamiento están en styles.scss (global) */
+
+// El sticky del preview-card viene del global styles.scss — lo anulamos aquí
+// porque .sidebar-col YA maneja todo el sticky del sidebar completo.
 .preview-card {
+  position: static !important; // anula el "position:sticky; top:84px" global
   background: #fff;
   border-radius: .75rem;
   box-shadow: 0 2px 12px rgba(0,0,0,.09);
