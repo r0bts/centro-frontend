@@ -28,17 +28,11 @@ export interface WizardStepMeta {
   icon: string;
 }
 
-/** Los 9 pasos del wizard, en el orden y con las etiquetas del mockup 02-event-form.html. */
+/** Los 3 pasos del wizard simplificado. */
 export const WIZARD_STEPS: WizardStepMeta[] = [
-  { id: 1, key: 'identity', label: 'Identidad', icon: 'bi-pencil-square' },
-  { id: 2, key: 'datetime', label: 'Fecha y Lugar', icon: 'bi-calendar3-range' },
-  { id: 3, key: 'access', label: 'Acceso', icon: 'bi-shield-lock-fill' },
-  { id: 4, key: 'subevents', label: 'Subeventos', icon: 'bi-diagram-3-fill' },
-  { id: 5, key: 'hero', label: 'Hero & Aliados', icon: 'bi-image-fill' },
-  { id: 6, key: 'postEvent', label: 'Memoria', icon: 'bi-camera-fill' },
-  { id: 7, key: 'documents', label: 'Documentos', icon: 'bi-file-earmark-pdf-fill' },
-  { id: 8, key: 'faqContact', label: 'FAQ y Contacto', icon: 'bi-question-circle-fill' },
-  { id: 9, key: 'review', label: 'Revisión', icon: 'bi-clipboard2-check-fill' },
+  { id: 1, key: 'identity', label: 'Básico',   icon: 'bi-pencil-square' },
+  { id: 2, key: 'details',  label: 'Detalles', icon: 'bi-sliders' },
+  { id: 3, key: 'review',   label: 'Publicar', icon: 'bi-clipboard2-check-fill' },
 ];
 
 function toDatetimeLocal(value?: string | null): string {
@@ -527,12 +521,12 @@ export class EventFormStateService {
     const datetime = this.datetimeGroup.value;
     const access   = this.accessGroup.value;
     const missing: string[] = [];
-    if (!identity.location_id)          missing.push('Sede (Paso 1)');
-    if (!identity.name?.trim())         missing.push('Nombre del evento (Paso 1)');
-    if (!identity.event_type)           missing.push('Tipo de evento (Paso 1)');
-    if (!identity.area_id)              missing.push('Área (Paso 1)');
-    if (!datetime.start_date)           missing.push('Fecha de inicio (Paso 2)');
-    if (!access.access_types?.length)   missing.push('Tipos de acceso (Paso 3)');
+    if (!identity.location_id)          missing.push('Sede');
+    if (!identity.name?.trim())         missing.push('Nombre del evento');
+    if (!identity.event_type)           missing.push('Tipo de evento');
+    if (!identity.area_id)              missing.push('Área');
+    if (!datetime.start_date)           missing.push('Fecha de inicio');
+    if (!access.access_types?.length)   missing.push('Tipo de acceso');
     if (missing.length) {
       this.loadError.set('Campos requeridos sin completar: ' + missing.join(', ') + '.');
       return null;

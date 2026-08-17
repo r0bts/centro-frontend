@@ -114,6 +114,13 @@ export class EventFormPageComponent implements OnInit {
 
   volver(): void { this.router.navigate(['/eventos']); }
 
+  async guardarBorrador(): Promise<void> {
+    const evento = await this.state.save();
+    if (evento && !this.state.loadError()) {
+      this.router.navigate(['/eventos']);
+    }
+  }
+
   esPasoCompletado(id: number): boolean { return id < this.state.currentStep(); }
 
   abrirPreview(): void { this.showPreviewOverlay.set(true); }

@@ -1,6 +1,16 @@
 /* Estilos globales para el proyecto Centro */
 @import "@ng-select/ng-select/themes/default.theme.css";
 
+/* Oculta los nav internos cuando los pasos se apilan en el wizard de 3 pasos */
+.stacked-steps .form-nav-footer { display: none !important; }
+.stacked-steps .pane-anim {
+  animation: none !important;
+  border-bottom: 1px solid #e9ecef;
+  margin-bottom: 1.25rem;
+  padding-bottom: .5rem;
+  &:last-child { border-bottom: none; margin-bottom: 0; }
+}
+
 /* Variables personalizadas basadas en la paleta de colores proporcionada */
 :root {
   /* Colores primarios */

@@ -19,7 +19,19 @@
 
 .main-col { min-width: 0; }
 
-/* ── Sidebar preview card ────────────────────────────── */
+/* ── Columna lateral sticky ───────────────────────── */
+.sidebar-col {
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+/* Pasos apilados — los estilos de ocultamiento están en styles.scss (global) */
 .preview-card {
   background: #fff;
   border-radius: .75rem;
