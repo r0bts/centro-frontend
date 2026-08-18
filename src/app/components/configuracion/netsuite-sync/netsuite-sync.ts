@@ -5,7 +5,7 @@ import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sy
 import { AuthService } from '../../../services/auth.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments' | 'sales_orders' | 'sale_types';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -152,13 +152,31 @@ export class NetsuiteSyncComponent implements OnInit {
       type: 'summer_payments',
       isLoading: false,
       recordCount: 0
-    }
+    },
+    sales_orders: {
+      type: 'sales_orders',
+      isLoading: false,
+      recordCount: 0
+    },
+    sale_types: {
+      type: 'sale_types',
+      isLoading: false,
+      recordCount: 0
+    },
   };
 
   constructor(
     private netsuiteSyncService: NetsuiteSyncService,
     private authService: AuthService
   ) {}
+
+  syncSalesOrders(): void {
+    this.performSync('sales_orders', 'Órdenes de Venta', () => this.netsuiteSyncService.syncSalesOrders());
+  }
+
+  syncSaleTypes(): void {
+    this.performSync('sale_types', 'Tipos de Venta', () => this.netsuiteSyncService.syncSaleTypes());
+  }
 
   canSync(permission: string): boolean {
     return this.authService.hasPermission('netsuite_sync', permission);

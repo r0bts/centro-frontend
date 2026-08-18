@@ -1292,6 +1292,83 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Sincronizar Órdenes de Venta -->
+            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('sync')">
+                <div class="card sync-card h-100 border-info">
+                    <div class="card-header bg-info bg-opacity-10 text-center py-1">
+                        <small class="fw-bold" style="color: var(--bs-info-text-emphasis, #055160);">
+                            <i class="bi bi-receipt-cutoff me-1"></i>Saldos y Finanzas
+                        </small>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-wallet2 text-info"></i>
+                        </div>
+                        <h5 class="card-title">Órdenes de Venta</h5>
+                        <p class="text-muted small mb-3">Sincroniza el historial de transacciones pendientes y pagadas de todos los socios activos en NetSuite</p>
+
+                        <div class="mt-4 mb-3 text-center">
+                             <span class="badge bg-info bg-opacity-75">
+                                {{ syncStatus['sales_orders'].recordCount ?? 0 }} registros procesados
+                             </span>
+                        </div>
+
+                        <button
+                            class="btn btn-info text-white w-100"
+                            (click)="syncSalesOrders()"
+                            [disabled]="syncStatus['sales_orders'].isLoading">
+                            <span *ngIf="!syncStatus['sales_orders'].isLoading">
+                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Órdenes
+                            </span>
+                            <span *ngIf="syncStatus['sales_orders'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fila adicional de Sincronización -->
+        <div class="row mt-4">
+            <!-- Sincronizar Tipos de Venta -->
+            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('sync')">
+                <div class="card sync-card h-100 border-secondary">
+                    <div class="card-header bg-secondary bg-opacity-10 text-center py-1">
+                        <small class="fw-bold text-secondary">
+                            <i class="bi bi-tags me-1"></i>Catálogos NetSuite
+                        </small>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-list-ul text-secondary"></i>
+                        </div>
+                        <h5 class="card-title">Tipos de Venta</h5>
+                        <p class="text-muted small mb-3">Sincroniza el catálogo de tipos de venta (customlist_cl_tipo_venta) de NetSuite</p>
+
+                        <div class="mt-4 mb-3 text-center">
+                             <span class="badge bg-secondary bg-opacity-75">
+                                {{ syncStatus['sale_types'].recordCount ?? 0 }} registros procesados
+                             </span>
+                        </div>
+
+                        <button
+                            class="btn btn-secondary text-white w-100"
+                            (click)="syncSaleTypes()"
+                            [disabled]="syncStatus['sale_types'].isLoading">
+                            <span *ngIf="!syncStatus['sale_types'].isLoading">
+                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Tipos
+                            </span>
+                            <span *ngIf="syncStatus['sale_types'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Información adicional -->
