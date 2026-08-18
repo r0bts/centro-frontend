@@ -1,0 +1,91 @@
+<div class="modal-backdrop-overlay" (click)="cancelar()"></div>
+
+<div class="modal-dialog-card" role="dialog" aria-modal="true" aria-labelledby="place-modal-title">
+  <div class="modal-header-bar">
+    <div class="d-flex align-items-center gap-2">
+      <i class="bi bi-geo-alt-fill text-primary fs-5"></i>
+      <h5 class="mb-0 fw-bold" id="place-modal-title">
+        {{ place ? 'Editar lugar' : 'Nuevo lugar' }}
+      </h5>
+    </div>
+    <button class="btn-close-plain" (click)="cancelar()" aria-label="Cerrar">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="alert alert-danger py-2 px-3 mb-0 small">{{ error() }}</div>
+  }
+
+  <div class="modal-body-scroll">
+
+    <!-- Nombre -->
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">Nombre del lugar <span class="text-danger">*</span></label>
+      <input class="form-control" [(ngModel)]="form.name" placeholder="Ej. Salón Azul, Cancha Principal…" maxlength="200" />
+    </div>
+
+    <!-- Dirección + geocodificación -->
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">Dirección</label>
+      <div class="input-group">
+        <input class="form-control" [(ngModel)]="form.address"
+               placeholder="Ej. Av. Ejército Nacional 769, Polanco…"
+               (keyup.enter)="buscarDireccion()" />
+        <button class="btn btn-outline-primary" type="button"
+                [disabled]="geocoding() || !form.address.trim()"
+                (click)="buscarDireccion()">
+          @if (geocoding()) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <i class="bi bi-search"></i>
+          }
+        </button>
+      </div>
+      <div class="form-text text-muted">Escribe la dirección y presiona <kbd>Enter</kbd> o el botón buscar para centrar el mapa.</div>
+    </div>
+
+    <!-- Mapa Leaflet -->
+    <div class="map-wrapper mb-3">
+      <div #mapContainer class="leaflet-map-container"></div>
+      <div class="map-hint">
+        <i class="bi bi-info-circle me-1"></i>Haz clic en el mapa o arrastra el pin para ajustar la ubicación.
+      </div>
+    </div>
+
+    <!-- Coordenadas manuales -->
+    <div class="row g-2 mb-3">
+      <div class="col-6">
+        <label class="form-label small">Latitud</label>
+        <input class="form-control form-control-sm" type="number" step="0.0000001"
+               [(ngModel)]="form.lat" (change)="onCoordsChange()" placeholder="19.4326" />
+      </div>
+      <div class="col-6">
+        <label class="form-label small">Longitud</label>
+        <input class="form-control form-control-sm" type="number" step="0.0000001"
+               [(ngModel)]="form.lng" (change)="onCoordsChange()" placeholder="-99.1332" />
+      </div>
+    </div>
+
+    <!-- Notas opcionales -->
+    <div class="mb-3">
+      <label class="form-label fw-semibold small">Notas (opcional)</label>
+      <textarea class="form-control" rows="2" [(ngModel)]="form.notes"
+                placeholder="Instrucciones de acceso, referencia, etc."></textarea>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="modal-footer-bar">
+    <button class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button>
+    <button class="btn btn-primary px-4" [disabled]="saving()" (click)="guardar()">
+      @if (saving()) {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+      } @else {
+        <i class="bi bi-check-lg me-1"></i>
+      }
+      Guardar lugar
+    </button>
+  </div>
+</div>

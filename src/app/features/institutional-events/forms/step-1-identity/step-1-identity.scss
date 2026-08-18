@@ -18,6 +18,12 @@
     border-color: #406eba;
     background: #eff6ff;
   }
+
+  &.faded {
+    opacity: .4;
+    filter: grayscale(.5);
+    &:hover { border-color: #dee2e6; }
+  }
 }
 
 .sede-icon-wrap {

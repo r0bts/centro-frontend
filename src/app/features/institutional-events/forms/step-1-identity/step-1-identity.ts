@@ -1,14 +1,16 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { EventFormStateService } from '../../services/event-form-state.service';
+import { EventPlace } from '../../models/institutional-event.model';
+import { EventPlaceModalComponent } from '../../components/event-place-modal/event-place-modal';
 
 @Component({
   selector: 'app-step-1-identity',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, NgSelectModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, NgSelectModule, EventPlaceModalComponent],
   templateUrl: './step-1-identity.html',
   styleUrl: './step-1-identity.scss',
 })
@@ -18,6 +20,9 @@ export class Step1IdentityComponent {
   leyendaDon = '';
   nuevoMonto: number | null = null;
 
+  readonly showPlaceModal = signal(false);
+  placeToEdit: EventPlace | null = null;
+
   constructor(public state: EventFormStateService) {}
 
   get group() { return this.state.identityGroup; }
@@ -25,6 +30,31 @@ export class Step1IdentityComponent {
 
   selectSede(id: number): void {
     this.group.get('location_id')!.setValue(id);
+    this.group.get('place_id')!.setValue(null);
+  }
+
+  onPlaceChange(place: EventPlace | null): void {
+    if (place) {
+      this.group.get('location_id')!.setValue(null);
+    }
+  }
+
+  abrirModalNuevo(): void {
+    this.placeToEdit = null;
+    this.showPlaceModal.set(true);
+  }
+
+  abrirModalEditar(): void {
+    const id = this.group.get('place_id')?.value;
+    this.placeToEdit = this.state.places().find(p => p.id === id) ?? null;
+    this.showPlaceModal.set(true);
+  }
+
+  onPlaceSaved(place: EventPlace): void {
+    this.state.loadPlaces().then(() => {
+      this.group.get('place_id')!.setValue(place.id);
+    });
+    this.showPlaceModal.set(false);
   }
 
   toggleDonativos(checked: boolean): void {

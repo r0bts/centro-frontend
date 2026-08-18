@@ -11,6 +11,7 @@ import {
   InstitutionalEventPayload,
   EventLocation,
   EventArea,
+  EventPlace,
   ApiResponse,
 } from '../models/institutional-event.model';
 
@@ -129,6 +130,36 @@ export class InstitutionalEventsService {
         const all = res.data?.areas ?? (res as any)?.data ?? [];
         return all.filter((a: any) => !a.is_inactive).map((a: any) => ({ id: Number(a.id), name: a.name }));
       })
+    );
+  }
+
+  // ── Lugares personalizados (event_places) ──────────────────────────────────
+
+  /** GET /api/event-places — lista todos los lugares disponibles. */
+  getPlaces(): Observable<EventPlace[]> {
+    return this.http.get<any>(`${environment.apiUrl}/event-places`).pipe(
+      map(res => (res.data?.places ?? []).map((p: any) => ({
+        id: Number(p.id),
+        name: p.name,
+        address: p.address ?? null,
+        lat: p.lat != null ? Number(p.lat) : null,
+        lng: p.lng != null ? Number(p.lng) : null,
+        notes: p.notes ?? null,
+      })))
+    );
+  }
+
+  /** POST /api/event-places — crea un nuevo lugar. */
+  createPlace(data: Omit<EventPlace, 'id'>): Observable<EventPlace> {
+    return this.http.post<any>(`${environment.apiUrl}/event-places`, data).pipe(
+      map(res => res.data.place)
+    );
+  }
+
+  /** PATCH /api/event-places/:id — actualiza un lugar existente. */
+  updatePlace(id: number, data: Partial<EventPlace>): Observable<EventPlace> {
+    return this.http.patch<any>(`${environment.apiUrl}/event-places/${id}`, data).pipe(
+      map(res => res.data.place)
     );
   }
 }

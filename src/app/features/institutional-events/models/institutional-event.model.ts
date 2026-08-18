@@ -141,6 +141,8 @@ export interface InstitutionalEvent {
   location?: { id: number; name: string } | null;
   area_id?: number | null;
   area?: { id: number; name: string } | null;
+  place_id?: number | null;
+  place?: EventPlace | null;
   name: string;
   kicker?: string | null;
   event_type: EventType;
@@ -241,10 +243,21 @@ export interface EventArea {
   name: string;
 }
 
+/** Lugar personalizado para un evento — tabla event_places. */
+export interface EventPlace {
+  id: number;
+  name: string;
+  address?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  notes?: string | null;
+}
+
 /** Payload exacto que espera la API para crear/editar un evento (snake_case, 1:1 con la BD). */
 export interface InstitutionalEventPayload {
   location_id: number;
   area_id?: number | null;
+  place_id?: number | null;
   name: string;
   kicker?: string | null;
   event_type: EventType;

@@ -18,6 +18,7 @@ import {
   PostEventGalleryItem,
   PostEventMetric,
   EventArea,
+  EventPlace,
   EventStatus,
 } from '../models/institutional-event.model';
 
@@ -74,6 +75,8 @@ export class EventFormStateService {
   readonly loadingLocations = signal(false);
   readonly areas = signal<EventArea[]>([]);
   readonly loadingAreas = signal(false);
+  readonly places = signal<EventPlace[]>([]);
+  readonly loadingPlaces = signal(false);
 
   /** Archivos pendientes de subir al backend — se procesan automáticamente dentro de save(). */
   readonly pendingImageUploads = new Map<string, File>();
@@ -87,7 +90,8 @@ export class EventFormStateService {
         kicker: ['', Validators.maxLength(150)],
         event_type: ['' as EventType, Validators.required],
         area_id: [null as number | null, Validators.required],
-        location_id: [null as number | null, Validators.required],
+        location_id: [null as number | null],
+        place_id: [null as number | null],
         description: [''],
         has_donations: [false],
         donation_amounts: this.fb.control<number[]>([]),
@@ -139,6 +143,7 @@ export class EventFormStateService {
     });
     this.loadLocations();
     this.loadAreas();
+    this.loadPlaces();
   }
 
   // ── Getters de conveniencia ──────────────────────────────────────────────────
@@ -201,6 +206,18 @@ export class EventFormStateService {
       this.areas.set([]);
     } finally {
       this.loadingAreas.set(false);
+    }
+  }
+
+  async loadPlaces(): Promise<void> {
+    this.loadingPlaces.set(true);
+    try {
+      const lista = await firstValueFrom(this.svc.getPlaces());
+      this.places.set(lista);
+    } catch {
+      this.places.set([]);
+    } finally {
+      this.loadingPlaces.set(false);
     }
   }
 
@@ -355,7 +372,12 @@ export class EventFormStateService {
     this.loadError.set(null);
     this.saving.set(true);
     try {
-      const res = await firstValueFrom(this.svc.getById(id));
+      // Carga el evento y las áreas en paralelo; solo parchea cuando ambos están listos.
+      // Esto evita la race condition donde ng-select no tiene items al momento del patchValue.
+      const [res] = await Promise.all([
+        firstValueFrom(this.svc.getById(id)),
+        this.loadAreas(),
+      ]);
       this.patchFromEvent(res.data.event);
     } catch {
       this.loadError.set('No se pudo cargar el evento para edición.');
@@ -372,6 +394,7 @@ export class EventFormStateService {
       kicker: event.kicker ?? '',
       event_type: event.event_type,
       area_id: event.area_id ?? null,
+      place_id: event.place_id ?? null,
       location_id: event.location_id,
       description: event.description ?? '',
       has_donations: event.has_donations,
@@ -471,6 +494,7 @@ export class EventFormStateService {
     return {
       location_id: identity.location_id,
       area_id: identity.area_id ?? null,
+      place_id: (identity as any).place_id || null,
       name: identity.name,
       kicker: identity.kicker || null,
       event_type: identity.event_type,
@@ -521,7 +545,7 @@ export class EventFormStateService {
     const datetime = this.datetimeGroup.value;
     const access   = this.accessGroup.value;
     const missing: string[] = [];
-    if (!identity.location_id)          missing.push('Sede');
+    if (!identity.location_id && !identity.place_id) missing.push('Sede o Lugar del evento');
     if (!identity.name?.trim())         missing.push('Nombre del evento');
     if (!identity.event_type)           missing.push('Tipo de evento');
     if (!identity.area_id)              missing.push('Área');
