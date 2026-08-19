@@ -70,8 +70,8 @@
         <div class="col-sm-6">
           <label class="form-label fw-semibold small text-uppercase text-muted">Acceso</label>
           <select class="form-select" [(ngModel)]="form.access_type">
-            @for (t of accessTypes; track t) {
-              <option [value]="t">{{ accessTypeMeta[t].label }}</option>
+            @for (t of accessTypes; track t.id) {
+              <option [value]="t.id">{{ t.label }}</option>
             }
           </select>
         </div>

@@ -13,6 +13,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
 import {
   AccessType,
   ACCESS_TYPE_META,
+  EventAccessType,
   InstitutionalEventSubevent,
   SubeventStatus,
   SUBEVENT_STATUS_META,
@@ -67,7 +68,8 @@ export class SubeventModalComponent implements OnChanges {
 
   readonly accessTypeMeta = ACCESS_TYPE_META;
   readonly subeventStatusMeta = SUBEVENT_STATUS_META;
-  readonly accessTypes: AccessType[] = ['public', 'members_only', 'registration', 'restricted', 'committee'];
+  /** Lista dinámica desde el API — igual que en step-3-access */
+  get accessTypes(): EventAccessType[] { return this.state.accessTypes(); }
   readonly statuses: SubeventStatus[] = ['confirmed', 'tentative', 'cancelled'];
 
   form: SubeventoForm = empty();

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -17,6 +17,9 @@ type ImageField = 'banner' | 'mobile' | 'cover';
 })
 export class Step5HeroComponent {
   readonly state = inject(EventFormStateService);
+
+  /** Cuando es true, muestra únicamente la sección de Banner Mobile (paso 1 Básico). */
+  readonly mobileOnly = input(false);
 
   nuevoAliado = '';
   mostrarAgregarAliado = false;

@@ -21,7 +21,11 @@
           <label class="form-label fw-semibold small text-uppercase text-muted">
             Fecha de inicio <span class="text-danger">*</span>
           </label>
-          <input type="datetime-local" class="form-control" formControlName="start_date">
+          <input type="datetime-local" class="form-control" formControlName="start_date"
+                 [class.is-invalid]="state.camposInvalidos().includes('Fecha de inicio') && !group.get('start_date')?.value">
+          @if (state.camposInvalidos().includes('Fecha de inicio') && !group.get('start_date')?.value) {
+            <div class="invalid-feedback d-block">La fecha de inicio es obligatoria.</div>
+          }
         </div>
         <div class="col-sm-6">
           <label class="form-label fw-semibold small text-uppercase text-muted">Fecha de fin</label>
@@ -103,16 +107,6 @@
             </div>
           </div>
         </div>
-      </div>
-
-      <!-- Campo venue libre -->
-      <div class="mb-3">
-        <label class="form-label fw-semibold small text-uppercase text-muted">
-          Espacio específico (opcional)
-        </label>
-        <input type="text" class="form-control" formControlName="venue"
-               placeholder="Ej. Auditorio Principal, Cancha A...">
-        <div class="form-text">Nombre del espacio exacto dentro del lugar del evento (salón, cancha, área…).</div>
       </div>
 
       <!-- Enlace de transmisión (solo Virtual o Híbrido) -->

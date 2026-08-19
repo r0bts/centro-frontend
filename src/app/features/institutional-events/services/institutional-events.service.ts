@@ -12,6 +12,7 @@ import {
   EventLocation,
   EventArea,
   EventPlace,
+  EventAccessType,
   ApiResponse,
 } from '../models/institutional-event.model';
 
@@ -160,6 +161,13 @@ export class InstitutionalEventsService {
   updatePlace(id: number, data: Partial<EventPlace>): Observable<EventPlace> {
     return this.http.patch<any>(`${environment.apiUrl}/event-places/${id}`, data).pipe(
       map(res => res.data.place)
+    );
+  }
+
+  /** GET /api/event-access-types — catálogo de tipos de acceso para eventos. */
+  getAccessTypes(): Observable<EventAccessType[]> {
+    return this.http.get<any>(`${environment.apiUrl}/event-access-types`).pipe(
+      map(res => res.types ?? [])
     );
   }
 }

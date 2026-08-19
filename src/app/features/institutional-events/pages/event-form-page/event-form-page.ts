@@ -99,7 +99,10 @@ export class EventFormPageComponent implements OnInit {
   });
 
   // ── Estado UI ─────────────────────────────────────────────────────────────────
-  readonly showPreviewOverlay = signal(false);
+  readonly showPreviewOverlay    = signal(false);
+  readonly showValidacionModal   = signal(false);
+  readonly camposFaltantes       = signal<string[]>([]);
+  private  _pendingStep: number | null = null;
 
   constructor() {}
 
@@ -114,7 +117,61 @@ export class EventFormPageComponent implements OnInit {
 
   volver(): void { this.router.navigate(['/eventos']); }
 
+  /**
+   * Al avanzar desde Paso 1 valida campos obligatorios. Si faltan muestra el
+   * modal de validación. En cualquier otra transición hace auto-save silencioso.
+   */
+  async autoGuardarYNavegar(step: number): Promise<void> {
+    const desdeBasico = this.state.currentStep() === 1 && step > 1;
+    if (desdeBasico) {
+      const faltantes = this.state.validarCampos();
+      if (faltantes.length) {
+        this.state.marcarTocados();
+        this.camposFaltantes.set(faltantes);
+        this._pendingStep = step;
+        this.showValidacionModal.set(true);
+        return;
+      }
+      await this.state.save();
+    } else {
+      await this.state.saveDraft();
+    }
+    this.state.goToStep(step);
+  }
+
+  /** Cierra el modal de validación sin navegar. */
+  cerrarModalValidacion(): void {
+    this.showValidacionModal.set(false);
+    this._pendingStep = null;
+  }
+
+  /** Al abrir preview desde Paso 1 valida; desde otros pasos guarda silencioso. */
+  async autoGuardarYAbrir(): Promise<void> {
+    if (this.state.currentStep() === 1) {
+      const faltantes = this.state.validarCampos();
+      if (faltantes.length) {
+        this.state.marcarTocados();
+        this.camposFaltantes.set(faltantes);
+        this._pendingStep = null;
+        this.showValidacionModal.set(true);
+        return;
+      }
+      await this.state.save();
+    } else {
+      await this.state.saveDraft();
+    }
+    this.abrirPreview();
+  }
+
   async guardarBorrador(): Promise<void> {
+    const faltantes = this.state.validarCampos();
+    if (faltantes.length) {
+      this.state.marcarTocados();
+      this.camposFaltantes.set(faltantes);
+      this._pendingStep = null;
+      this.showValidacionModal.set(true);
+      return;
+    }
     const evento = await this.state.save();
     if (evento && !this.state.loadError()) {
       this.router.navigate(['/eventos']);

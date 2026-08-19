@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { InstitutionalEventsService } from './institutional-events.service';
 import {
   AccessType,
+  EventAccessType,
   EventExtraData,
   EventIndicator,
   EventLocation,
@@ -65,6 +66,8 @@ export class EventFormStateService {
   readonly saving = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly eventId = signal<number | null>(null);
+  /** Campos que fallaron validación — usados para pintar rojo en los pasos. */
+  readonly camposInvalidos = signal<string[]>([]);
   /** Estado actual del evento cargado en el wizard (draft si es nuevo). */
   readonly eventStatus = signal<EventStatus>('draft');
   readonly mode = computed<'create' | 'edit'>(() => (this.eventId() === null ? 'create' : 'edit'));
@@ -77,6 +80,8 @@ export class EventFormStateService {
   readonly loadingAreas = signal(false);
   readonly places = signal<EventPlace[]>([]);
   readonly loadingPlaces = signal(false);
+  readonly accessTypes = signal<EventAccessType[]>([]);
+  readonly loadingAccessTypes = signal(false);
 
   /** Archivos pendientes de subir al backend — se procesan automáticamente dentro de save(). */
   readonly pendingImageUploads = new Map<string, File>();
@@ -144,6 +149,7 @@ export class EventFormStateService {
     this.loadLocations();
     this.loadAreas();
     this.loadPlaces();
+    this.loadAccessTypes();
   }
 
   // ── Getters de conveniencia ──────────────────────────────────────────────────
@@ -218,6 +224,18 @@ export class EventFormStateService {
       this.places.set([]);
     } finally {
       this.loadingPlaces.set(false);
+    }
+  }
+
+  async loadAccessTypes(): Promise<void> {
+    this.loadingAccessTypes.set(true);
+    try {
+      const lista = await firstValueFrom(this.svc.getAccessTypes());
+      this.accessTypes.set(lista);
+    } catch {
+      this.accessTypes.set([]);
+    } finally {
+      this.loadingAccessTypes.set(false);
     }
   }
 
@@ -539,9 +557,47 @@ export class EventFormStateService {
     };
   }
 
-  async save(): Promise<InstitutionalEvent | null> {
-    // Pre-validación antes de llamar al API
-    const identity = this.identityGroup.value;
+  /**
+   * Guarda silenciosamente el borrador al navegar entre pasos o al previsualizar.
+   * - En modo edición: siempre intenta el PATCH (el evento ya existe).
+   * - En modo creación: solo si los campos mínimos del backend están completos.
+   * Los errores se ignoran (no interrumpe la navegación).
+   */
+  async saveDraft(): Promise<void> {
+    const identity = this.identityGroup.value as any;
+    const datetime = this.datetimeGroup.value;
+    const access   = this.accessGroup.value;
+
+    const isEdit = this.eventId() !== null;
+    const hasBanner = !!(this.heroGroup.get('banner_mobile_url')?.value || this.pendingImageUploads.has('hero_mobile'));
+    const hasMinimum = identity.name?.trim()
+      && identity.event_type
+      && (identity.location_id || identity.place_id)
+      && datetime.start_date
+      && access.access_types?.length
+      && hasBanner;
+
+    if (!isEdit && !hasMinimum) return; // create sin mínimos → no intentar
+
+    this.saving.set(true);
+    try {
+      const payload = this.buildPayload();
+      const res = isEdit
+        ? await firstValueFrom(this.svc.update(this.eventId()!, payload))
+        : await firstValueFrom(this.svc.create(payload));
+      this.eventId.set(res.data.event.id);
+      // Limpiar cualquier error previo al guardar bien
+      this.loadError.set(null);
+    } catch {
+      // Auto-save silencioso: ignorar errores del servidor
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /** Devuelve los campos requeridos que faltan (array vacío = todo OK). */
+  validarCampos(): string[] {
+    const identity = this.identityGroup.value as any;
     const datetime = this.datetimeGroup.value;
     const access   = this.accessGroup.value;
     const missing: string[] = [];
@@ -551,6 +607,29 @@ export class EventFormStateService {
     if (!identity.area_id)              missing.push('Área');
     if (!datetime.start_date)           missing.push('Fecha de inicio');
     if (!access.access_types?.length)   missing.push('Tipo de acceso');
+    const hasBanner = !!(this.heroGroup.get('banner_mobile_url')?.value || this.pendingImageUploads.has('hero_mobile'));
+    if (!hasBanner)                     missing.push('Banner Mobile');
+    return missing;
+  }
+
+  /**
+   * Marca todos los controles como tocados para que Angular muestre validación
+   * visual (ng-invalid ng-touched) y actualiza el signal `camposInvalidos`.
+   */
+  marcarTocados(): void {
+    this.identityGroup.markAllAsTouched();
+    this.datetimeGroup.markAllAsTouched();
+    this.accessGroup.markAllAsTouched();
+    this.camposInvalidos.set(this.validarCampos());
+  }
+
+  /** Limpia el estado de validación visual. */
+  limpiarValidacion(): void {
+    this.camposInvalidos.set([]);
+  }
+
+  async save(): Promise<InstitutionalEvent | null> {
+    const missing = this.validarCampos();
     if (missing.length) {
       this.loadError.set('Campos requeridos sin completar: ' + missing.join(', ') + '.');
       return null;

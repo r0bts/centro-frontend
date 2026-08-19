@@ -11,7 +11,7 @@
         {{ state.mode() === 'edit' ? 'Editar evento' : 'Nuevo evento' }}
       </h5>
       <div class="d-flex gap-2 align-items-center">
-        <button class="btn-preview" (click)="abrirPreview()">
+        <button class="btn-preview" (click)="autoGuardarYAbrir()">
           <i class="bi bi-eye-fill"></i> Previsualizar Landing
         </button>
         <button class="btn btn-sm btn-outline-secondary" (click)="volver()">
@@ -31,7 +31,7 @@
           <div class="step-item-bar"
                [class.active]="state.currentStep() === step.id"
                [class.done]="esPasoCompletado(step.id)"
-               (click)="state.goToStep(step.id)">
+               (click)="autoGuardarYNavegar(step.id)">
             <div class="step-circle">
               @if (esPasoCompletado(step.id)) {
                 <i class="bi bi-check-lg"></i>
@@ -57,6 +57,7 @@
           @case (1) {
             <div class="stacked-steps">
               <app-step-1-identity />
+              <app-step-5-hero [mobileOnly]="true" />
               <app-step-2-datetime />
               <app-step-3-access />
             </div>
@@ -69,7 +70,7 @@
                 }
                 Guardar borrador
               </button>
-              <button class="btn btn-primary px-4" (click)="state.goToStep(2)">
+              <button class="btn btn-primary px-4" (click)="autoGuardarYNavegar(2)">
                 Detalles opcionales <i class="bi bi-chevron-right ms-1"></i>
               </button>
             </div>
@@ -87,10 +88,10 @@
               <app-step-8-faq-contact />
             </div>
             <div class="form-nav-footer mt-2">
-              <button class="btn btn-outline-secondary" (click)="state.goToStep(1)">
+              <button class="btn btn-outline-secondary" (click)="autoGuardarYNavegar(1)">
                 <i class="bi bi-chevron-left me-1"></i>Básico
               </button>
-              <button class="btn btn-primary px-4" (click)="state.goToStep(3)">
+              <button class="btn btn-primary px-4" (click)="autoGuardarYNavegar(3)">
                 Revisar y publicar <i class="bi bi-chevron-right ms-1"></i>
               </button>
             </div>
@@ -184,6 +185,40 @@
         <button class="btn btn-outline-light mt-2" (click)="cerrarPreview()">Cerrar</button>
       </div>
     }
+  </div>
+}
+
+<!-- ── Modal: campos requeridos faltantes ─────────────────────────── -->
+@if (showValidacionModal()) {
+  <div class="val-modal-backdrop" (click)="cerrarModalValidacion()"></div>
+  <div class="val-modal-card" role="dialog" aria-modal="true" aria-labelledby="val-modal-title">
+    <div class="val-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size:1.25rem;"></i>
+        <h5 class="mb-0 fw-bold" id="val-modal-title">Campos requeridos</h5>
+      </div>
+      <button class="btn-close-plain" (click)="cerrarModalValidacion()" aria-label="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="val-modal-body">
+      <p class="text-muted mb-3" style="font-size:.9rem;">
+        Para continuar debes completar los siguientes campos en el paso <strong>Básico</strong>:
+      </p>
+      <ul class="val-missing-list">
+        @for (campo of camposFaltantes(); track campo) {
+          <li>
+            <i class="bi bi-dot text-danger" style="font-size:1.4rem; line-height:1;"></i>
+            {{ campo }}
+          </li>
+        }
+      </ul>
+    </div>
+    <div class="val-modal-footer">
+      <button class="btn btn-primary px-4" (click)="cerrarModalValidacion()">
+        Entendido
+      </button>
+    </div>
   </div>
 }
 

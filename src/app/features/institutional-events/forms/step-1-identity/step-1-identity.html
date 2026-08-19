@@ -5,7 +5,8 @@
   </div>
 
   <!-- ── Sede ──────────────────────────────────────────────────────────── -->
-  <div class="card shadow-sm mb-3">
+  <div class="card shadow-sm mb-3"
+       [class.border-danger]="state.camposInvalidos().includes('Sede o Lugar del evento') && !group.get('location_id')?.value && !group.get('place_id')?.value">
     <div class="card-body">
       <div class="sec-head mb-3">
         <div class="sec-icon sec-blue"><i class="bi bi-building"></i></div>
@@ -54,7 +55,8 @@
   </div>
 
   <!-- ── Lugar del evento (event_places) ──────────────────────────────── -->
-  <div class="card shadow-sm mb-3">
+  <div class="card shadow-sm mb-3"
+       [class.border-danger]="state.camposInvalidos().includes('Sede o Lugar del evento') && !group.get('location_id')?.value && !group.get('place_id')?.value">
     <div class="card-body">
       <div class="sec-head mb-3">
         <div class="sec-icon sec-teal"><i class="bi bi-geo-alt-fill"></i></div>
@@ -113,6 +115,9 @@
       </div>
     </div>
   </div>
+  @if (state.camposInvalidos().includes('Sede o Lugar del evento') && !group.get('location_id')?.value && !group.get('place_id')?.value) {
+    <div class="field-error mb-2"><i class="bi bi-exclamation-circle me-1"></i>Selecciona una sede institucional o un lugar del evento.</div>
+  }
 
   <!-- ── Identidad y descripción ───────────────────────────────────────── -->
   <div class="card shadow-sm mb-3">
@@ -130,7 +135,11 @@
           Nombre del evento <span class="text-danger">*</span>
         </label>
         <input type="text" class="form-control" formControlName="name" maxlength="150"
-               placeholder="Ej. Olimpiada Libanesa 2026">
+               placeholder="Ej. Olimpiada Libanesa 2026"
+               [class.is-invalid]="state.camposInvalidos().includes('Nombre del evento') && !group.get('name')?.value?.trim()">
+        @if (state.camposInvalidos().includes('Nombre del evento') && !group.get('name')?.value?.trim()) {
+          <div class="invalid-feedback d-block">El nombre del evento es obligatorio.</div>
+        }
       </div>
 
       <div class="mb-3">
@@ -148,14 +157,20 @@
           <label class="form-label fw-semibold small text-uppercase text-muted">
             Tipo <span class="text-danger">*</span>
           </label>
-          <select class="form-select" formControlName="event_type">
+          <select class="form-select" formControlName="event_type"
+                  [class.is-invalid]="state.camposInvalidos().includes('Tipo de evento') && !group.get('event_type')?.value">
             <option value="">— Selecciona tipo —</option>
-            <option value="academic">Académico</option>
             <option value="sports">Deportivo</option>
+            <option value="academic">Académico</option>
             <option value="cultural">Cultural</option>
             <option value="social">Social</option>
-            <option value="other">Benéfico / Recaudación</option>
+            <option value="religious">Religioso</option>
+            <option value="political">Político</option>
+            <option value="other">Otro</option>
           </select>
+          @if (state.camposInvalidos().includes('Tipo de evento') && !group.get('event_type')?.value) {
+            <div class="invalid-feedback d-block">El tipo de evento es obligatorio.</div>
+          }
         </div>
         <div class="col-6">
           <label class="form-label fw-semibold small text-uppercase text-muted">

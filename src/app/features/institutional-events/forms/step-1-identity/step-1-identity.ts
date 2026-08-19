@@ -31,11 +31,17 @@ export class Step1IdentityComponent {
   selectSede(id: number): void {
     this.group.get('location_id')!.setValue(id);
     this.group.get('place_id')!.setValue(null);
+    // Quitar el error visual de sede/lugar al seleccionar
+    const sin = this.state.camposInvalidos().filter(c => c !== 'Sede o Lugar del evento');
+    this.state.camposInvalidos.set(sin);
   }
 
   onPlaceChange(place: EventPlace | null): void {
     if (place) {
       this.group.get('location_id')!.setValue(null);
+      // Quitar el error visual de sede/lugar al seleccionar
+      const sin = this.state.camposInvalidos().filter(c => c !== 'Sede o Lugar del evento');
+      this.state.camposInvalidos.set(sin);
     }
   }
 

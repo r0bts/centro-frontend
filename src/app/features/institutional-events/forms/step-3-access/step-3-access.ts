@@ -4,12 +4,6 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { EventFormStateService } from '../../services/event-form-state.service';
 import { AccessType, ACCESS_TYPE_META } from '../../models/institutional-event.model';
 
-/**
- * Paso 3 — Tipos de acceso (multi-select), capacidad y costo.
- * Replica `tplStep3()` de 02-event-form.html. Se omiten fecha límite de
- * registro / confirmación / visibilidad (no existen en el schema real;
- * la visibilidad real se gestiona vía status/publish() en el paso 9).
- */
 @Component({
   selector: 'app-step-3-access',
   standalone: true,
@@ -19,15 +13,20 @@ import { AccessType, ACCESS_TYPE_META } from '../../models/institutional-event.m
   styleUrl: './step-3-access.scss',
 })
 export class Step3AccessComponent {
+  /** Metadatos locales de UI (fallback si el API tarda en cargar) */
   readonly accessTypeMeta = ACCESS_TYPE_META;
-  readonly accessTypes: AccessType[] = ['public', 'members_only', 'registration', 'restricted', 'committee'];
+
+  /** Lista dinámica desde el API — se usa en el template */
+  get accessTypes() { return this.state.accessTypes(); }
 
   constructor(public state: EventFormStateService) {}
 
   get group() { return this.state.accessGroup; }
   get seleccionados(): AccessType[] { return this.group.get('access_types')!.value ?? []; }
   get seleccionadosLabel(): string {
-    return this.seleccionados.map(t => this.accessTypeMeta[t]?.label ?? t).join(', ');
+    return this.seleccionados
+      .map(t => this.accessTypes.find(a => a.id === t)?.label ?? this.accessTypeMeta[t]?.label ?? t)
+      .join(', ');
   }
 
   toggleAcceso(tipo: AccessType): void {
@@ -46,7 +45,7 @@ export class Step3AccessComponent {
 
   irSiguiente(): void {
     this.submitted = true;
-    if (this.seleccionados.length === 0) return;  // access_types no se valida con Validators.required
+    if (this.seleccionados.length === 0) return;
     this.state.tryNext(this.group);
   }
   irAtras(): void { this.state.prev(); }

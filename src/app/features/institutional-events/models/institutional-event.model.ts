@@ -9,9 +9,19 @@
 
 // ─── Tipos (enums reales de la DB) ─────────────────────────────────────────────
 
-export type EventType = 'academic' | 'sports' | 'cultural' | 'social' | 'other';
+export type EventType = 'academic' | 'sports' | 'cultural' | 'social' | 'religious' | 'political' | 'other';
 export type EventStatus = 'draft' | 'published' | 'ongoing' | 'closed' | 'cancelled';
-export type AccessType = 'public' | 'members_only' | 'registration' | 'restricted' | 'committee';
+export type AccessType = 'public' | 'members' | 'patron' | 'committee' | 'registration';
+
+/** Tipo de acceso cargado desde el API /api/event-access-types */
+export interface EventAccessType {
+  id:                    AccessType;
+  label:                 string;
+  description:           string;
+  condition_ids:         number[] | null;
+  requires_membership:   boolean;
+  requires_registration: boolean;
+}
 export type EventModality = 'presencial' | 'virtual' | 'hibrido';
 export type SubeventStatus = 'confirmed' | 'tentative' | 'cancelled';
 export type AttendeeType = 'socio' | 'invitado' | 'staff' | 'externo';
@@ -21,11 +31,13 @@ export type RegistrationChannel = 'public_self' | 'public_by_socio' | 'admin_man
 // ─── Metadatos de UI (labels/íconos/colores) ───────────────────────────────────
 
 export const EVENT_TYPE_META: Record<EventType, { label: string; icon: string; badgeClass: string; gradient: string }> = {
-  academic: { label: 'Académico', icon: 'bi-mortarboard-fill', badgeClass: 'bg-primary-subtle text-primary-emphasis border-primary-subtle', gradient: 'linear-gradient(135deg,#406eba,#1d3d79)' },
-  sports:   { label: 'Deportivo', icon: 'bi-trophy-fill',      badgeClass: 'bg-success-subtle text-success-emphasis border-success-subtle',   gradient: 'linear-gradient(135deg,#87700b,#b39716)' },
-  cultural: { label: 'Cultural',  icon: 'bi-music-note-beamed',badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle', gradient: 'linear-gradient(135deg,#7c3aed,#4f46e5)' },
-  social:   { label: 'Social',    icon: 'bi-people-fill',      badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle', gradient: 'linear-gradient(135deg,#4caf50,#1b5e20)' },
-  other:    { label: 'Otro',      icon: 'bi-calendar-event',   badgeClass: 'bg-light text-dark border-secondary-subtle',                          gradient: 'linear-gradient(135deg,#6c757d,#495057)' },
+  academic:   { label: 'Académico',  icon: 'bi-mortarboard-fill',   badgeClass: 'bg-primary-subtle text-primary-emphasis border-primary-subtle',     gradient: 'linear-gradient(135deg,#406eba,#1d3d79)' },
+  sports:     { label: 'Deportivo',  icon: 'bi-trophy-fill',        badgeClass: 'bg-success-subtle text-success-emphasis border-success-subtle',     gradient: 'linear-gradient(135deg,#87700b,#b39716)' },
+  cultural:   { label: 'Cultural',   icon: 'bi-music-note-beamed',  badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle', gradient: 'linear-gradient(135deg,#7c3aed,#4f46e5)' },
+  social:     { label: 'Social',     icon: 'bi-people-fill',        badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle', gradient: 'linear-gradient(135deg,#4caf50,#1b5e20)' },
+  religious:  { label: 'Religioso',  icon: 'bi-moon-stars-fill',    badgeClass: 'bg-warning-subtle text-warning-emphasis border-warning-subtle',      gradient: 'linear-gradient(135deg,#c9a227,#7a5c00)' },
+  political:  { label: 'Político',   icon: 'bi-bank2',              badgeClass: 'bg-danger-subtle text-danger-emphasis border-danger-subtle',         gradient: 'linear-gradient(135deg,#e53935,#7f0000)' },
+  other:      { label: 'Otro',       icon: 'bi-calendar-event',     badgeClass: 'bg-light text-dark border-secondary-subtle',                          gradient: 'linear-gradient(135deg,#6c757d,#495057)' },
 };
 
 export const EVENT_STATUS_META: Record<EventStatus, { label: string; badgeClass: string }> = {
@@ -37,11 +49,11 @@ export const EVENT_STATUS_META: Record<EventStatus, { label: string; badgeClass:
 };
 
 export const ACCESS_TYPE_META: Record<AccessType, { label: string; icon: string; desc: string }> = {
-  public: { label: 'Público', icon: 'bi-globe2', desc: 'Cualquier persona puede ver e inscribirse' },
-  members_only: { label: 'Solo socios', icon: 'bi-person-badge-fill', desc: 'Requiere membresía vigente' },
-  registration: { label: 'Con registro', icon: 'bi-clipboard-check-fill', desc: 'Requiere registro previo' },
-  restricted: { label: 'Restringido', icon: 'bi-shield-lock-fill', desc: 'Solo invitados específicos' },
-  committee: { label: 'Comité', icon: 'bi-people-fill', desc: 'Uso interno, no público' },
+  public:       { label: 'Público en general', icon: 'bi-globe2',                desc: 'Cualquier persona, incluyendo externos al club' },
+  members:      { label: 'Socios Activos',      icon: 'bi-person-badge-fill',    desc: 'Solo socios con membresía Socio Activo vigente' },
+  patron:       { label: 'Asociados Patrono',   icon: 'bi-star-fill',            desc: 'Patrono, Patrono Vitalicio y Benefactor' },
+  committee:    { label: 'Comité',               icon: 'bi-shield-lock-fill',     desc: 'Uso interno, solo personal autorizado' },
+  registration: { label: 'Con registro previo', icon: 'bi-clipboard-check-fill', desc: 'Requiere registro aunque sea público' },
 };
 
 export const SUBEVENT_STATUS_META: Record<SubeventStatus, { label: string; badgeClass: string }> = {
