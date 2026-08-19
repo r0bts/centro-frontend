@@ -119,6 +119,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       canFilterLocation: this.canFilterLocation()
     });
     
+    this.restoreFilters();
     this.loadRequisitions();
     
     // Recargar datos cuando se navega de vuelta a este componente
@@ -144,6 +145,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
   
   loadRequisitions(): void {
+    this.saveFilters();
     this.isLoading.set(true);
 
     // Construir parámetros de consulta
@@ -566,4 +568,33 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   // Helper para Math en template
   Math = Math;
+
+  private saveFilters(): void {
+    const filters = {
+      searchTerm: this.searchTerm(),
+      filterStatus: this.filterStatus(),
+      filterLocation: this.filterLocation(),
+      filterStartDate: this.filterStartDate(),
+      filterEndDate: this.filterEndDate(),
+      currentPage: this.currentPage()
+    };
+    sessionStorage.setItem('requisition_filters', JSON.stringify(filters));
+  }
+
+  private restoreFilters(): void {
+    const saved = sessionStorage.getItem('requisition_filters');
+    if (saved) {
+      try {
+        const filters = JSON.parse(saved);
+        if (filters.searchTerm !== undefined) this.searchTerm.set(filters.searchTerm);
+        if (filters.filterStatus !== undefined) this.filterStatus.set(filters.filterStatus);
+        if (filters.filterLocation !== undefined) this.filterLocation.set(filters.filterLocation);
+        if (filters.filterStartDate !== undefined) this.filterStartDate.set(filters.filterStartDate);
+        if (filters.filterEndDate !== undefined) this.filterEndDate.set(filters.filterEndDate);
+        if (filters.currentPage !== undefined) this.currentPage.set(filters.currentPage);
+      } catch (e) {
+        console.error('Error parsing saved filters', e);
+      }
+    }
+  }
 }
