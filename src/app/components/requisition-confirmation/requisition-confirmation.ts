@@ -124,6 +124,9 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   // PIN de la requisición para recoger
   requisitionPin: string = '';
 
+  // Motivo de cancelación (cuando el estatus es Cancelado / Pendiente Cancelación)
+  cancellationReason: string = '';
+
   // Permiso para cerrar entrega parcial directamente (perm_id=45)
   canClosePartial: boolean = false;
   canAuthorize: boolean = false;   // permiso authorize (perm_id=7)
@@ -269,6 +272,9 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
           
           // Capturar PIN de la requisición
           this.requisitionPin = data.pin || '';
+
+          // Motivo de cancelación (si aplica)
+          this.cancellationReason = data.cancellationReason || '';
           
           // Mapear empleado responsable (persona que recoge)
           if (data.pickupPersonId && data.pickupPerson) {

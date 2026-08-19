@@ -12,6 +12,7 @@ export interface RequisitionItem {
   creationDate: Date;
   deliveryDate: Date;
   businessUnit?: string;
+  cancellationReason?: string | null;
 }
 
 export interface GroupedRequisitions {
@@ -30,6 +31,7 @@ export interface APIRequisitionItem {
   deliveryDate?: string;      // v1.0.0 - Campo legacy
   businessUnit?: string;
   isExtraordinary?: boolean;
+  cancellationReason?: string | null;
 }
 
 /**
@@ -91,7 +93,8 @@ export class RequisitionGroupingHelper {
       // Soportar tanto deliveryDateTime (v1.1.0) como deliveryDate (v1.0.0)
       deliveryDate: new Date(item.deliveryDateTime || item.deliveryDate || item.creationDate),
       businessUnit: item.businessUnit || '',
-      isExtraordinary: item.isExtraordinary ?? false
+      isExtraordinary: item.isExtraordinary ?? false,
+      cancellationReason: item.cancellationReason || null
     }));
   }
 

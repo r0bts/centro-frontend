@@ -312,7 +312,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   isViewable(requisition: RequisitionItem): boolean {
-    return requisition.status !== 'Cancelado';
+    return true;
   }
 
   isSurtible(requisition: RequisitionItem): boolean {

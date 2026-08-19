@@ -23,6 +23,7 @@ export interface RequisitionItem {
   deliveryDate: Date;
   businessUnit?: string;
   isExtraordinary?: boolean;
+  cancellationReason?: string | null;
 }
 
 export interface APIRequisitionItem {
@@ -36,6 +37,7 @@ export interface APIRequisitionItem {
   deliveryDate?: string;      // v1.0.0 - Campo legacy
   businessUnit?: string;
   isExtraordinary?: boolean;
+  cancellationReason?: string | null;
 }
 
 export interface GroupedRequisitions {

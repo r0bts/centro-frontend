@@ -66,7 +66,8 @@
               </div>
 
               <!-- Indicador de PIN de Recolección -->
-              <div class="alert alert-warning border-warning mb-3" *ngIf="isFromList && requisitionPin">
+              <div class="alert alert-warning border-warning mb-3"
+                   *ngIf="isFromList && requisitionPin && requisitionStatus !== 'Cancelado' && requisitionStatus !== 'Pendiente Cancelación'">
                 <div class="row align-items-center">
                   <div class="col-auto">
                     <i class="bi bi-key-fill fs-2 text-warning"></i>
@@ -79,6 +80,18 @@
                     <div class="bg-white rounded px-4 py-2 border border-warning">
                       <h2 class="mb-0 fw-bold text-warning" style="letter-spacing: 0.5rem;">{{ requisitionPin }}</h2>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Indicador de Motivo de Cancelación -->
+              <div class="alert alert-danger border-danger mb-3"
+                   *ngIf="isFromList && cancellationReason && (requisitionStatus === 'Cancelado' || requisitionStatus === 'Pendiente Cancelación')">
+                <div class="d-flex align-items-start">
+                  <i class="bi bi-x-octagon-fill fs-2 text-danger me-3"></i>
+                  <div>
+                    <h6 class="mb-1 fw-bold">Motivo de Cancelación</h6>
+                    <p class="mb-0">{{ cancellationReason }}</p>
                   </div>
                 </div>
               </div>

@@ -8,7 +8,7 @@ import { environment } from '../../environments/environment';
 export interface AppNotification {
   id: number;
   type: 'solicitado' | 'autorizado' | 'listo_recoger' | 'entregado' | 'extraordinario'
-      | 'solicitud_cancelacion' | 'cancelacion_autorizada';
+      | 'solicitud_cancelacion' | 'cancelacion_autorizada' | 'entrega_cerrada';
   title: string;
   body: string | null;
   is_read: boolean;
@@ -154,6 +154,7 @@ export class NotificationService {
       case 'extraordinario': return '#dc3545'; // rojo — alerta especial
       case 'solicitud_cancelacion': return '#fd7e14'; // naranja — acción requerida
       case 'cancelacion_autorizada': return '#6c757d'; // gris — cancelado
+      case 'entrega_cerrada': return '#0dcaf0'; // azul claro — resumen de cierre
     }
   }
 
@@ -166,6 +167,7 @@ export class NotificationService {
       case 'extraordinario': return 'bi-lightning-charge-fill';
       case 'solicitud_cancelacion': return 'bi-x-circle-fill';
       case 'cancelacion_autorizada': return 'bi-slash-circle-fill';
+      case 'entrega_cerrada': return 'bi-clipboard2-check-fill';
     }
   }
 
@@ -178,6 +180,7 @@ export class NotificationService {
       case 'extraordinario': return 'Extraordinaria';
       case 'solicitud_cancelacion': return 'Cancelación';
       case 'cancelacion_autorizada': return 'Cancelada';
+      case 'entrega_cerrada': return 'Resumen';
     }
   }
 
