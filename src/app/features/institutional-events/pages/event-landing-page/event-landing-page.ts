@@ -2,16 +2,18 @@ import {
   Component,
   ChangeDetectionStrategy,
   OnInit,
+  PLATFORM_ID,
   signal,
   computed,
   inject,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { InstitutionalEventsService } from '../../services/institutional-events.service';
-import { InstitutionalEvent, EVENT_TYPE_META } from '../../models/institutional-event.model';
+import { InstitutionalEvent, EVENT_TYPE_META, EventColorTheme } from '../../models/institutional-event.model';
 
 /**
  * SCR-003 — Landing Page pública de un evento institucional.
@@ -31,12 +33,17 @@ export class EventLandingPageComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly svc = inject(InstitutionalEventsService);
   private readonly auth = inject(AuthService);
+  private readonly platformId = inject(PLATFORM_ID);
+
+  /** true cuando la página está cargada dentro de un iframe (modo preview del formulario) */
+  readonly estaEnIframe: boolean = isPlatformBrowser(this.platformId)
+    ? window.self !== window.top
+    : false;
 
   // ── Estado ───────────────────────────────────────────────────────────────────
   readonly event = signal<InstitutionalEvent | null>(null);
   readonly loading = signal(true);
-  readonly error = signal<string | null>(null);
-  readonly modalAbierto = signal(false);
+  readonly error = signal<string | null>(null);  readonly colorThemes = signal<EventColorTheme[]>([]);  readonly modalAbierto = signal(false);
   readonly esSocio = signal<boolean | null>(null);    // null=sin elegir
   readonly modalPaso = signal<'inicio' | 'socio' | 'modo' | 'invitado' | 'externo' | 'exito'>('inicio');
 
@@ -55,6 +62,21 @@ export class EventLandingPageComponent implements OnInit {
     return val;
   });
 
+  readonly themeVars = computed(() => {
+    const ev = this.event();
+    const themes = this.colorThemes();
+    if (!ev || !themes.length) return {};
+    const colorTheme = (ev as any).color_theme ?? 'classic';
+    const t = themes.find(th => th.id === colorTheme);
+    if (!t) return {};
+    return {
+      '--ev-primary': t.color_primary,
+      '--ev-accent':  t.color_accent,
+      '--ev-bg':      t.color_bg,
+      '--ev-text':    t.color_text,
+    };
+  });
+
   readonly eventTypeMeta = EVENT_TYPE_META;
 
   ngOnInit(): void {
@@ -65,6 +87,14 @@ export class EventLandingPageComponent implements OnInit {
       return;
     }
     this.cargarEvento(id);
+    this.cargarTemas();
+  }
+
+  async cargarTemas(): Promise<void> {
+    try {
+      const lista = await firstValueFrom(this.svc.getColorThemes());
+      this.colorThemes.set(lista);
+    } catch { /* no crítico */ }
   }
 
   async cargarEvento(id: number): Promise<void> {

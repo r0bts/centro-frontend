@@ -106,3 +106,47 @@
   padding: 1rem;
   margin-top: .75rem;
 }
+
+// ── Tema de color ─────────────────────────────────────────────────────────
+.theme-swatch {
+  cursor: pointer;
+  border: 2px solid #dee2e6;
+  border-radius: .75rem;
+  padding: .6rem .8rem;
+  min-width: 110px;
+  transition: border-color .15s, background .15s;
+
+  &.sel {
+    border-color: #406eba;
+    background: rgba(64, 110, 186, .06);
+  }
+
+  &:hover:not(.sel) {
+    border-color: #adb5bd;
+  }
+}
+
+.theme-dots {
+  display: flex;
+  gap: 4px;
+  margin-bottom: .4rem;
+
+  span {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1px solid rgba(0, 0, 0, .1);
+  }
+}
+
+.theme-name {
+  font-size: .8rem;
+  font-weight: 700;
+  color: #141414;
+}
+
+.theme-desc {
+  font-size: .7rem;
+  color: #8a8a8a;
+}

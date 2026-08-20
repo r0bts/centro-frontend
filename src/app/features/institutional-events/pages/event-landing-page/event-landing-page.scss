@@ -23,6 +23,15 @@
   --sans: 'Segoe UI', system-ui, Arial, sans-serif;
 }
 
+/* Cuando se aplica un tema de color via [ngStyle], sobreescribir los vars locales */
+.event-landing-themed {
+  --rojo-cedro:  var(--ev-primary,  #406eba);
+  --verde-cedro: var(--ev-bg,       #1d3d79);
+  --tinta:       var(--ev-bg,       #1C1A17);
+  --arena:       color-mix(in srgb, var(--ev-primary, #406eba) 8%, #fff);
+  --borde:       color-mix(in srgb, var(--ev-primary, #406eba) 18%, #fff);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 a { color: inherit; text-decoration: none; }
 
@@ -134,9 +143,14 @@ details[open] summary::after { content: "–"; }
 details p { color: var(--gris); margin-top: 10px; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────────── */
-footer.sitio { background: var(--tinta); color: #c0cde0; padding: 60px 0 24px; font-size: 14px; }
+footer.sitio {
+  background: var(--verde-cedro);
+  color: rgba(255, 255, 255, .80);
+  padding: 14px 0 6px;
+  font-size: 12px;
+}
 .legal {
-  border-top: 1px solid #3A3630; margin-top: 40px; padding-top: 18px;
+  border-top: 1px solid rgba(255,255,255,.15); margin-top: 10px; padding-top: 8px;
   display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 12px;
 }
 
@@ -219,6 +233,18 @@ footer.sitio { background: var(--tinta); color: #c0cde0; padding: 60px 0 24px; f
 .confianza-texto {
   text-align: center; color: #5b7089; font-size: 13px; margin-bottom: 18px;
 }
+.aliados-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+
+  .logo-aliado {
+    flex: 1 1 calc(25% - 16px);  /* hasta 4 por fila */
+    max-width: calc(25% - 16px);
+    min-width: 120px;
+  }
+}
 .logo-aliado {
   height: 58px; font-size: 11px; min-height: 58px;
   display: flex; align-items: center; justify-content: center;
@@ -236,13 +262,56 @@ footer.sitio { background: var(--tinta); color: #c0cde0; padding: 60px 0 24px; f
 /* ── Footer completo ──────────────────────────────────────────────────────────── */
 footer.sitio h4 {
   font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #fff;
-  font-size: 13px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 14px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px;
 }
 footer.sitio a:hover { color: #fff; }
 footer.sitio ul { list-style: none; padding: 0; margin: 0; }
-footer.sitio ul li { margin-bottom: 9px; }
+footer.sitio ul li { margin-bottom: 6px; }
 .footer-cols {
-  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.4fr; gap: 32px; margin-bottom: 0;
+  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1.4fr; gap: 20px; margin-bottom: 0;
+}
+
+/* ── Footer compacto en una línea ─────────────────────────────────────────── */
+.footer-compact {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  .marca { font-size: 14px; }
+}
+.footer-nav {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex: 1;
+  a {
+    cursor: pointer;
+    color: rgba(255, 255, 255, .65);
+    text-decoration: none;
+    font-size: 12px;
+    &:hover { color: #fff; }
+  }
+}
+.footer-contact {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: rgba(255, 255, 255, .55);
+}
+.footer-social {
+  display: flex;
+  gap: 12px;
+  font-size: 1rem;
+  a { color: rgba(255,255,255,.65); text-decoration: none; &:hover { color: #fff; } }
 }
 
 /* ── Hero imagen (con imagen real) ────────────────────────────────────────────── */

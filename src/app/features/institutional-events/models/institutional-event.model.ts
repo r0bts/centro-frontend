@@ -22,6 +22,19 @@ export interface EventAccessType {
   requires_membership:   boolean;
   requires_registration: boolean;
 }
+
+export type ColorTheme = 'classic' | 'gold' | 'sports' | 'cultural' | 'modern';
+
+/** Tema de color cargado desde el API /api/event-color-themes */
+export interface EventColorTheme {
+  id:            ColorTheme;
+  name:          string;
+  description:   string;
+  color_primary: string;
+  color_accent:  string;
+  color_bg:      string;
+  color_text:    string;
+}
 export type EventModality = 'presencial' | 'virtual' | 'hibrido';
 export type SubeventStatus = 'confirmed' | 'tentative' | 'cancelled';
 export type AttendeeType = 'socio' | 'invitado' | 'staff' | 'externo';
@@ -273,6 +286,7 @@ export interface InstitutionalEventPayload {
   name: string;
   kicker?: string | null;
   event_type: EventType;
+  color_theme?: ColorTheme;
   description?: string | null;
   banner_image_url?: string | null;
   start_date: string;

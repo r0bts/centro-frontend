@@ -83,45 +83,6 @@
   flex-direction: column;
 }
 
-.preview-overlay-adminbar {
-  background: #1e293b;
-  color: rgba(255, 255, 255, .85);
-  font-size: .78rem;
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.preview-badge {
-  background: #f59e0b;
-  color: #1e293b;
-  font-weight: 800;
-  font-size: .7rem;
-  padding: 2px 8px;
-  border-radius: 4px;
-  letter-spacing: .05em;
-}
-
-.preview-ab-btn {
-  background: rgba(255,255,255,.12);
-  border: 1px solid rgba(255,255,255,.2);
-  color: #fff;
-  padding: 5px 14px;
-  border-radius: .4rem;
-  font-size: .78rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: background .15s;
-
-  &:hover { background: rgba(255,255,255,.22); }
-  &--green { background: #198754; border-color: #198754; }
-  &--green:hover { background: #157347; }
-}
-
 .preview-iframe {
   flex: 1;
   border: none;

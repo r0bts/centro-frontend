@@ -170,4 +170,11 @@ export class InstitutionalEventsService {
       map(res => res.types ?? [])
     );
   }
+
+  /** GET /api/event-color-themes — catálogo de temas de color para la landing. */
+  getColorThemes(): Observable<import('../models/institutional-event.model').EventColorTheme[]> {
+    return this.http.get<any>(`${environment.apiUrl}/event-color-themes`).pipe(
+      map(res => res.themes ?? [])
+    );
+  }
 }

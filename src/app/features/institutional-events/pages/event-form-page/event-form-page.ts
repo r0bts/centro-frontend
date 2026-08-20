@@ -1,8 +1,10 @@
-import { Component, ChangeDetectionStrategy, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, NavigationStart } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { EventFormStateService, WIZARD_STEPS } from '../../services/event-form-state.service';
 import { ContentMenu } from '../../../../components/content-menu/content-menu';
 
@@ -40,7 +42,7 @@ import { Step9ReviewComponent } from '../../forms/step-9-review/step-9-review';
   templateUrl: './event-form-page.html',
   styleUrl: './event-form-page.scss',
 })
-export class EventFormPageComponent implements OnInit {
+export class EventFormPageComponent implements OnInit, OnDestroy {
   readonly steps = WIZARD_STEPS;
 
   // ── Inject services at field level (needed for toSignal in field initializers) ─
@@ -48,6 +50,7 @@ export class EventFormPageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private _routerSub?: Subscription;
 
   // ── Signals reactivos desde los FormGroups ────────────────────────────────────
   readonly identityVal = toSignal(
@@ -113,6 +116,17 @@ export class EventFormPageComponent implements OnInit {
     } else {
       this.state.reset();
     }
+
+    // Cerrar preview automáticamente al navegar a otra ruta
+    this._routerSub = this.router.events
+      .pipe(filter(e => e instanceof NavigationStart))
+      .subscribe(() => {
+        if (this.showPreviewOverlay()) this.showPreviewOverlay.set(false);
+      });
+  }
+
+  ngOnDestroy(): void {
+    this._routerSub?.unsubscribe();
   }
 
   volver(): void { this.router.navigate(['/eventos']); }

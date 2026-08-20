@@ -163,14 +163,6 @@
 <!-- ════ PREVIEW OVERLAY ════ -->
 @if (showPreviewOverlay()) {
   <div class="preview-overlay">
-    <div class="preview-overlay-adminbar">
-      <span class="preview-badge">VISTA PREVIA</span>
-      <span>Landing Page del evento — generada en tiempo real desde el formulario</span>
-      <div style="flex:1"></div>
-      <button class="preview-ab-btn preview-ab-btn--green" (click)="cerrarPreview()">
-        <i class="bi bi-x-lg me-1"></i>Cerrar vista previa
-      </button>
-    </div>
     @if (state.eventId()) {
       <iframe class="preview-iframe"
               [src]="previewUrl"

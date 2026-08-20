@@ -5,6 +5,8 @@ import { InstitutionalEventsService } from './institutional-events.service';
 import {
   AccessType,
   EventAccessType,
+  ColorTheme,
+  EventColorTheme,
   EventExtraData,
   EventIndicator,
   EventLocation,
@@ -82,6 +84,8 @@ export class EventFormStateService {
   readonly loadingPlaces = signal(false);
   readonly accessTypes = signal<EventAccessType[]>([]);
   readonly loadingAccessTypes = signal(false);
+  readonly colorThemes = signal<EventColorTheme[]>([]);
+  readonly loadingColorThemes = signal(false);
 
   /** Archivos pendientes de subir al backend — se procesan automáticamente dentro de save(). */
   readonly pendingImageUploads = new Map<string, File>();
@@ -98,6 +102,7 @@ export class EventFormStateService {
         location_id: [null as number | null],
         place_id: [null as number | null],
         description: [''],
+        color_theme: ['classic' as ColorTheme],
         has_donations: [false],
         donation_amounts: this.fb.control<number[]>([]),
       }),
@@ -150,6 +155,7 @@ export class EventFormStateService {
     this.loadAreas();
     this.loadPlaces();
     this.loadAccessTypes();
+    this.loadColorThemes();
   }
 
   // ── Getters de conveniencia ──────────────────────────────────────────────────
@@ -236,6 +242,18 @@ export class EventFormStateService {
       this.accessTypes.set([]);
     } finally {
       this.loadingAccessTypes.set(false);
+    }
+  }
+
+  async loadColorThemes(): Promise<void> {
+    this.loadingColorThemes.set(true);
+    try {
+      const lista = await firstValueFrom(this.svc.getColorThemes());
+      this.colorThemes.set(lista);
+    } catch {
+      this.colorThemes.set([]);
+    } finally {
+      this.loadingColorThemes.set(false);
     }
   }
 
@@ -415,6 +433,7 @@ export class EventFormStateService {
       place_id: event.place_id ?? null,
       location_id: event.location_id,
       description: event.description ?? '',
+      color_theme: (event as any).color_theme ?? 'classic',
       has_donations: event.has_donations,
       donation_amounts: event.donation_amounts ?? [],
     });
@@ -516,6 +535,7 @@ export class EventFormStateService {
       name: identity.name,
       kicker: identity.kicker || null,
       event_type: identity.event_type,
+      color_theme: (identity as any).color_theme || 'classic',
       description: identity.description || null,
       banner_image_url: hero.banner_image_url || null,
       start_date: toApiDateTime(datetime.start_date)!,
