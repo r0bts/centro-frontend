@@ -29,6 +29,15 @@ export class Step5HeroComponent {
   readonly mobilePreviewUrl = signal<string | null>(null);
   readonly coverPreviewUrl  = signal<string | null>(null);
 
+  /** Error de validación de dimensiones del banner mobile. */
+  readonly mobileDimError = signal<string | null>(null);
+
+  /** Reglas de dimensiones para el banner mobile (px). */
+  private readonly MOBILE_W_MIN = 390;
+  private readonly MOBILE_W_MAX = 412;
+  private readonly MOBILE_H_MIN = 844;
+  private readonly MOBILE_H_MAX = 917;
+
   private readonly identityVal = toSignal(
     this.state.identityGroup.valueChanges,
     { initialValue: this.state.identityGroup.value }
@@ -73,11 +82,31 @@ export class Step5HeroComponent {
 
   get group() { return this.state.heroGroup; }
 
-  onFileSelect(event: Event, field: ImageField): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    // Revocar URL anterior si existe
+  /** Valida dimensiones del banner mobile. Devuelve error string o null si es válido. */
+  private checkMobileDimensions(blobUrl: string, file: File): void {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (w < this.MOBILE_W_MIN || w > this.MOBILE_W_MAX ||
+          h < this.MOBILE_H_MIN || h > this.MOBILE_H_MAX) {
+        // Dimensiones fuera de rango — revocar y rechazar
+        URL.revokeObjectURL(blobUrl);
+        this.mobilePreviewUrl.set(null);
+        this.state.pendingImageUploads.delete('hero_mobile');
+        this.mobileDimError.set(
+          `Dimensiones incorrectas: ${w}×${h} px. ` +
+          `Se requiere entre ${this.MOBILE_W_MIN}–${this.MOBILE_W_MAX} px de ancho ` +
+          `y ${this.MOBILE_H_MIN}–${this.MOBILE_H_MAX} px de alto.`
+        );
+      } else {
+        this.mobileDimError.set(null);
+      }
+    };
+    img.src = blobUrl;
+  }
+
+  private acceptFile(file: File, field: ImageField): void {
     const prev = field === 'banner' ? this.bannerPreviewUrl()
                : field === 'mobile' ? this.mobilePreviewUrl()
                : this.coverPreviewUrl();
@@ -88,12 +117,21 @@ export class Step5HeroComponent {
     else if (field === 'mobile') this.mobilePreviewUrl.set(blobUrl);
     else this.coverPreviewUrl.set(blobUrl);
 
-    // Registrar en el servicio para upload automático al guardar en Step 9
-    // Mapear el nombre local al tipo que acepta el backend
-    const apiType = field === 'banner' ? 'hero_desktop' : field === 'mobile' ? 'hero_mobile' : 'cover';
+    const apiType = field === 'banner' ? 'hero_desktop'
+                  : field === 'mobile' ? 'hero_mobile' : 'cover';
     this.state.pendingImageUploads.set(apiType, file);
 
-    // Reset input
+    if (field === 'mobile') {
+      this.mobileDimError.set(null); // limpiar error previo antes de validar
+      this.checkMobileDimensions(blobUrl, file);
+    }
+  }
+
+  onFileSelect(event: Event, field: ImageField): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    this.acceptFile(file, field);
     input.value = '';
   }
 
@@ -101,18 +139,7 @@ export class Step5HeroComponent {
     event.preventDefault();
     const file = event.dataTransfer?.files[0];
     if (!file || !file.type.startsWith('image/')) return;
-    // Revocar URL anterior si existe
-    const prev = field === 'banner' ? this.bannerPreviewUrl()
-               : field === 'mobile' ? this.mobilePreviewUrl()
-               : this.coverPreviewUrl();
-    if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
-    const blobUrl = URL.createObjectURL(file);
-    if (field === 'banner') this.bannerPreviewUrl.set(blobUrl);
-    else if (field === 'mobile') this.mobilePreviewUrl.set(blobUrl);
-    else this.coverPreviewUrl.set(blobUrl);
-    // Registrar en pendingImageUploads para upload automático al guardar
-    const apiType = field === 'banner' ? 'hero_desktop' : field === 'mobile' ? 'hero_mobile' : 'cover';
-    this.state.pendingImageUploads.set(apiType, file);
+    this.acceptFile(file, field);
   }
 
   agregarAliado(): void {

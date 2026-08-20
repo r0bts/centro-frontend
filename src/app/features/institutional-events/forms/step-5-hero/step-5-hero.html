@@ -20,16 +20,28 @@
 
         <div class="drop-zone" (click)="fileMobile.click()"
              (dragover)="$event.preventDefault()" (drop)="onDrop($event, 'mobile')">
-          @if (mobilePreviewUrl()) {
-            <img [src]="mobilePreviewUrl()" class="drop-zone-preview" alt="Preview mobile">
+          @if (mobilePreviewUrl() || group.get('banner_mobile_url')?.value) {
+            <img [src]="mobilePreviewUrl() || group.get('banner_mobile_url')?.value"
+                 class="drop-zone-preview" alt="Preview mobile">
             <div class="drop-zone-label-over">Cambiar imagen</div>
           } @else {
             <i class="bi bi-phone fs-3 text-muted d-block mb-1"></i>
             <div class="text-muted small">Arrastra o <strong>selecciona</strong> un archivo</div>
-            <div class="text-muted" style="font-size:.72rem;">JPG/PNG/WEBP · 800×600 px · Máx. 2 MB</div>
+            <div class="text-muted" style="font-size:.72rem;">JPG/PNG/WEBP · 390–412 × 844–917 px · Máx. 2 MB</div>
           }
         </div>
         <input #fileMobile type="file" accept="image/*" hidden (change)="onFileSelect($event, 'mobile')">
+
+        @if (mobileDimError()) {
+          <div class="alert alert-danger py-2 mt-2 mb-0 d-flex align-items-start gap-2" style="font-size:.82rem;">
+            <i class="bi bi-x-circle-fill flex-shrink-0 mt-1"></i>
+            <div>
+              <div class="fw-semibold">Imagen no aceptada</div>
+              <div>{{ mobileDimError() }}</div>
+              <div class="mt-1 text-muted" style="font-size:.75rem;">La imagen anterior se mantuvo. Selecciona una imagen con las dimensiones correctas.</div>
+            </div>
+          </div>
+        }
 
         <div class="mt-2">
           <label class="form-label fw-semibold small text-uppercase text-muted">O introduce la URL</label>
