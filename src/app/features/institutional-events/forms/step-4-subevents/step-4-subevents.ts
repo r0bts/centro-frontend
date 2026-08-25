@@ -51,6 +51,7 @@ export class Step4SubeventsComponent {
       this.subeventos[i].patchValue(data);
     }
     this.cerrarModal();
+    this.state.saveDraft();
   }
 
   pedirConfirmacionEliminar(index: number): void {
@@ -66,6 +67,7 @@ export class Step4SubeventsComponent {
     if (i !== null) {
       this.state.removeSubevent(i);
       this.confirmarEliminarIndex.set(null);
+      this.state.saveDraft();
     }
   }
 

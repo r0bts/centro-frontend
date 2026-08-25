@@ -21,6 +21,7 @@ export class Step1IdentityComponent {
   nuevoMonto: number | null = null;
 
   readonly showPlaceModal = signal(false);
+  readonly seleccionandoOtro = signal(false);
   placeToEdit: EventPlace | null = null;
 
   constructor(public state: EventFormStateService) {}
@@ -28,12 +29,21 @@ export class Step1IdentityComponent {
   get group() { return this.state.identityGroup; }
   get montos(): number[] { return this.group.get('donation_amounts')!.value ?? []; }
 
+  get modoOtro(): boolean {
+    return this.seleccionandoOtro() || !!this.group.get('place_id')?.value;
+  }
+
   selectSede(id: number): void {
     this.group.get('location_id')!.setValue(id);
     this.group.get('place_id')!.setValue(null);
-    // Quitar el error visual de sede/lugar al seleccionar
+    this.seleccionandoOtro.set(false);
     const sin = this.state.camposInvalidos().filter(c => c !== 'Sede o Lugar del evento');
     this.state.camposInvalidos.set(sin);
+  }
+
+  selectOtro(): void {
+    this.group.get('location_id')!.setValue(null);
+    this.seleccionandoOtro.set(true);
   }
 
   onPlaceChange(place: EventPlace | null): void {

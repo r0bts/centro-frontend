@@ -1,6 +1,8 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { debounceTime, skip } from 'rxjs/operators';
 import { EventFormStateService } from '../../services/event-form-state.service';
 
 /**
@@ -19,12 +21,37 @@ import { EventFormStateService } from '../../services/event-form-state.service';
   templateUrl: './step-8-faq-contact.html',
   styleUrl: './step-8-faq-contact.scss',
 })
-export class Step8FaqContactComponent {
+export class Step8FaqContactComponent implements OnInit, OnDestroy {
+  private _subs: Subscription[] = [];
+
   constructor(public state: EventFormStateService) {}
 
   get group() { return this.state.faqContactGroup; }
   get faqs() { return this.state.faqsArray.controls; }
   get indicators() { return this.state.indicatorsArray.controls; }
+
+  ngOnInit(): void {
+    // Auto-guardar borrador 1.2 s después de que el usuario deje de escribir
+    const autoSave = () => this.state.saveDraft();
+
+    this._subs.push(
+      this.state.faqsArray.valueChanges
+        .pipe(debounceTime(1200), skip(0))
+        .subscribe(autoSave),
+
+      this.state.indicatorsArray.valueChanges
+        .pipe(debounceTime(1200), skip(0))
+        .subscribe(autoSave),
+
+      this.state.faqContactGroup.valueChanges
+        .pipe(debounceTime(1200), skip(0))
+        .subscribe(autoSave),
+    );
+  }
+
+  ngOnDestroy(): void {
+    this._subs.forEach(s => s.unsubscribe());
+  }
 
   agregarFaq(): void { this.state.addFaq(); }
   eliminarFaq(index: number): void { this.state.removeFaq(index); }

@@ -4,12 +4,12 @@
 .sede-option {
   border: 2px solid #dee2e6;
   border-radius: .75rem;
-  padding: .9rem 1rem;
+  padding: .9rem .7rem;
   cursor: pointer;
   transition: border-color .15s, background .15s;
   display: flex;
   align-items: center;
-  gap: .75rem;
+  gap: .6rem;
   height: 100%;
 
   &:hover { border-color: #406eba; }
@@ -19,11 +19,21 @@
     background: #eff6ff;
   }
 
-  &.faded {
-    opacity: .4;
-    filter: grayscale(.5);
-    &:hover { border-color: #dee2e6; }
+  &.sede-otro.active {
+    border-color: #e65100;
+    background: #fff3e0;
   }
+}
+
+.otro-place-panel {
+  border-top: 1px solid #dee2e6;
+  padding-top: .75rem;
+  animation: slideDown .15s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .sede-icon-wrap {

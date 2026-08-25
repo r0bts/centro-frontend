@@ -231,3 +231,44 @@
 
   </div><!-- /page-content -->
 </div>
+
+<!-- ══ Modal: Confirmar eliminación ══════════════════════════════════════════ -->
+@if (showDeleteModal()) {
+  <div class="val-modal-backdrop" (click)="cerrarModalEliminar()"></div>
+  <div class="val-modal-card" role="dialog" aria-modal="true">
+    <div class="val-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-trash3-fill text-danger" style="font-size:1.25rem;"></i>
+        <h5 class="mb-0 fw-bold">Eliminar evento</h5>
+      </div>
+      <button class="btn-close-plain" (click)="cerrarModalEliminar()" aria-label="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="val-modal-body">
+      <p class="mb-1">¿Seguro que deseas eliminar el evento:</p>
+      <p class="fw-bold mb-3" style="color:#141414;">
+        "{{ deletingEvent()?.name }}"
+      </p>
+      <div class="alert alert-danger py-2 px-3 mb-0 d-flex align-items-center gap-2" style="font-size:.85rem;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        Esta acción no se puede deshacer.
+      </div>
+    </div>
+    <div class="val-modal-footer">
+      <button class="btn btn-outline-secondary" (click)="cerrarModalEliminar()">
+        Cancelar
+      </button>
+      <button class="btn btn-danger d-flex align-items-center gap-2"
+              (click)="confirmarEliminar()"
+              [disabled]="deleteLoading()">
+        @if (deleteLoading()) {
+          <span class="spinner-border spinner-border-sm"></span>
+        } @else {
+          <i class="bi bi-trash3"></i>
+        }
+        Eliminar
+      </button>
+    </div>
+  </div>
+}

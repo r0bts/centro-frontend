@@ -12,22 +12,15 @@
         <div class="sec-icon sec-blue"><i class="bi bi-building"></i></div>
         <div>
           <div class="fw-bold">Sede <span class="text-danger">*</span></div>
-          <div class="text-muted small">Instalación principal donde se desarrolla el evento</div>
+          <div class="text-muted small">Instalación principal o lugar externo donde se realiza el evento</div>
         </div>
       </div>
 
-      @if (group.get('place_id')?.value) {
-        <div class="alert alert-info py-1 px-2 mb-2 small d-flex align-items-center gap-2">
-          <i class="bi bi-info-circle-fill"></i>
-          Se está usando un <strong>lugar específico</strong>. Selecciona una sede para usarla en su lugar.
-        </div>
-      }
       <div class="row g-2">
         @for (loc of state.locations(); track loc.id; let i = $index) {
-          <div class="col-6">
+          <div class="col-4">
             <div class="sede-option"
                  [class.active]="group.get('location_id')!.value === loc.id"
-                 [class.faded]="!!group.get('place_id')?.value"
                  (click)="selectSede(loc.id)">
               <div class="sede-icon-wrap"
                    [style.background]="i === 0 ? '#eff6ff' : '#f0fdf4'"
@@ -47,74 +40,75 @@
             </div>
           </div>
         }
+
+        <!-- Opción "Otro" -->
+        <div class="col-4">
+          <div class="sede-option sede-otro"
+               [class.active]="modoOtro"
+               (click)="selectOtro()">
+            <div class="sede-icon-wrap" style="background:#fff3e0;color:#e65100;">
+              <i class="bi bi-geo-alt-fill"></i>
+            </div>
+            <div>
+              <div class="fw-bold small">Otro</div>
+              <div class="text-muted" style="font-size:.71rem;">Lugar externo</div>
+            </div>
+            @if (modoOtro) {
+              <i class="bi bi-check-circle-fill ms-auto" style="color:#e65100;"></i>
+            }
+          </div>
+        </div>
+
         @if (state.locations().length === 0) {
           <div class="col-12 text-muted small fst-italic">Cargando sedes…</div>
         }
       </div>
-    </div>
-  </div>
 
-  <!-- ── Lugar del evento (event_places) ──────────────────────────────── -->
-  <div class="card shadow-sm mb-3"
-       [class.border-danger]="state.camposInvalidos().includes('Sede o Lugar del evento') && !group.get('location_id')?.value && !group.get('place_id')?.value">
-    <div class="card-body">
-      <div class="sec-head mb-3">
-        <div class="sec-icon sec-teal"><i class="bi bi-geo-alt-fill"></i></div>
-        <div>
-          <div class="fw-bold">Lugar del evento</div>
-          <div class="text-muted small">
-            Ubicación específica (externa o interna). Crea nuevos lugares con dirección y mapa.
-            Una vez guardados, estarán disponibles para otros eventos.
+      <!-- Selector de lugar (visible solo en modo Otro) -->
+      @if (modoOtro) {
+        <div class="otro-place-panel mt-3">
+          <div class="d-flex gap-2 align-items-start">
+            <div class="flex-grow-1">
+              <ng-select
+                [formControl]="$any(group.get('place_id'))"
+                [items]="state.places()"
+                bindLabel="name"
+                bindValue="id"
+                placeholder="Selecciona o crea un lugar…"
+                [clearable]="true"
+                [loading]="state.loadingPlaces()"
+                (change)="onPlaceChange($event)"
+                notFoundText="Sin lugares. Usa el botón + para agregar uno.">
+                <ng-template ng-option-tmp let-item="item">
+                  <div class="fw-semibold small">{{ item.name }}</div>
+                  @if (item.address) {
+                    <div class="text-muted" style="font-size:.75rem;">
+                      <i class="bi bi-map-pin me-1"></i>{{ item.address }}
+                    </div>
+                  }
+                </ng-template>
+              </ng-select>
+            </div>
+            <button type="button" class="btn btn-outline-primary btn-sm flex-shrink-0"
+                    title="Agregar nuevo lugar" (click)="abrirModalNuevo()">
+              <i class="bi bi-plus-lg"></i> Nuevo
+            </button>
+            @if (group.get('place_id')?.value) {
+              <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
+                      title="Editar lugar seleccionado" (click)="abrirModalEditar()">
+                <i class="bi bi-pencil"></i>
+              </button>
+            }
+          </div>
+          <div class="form-text mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            Los lugares quedan guardados y disponibles para futuros eventos.
           </div>
         </div>
-      </div>
-
-      <div class="d-flex gap-2 align-items-start">
-        <div class="flex-grow-1">
-          <ng-select
-            [formControl]="$any(group.get('place_id'))"
-            [items]="state.places()"
-            bindLabel="name"
-            bindValue="id"
-            placeholder="Selecciona o crea un lugar…"
-            [clearable]="true"
-            [loading]="state.loadingPlaces()"
-            (change)="onPlaceChange($event)"
-            notFoundText="Sin lugares registrados. Usa el botón + para agregar uno.">
-            <ng-template ng-option-tmp let-item="item">
-              <div class="fw-semibold small">{{ item.name }}</div>
-              @if (item.address) {
-                <div class="text-muted" style="font-size:.75rem;">
-                  <i class="bi bi-map-pin me-1"></i>{{ item.address }}
-                </div>
-              }
-            </ng-template>
-          </ng-select>
-        </div>
-        <button type="button" class="btn btn-outline-primary flex-shrink-0"
-                title="Agregar nuevo lugar" (click)="abrirModalNuevo()">
-          <i class="bi bi-plus-lg"></i> Nuevo
-        </button>
-        @if (group.get('place_id')?.value) {
-          <button type="button" class="btn btn-outline-secondary flex-shrink-0"
-                  title="Editar lugar seleccionado" (click)="abrirModalEditar()">
-            <i class="bi bi-pencil"></i>
-          </button>
-        }
-      </div>
-      @if (group.get('location_id')?.value) {
-        <div class="alert alert-info py-1 px-2 mt-2 small d-flex align-items-center gap-2">
-          <i class="bi bi-info-circle-fill"></i>
-          Se está usando una <strong>sede institucional</strong>. Selecciona un lugar para usarlo en su lugar.
-        </div>
       }
-      <div class="form-text mt-1">
-        <i class="bi bi-info-circle me-1"></i>
-        Los lugares que agregues aquí quedan guardados y disponibles para futuros eventos.
-        No modifica las sedes institucionales.
-      </div>
     </div>
   </div>
+
   @if (state.camposInvalidos().includes('Sede o Lugar del evento') && !group.get('location_id')?.value && !group.get('place_id')?.value) {
     <div class="field-error mb-2"><i class="bi bi-exclamation-circle me-1"></i>Selecciona una sede institucional o un lugar del evento.</div>
   }

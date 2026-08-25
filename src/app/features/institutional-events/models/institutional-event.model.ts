@@ -91,7 +91,10 @@ export interface InstitutionalEventSubevent {
   current_attendee_count?: number;
   cost?: number | null;
   access_type: AccessType;
-  instructor_name?: string | null;
+  instructor_name?:  string | null;
+  instructor_phone?: string | null;
+  instructor_email?: string | null;
+  instructor_notes?: string | null;
   status: SubeventStatus;
   created_at?: string;
   updated_at?: string;
@@ -153,6 +156,7 @@ export interface EventExtraData {
   social_facebook?: string;
   social_instagram?: string;
   social_twitter?: string;
+  social_tiktok?: string;
   indicators?: EventIndicator[];
   allies?: string[];
   allies_header?: string;

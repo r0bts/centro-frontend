@@ -145,14 +145,39 @@ export class EventsListPageComponent implements OnInit {
     }
   }
 
-  async eliminar(event: InstitutionalEvent): Promise<void> {
-    if (!confirm(`¿Eliminar el evento "${event.name}"? Esta acción no se puede deshacer.`)) return;
+  // ── Modal eliminar ───────────────────────────────────────────────────────────
+  readonly showDeleteModal = signal(false);
+  readonly deletingEvent = signal<InstitutionalEvent | null>(null);
+  readonly deleteLoading = signal(false);
+
+  abrirModalEliminar(event: InstitutionalEvent): void {
+    this.deletingEvent.set(event);
+    this.showDeleteModal.set(true);
+  }
+
+  cerrarModalEliminar(): void {
+    this.showDeleteModal.set(false);
+    this.deletingEvent.set(null);
+  }
+
+  async confirmarEliminar(): Promise<void> {
+    const ev = this.deletingEvent();
+    if (!ev) return;
+    this.deleteLoading.set(true);
     try {
-      await firstValueFrom(this.svc.delete(event.id));
+      await firstValueFrom(this.svc.delete(ev.id));
+      this.cerrarModalEliminar();
       await this.loadEventos();
     } catch {
       this.error.set('No se pudo eliminar el evento.');
+      this.cerrarModalEliminar();
+    } finally {
+      this.deleteLoading.set(false);
     }
+  }
+
+  async eliminar(event: InstitutionalEvent): Promise<void> {
+    this.abrirModalEliminar(event);
   }
 
   formatFecha(event: InstitutionalEvent): string {

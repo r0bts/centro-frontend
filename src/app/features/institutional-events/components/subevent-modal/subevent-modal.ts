@@ -32,7 +32,10 @@ type SubeventoForm = {
   cost: number;
   access_type: AccessType;
   status: SubeventStatus;
-  instructor_name: string;
+  instructor_name:  string;
+  instructor_phone: string;
+  instructor_email: string;
+  instructor_notes: string;
   description: string;
 };
 
@@ -41,7 +44,8 @@ function empty(): SubeventoForm {
     name: '', start_date: '', end_date: '', venue: '',
     area_id: null,
     max_capacity: 0, cost: 0, access_type: 'public', status: 'confirmed',
-    instructor_name: '', description: '',
+    instructor_name: '', instructor_phone: '', instructor_email: '', instructor_notes: '',
+    description: '',
   };
 }
 
@@ -88,7 +92,10 @@ export class SubeventModalComponent implements OnChanges {
           cost: this.subevento.cost ?? 0,
           access_type: this.subevento.access_type ?? 'public',
           status: this.subevento.status ?? 'confirmed',
-          instructor_name: this.subevento.instructor_name ?? '',
+          instructor_name:  this.subevento.instructor_name  ?? '',
+          instructor_phone: this.subevento.instructor_phone ?? '',
+          instructor_email: this.subevento.instructor_email ?? '',
+          instructor_notes: this.subevento.instructor_notes ?? '',
           description: this.subevento.description ?? '',
         }
       : empty();
@@ -99,6 +106,14 @@ export class SubeventModalComponent implements OnChanges {
     this.form.venue = area?.name ?? '';
   }
 
+  /** Permite solo dígitos, máx 10 */
+  onPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const clean = input.value.replace(/\D/g, '').slice(0, 10);
+    input.value = clean;
+    this.form.instructor_phone = clean;
+  }
+
   guardar(): void {
     if (!this.form.name.trim()) {
       this.errorMsg = 'El nombre del subevento es obligatorio.';
@@ -107,8 +122,17 @@ export class SubeventModalComponent implements OnChanges {
     if (!this.form.area_id) {
       this.errorMsg = 'El lugar (\u00e1rea) es obligatorio.';
       return;
+    }    const phone = this.form.instructor_phone?.trim();
+    if (phone && !/^\d{10}$/.test(phone)) {
+      this.errorMsg = 'El teléfono debe tener exactamente 10 dígitos numéricos.';
+      return;
     }
-    this.saved.emit(this.form);
+    const email = this.form.instructor_email?.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      this.errorMsg = 'Ingresa un correo electrónico válido.';
+      return;
+    }
+    this.errorMsg = '';    this.saved.emit(this.form);
   }
 
   cerrar(): void {

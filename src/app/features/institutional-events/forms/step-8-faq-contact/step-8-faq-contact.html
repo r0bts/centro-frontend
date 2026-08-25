@@ -101,15 +101,13 @@
         <div class="col-sm-6">
           <label class="form-label fw-semibold small text-uppercase text-muted">Correo de contacto</label>
           <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-            <input type="email" class="form-control" formControlName="contact_email">
+            <input type="email" class="form-control" formControlName="contact_email" placeholder="contacto@ejemplo.com">
           </div>
         </div>
         <div class="col-sm-6">
           <label class="form-label fw-semibold small text-uppercase text-muted">Teléfono / WhatsApp</label>
           <div class="input-group input-group-sm">
-            <span class="input-group-text"><i class="bi bi-telephone"></i></span>
-            <input type="tel" class="form-control" formControlName="contact_phone">
+            <input type="tel" class="form-control" formControlName="contact_phone" placeholder="55 1234 5678">
           </div>
         </div>
         <div class="col-sm-6">
@@ -135,22 +133,28 @@
 
       <label class="form-label fw-semibold small text-uppercase text-muted">Redes sociales del evento</label>
       <div class="row g-2">
-        <div class="col-sm-4">
+        <div class="col-sm-6">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-facebook" style="color:#1877f2;"></i></span>
             <input type="url" class="form-control" formControlName="social_facebook" placeholder="facebook.com/…">
           </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-6">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-instagram" style="color:#e1306c;"></i></span>
             <input type="url" class="form-control" formControlName="social_instagram" placeholder="instagram.com/…">
           </div>
         </div>
-        <div class="col-sm-4">
+        <div class="col-sm-6">
           <div class="input-group input-group-sm">
             <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
             <input type="url" class="form-control" formControlName="social_twitter" placeholder="x.com/…">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-tiktok" style="color:#010101;"></i></span>
+            <input type="url" class="form-control" formControlName="social_tiktok" placeholder="tiktok.com/@…">
           </div>
         </div>
       </div>
