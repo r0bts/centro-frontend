@@ -1,0 +1,128 @@
+<div class="sub-modal-overlay">
+  <div class="sub-modal-box" (click)="$event.stopPropagation()">
+
+    <div class="sub-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <div class="sec-icon sec-purple"><i class="bi bi-calendar2-plus-fill"></i></div>
+        <h5 class="fw-bold mb-0">{{ subevento ? 'Editar subevento' : 'Agregar subevento' }}</h5>
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" (click)="cerrar()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="sub-modal-body">
+      @if (errorMsg) {
+        <div class="alert alert-danger py-2 small">{{ errorMsg }}</div>
+      }
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Nombre <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="form.name" placeholder="Ej. Módulo 1 — Inauguración">
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Inicio</label>
+          <input type="datetime-local" class="form-control" [(ngModel)]="form.start_date">
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Fin</label>
+          <input type="datetime-local" class="form-control" [(ngModel)]="form.end_date">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Lugar <span class="text-danger">*</span></label>
+        <ng-select
+          [(ngModel)]="form.area_id"
+          [items]="state.areas()"
+          bindLabel="name"
+          bindValue="id"
+          placeholder="Buscar lugar / área…"
+          notFoundText="Sin resultados"
+          loadingText="Cargando…"
+          [loading]="state.loadingAreas()"
+          [searchable]="true"
+          [clearable]="true"
+          (change)="onAreaChange($event)">
+        </ng-select>
+        @if (!form.area_id && errorMsg === 'El lugar (área) es obligatorio.') {
+          <div class="invalid-feedback d-block">El lugar es obligatorio.</div>
+        }
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Cupo</label>
+          <input type="number" class="form-control" min="0" [(ngModel)]="form.max_capacity">
+          <div class="form-text">0 = sin límite.</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Costo</label>
+          <div class="input-group">
+            <input type="number" class="form-control" min="0" [(ngModel)]="form.cost">
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Acceso</label>
+          <select class="form-select" [(ngModel)]="form.access_type">
+            @for (t of accessTypes; track t.id) {
+              <option [value]="t.id">{{ t.label }}</option>
+            }
+          </select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Estado</label>
+          <select class="form-select" [(ngModel)]="form.status">
+            @for (s of statuses; track s) {
+              <option [value]="s">{{ subeventStatusMeta[s].label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Instructor / Responsable</label>
+        <input type="text" class="form-control mb-2" [(ngModel)]="form.instructor_name"
+               placeholder="Nombre completo">
+        <div class="row g-2 mb-2">
+          <div class="col-sm-6">
+            <div class="input-group input-group-sm">  
+              <input type="tel" class="form-control"
+                     [(ngModel)]="form.instructor_phone"
+                     placeholder="10 dígitos"
+                     maxlength="10"
+                     (input)="onPhoneInput($event)">
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="input-group input-group-sm">
+              <input type="email" class="form-control"
+                     [(ngModel)]="form.instructor_email"
+                     placeholder="correo@ejemplo.com">
+            </div>
+          </div>
+        </div>
+        <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="form.instructor_notes"
+                  placeholder="Notas sobre el instructor (opcional)…"></textarea>
+      </div>
+
+      <div class="mb-0">
+        <label class="form-label fw-semibold small text-uppercase text-muted">Descripción</label>
+        <textarea class="form-control" rows="2" [(ngModel)]="form.description"></textarea>
+      </div>
+    </div>
+
+    <div class="sub-modal-footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="cerrar()">Cancelar</button>
+      <button type="button" class="btn btn-primary" (click)="guardar()">
+        <i class="bi bi-check-lg me-1"></i>Guardar subevento
+      </button>
+    </div>
+
+  </div>
+</div>

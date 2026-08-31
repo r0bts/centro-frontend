@@ -19,6 +19,9 @@
                   <span *ngIf="!isFromList">Resumen por Áreas</span>
                   <span *ngIf="isFromList">
                     <i class="bi bi-eye me-2"></i>Vista de Requisición: {{ requisitionId }}
+                    <span *ngIf="isExtraordinary" class="badge bg-danger ms-2 fs-6 align-middle">
+                      <i class="bi bi-lightning-charge-fill me-1"></i>Extraordinaria
+                    </span>
                   </span>
                 </h4>
                 <div class="d-flex align-items-center gap-2">
@@ -63,7 +66,8 @@
               </div>
 
               <!-- Indicador de PIN de Recolección -->
-              <div class="alert alert-warning border-warning mb-3" *ngIf="isFromList && requisitionPin">
+              <div class="alert alert-warning border-warning mb-3"
+                   *ngIf="isFromList && requisitionPin && requisitionStatus !== 'Cancelado' && requisitionStatus !== 'Pendiente Cancelación'">
                 <div class="row align-items-center">
                   <div class="col-auto">
                     <i class="bi bi-key-fill fs-2 text-warning"></i>
@@ -76,6 +80,18 @@
                     <div class="bg-white rounded px-4 py-2 border border-warning">
                       <h2 class="mb-0 fw-bold text-warning" style="letter-spacing: 0.5rem;">{{ requisitionPin }}</h2>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Indicador de Motivo de Cancelación -->
+              <div class="alert alert-danger border-danger mb-3"
+                   *ngIf="isFromList && cancellationReason && (requisitionStatus === 'Cancelado' || requisitionStatus === 'Pendiente Cancelación')">
+                <div class="d-flex align-items-start">
+                  <i class="bi bi-x-octagon-fill fs-2 text-danger me-3"></i>
+                  <div>
+                    <h6 class="mb-1 fw-bold">Motivo de Cancelación</h6>
+                    <p class="mb-0">{{ cancellationReason }}</p>
                   </div>
                 </div>
               </div>
@@ -344,12 +360,11 @@
 
               <!-- Botones de acción - Panel derecho (visibles según status, sin depender de viewMode) -->
               <div class="d-flex justify-content-between mt-auto pt-4" *ngIf="isFromList">
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 flex-wrap">
                   <!-- Botón Guardar como frecuente - Solo si está Entregado -->
                   <button 
                     class="btn btn-outline-success" 
-                    (click)="saveAsTemplate()"
-                    *ngIf="requisitionStatus === 'Entregado'">
+                    (click)="saveAsTemplate()">
                     Guardar como frecuente
                   </button>
                   
@@ -368,6 +383,42 @@
                     *ngIf="requisitionStatus === 'Solicitado'">
                     Cancelar Requisición
                   </button>
+
+                  <!-- Solicitar cancelación de req. Autorizada o Lista para Recoger (requiere permiso + status) -->
+                  <button
+                    *ngIf="canRequestCancelAuth && (requisitionStatus === 'Autorizada' || requisitionStatus === 'Listo para Recoger')"
+                    class="btn btn-outline-warning"
+                    (click)="requestCancelAuth()"
+                    title="Solicitar cancelación de esta requisición">
+                    <i class="bi bi-x-circle me-1"></i>Solicitar Cancelación
+                  </button>
+
+                  <!-- Autorizar cancelación — visible cuando está Pendiente Cancelación -->
+                  <button
+                    *ngIf="canAuthorizeCancel && requisitionStatus === 'Pendiente Cancelación'"
+                    class="btn btn-danger"
+                    (click)="authorizeCancellation()"
+                    title="Autorizar la cancelación de esta requisición">
+                    <i class="bi bi-slash-circle me-1"></i>Autorizar Cancelación
+                  </button>
+
+                  <!-- Botones Extraordinaria: solo disponibles cuando la req. ya fue Entregada -->
+                  <ng-container *ngIf="isExtraordinary && requisitionStatus === 'Entregado'">
+                    <button
+                      *ngIf="canAddUserLimit"
+                      class="btn btn-outline-primary"
+                      (click)="addToUserLimit()"
+                      title="Agregar productos de esta req. extraordinaria al catálogo personal del empleado responsable">
+                      <i class="bi bi-person-plus-fill me-1"></i>Agregar a productos personales
+                    </button>
+                    <button
+                      *ngIf="canAddDeptLimit"
+                      class="btn btn-outline-success"
+                      (click)="addToDeptLimit()"
+                      title="Agregar productos de esta req. extraordinaria al catálogo del departamento">
+                      <i class="bi bi-buildings-fill me-1"></i>Agregar a productos de departamento
+                    </button>
+                  </ng-container>
                 </div>
                 
                 <!-- Botón Autorizar - Solo si está Solicitado -->

@@ -1,0 +1,56 @@
+<div class="pane-anim">
+  <div class="pane-header">
+    <h2>Documentos</h2>
+    <p class="text-muted small">Archivos descargables (programa, convocatoria, material de apoyo) para la Landing.</p>
+  </div>
+
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-dark"><i class="bi bi-file-earmark-pdf-fill"></i></div>
+        <div>
+          <div class="fw-bold">Documentos descargables</div>
+          <div class="text-muted small">Nombre visible + URL del archivo ya publicado</div>
+        </div>
+      </div>
+
+      @for (d of documentos; track $index) {
+        <div class="d-flex align-items-center gap-3 p-3 mb-2 rounded-3" style="background:#f8fafc;border:1px solid #dee2e6;">
+          <i class="bi bi-file-earmark-pdf-fill text-danger fs-4"></i>
+          <div class="flex-grow-1">
+            <div class="fw-semibold small">{{ d.value.name }}</div>
+            <div class="text-muted text-truncate" style="font-size:.72rem;max-width:320px;">{{ d.value.url }}</div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger py-0 px-2" (click)="eliminar($index)">
+            <i class="bi bi-trash3"></i>
+          </button>
+        </div>
+      }
+
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-5">
+          <label class="form-label small mb-1">Nombre</label>
+          <input type="text" class="form-control form-control-sm" [(ngModel)]="nombreNuevo" placeholder="Ej. Programa oficial">
+        </div>
+        <div class="col-sm-5">
+          <label class="form-label small mb-1">URL</label>
+          <input type="url" class="form-control form-control-sm" [(ngModel)]="urlNueva" placeholder="https://.../programa.pdf">
+        </div>
+        <div class="col-sm-2">
+          <button class="btn btn-outline-primary btn-sm w-100" (click)="agregar()">
+            <i class="bi bi-plus-lg"></i> Agregar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-nav-footer">
+    <button class="btn btn-outline-secondary" (click)="irAtras()">
+      <i class="bi bi-chevron-left me-1"></i>Atrás
+    </button>
+    <button class="btn btn-primary px-4" (click)="irSiguiente()">
+      Siguiente: FAQ y Contacto <i class="bi bi-chevron-right ms-1"></i>
+    </button>
+  </div>
+</div>

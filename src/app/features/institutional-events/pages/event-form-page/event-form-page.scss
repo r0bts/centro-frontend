@@ -1,0 +1,294 @@
+:host { display: block; }
+
+.eventos-wrapper {
+  padding-top: 0.5rem;
+}
+
+.eventos-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 20px 80px;
+}
+
+@media (max-width: 860px) {
+  .eventos-layout { grid-template-columns: 1fr; }
+}
+
+.main-col { min-width: 0; }
+
+/* ── Columna lateral sticky ───────────────────────── */
+.sidebar-col {
+  position: sticky;
+  top: 7.5rem;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+
+/* Pasos apilados — los estilos de ocultamiento están en styles.scss (global) */
+
+// El sticky del preview-card viene del global styles.scss — lo anulamos aquí
+// porque .sidebar-col YA maneja todo el sticky del sidebar completo.
+.preview-card {
+  position: static !important; // anula el "position:sticky; top:84px" global
+  background: #fff;
+  border-radius: .75rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,.09);
+  overflow: hidden;
+}
+
+.preview-banner {
+  height: 115px;
+  background: linear-gradient(135deg, #1d3d79, #406eba);
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 12px 14px;
+  color: #fff;
+  transition: all 0.3s ease;
+
+  .preview-banner-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, rgba(15, 23, 42, 0.25) 100%);
+    z-index: 1;
+  }
+
+  .preview-banner-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+
+  .preview-hint-sub {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 400;
+  }
+
+  &.has-image {
+    box-shadow: inset 0 -10px 20px rgba(0,0,0,0.2);
+  }
+}
+
+.preview-body {
+  padding: 1rem;
+}
+
+/* ── Btn Previsualizar ───────────────────────────────── */
+.btn-preview {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  border: none;
+  border-radius: .5rem;
+  padding: 7px 16px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity .15s, transform .15s;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, .35);
+
+  &:hover { opacity: .9; transform: translateY(-1px); }
+}
+
+/* ── Preview Overlay ─────────────────────────────────── */
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-iframe {
+  flex: 1;
+  border: none;
+}
+
+.preview-no-id {
+  flex: 1;
+  background: #1e293b;
+  color: rgba(255,255,255,.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+
+/* ── Modal de validación de campos requeridos ────────────────────── */
+.val-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 7000;
+  background: rgba(0, 0, 0, .55);
+  backdrop-filter: blur(2px);
+}
+
+.val-modal-card {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  z-index: 7001;
+  background: #fff;
+  border-radius: .875rem;
+  width: min(480px, 94vw);
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  overflow: hidden;
+}
+
+.val-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem .875rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.val-modal-body {
+  padding: 1.25rem;
+}
+
+.val-missing-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: .9rem;
+    font-weight: 500;
+    color: #212529;
+  }
+}
+
+.val-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: .875rem 1.25rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn-close-plain {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #6c757d;
+  padding: .25rem .4rem;
+  border-radius: .375rem;
+  transition: background .15s, color .15s;
+  &:hover { background: #f1f3f5; color: #212529; }
+}
+
+/* ── Selector de Pasos Minimalista (Sin bordes ni cards) ── */
+.minimal-step-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0.25rem;
+  margin: 0.75rem 0;
+
+  .minimal-step-item {
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    gap: 4px;
+
+    .minimal-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .minimal-step-name {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #94a3b8;
+      transition: color 0.2s ease;
+    }
+
+    &:hover {
+      .minimal-step-num {
+        background: #e2e8f0;
+        color: #475569;
+      }
+      .minimal-step-name {
+        color: #475569;
+      }
+    }
+
+    &.active {
+      .minimal-step-num {
+        background: #406eba;
+        color: #ffffff;
+        box-shadow: 0 3px 8px rgba(64, 110, 186, 0.3);
+      }
+      .minimal-step-name {
+        color: #406eba;
+        font-weight: 800;
+      }
+    }
+
+    &.completed:not(.active) {
+      .minimal-step-num {
+        background: #10b981;
+        color: #ffffff;
+      }
+      .minimal-step-name {
+        color: #059669;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .minimal-step-divider {
+    flex: 1;
+    height: 2px;
+    background: #f1f5f9;
+    margin: 0 8px;
+    margin-bottom: 18px;
+  }
+}

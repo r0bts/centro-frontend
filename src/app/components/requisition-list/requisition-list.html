@@ -73,6 +73,17 @@
                   </option>
                 </select>
               </div>
+
+              <!-- Filtro Extraordinarias -->
+              <button
+                type="button"
+                class="btn btn-sm"
+                [class.btn-danger]="filterExtraordinary()"
+                [class.btn-outline-danger]="!filterExtraordinary()"
+                (click)="onExtraordinaryChange(!filterExtraordinary())"
+                title="Mostrar solo requisiciones extraordinarias">
+                <i class="bi bi-lightning-charge-fill me-1"></i>Extraordinarias
+              </button>
               
               <!-- Filtro por Ubicación (solo si location_id = 0) -->
               <div *ngIf="canFilterLocation()" class="d-flex align-items-center gap-2">
@@ -103,7 +114,7 @@
               <button type="button" 
                       class="btn btn-outline-danger btn-sm" 
                       (click)="clearAllFilters()"
-                      [disabled]="!searchTerm() && !filterStatus() && !filterLocation() && !filterStartDate() && !filterEndDate()"
+                      [disabled]="!searchTerm() && !filterStatus() && !filterLocation() && !filterExtraordinary() && !filterStartDate() && !filterEndDate()"
                       title="Limpiar todos los filtros">
                 Limpiar
               </button>
@@ -147,6 +158,11 @@
                       <!-- ID -->
                       <td class="align-middle border">
                         <strong>{{ requisition.id }}</strong>
+                        <span *ngIf="requisition.isExtraordinary"
+                              class="badge bg-danger ms-1"
+                              title="Requisición Extraordinaria">
+                          <i class="bi bi-lightning-charge-fill"></i>
+                        </span>
                       </td>
                       
                       <!-- Creador -->
@@ -179,6 +195,9 @@
                         <span [class]="getStatusClass(requisition.status)">
                           {{ requisition.status }}
                         </span>
+                        <div *ngIf="requisition.cancellationReason" class="small text-muted mt-1" style="max-width: 220px;" [title]="requisition.cancellationReason">
+                          <i class="bi bi-chat-left-text me-1"></i>{{ requisition.cancellationReason }}
+                        </div>
                       </td>
                       
                       <!-- Fecha de Entrega -->
@@ -192,9 +211,9 @@
                       <!-- Acciones -->
                       <td class="align-middle border">
                         <div class="d-flex gap-1 justify-content-center">
-                          <!-- Editar Requisición (solo si está en Solicitado y tiene permiso) -->
+                          <!-- Editar Requisición (solo si está en Solicitado, tiene permiso y NO es extraordinaria) -->
                           <button 
-                            *ngIf="canUpdate() && isEditable(requisition)"
+                            *ngIf="canUpdate() && isEditable(requisition) && !requisition.isExtraordinary"
                             type="button" 
                             class="btn btn-outline-primary btn-sm"
                             (click)="editRequisition(requisition)"

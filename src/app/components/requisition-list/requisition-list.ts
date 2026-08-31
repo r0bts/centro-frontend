@@ -39,6 +39,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   // Filtros adicionales (inicia mostrando solo Solicitadas)
   filterStatus = signal('solicitado');
   filterLocation = signal('');
+  filterExtraordinary = signal(false);
   
   // Verificar si el usuario puede filtrar por ubicación (location_id = 0)
   canFilterLocation = signal(false);
@@ -75,13 +76,14 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   // Opciones de estado disponibles según permisos
   availableStatusOptions = computed(() => {
     const allStatuses = [
-      { value: 'solicitado', label: 'Solicitado' },
-      { value: 'autorizado', label: 'Autorizada' },
-      { value: 'listo_recoger', label: 'Listo para Recoger' },
-      { value: 'entrega_parcial', label: 'Parcialmente Entregado' },
-      { value: 'entregado', label: 'Entregado' },
-      { value: 'espera_devolucion', label: 'Espera Devolución' },
-      { value: 'cancelado', label: 'Cancelado' }
+      { value: 'solicitado',            label: 'Solicitado' },
+      { value: 'autorizado',            label: 'Autorizada' },
+      { value: 'listo_recoger',         label: 'Listo para Recoger' },
+      { value: 'entrega_parcial',       label: 'Parcialmente Entregado' },
+      { value: 'entregado',             label: 'Entregado' },
+      { value: 'espera_devolucion',     label: 'Espera Devolución' },
+      { value: 'cancelado',             label: 'Cancelado' },
+      { value: 'pendiente_cancelacion', label: 'Pendiente Cancelación' },
     ];
     
     const allowed = this.availableStatuses();
@@ -117,6 +119,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
       canFilterLocation: this.canFilterLocation()
     });
     
+    this.restoreFilters();
     this.loadRequisitions();
     
     // Recargar datos cuando se navega de vuelta a este componente
@@ -142,6 +145,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
   
   loadRequisitions(): void {
+    this.saveFilters();
     this.isLoading.set(true);
 
     // Construir parámetros de consulta
@@ -156,6 +160,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     }
     if (this.filterStatus()) params.status = this.filterStatus();
     if (this.filterLocation()) params.location_id = this.filterLocation();
+    if (this.filterExtraordinary()) params.is_extraordinary = '1';
     if (this.filterStartDate()) params.start_date = this.filterStartDate();
     if (this.filterEndDate()) params.end_date = this.filterEndDate();
 
@@ -228,15 +233,15 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string): string {
-    // Mapeo de estados del API a clases Bootstrap
     const statusClasses: { [key: string]: string } = {
-      'Solicitado': 'badge bg-warning text-dark',           // usa --bs-warning
-      'Autorizada': 'badge bg-success text-white',          // usa --bs-success  
-      'En Proceso': 'badge bg-primary text-white',          // usa --bs-primary
-      'Listo para Recoger': 'badge bg-info text-white',     // usa --bs-info
-      'Entregado': 'badge bg-secondary text-white',         // Bootstrap estándar
-      'Espera Devolución': 'badge bg-warning text-dark',      // devolución pendiente
-      'Cancelado': 'badge bg-danger text-white'             // usa --bs-danger
+      'Solicitado':             'badge bg-warning text-dark',
+      'Autorizada':             'badge bg-success text-white',
+      'En Proceso':             'badge bg-primary text-white',
+      'Listo para Recoger':     'badge bg-info text-white',
+      'Entregado':              'badge bg-secondary text-white',
+      'Espera Devolución':      'badge bg-warning text-dark',
+      'Cancelado':              'badge bg-danger text-white',
+      'Pendiente Cancelación':  'badge bg-warning text-dark',
     };
     return statusClasses[status] || 'badge bg-secondary text-white';
   }
@@ -309,7 +314,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
   }
 
   isViewable(requisition: RequisitionItem): boolean {
-    return requisition.status !== 'Cancelado';
+    return true;
   }
 
   isSurtible(requisition: RequisitionItem): boolean {
@@ -514,6 +519,12 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     this.loadRequisitions();
   }
 
+  onExtraordinaryChange(value: boolean): void {
+    this.filterExtraordinary.set(value);
+    this.currentPage.set(1);
+    this.loadRequisitions();
+  }
+
   // Métodos para filtro de ubicación
   onLocationChange(location: string): void {
     this.filterLocation.set(location);
@@ -548,6 +559,7 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
     this.searchTerm.set('');
     this.filterStatus.set('solicitado');
     this.filterLocation.set('');
+    this.filterExtraordinary.set(false);
     this.filterStartDate.set('');
     this.filterEndDate.set('');
     this.currentPage.set(1);
@@ -556,4 +568,33 @@ export class RequisitionListComponent implements OnInit, OnDestroy {
 
   // Helper para Math en template
   Math = Math;
+
+  private saveFilters(): void {
+    const filters = {
+      searchTerm: this.searchTerm(),
+      filterStatus: this.filterStatus(),
+      filterLocation: this.filterLocation(),
+      filterStartDate: this.filterStartDate(),
+      filterEndDate: this.filterEndDate(),
+      currentPage: this.currentPage()
+    };
+    sessionStorage.setItem('requisition_filters', JSON.stringify(filters));
+  }
+
+  private restoreFilters(): void {
+    const saved = sessionStorage.getItem('requisition_filters');
+    if (saved) {
+      try {
+        const filters = JSON.parse(saved);
+        if (filters.searchTerm !== undefined) this.searchTerm.set(filters.searchTerm);
+        if (filters.filterStatus !== undefined) this.filterStatus.set(filters.filterStatus);
+        if (filters.filterLocation !== undefined) this.filterLocation.set(filters.filterLocation);
+        if (filters.filterStartDate !== undefined) this.filterStartDate.set(filters.filterStartDate);
+        if (filters.filterEndDate !== undefined) this.filterEndDate.set(filters.filterEndDate);
+        if (filters.currentPage !== undefined) this.currentPage.set(filters.currentPage);
+      } catch (e) {
+        console.error('Error parsing saved filters', e);
+      }
+    }
+  }
 }

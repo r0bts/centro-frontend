@@ -219,6 +219,20 @@ export class WarehouseSupplyComponent implements OnInit {
     return req.statusRaw === 'parcialmente_entregado';
   });
 
+  canRequestCancelAuth = computed(() => {
+    const req = this.requisition();
+    if (!req) return false;
+    return (req.statusRaw === 'autorizado' || req.statusRaw === 'listo_recoger')
+      && this.authService.hasPermission('requisition_confirmation', 'request_cancel_auth');
+  });
+
+  canAuthorizeCancel = computed(() => {
+    const req = this.requisition();
+    if (!req) return false;
+    return req.statusRaw === 'pendiente_cancelacion'
+      && this.authService.hasPermission('requisition_confirmation', 'authorize_cancel');
+  });
+
   /** Todos los productos consolidados — se muestran en el modal de devolución completo */
   allProductsForModal = computed(() => {
     const req = this.requisition();
@@ -1395,6 +1409,60 @@ export class WarehouseSupplyComponent implements OnInit {
           }
         });
       }
+    });
+  }
+
+  requestCancelAuth(): void {
+    const req = this.requisition();
+    if (!req) return;
+    const numericId = req.id.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: 'Solicitar cancelación',
+      html: `
+        <p class="mb-3 text-muted">Esta requisición ya fue <strong>autorizada</strong>. La cancelación requiere aprobación de un autorizador.</p>
+        <label class="form-label fw-semibold">Motivo de cancelación <span class="text-danger">*</span></label>
+        <textarea id="swal-cancel-reason-ws" class="swal2-textarea" placeholder="Describe el motivo de cancelación..." rows="3" style="width:100%"></textarea>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Enviar solicitud',
+      cancelButtonText: 'No enviar',
+      confirmButtonColor: '#fd7e14',
+      preConfirm: () => {
+        const val = (document.getElementById('swal-cancel-reason-ws') as HTMLTextAreaElement)?.value?.trim();
+        if (!val) {
+          Swal.showValidationMessage('El motivo es obligatorio');
+          return false;
+        }
+        return val;
+      }
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      this.requisitionService.requestCancelAuth(numericId, result.value).subscribe({
+        next: (r) => Swal.fire('Solicitud enviada', r.message, 'success').then(() => this.goBackToList()),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo enviar la solicitud', 'error')
+      });
+    });
+  }
+
+  authorizeCancellation(): void {
+    const req = this.requisition();
+    if (!req) return;
+    const numericId = req.id.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: '¿Autorizar cancelación?',
+      text: `Se cancelará definitivamente la requisición ${req.id}. Se notificará al solicitante.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cancelar',
+      cancelButtonText: 'No',
+      confirmButtonColor: '#dc3545'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      this.requisitionService.authorizeCancellation(numericId).subscribe({
+        next: (r) => Swal.fire('Cancelada', r.message, 'success').then(() => this.goBackToList()),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo autorizar la cancelación', 'error')
+      });
     });
   }
 }

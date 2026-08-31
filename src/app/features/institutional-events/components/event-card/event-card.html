@@ -1,0 +1,15 @@
+<div class="ec-hero"
+     [style.background-image]="data.banner_image_url ? 'url(\'' + data.banner_image_url + '\')' : null"
+     [class.has-bg]="!!data.banner_image_url">
+  <div class="ec-kicker">{{ data.location_name || '—' }} · {{ eventTypeMeta[data.event_type]?.label || data.event_type }}</div>
+  <div class="ec-title">{{ data.name || 'Nombre del evento' }}</div>
+  <div class="ec-subtitle">{{ data.kicker || 'Kicker del evento' }}</div>
+  <div class="ec-meta">
+    <span><i class="bi bi-calendar3 me-1"></i>{{ fechaFormateada }}</span>
+    <span><i class="bi bi-geo-alt me-1"></i>{{ data.location_name || 'Lugar' }}</span>
+  </div>
+  <button type="button" class="btn btn-light btn-sm fw-bold ec-cta">
+    {{ data.has_cost && data.cost ? ('Comprar entrada ($' + data.cost + ')') : 'Registrarme gratis' }}
+  </button>
+  <div class="ec-badge">Vista previa del Hero</div>
+</div>

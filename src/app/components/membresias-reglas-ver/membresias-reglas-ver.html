@@ -54,6 +54,18 @@
           <button class="btn btn-outline-secondary" (click)="onVolver()">
             <i class="bi bi-arrow-left me-1"></i> Volver
           </button>
+          <button
+            class="btn"
+            [class.btn-outline-warning]="regla()!.activa"
+            [class.btn-outline-success]="!regla()!.activa"
+            [disabled]="isTogglingActiva()"
+            (click)="onToggleActiva()"
+            [title]="regla()!.activa ? 'Desactivar esta regla' : 'Activar esta regla'">
+            @if (isTogglingActiva()) {
+              <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+            }
+            {{ regla()!.activa ? 'Desactivar' : 'Activar' }}
+          </button>
           <button class="btn btn-primary" (click)="onEditar()">
             <i class="bi bi-pencil-square me-1"></i> Editar
           </button>

@@ -1,0 +1,48 @@
+:host { display: block; }
+
+.ec-hero {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1d3d79, #406eba);
+  background-size: cover;
+  background-position: center;
+  padding: 28px 20px;
+  color: #fff;
+  position: relative;
+
+  &.has-bg {
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      border-radius: 0.75rem;
+    }
+    > * { position: relative; z-index: 1; }
+  }
+}
+
+.ec-kicker { font-size: 0.7rem; opacity: 0.7; margin-bottom: 5px; }
+.ec-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 3px; }
+.ec-subtitle { font-size: 0.8rem; opacity: 0.8; margin-bottom: 10px; }
+
+.ec-meta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 0.72rem;
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.ec-cta { color: #406eba; }
+
+.ec-badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 0.65rem;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px 7px;
+  border-radius: 4px;
+}

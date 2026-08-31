@@ -1,0 +1,287 @@
+<div class="container-fluid bg-light min-vh-100">
+  <app-content-menu></app-content-menu>
+
+  <div class="eventos-wrapper">
+
+    <!-- Page header -->
+    <div class="d-flex align-items-center justify-content-between px-4 pt-1"
+         style="max-width:1100px;margin:0 auto;">
+      <h5 class="fw-bold mb-0">
+        <i class="bi bi-calendar-plus me-2 text-primary"></i>
+        {{ state.mode() === 'edit' ? 'Editar evento' : 'Nuevo evento' }}
+      </h5>
+    </div>
+
+    @if (state.loadError() && state.mode() === 'edit') {
+      <div class="alert alert-danger mx-4 mt-2">{{ state.loadError() }}</div>
+    }
+
+    <!-- Layout: main form + sidebar -->
+    <div class="eventos-layout mt-2">
+
+      <!-- Columna principal: wizard steps -->
+      <div class="main-col">
+        @switch (state.currentStep()) {
+          @case (1) {
+            <div class="stacked-steps">
+              <app-step-1-identity />
+              <app-step-5-hero [mobileOnly]="true" />
+              <app-step-2-datetime />
+              <app-step-3-access />
+            </div>
+          }
+          @case (2) {
+            <div class="alert alert-info d-flex gap-2 align-items-center py-2 mb-3" style="font-size:.85rem;">
+              <i class="bi bi-info-circle-fill flex-shrink-0"></i>
+              Todos los campos de este paso son <strong>opcionales</strong>. Puedes guardar el evento sin completarlos.
+            </div>
+            <div class="stacked-steps">
+              <app-step-4-subevents />
+              <app-step-5-hero />
+              <app-step-6-participants />
+              <app-step-7-documents />
+              <app-step-8-faq-contact />
+            </div>
+          }
+          @case (3) {
+            <app-step-9-review />
+          }
+        }
+        
+      </div>
+
+      <!-- Columna lateral: preview card (sticky) -->
+      <div class="sidebar-col">
+        <div class="preview-card">
+          <!-- Header / Live Banner Preview -->
+          <div class="preview-banner"
+               [style.background-image]="bannerBgUrl() ? 'url(\'' + bannerBgUrl() + '\')' : null"
+               [class.has-image]="!!bannerBgUrl()">
+            <div class="preview-banner-overlay"></div>
+            <div class="preview-banner-content">
+              <span class="preview-badge mb-1">
+                <i class="bi bi-calendar-event me-1"></i>Resumen del Evento
+              </span>
+              @if (!bannerBgUrl()) {
+                <span class="preview-hint-sub">Sube una imagen hero para previsualizar</span>
+              } @else {
+                <span class="preview-hint-sub">Vista previa del banner hero</span>
+              }
+            </div>
+          </div>
+          <div class="preview-body"><!-- body -->
+            @if (state.eventId() !== null) {
+              <div class="mb-2">
+                @if (state.eventStatus() === 'published') {
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill w-100 py-1.5 d-flex align-items-center justify-content-center gap-1" style="font-size:.72rem;">
+                    <i class="bi bi-broadcast"></i> Landing activa y publicada
+                  </span>
+                } @else {
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill w-100 py-1.5 d-flex align-items-center justify-content-center gap-1" style="font-size:.72rem;">
+                    <i class="bi bi-pencil-square"></i> Borrador no publicado
+                  </span>
+                }
+              </div>
+            }
+
+            <div class="fw-bold" style="font-size:.88rem;min-height:1.2em;">
+              {{ nombreEvento() || 'Nombre del evento' }}
+            </div>
+            <div class="text-muted" style="font-size:.74rem;margin-top:2px;min-height:1em;">
+              {{ kickerEvento() || 'Kicker / subtítulo' }}
+            </div>
+            <hr class="my-2">
+            <div class="preview-meta-row">
+              <i class="bi bi-building"></i><span>{{ sedeNombre() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-calendar3"></i><span>{{ fechaInicio() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-geo-alt"></i><span>{{ lugarEvento() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-shield-lock"></i><span>{{ accesosLabel() }}</span>
+            </div>
+            <div class="preview-meta-row">
+              <i class="bi bi-people"></i><span>{{ capacidadLabel() }}</span>
+            </div>
+
+            <!-- Selector de Pasos Minimalista (Sin bordes ni cards) -->
+            <div class="minimal-step-nav">
+              @for (step of steps; track step.id; let last = $last) {
+                <button type="button"
+                        class="minimal-step-item"
+                        [class.active]="state.currentStep() === step.id"
+                        [class.completed]="esPasoCompletado(step.id)"
+                        [title]="'Ir al Paso ' + step.id + ': ' + step.label"
+                        (click)="autoGuardarYNavegar(step.id)">
+                  <span class="minimal-step-num">
+                    @if (esPasoCompletado(step.id) && state.currentStep() !== step.id) {
+                      <i class="bi bi-check-lg"></i>
+                    } @else {
+                      {{ step.id }}
+                    }
+                  </span>
+                  <span class="minimal-step-name">{{ step.label }}</span>
+                </button>
+                @if (!last) {
+                  <div class="minimal-step-divider"></div>
+                }
+              }
+            </div>
+
+            <div class="d-flex justify-content-between mb-1">
+              <span style="font-size:.7rem;color:#8a8a8a;">Completado</span>
+              <span style="font-size:.7rem;font-weight:700;color:#406eba;">{{ progresoPct() }}%</span>
+            </div>
+            <div class="preview-progress">
+              <div class="preview-progress-fill" [style.width.%]="progresoPct()"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones en el sidebar -->
+        <div class="d-flex flex-column gap-2 w-100 mt-2">
+          
+          <!-- Botón principal de flujo / navegación de pasos -->
+          @if (state.currentStep() === 1) {
+            <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1" 
+                    style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;" 
+                    (click)="autoGuardarYNavegar(2)">
+              <span>Guardar y continuar</span>
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          } @else if (state.currentStep() === 2) {
+            <div class="d-flex gap-2 w-100">
+              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 px-3" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" 
+                      (click)="autoGuardarYNavegar(1)">
+                <i class="bi bi-chevron-left"></i>
+                <span>Anterior</span>
+              </button>
+              <button class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap;" 
+                      (click)="autoGuardarYNavegar(3)">
+                <span>Guardar y continuar</span>
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          } @else if (state.currentStep() === 3) {
+            <div class="d-flex gap-2 w-100">
+              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 px-3" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" 
+                      (click)="autoGuardarYNavegar(2)">
+                <i class="bi bi-chevron-left"></i>
+                <span>Anterior</span>
+              </button>
+              <button class="btn btn-success flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap;" 
+                      [disabled]="state.saving()"
+                      (click)="guardarBorrador()">
+                @if (state.saving()) {
+                  <span class="spinner-border spinner-border-sm"></span>
+                } @else {
+                  <i class="bi bi-check-lg"></i>
+                }
+                <span>{{ state.isAlreadyPublished() ? 'Guardar cambios' : 'Guardar evento' }}</span>
+              </button>
+            </div>
+          }
+
+          <!-- Botones secundarios lado a lado (50/50) -->
+          <div class="d-flex gap-2 w-100">
+            <button class="btn flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                    [class.btn-outline-success]="!state.unsavedChanges()"
+                    [class.btn-warning]="state.unsavedChanges()"
+                    [class.text-dark]="state.unsavedChanges()"
+                    style="height: 38px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;"
+                    [disabled]="state.saving()" 
+                    (click)="guardarBorrador()">
+              @if (state.saving()) {
+                <span class="spinner-border spinner-border-sm"></span>
+                <span>Guardando...</span>
+              } @else {
+                <i class="bi bi-floppy"></i>
+                <span>{{ state.unsavedChanges() ? 'Guardar borrador' : 'Borrador' }}</span>
+              }
+            </button>
+
+            <button class="btn-preview flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                    style="height: 38px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; box-shadow: none;"
+                    (click)="autoGuardarYAbrir()">
+              <i class="bi bi-eye-fill"></i>
+              <span>Previsualizar</span>
+            </button>
+          </div>
+
+          <!-- Enlace de salida discreto al final -->
+          <div class="text-center mt-1">
+            <button class="btn btn-link btn-sm text-decoration-none text-muted py-0" 
+                    style="font-size: 0.8rem;"
+                    (click)="volver()">
+              <i class="bi bi-arrow-left me-1"></i>Volver al listado
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /eventos-wrapper -->
+</div><!-- /container-fluid -->
+
+<!-- ════ PREVIEW OVERLAY ════ -->
+@if (showPreviewOverlay()) {
+  <div class="preview-overlay">
+    @if (state.eventId()) {
+      <iframe class="preview-iframe"
+              [src]="previewUrl"
+              title="Vista previa Landing Page"></iframe>
+    } @else {
+      <div class="preview-no-id">
+        <i class="bi bi-info-circle-fill" style="font-size:2rem;"></i>
+        <p class="mt-3 fw-semibold">Guarda el evento primero para ver la Landing Page</p>
+        <p class="text-muted" style="font-size:.85rem;">
+          La vista previa estará disponible después de guardar los datos básicos en el Paso 1.
+        </p>
+        <button class="btn btn-outline-light mt-2" (click)="cerrarPreview()">Cerrar</button>
+      </div>
+    }
+  </div>
+}
+
+<!-- ── Modal: campos requeridos faltantes ─────────────────────────── -->
+@if (showValidacionModal()) {
+  <div class="val-modal-backdrop" (click)="cerrarModalValidacion()"></div>
+  <div class="val-modal-card" role="dialog" aria-modal="true" aria-labelledby="val-modal-title">
+    <div class="val-modal-header">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill text-warning" style="font-size:1.25rem;"></i>
+        <h5 class="mb-0 fw-bold" id="val-modal-title">Campos requeridos</h5>
+      </div>
+      <button class="btn-close-plain" (click)="cerrarModalValidacion()" aria-label="Cerrar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="val-modal-body">
+      <p class="text-muted mb-3" style="font-size:.9rem;">
+        Para continuar debes completar los siguientes campos en el paso <strong>Básico</strong>:
+      </p>
+      <ul class="val-missing-list">
+        @for (campo of camposFaltantes(); track campo) {
+          <li>
+            <i class="bi bi-dot text-danger" style="font-size:1.4rem; line-height:1;"></i>
+            {{ campo }}
+          </li>
+        }
+      </ul>
+    </div>
+    <div class="val-modal-footer">
+      <button class="btn btn-primary px-4" (click)="cerrarModalValidacion()">
+        Entendido
+      </button>
+    </div>
+  </div>
+}
+

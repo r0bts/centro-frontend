@@ -1,0 +1,613 @@
+<!-- SCR-003 — Landing Page pública del evento (Diseño Minimalista Plano con Nav de 3 Píldoras) -->
+
+<!-- ── Loader ──────────────────────────────────────────────────────────────── -->
+@if (loading()) {
+  <div class="lp-loading">
+    <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;">
+      <span class="visually-hidden">Cargando…</span>
+    </div>
+    <p class="mt-3 text-muted fw-medium">Cargando información del evento…</p>
+  </div>
+}
+
+<!-- ── Error ───────────────────────────────────────────────────────────────── -->
+@if (error()) {
+  <div class="lp-error">
+    <i class="bi bi-calendar-x" style="font-size:3.5rem;color:#94a3b8;"></i>
+    <h4 class="mt-3 fw-bold">Evento no disponible</h4>
+    <p class="text-muted">{{ error() }}</p>
+    <button class="btn btn-outline-primary mt-2" (click)="volverALista()">
+      <i class="bi bi-arrow-left me-2"></i>Volver a eventos
+    </button>
+  </div>
+}
+
+<!-- ── Contenido principal ─────────────────────────────────────────────────── -->
+@if (!loading() && !error() && event(); as ev) {
+<div class="event-landing-themed" [ngStyle]="themeVars()">
+
+
+
+  <!-- ─────────────── HEADER FLOTANTE EN FORMATO DE 3 PÍLDORAS ─────────────── -->
+  <header class="sitio-pills-header">
+    <div class="contenedor nav-pills-row" [class.has-action-btn]="showNavButton()">
+      <!-- Píldora 1: Logo Centro Libanés oficial (solo imagen) -->
+      <div class="nav-pill pill-logo" (click)="volverALista()" style="cursor:pointer;" title="Centro Libanés">
+        <img src="assets/images/logo-centro-libanes.png" alt="Centro Libanés" class="logo-img">
+      </div>
+
+      <!-- Píldora 2: Secciones de la Landing Page -->
+      <nav class="nav-pill pill-menu">
+        <a (click)="scrollTo('inicio')" style="cursor:pointer;">Home</a>
+        <a (click)="scrollTo('sobre')" style="cursor:pointer;">Información</a>
+        <a (click)="scrollTo('galeria')" style="cursor:pointer;">Galería</a>
+        <a (click)="scrollTo('faq')" style="cursor:pointer;">FAQs</a>
+        <a (click)="scrollTo('contacto')" style="cursor:pointer;">Contacto</a>
+      </nav>
+
+      <!-- Píldora 3: Botón de registro (Transición suave de reposicionamiento) -->
+      <div class="nav-pill pill-action pill-reposition" [class.show-pill]="showNavButton()">
+        <button type="button" class="btn-registro-pill" (click)="abrirModal()">
+          <i class="bi bi-arrow-right-circle-fill me-2 animate-bounce-x"></i>
+          Inscripción
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ─────────────── HERO SECCIÓN (FONDO DE IMAGEN) ─────────────── -->
+  <section class="hero hero-bg-image" id="inicio" [style.background-image]="ev.banner_image_url ? 'url(' + ev.banner_image_url + ')' : 'none'">
+    <div class="hero-overlay"></div>
+    <div class="contenedor hero-content-wrapper position-relative" style="z-index: 2;">
+      <div class="hero-content text-center">
+        
+        <h1 class="hero-title text-white">{{ ev.name }}</h1>
+        
+        @if (ev.kicker) {
+          <p class="hero-kicker text-white opacity-75">{{ ev.kicker }}</p>
+        }
+
+        <div class="hero-acciones justify-content-center mt-4">
+          <button type="button" id="hero-main-btn" class="btn btn-primario btn-lg" (click)="abrirModal()">
+            <i class="bi bi-arrow-right-circle-fill me-2 animate-bounce-x"></i>
+            Inscripción
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  
+
+  <!-- ─────────────── SOBRE EL EVENTO ─────────────── -->
+  @if (ev.description) {
+    <section id="sobre" class="seccion-sobre">
+      <div class="contenedor grid grid-2 align-items-center">
+        <div class="sobre-media">
+          @let aboutImg = ev.extra_data?.['cover_image_url'] || ev.banner_image_url;
+          @if (aboutImg) {
+            <img class="sobre-img" [src]="aboutImg" [alt]="ev.name">
+          } @else {
+            <div class="img-placeholder sobre-placeholder">
+              <i class="bi bi-journal-text fs-2 d-block mb-2 text-muted"></i>
+              <span>Centro Libanés</span>
+            </div>
+          }
+        </div>
+
+        <div class="sobre-info">
+
+          <div class="rich-text-content mt-3" [innerHTML]="ev.description"></div>
+          
+          
+            </div>
+
+            <div class="detalle-box">
+              <i class="bi bi-currency-dollar detalle-icon"></i>
+              <div>
+                <div class="detalle-title">Inscripción</div>
+                <div class="detalle-val text-success">
+                  {{ ev.cost && ev.cost > 0 ? '$' + ev.cost + ' MXN' : 'Gratuita' }}
+                </div>
+              </div>
+            </div>
+
+            @if (ev.max_capacity && ev.max_capacity > 0) {
+              <div class="detalle-box">
+                <i class="bi bi-people-fill detalle-icon"></i>
+                <div>
+                  <div class="detalle-title">Capacidad</div>
+                  <div class="detalle-val">{{ ev.max_capacity }} asistentes</div>
+                </div>
+              </div>
+            }
+
+            @if (ev.location?.name) {
+              <div class="detalle-box">
+                <i class="bi bi-geo-alt-fill detalle-icon"></i>
+                <div>
+                  <div class="detalle-title">Sede principal</div>
+                  <div class="detalle-val">{{ ev.location!.name }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+
+<!-- ───────────────── BARRA DE ALIADOS / PATROCINADORES ───────────────── -->
+  @if (normalizedAllies().length > 0) {
+    <div class="confianza">
+      <div class="contenedor">
+        <p class="confianza-texto">Sponsors</p>
+        <div class="aliados-grid">
+          @for (aliado of normalizedAllies(); track $index) {
+            <div class="logo-aliado">
+              @if (aliado.logo_url) {
+                @if (aliado.url) {
+                  <a [href]="aliado.url" target="_blank" [title]="aliado.name" class="d-flex flex-column align-items-center text-decoration-none">
+                    <img [src]="aliado.logo_url" [alt]="aliado.name" style="max-height: 80px; max-width: 140px; object-fit: contain;">
+                  </a>
+                } @else {
+                  <img [src]="aliado.logo_url" [alt]="aliado.name" [title]="aliado.name" style="max-height: 80px; max-width: 140px; object-fit: contain;">
+                }
+              } @else {
+                <i class="bi bi-shield-check text-primary mb-1 fs-5"></i>
+                <span class="fw-medium text-secondary text-center" style="font-size: 0.85rem;">{{ aliado.name || aliado }}</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  }
+
+  <!-- ─────────────── PROGRAMA / SUBEVENTOS ─────────────── -->
+  @if (ev.institutional_event_subevents?.length) {
+    <section id="programa" class="fondo-arena seccion-programa">
+      <div class="contenedor">
+        <div class="text-center max-w-700 mx-auto mb-5">
+          <p class="eyebrow">Programa oficial</p>
+          <h2 class="titulo-seccion">Módulos del evento</h2>
+          <p class="subtitulo mx-auto">Consulta las sesiones, horarios y ponentes programados.</p>
+        </div>
+
+        <div class="grid grid-3">
+          @for (sub of ev.institutional_event_subevents!; track sub.id) {
+            <div class="card subevento-card">
+              <div class="sub-header">
+                <div class="sub-icon">
+                  <i class="bi bi-calendar2-event-fill"></i>
+                </div>
+                <h3 class="sub-title">{{ sub.name }}</h3>
+              </div>
+
+              @if (sub.description) {
+                <p class="sub-desc">{{ sub.description }}</p>
+              }
+
+              <div class="sub-meta-list">
+                @if (sub.start_date) {
+                  <div class="sub-meta-item">
+                    <i class="bi bi-clock-fill"></i>
+                    <span>{{ formatFechaLarga(sub.start_date) }}</span>
+                  </div>
+                }
+                @if (sub.venue) {
+                  <div class="sub-meta-item">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    <span>{{ sub.venue }}</span>
+                  </div>
+                }
+                @if (sub.instructor_name) {
+                  <div class="sub-meta-item">
+                    <i class="bi bi-person-fill"></i>
+                    <span>{{ sub.instructor_name }}</span>
+                  </div>
+                }
+                @if (sub.max_capacity > 0) {
+                  <div class="sub-meta-item">
+                    <i class="bi bi-people-fill"></i>
+                    <span>{{ sub.max_capacity }} cupos</span>
+                  </div>
+                }
+              </div>
+
+              <div class="sub-footer mt-auto pt-3 border-top">
+                <span class="badge bg-light text-primary border fw-semibold">
+                  <i class="bi bi-shield-check me-1"></i>{{ sub.access_type | titlecase }}
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── PONENTES / SPEAKERS ─────────────── -->
+  @if (ev.speakers?.length) {
+    <section id="ponentes" class="seccion-ponentes">
+      <div class="contenedor">
+        <div class="text-center max-w-700 mx-auto mb-5">
+          <p class="eyebrow">Ponentes invitados</p>
+          <h2 class="titulo-seccion">Conoce a los expertos</h2>
+          <p class="subtitulo mx-auto">Especialistas que compartirán su conocimiento durante el evento.</p>
+        </div>
+
+        <div class="grid grid-3">
+          @for (sp of ev.speakers!; track sp.name) {
+            <div class="card speaker-card text-center">
+              <div class="speaker-avatar">
+                @if (sp.photo_url) {
+                  <img [src]="sp.photo_url" [alt]="sp.name" class="speaker-img">
+                } @else {
+                  <div class="speaker-initials">{{ sp.name.charAt(0) }}</div>
+                }
+              </div>
+              <h3 class="speaker-name">{{ sp.name }}</h3>
+              <div class="speaker-role">{{ sp.role }}</div>
+              @if (sp.bio) {
+                <p class="speaker-bio">{{ sp.bio }}</p>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── GALERÍA FOTOGRÁFICA POST-EVENTO ─────────────── -->
+  @let gallery = ev.post_event_data?.['gallery'];
+  @if (gallery && gallery.length) {
+    <section id="galeria" class="fondo-arena seccion-galeria">
+      <div class="contenedor">
+        <div class="text-center max-w-700 mx-auto mb-5">
+          <p class="eyebrow">Galería de fotos</p>
+          <h2 class="titulo-seccion">Momentos del evento</h2>
+          <p class="subtitulo mx-auto">Imágenes destacadas de lo vivido en nuestras instalaciones.</p>
+        </div>
+
+        <div class="grid grid-3">
+          @for (item of gallery; track item.url) {
+            <div class="gallery-item-card">
+              <img [src]="item.url" [alt]="item.caption || 'Foto del evento'" class="gallery-img">
+              @if (item.caption) {
+                <div class="gallery-caption">{{ item.caption }}</div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── TESTIMONIOS ─────────────── -->
+  @if (ev.testimonials?.length) {
+    <section id="testimonios" class="seccion-testimonios">
+      <div class="contenedor">
+        <div class="text-center max-w-700 mx-auto mb-5">
+          <p class="eyebrow">Opiniones</p>
+          <h2 class="titulo-seccion">Lo que dicen los participantes</h2>
+        </div>
+
+        <div class="grid grid-3">
+          @for (t of ev.testimonials!; track t.name) {
+            <div class="card testimonio-card">
+              <div class="quote-icon"><i class="bi bi-quote"></i></div>
+              <p class="testimonio-quote">"{{ t.quote }}"</p>
+              
+              @if (t.stars) {
+                <div class="stars-row mb-3">
+                  @for (s of [1,2,3,4,5]; track s) {
+                    <i class="bi" [class]="s <= t.stars! ? 'bi-star-fill text-warning' : 'bi-star text-muted'"></i>
+                  }
+                </div>
+              }
+
+              <div class="autor">
+                <div class="autor-avatar">{{ t.name.charAt(0) }}</div>
+                <div>
+                  <div class="autor-nombre">{{ t.name }}</div>
+                  <div class="autor-cargo">{{ t.role }}</div>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── PREGUNTAS FRECUENTES (FAQ) ─────────────── -->
+  @if (ev.faqs?.length) {
+    <section id="faq" class="fondo-arena seccion-faq">
+      <div class="contenedor">
+        <div class="text-center max-w-700 mx-auto mb-5">
+          <p class="eyebrow">Dudas frecuentes</p>
+          <h2 class="titulo-seccion">Preguntas frecuentes</h2>
+          <p class="subtitulo mx-auto">Respuestas a las preguntas más comunes sobre el registro y asistencia.</p>
+        </div>
+
+        <div class="faq-accordion-wrapper mx-auto">
+          @for (faq of ev.faqs!; track faq.question) {
+            <details class="faq-details">
+              <summary class="faq-summary">
+                <span>{{ faq.question }}</span>
+                <i class="bi bi-chevron-down faq-chevron"></i>
+              </summary>
+              <div class="faq-answer">
+                <p>{{ faq.answer }}</p>
+              </div>
+            </details>
+          }
+        </div>
+      </div>
+    </section>
+  }
+
+  <!-- ─────────────── CONTACTO + REGISTRO FINAL ─────────────── -->
+  <section id="contacto" class="seccion-contacto">
+    <div class="contenedor grid grid-2 align-items-center">
+      <div class="contacto-info">
+        <p class="eyebrow">Contacto & Asistencia</p>
+        <h2 class="titulo-seccion">¿Tienes dudas o requieres orientación?</h2>
+        <p class="subtitulo-texto mb-4">
+          Comunícate directamente con los organizadores del evento en Centro Libanés.
+        </p>
+
+        <div class="contacto-cards-grid">
+          @if (ev.contact_email) {
+            <div class="contacto-card">
+              <i class="bi bi-envelope-at-fill contacto-icon"></i>
+              <div>
+                <div class="contacto-label">Correo electrónico</div>
+                <a [href]="'mailto:' + ev.contact_email" class="contacto-val">{{ ev.contact_email }}</a>
+              </div>
+            </div>
+          }
+
+          @if (ev.contact_phone) {
+            <div class="contacto-card">
+              <i class="bi bi-telephone-fill contacto-icon"></i>
+              <div>
+                <div class="contacto-label">Teléfono / WhatsApp</div>
+                <a [href]="'tel:' + ev.contact_phone" class="contacto-val">{{ ev.contact_phone }}</a>
+              </div>
+            </div>
+          }
+
+          @if (ev.extra_data?.['contact_schedule']) {
+            <div class="contacto-card">
+              <i class="bi bi-clock-history contacto-icon"></i>
+              <div>
+                <div class="contacto-label">Horario de atención</div>
+                <div class="contacto-val">{{ ev.extra_data!['contact_schedule'] }}</div>
+              </div>
+            </div>
+          }
+
+          @if (ev.extra_data?.['contact_person']) {
+            <div class="contacto-card">
+              <i class="bi bi-person-badge-fill contacto-icon"></i>
+              <div>
+                <div class="contacto-label">Persona de contacto</div>
+                <div class="contacto-val">{{ ev.extra_data!['contact_person'] }}</div>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (ev.extra_data?.['maps_url']) {
+          <div class="mt-4">
+            <a [href]="ev.extra_data!['maps_url']" target="_blank" class="btn btn-outline-primary rounded-pill px-4">
+              <i class="bi bi-geo-alt-fill me-1.5"></i>Abrir ubicación en Google Maps
+            </a>
+          </div>
+        }
+      </div>
+
+      <div class="card registro-cta-card">
+        <div class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1 fw-semibold mb-2" style="font-size:0.75rem;">
+          <i class="bi bi-lightning-charge-fill me-1"></i>Inscripción abierta
+        </div>
+        <h3 class="registro-title">Asegura tu lugar en el evento</h3>
+        <p class="registro-desc">
+          Completa tu registro en menos de un minuto. Evento abierto para socios e invitados.
+        </p>
+
+        <button type="button" class="btn btn-primario btn-lg w-100 mt-2" (click)="abrirModal()">
+          <i class="bi bi-check-circle-fill me-1.5"></i>
+          Registrarme ahora{{ ev.cost && ev.cost > 0 ? ' — $' + ev.cost : ' gratis' }}
+        </button>
+        <p class="registro-note mt-3">Al registrarte aceptas las políticas y reglamento del Centro Libanés.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────── FOOTER COMPACTO Y ELEGANTE ─────────────── -->
+  <footer class="sitio">
+    <div class="contenedor">
+      <div class="footer-compact">
+
+        <!-- Brand -->
+        <div class="footer-brand">
+          <span class="marca">CL</span>
+          <span class="nombre-footer">{{ ev.name }}</span>
+        </div>
+
+        <!-- Links en línea -->
+        <nav class="footer-nav">
+          @if (ev.description) {
+            <a (click)="scrollTo('sobre')" style="cursor:pointer;">Sobre el evento</a>
+          }
+          @if (ev.institutional_event_subevents?.length) {
+            <a (click)="scrollTo('programa')" style="cursor:pointer;">Programa</a>
+          }
+          @if (ev.speakers?.length) {
+            <a (click)="scrollTo('ponentes')" style="cursor:pointer;">Ponentes</a>
+          }
+          @if (ev.faqs?.length) {
+            <a (click)="scrollTo('faq')" style="cursor:pointer;">FAQ</a>
+          }
+          <a (click)="scrollTo('contacto')" style="cursor:pointer;">Contacto</a>
+          <a (click)="abrirModal()" style="cursor:pointer;">Registrarme</a>
+        </nav>
+
+        <!-- Redes sociales -->
+        @let fbUrl = ev.extra_data?.['social_facebook'];
+        @let igUrl = ev.extra_data?.['social_instagram'];
+        @let twUrl = ev.extra_data?.['social_twitter'];
+        @if (fbUrl || igUrl || twUrl) {
+          <div class="footer-social">
+            @if (fbUrl) { <a [href]="fbUrl" target="_blank" title="Facebook"><i class="bi bi-facebook"></i></a> }
+            @if (igUrl) { <a [href]="igUrl" target="_blank" title="Instagram"><i class="bi bi-instagram"></i></a> }
+            @if (twUrl) { <a [href]="twUrl" target="_blank" title="X"><i class="bi bi-twitter-x"></i></a> }
+          </div>
+        }
+
+      </div>
+
+      <div class="legal">
+        <span>© 2026 Centro Libanés. Todos los derechos reservados.</span>
+        <span>
+          <a href="#">Aviso de privacidad</a> ·
+          <a href="#">Términos de servicio</a>
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ── MODAL DE INSCRIPCIÓN PÚBLICA ─────────────────────────────────────── -->
+  @if (modalAbierto()) {
+    <div class="modal-inscripcion open" (click)="cerrarModal()">
+      <div class="insc-modal-box" (click)="$event.stopPropagation()">
+
+        <!-- Header del modal -->
+        <div class="insc-modal-header">
+          <div class="d-flex align-items-center gap-2">
+            <div class="insc-modal-icon">
+              <i class="bi bi-person-check-fill"></i>
+            </div>
+            <h5 style="font-weight:700;margin:0;">Regístrate al evento</h5>
+          </div>
+          <button type="button" class="btn-close-plain" (click)="cerrarModal()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+
+        <!-- Body del modal -->
+        <div class="insc-modal-body">
+
+          <!-- Paso: ¿Eres socio? -->
+          @if (modalPaso() === 'inicio') {
+            <label class="insc-label">¿Eres socio del Centro Libanés?</label>
+            <div class="insc-pills">
+              <div class="insc-pill" [class.sel]="esSocio() === true" (click)="elegirEsSocio(true)">
+                <i class="bi bi-person-badge-fill"></i> Sí, soy socio
+              </div>
+              <div class="insc-pill" [class.sel]="esSocio() === false" (click)="elegirEsSocio(false)">
+                <i class="bi bi-person"></i> No, soy invitado / externo
+              </div>
+            </div>
+          }
+
+          <!-- Paso: Número de socio -->
+          @if (modalPaso() === 'socio') {
+            <label class="insc-label">Número de socio o credencial</label>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="bi bi-card-heading"></i></span>
+              <input type="text" class="form-control" placeholder="Ej. 1084604"
+                     [value]="socioNumero()"
+                     (input)="socioNumero.set($any($event.target).value)">
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="modalPaso.set('inicio')">
+                <i class="bi bi-arrow-left me-1"></i>Regresar
+              </button>
+              <button type="button" class="btn btn-sm btn-primary" (click)="elegirModo('titular')">
+                Continuar <i class="bi bi-arrow-right ms-1"></i>
+              </button>
+            </div>
+          }
+
+          <!-- Paso: ¿Para quién? -->
+          @if (modalPaso() === 'modo') {
+            <label class="insc-label">¿Para quién es esta inscripción?</label>
+            <div class="insc-pills">
+              <div class="insc-pill" (click)="elegirModo('titular')">
+                <i class="bi bi-person-fill"></i> Para mí
+              </div>
+              <div class="insc-pill" (click)="elegirModo('invitado')">
+                <i class="bi bi-people-fill"></i> Para un invitado de mi membresía
+              </div>
+            </div>
+          }
+
+          <!-- Paso: Externo -->
+          @if (modalPaso() === 'externo') {
+            <div class="row g-3">
+              <div class="col-12">
+                <label class="insc-label">Nombre completo *</label>
+                <input type="text" class="form-control" placeholder="Tu nombre completo"
+                       [value]="nombreExterno()"
+                       (input)="nombreExterno.set($any($event.target).value)">
+              </div>
+              <div class="col-12">
+                <label class="insc-label">Correo electrónico *</label>
+                <input type="email" class="form-control" placeholder="tu@correo.com"
+                       [value]="correoExterno()"
+                       (input)="correoExterno.set($any($event.target).value)">
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="modalPaso.set('inicio')">
+                <i class="bi bi-arrow-left me-1"></i>Regresar
+              </button>
+              <button type="button" class="btn btn-primary" (click)="modalPaso.set('exito')">
+                Confirmar registro <i class="bi bi-check-circle me-1"></i>
+              </button>
+            </div>
+          }
+
+          <!-- Paso: Éxito -->
+          @if (modalPaso() === 'exito') {
+            <div class="alert alert-success d-flex align-items-start gap-3 py-3">
+              <i class="bi bi-check-circle-fill text-success fs-3 flex-shrink-0"></i>
+              <div>
+                <strong class="d-block mb-1 fs-6">¡Inscripción registrada con éxito!</strong>
+                <div class="small text-muted">
+                  Tu inscripción al evento <strong>{{ ev.name }}</strong> ha sido confirmada.
+                  Recibirás los detalles y el pase de acceso en tu correo electrónico.
+                </div>
+              </div>
+            </div>
+          }
+
+        </div><!-- /insc-modal-body -->
+
+        <!-- Footer del modal -->
+        @if (modalPaso() !== 'exito') {
+          <div class="insc-modal-footer">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">
+              Cancelar
+            </button>
+          </div>
+        } @else {
+          <div class="insc-modal-footer">
+            <button type="button" class="btn btn-primary px-4" (click)="cerrarModal()">
+              Cerrar
+            </button>
+          </div>
+        }
+
+      </div><!-- /insc-modal-box -->
+    </div><!-- /modal-inscripcion -->
+  }
+
+</div><!-- /event-landing-themed -->
+}<!-- /if event -->

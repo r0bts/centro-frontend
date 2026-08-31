@@ -193,8 +193,12 @@ export class MembresiasBuscarComponent {
   // Helpers de UI
   // ─────────────────────────────────────────────────────────────────────────────
 
-  /** Clase CSS del borde de la card según estado */
+  /** Clase CSS del borde de la card según estado de la membresía y acceso del titular */
   cardBorderClass(estado: string): string {
+    const titularBloqueado = this.socios.some(
+      s => s.parentesco === 'Titular' && !s.acceso.cumple
+    );
+    if (titularBloqueado) return 'card-borde-baja';
     const key = this.badgeEstadoClass(estado);
     return key ? `card-borde-${key}` : '';
   }

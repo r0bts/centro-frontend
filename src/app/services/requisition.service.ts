@@ -193,6 +193,7 @@ export interface CreateRequisitionPayload {
   department_id?: number;
   project_id?: number;
   awaiting_return: boolean;
+  is_extraordinary?: boolean;
   notes?: string;
   items: RequisitionItemPayload[];
 }
@@ -361,6 +362,17 @@ export class RequisitionService {
   }
 
   /**
+   * Obtener todos los productos activos del catálogo (sin filtros por usuario/departamento).
+   * Exclusivo para el modal de Requisición Extraordinaria.
+   * Endpoint: GET /api/requisitions/active-products
+   */
+  getActiveProducts(): Observable<{ success: boolean; data: RequisitionProduct[] }> {
+    return this.http.get<{ success: boolean; data: RequisitionProduct[] }>(`${this.API_URL}/requisitions/active-products`).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
    * Obtener lista de requisiciones
    * Endpoint: GET /api/requisitions
    */
@@ -426,6 +438,44 @@ export class RequisitionService {
       tap(response => console.log('✅ Requisición cancelada:', response)),
       catchError(this.handleError)
     );
+  }
+
+  /**
+   * Agregar productos de una req. extraordinaria a user_product_limits del pickup_user.
+   * Endpoint: POST /api/requisitions/{id}/add-user-limit
+   */
+  addToUserLimit(id: string, maxQuantity?: number | null): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.API_URL}/requisitions/${id}/add-user-limit`,
+      { max_quantity: maxQuantity ?? null }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Agregar productos de una req. extraordinaria a department_product_limits del dpto del solicitante.
+   * Endpoint: POST /api/requisitions/{id}/add-dept-limit
+   */
+  addToDeptLimit(id: string, maxQuantity?: number | null): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.API_URL}/requisitions/${id}/add-dept-limit`,
+      { max_quantity: maxQuantity ?? null }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /** Solicitar cancelación de una requisición ya autorizada */
+  requestCancelAuth(id: string, reason: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.API_URL}/requisitions/${id}/request-cancel-auth`,
+      { reason }
+    ).pipe(catchError(this.handleError));
+  }
+
+  /** Autorizar la cancelación de una requisición en estado pendiente_cancelacion */
+  authorizeCancellation(id: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(
+      `${this.API_URL}/requisitions/${id}/authorize-cancel`,
+      {}
+    ).pipe(catchError(this.handleError));
   }
 
   /**

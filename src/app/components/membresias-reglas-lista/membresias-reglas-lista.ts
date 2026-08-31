@@ -38,8 +38,7 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
   filterTipo = signal('');
   filterAccion = signal('');
   filterCategoria = signal('');
-  filterEstado = signal('');
-
+  filterEstado = signal('');  filterVencida = signal<string>('');
   // ── Paginación server-side ───────────────────────────────
   currentPage = signal(1);
   itemsPerPage = signal(15);
@@ -55,7 +54,8 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
       !!this.filterTipo() ||
       !!this.filterAccion() ||
       !!this.filterCategoria() ||
-      this.filterEstado() !== ''
+      this.filterEstado() !== '' ||
+      this.filterVencida() !== ''
   );
 
   /** Reglas agrupadas por categoría para mostrar secciones en la tabla */
@@ -112,6 +112,7 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
         tipo: this.filterTipo(),
         accion: this.filterAccion(),
         activa: this.filterEstado(),
+        vencida: this.filterVencida(),
         search: this.searchTerm(),
       })
       .pipe(takeUntil(this.destroy$))
@@ -354,6 +355,7 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
     this.filterAccion.set('');
     this.filterCategoria.set('');
     this.filterEstado.set('');
+    this.filterVencida.set('');
     this.currentPage.set(1);
     this.loadReglas();
   }
@@ -390,6 +392,12 @@ export class MembresiasReglasListaComponent implements OnInit, OnDestroy {
 
   getEstadoBadgeClass(activa: boolean): string {
     return activa ? 'badge bg-success' : 'badge bg-secondary';
+  }
+
+  /** Devuelve true si la regla tiene fecha_fin en el pasado (ya venció) */
+  isVencida(regla: ReglaListItem): boolean {
+    if (!regla.fechaFin) return false;
+    return new Date(regla.fechaFin) < new Date(new Date().toDateString());
   }
 
   getVigenciaText(regla: ReglaListItem): string {

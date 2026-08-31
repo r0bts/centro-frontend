@@ -99,6 +99,13 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   
   // Propiedad para devolución
   isDevolucion: boolean = false;
+
+  // Requisición extraordinaria
+  isExtraordinary: boolean = false;
+  canAddUserLimit: boolean = false;
+  canAddDeptLimit: boolean = false;
+  canRequestCancelAuth: boolean = false;
+  canAuthorizeCancel: boolean = false;
   
   // Propiedad para almacenar el evento seleccionado
   selectedEventId: string = '';
@@ -117,6 +124,9 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
   // PIN de la requisición para recoger
   requisitionPin: string = '';
 
+  // Motivo de cancelación (cuando el estatus es Cancelado / Pendiente Cancelación)
+  cancellationReason: string = '';
+
   // Permiso para cerrar entrega parcial directamente (perm_id=45)
   canClosePartial: boolean = false;
   canAuthorize: boolean = false;   // permiso authorize (perm_id=7)
@@ -129,6 +139,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       this.requisitionData = navigation.extras.state['requisitionData'] || [];
       this.deliveryDate = navigation.extras.state['deliveryDate'] || null;
       this.isDevolucion = navigation.extras.state['isDevolucion'] || false;
+      this.isExtraordinary = navigation.extras.state['isExtraordinary'] || false;
       this.selectedEventId = navigation.extras.state['selectedEventId'] || '';
       this.businessUnit = navigation.extras.state['businessUnit'] || '';
       this.selectedDepartmentId = navigation.extras.state['selectedDepartmentId'];
@@ -251,9 +262,19 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
           this.canClosePartial = this.authService.hasPermission('requisition_confirmation', 'close_partial');
           this.canAuthorize    = this.authService.hasPermission('requisition_confirmation', 'authorize');
           this.canCloseReturn  = this.authService.hasPermission('requisition_confirmation', 'return');
+
+          // Extraordinaria
+          this.isExtraordinary  = data.isExtraordinary ?? false;
+          this.canAddUserLimit  = this.authService.hasPermission('department_limits', 'add_user_limit');
+          this.canAddDeptLimit  = this.authService.hasPermission('department_limits', 'add_dept_limit');
+          this.canRequestCancelAuth = this.authService.hasPermission('requisition_confirmation', 'request_cancel_auth');
+          this.canAuthorizeCancel   = this.authService.hasPermission('requisition_confirmation', 'authorize_cancel');
           
           // Capturar PIN de la requisición
           this.requisitionPin = data.pin || '';
+
+          // Motivo de cancelación (si aplica)
+          this.cancellationReason = data.cancellationReason || '';
           
           // Mapear empleado responsable (persona que recoge)
           if (data.pickupPersonId && data.pickupPerson) {
@@ -357,14 +378,15 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
 
   getStatusBadgeClass(status: string): string {
     const map: Record<string, string> = {
-      'Solicitado':             'bg-warning text-dark',
-      'Autorizada':             'bg-success text-white',
-      'En Proceso':             'bg-primary text-white',
-      'Listo para Recoger':     'bg-info text-white',
-      'Parcialmente Entregado': 'bg-warning text-dark',
-      'Entregado':              'bg-secondary text-white',
-      'Espera Devolución':      'bg-warning text-dark',
-      'Cancelado':              'bg-danger text-white',
+      'Solicitado':              'bg-warning text-dark',
+      'Autorizada':              'bg-success text-white',
+      'En Proceso':              'bg-primary text-white',
+      'Listo para Recoger':      'bg-info text-white',
+      'Parcialmente Entregado':  'bg-warning text-dark',
+      'Entregado':               'bg-secondary text-white',
+      'Espera Devolución':       'bg-warning text-dark',
+      'Cancelado':               'bg-danger text-white',
+      'Pendiente Cancelación':   'bg-warning text-dark',
     };
     return map[status] ?? 'bg-secondary text-white';
   }
@@ -572,6 +594,7 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       delivery_time: deliveryTimeStr, // ⭐ CAMPO OBLIGATORIO (HH:MM:SS)
       location_id: this.selectedLocationId, // ⭐ CAMPO OBLIGATORIO (1=HERMES, 9=GLACIAR)
       awaiting_return: this.isDevolucion,
+      is_extraordinary: this.isExtraordinary,
       items: items
     };
 
@@ -791,6 +814,136 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  // ── Requisición Extraordinaria: agregar a límites ─────────────────────────
+
+  addToUserLimit(): void {
+    const numericId = this.requisitionId.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: 'Agregar a productos personales',
+      html: `
+        <p class="mb-3">Se agregarán los productos al catálogo personal del empleado responsable.</p>
+        <label class="form-label fw-semibold">Cantidad máxima permitida por requisición</label>
+        <input id="swal-max-qty" type="number" min="1" step="1"
+               class="swal2-input" placeholder="Dejar vacío = sin límite de cantidad">
+        <small class="text-muted d-block mt-1">Si dejas el campo vacío, no se aplicará límite de cantidad.</small>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#0d6efd',
+      preConfirm: () => {
+        const val = (document.getElementById('swal-max-qty') as HTMLInputElement)?.value;
+        if (val && (isNaN(Number(val)) || Number(val) <= 0)) {
+          Swal.showValidationMessage('Ingresa un número mayor a 0 o deja el campo vacío');
+          return false;
+        }
+        return val ? Number(val) : null;
+      }
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      const maxQty: number | null = result.value;
+      this.requisitionService.addToUserLimit(numericId, maxQty).subscribe({
+        next: (r) => Swal.fire('Listo', r.message, 'success'),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo completar la operación', 'error')
+      });
+    });
+  }
+
+  addToDeptLimit(): void {
+    const numericId = this.requisitionId.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: 'Agregar a productos de departamento',
+      html: `
+        <p class="mb-3">Se agregarán los productos al catálogo del departamento del solicitante.</p>
+        <label class="form-label fw-semibold">Cantidad máxima permitida por requisición</label>
+        <input id="swal-max-qty-dept" type="number" min="1" step="1"
+               class="swal2-input" placeholder="Dejar vacío = sin límite de cantidad">
+        <small class="text-muted d-block mt-1">Si dejas el campo vacío, no se aplicará límite de cantidad.</small>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Agregar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#198754',
+      preConfirm: () => {
+        const val = (document.getElementById('swal-max-qty-dept') as HTMLInputElement)?.value;
+        if (val && (isNaN(Number(val)) || Number(val) <= 0)) {
+          Swal.showValidationMessage('Ingresa un número mayor a 0 o deja el campo vacío');
+          return false;
+        }
+        return val ? Number(val) : null;
+      }
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      const maxQty: number | null = result.value;
+      this.requisitionService.addToDeptLimit(numericId, maxQty).subscribe({
+        next: (r) => Swal.fire('Listo', r.message, 'success'),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo completar la operación', 'error')
+      });
+    });
+  }
+
+  // ── Fin Requisición Extraordinaria ────────────────────────────────────────
+
+  // ── Cancelación de Requisición Autorizada ─────────────────────────────────
+
+  requestCancelAuth(): void {
+    const numericId = this.requisitionId.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: 'Solicitar cancelación',
+      html: `
+        <p class="mb-3 text-muted">Esta requisición ya fue <strong>autorizada</strong>. La cancelación requiere aprobación de un autorizador.</p>
+        <label class="form-label fw-semibold">Motivo de cancelación <span class="text-danger">*</span></label>
+        <textarea id="swal-cancel-reason" class="swal2-textarea" placeholder="Describe el motivo de cancelación..." rows="3" style="width:100%"></textarea>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Enviar solicitud',
+      cancelButtonText: 'No enviar',
+      confirmButtonColor: '#fd7e14',
+      preConfirm: () => {
+        const val = (document.getElementById('swal-cancel-reason') as HTMLTextAreaElement)?.value?.trim();
+        if (!val) {
+          Swal.showValidationMessage('El motivo es obligatorio');
+          return false;
+        }
+        return val;
+      }
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      this.requisitionService.requestCancelAuth(numericId, result.value).subscribe({
+        next: (r) => Swal.fire('Solicitud enviada', r.message, 'success').then(() => {
+          this.requisitionStatus = 'Pendiente Cancelación';
+        }),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo enviar la solicitud', 'error')
+      });
+    });
+  }
+
+  authorizeCancellation(): void {
+    const numericId = this.requisitionId.replace(/^REQ-0*/i, '');
+    Swal.fire({
+      title: '¿Autorizar cancelación?',
+      text: `Se cancelará definitivamente la requisición ${this.requisitionId}. Se notificará al solicitante.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cancelar',
+      cancelButtonText: 'No',
+      confirmButtonColor: '#dc3545'
+    }).then(result => {
+      if (!result.isConfirmed) return;
+      this.requisitionService.authorizeCancellation(numericId).subscribe({
+        next: (r) => Swal.fire('Cancelada', r.message, 'success').then(() => {
+          this.requisitionStatus = 'Cancelado';
+        }),
+        error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo autorizar la cancelación', 'error')
+      });
+    });
+  }
+
+  // ── Fin Cancelación de Requisición Autorizada ──────────────────────────────
 
   cancelRequisition(): void {
     Swal.fire({

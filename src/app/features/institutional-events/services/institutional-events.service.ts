@@ -1,0 +1,180 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, map } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import {
+  EventListResponse,
+  EventResponse,
+  EventListFilters,
+  AttendeeListResponse,
+  AttendeeResponse,
+  InstitutionalEventPayload,
+  EventLocation,
+  EventArea,
+  EventPlace,
+  EventAccessType,
+  ApiResponse,
+} from '../models/institutional-event.model';
+
+/**
+ * Servicio HTTP principal del módulo de Eventos Institucionales.
+ * Envuelve todos los endpoints reales de `/api/institutional-events`
+ * (ver backend/centro/config/routes.php).
+ */
+@Injectable({ providedIn: 'root' })
+export class InstitutionalEventsService {
+  private readonly base = `${environment.apiUrl}/institutional-events`;
+  private readonly locationsBase = `${environment.apiUrl}/locations`;
+
+  /** Sedes reales donde se pueden realizar eventos institucionales (ver comentario de columna location_id en el schema). */
+  private static readonly SEDES_EVENTOS = ['HERMES', 'GLACIAR'];
+
+  constructor(private http: HttpClient) {}
+
+  // ── Eventos ──────────────────────────────────────────────────────────────────
+
+  getAll(filters: EventListFilters = {}): Observable<EventListResponse> {
+    let params = new HttpParams();
+    if (filters.page) params = params.set('page', filters.page);
+    if (filters.limit) params = params.set('limit', filters.limit);
+    if (filters.status) params = params.set('status', filters.status);
+    if (filters.event_type) params = params.set('event_type', filters.event_type);
+    if (filters.location_id) params = params.set('location_id', filters.location_id);
+    return this.http.get<EventListResponse>(`${this.base}`, { params });
+  }
+
+  getById(id: number): Observable<EventResponse> {
+    return this.http.get<EventResponse>(`${this.base}/${id}`);
+  }
+
+  create(data: InstitutionalEventPayload): Observable<EventResponse> {
+    return this.http.post<EventResponse>(`${this.base}`, data);
+  }
+
+  update(id: number, data: Partial<InstitutionalEventPayload>): Observable<EventResponse> {
+    return this.http.patch<EventResponse>(`${this.base}/${id}`, data);
+  }
+
+  delete(id: number): Observable<{ success: boolean; message: string }> {
+    return this.http.delete<{ success: boolean; message: string }>(`${this.base}/${id}`);
+  }
+
+  publish(id: number): Observable<EventResponse> {
+    return this.http.patch<EventResponse>(`${this.base}/${id}/publish`, {});
+  }
+
+  close(id: number): Observable<EventResponse> {
+    return this.http.patch<EventResponse>(`${this.base}/${id}/close`, {});
+  }
+
+  cancel(id: number, cancellation_reason: string): Observable<EventResponse> {
+    return this.http.patch<EventResponse>(`${this.base}/${id}/cancel`, { cancellation_reason });
+  }
+
+  /** POST /api/institutional-events/:id/upload/:type — sube un archivo de imagen y devuelve la URL pública. */
+  uploadImage(eventId: number, type: string, file: File): Observable<{ success: boolean; url: string; type: string }> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return this.http.post<{ success: boolean; url: string; type: string }>(
+      `${this.base}/${eventId}/upload/${type}`,
+      formData
+    );
+  }
+
+  // ── Endpoint público (sin JWT) ───────────────────────────────────────────────
+
+  /** GET /api/public/events/:id — datos públicos del evento (landing sin login). */
+  getPublic(id: number): Observable<EventResponse> {
+    return this.http.get<EventResponse>(`${environment.apiUrl}/public/events/${id}`);
+  }
+
+  // ── Asistentes ───────────────────────────────────────────────────────────────
+
+  getAttendees(eventId: number): Observable<AttendeeListResponse> {
+    return this.http.get<AttendeeListResponse>(`${this.base}/${eventId}/attendees`);
+  }
+
+  addAttendee(eventId: number, data: Partial<any>): Observable<AttendeeResponse> {
+    return this.http.post<AttendeeResponse>(`${this.base}/${eventId}/attendees`, data);
+  }
+
+  cancelAttendee(eventId: number, attendeeId: number): Observable<AttendeeResponse> {
+    return this.http.patch<AttendeeResponse>(`${this.base}/${eventId}/attendees/${attendeeId}/cancel`, {});
+  }
+
+  // ── Catálogo de sedes ────────────────────────────────────────────────────────
+
+  /**
+   * Sedes reales disponibles para eventos institucionales (HERMES, GLACIAR).
+   * Reutiliza el catálogo general `locations` (compartido con Almacén/NetSuite)
+   * pero lo filtra a solo las sedes físicas del club, que son las únicas
+   * válidas de negocio para location_id en institutional_events.
+   */
+  getEventLocations(): Observable<EventLocation[]> {
+    return this.http.get<ApiResponse<{ locations: any[] }>>(`${this.locationsBase}`).pipe(
+      map(res => {
+        const all = res.data?.locations ?? [];
+        const activos = all.filter(l => l.is_active);
+        const sedes = activos.filter(l => InstitutionalEventsService.SEDES_EVENTOS.includes(String(l.name).toUpperCase()));
+        const lista = sedes.length ? sedes : activos;
+        return lista.map(l => ({ id: Number(l.id), name: l.name }));
+      })
+    );
+  }
+
+  /** GET /api/areas?active=true — catálogo de áreas activas del club (para campo area_id del evento). */
+  getAreas(): Observable<EventArea[]> {
+    return this.http.get<ApiResponse<{ areas: any[] }>>(`${environment.apiUrl}/areas`, {
+      params: new HttpParams().set('active', 'true').set('limit', '200'),
+    }).pipe(
+      map(res => {
+        const all = res.data?.areas ?? (res as any)?.data ?? [];
+        return all.filter((a: any) => !a.is_inactive).map((a: any) => ({ id: Number(a.id), name: a.name }));
+      })
+    );
+  }
+
+  // ── Lugares personalizados (event_places) ──────────────────────────────────
+
+  /** GET /api/event-places — lista todos los lugares disponibles. */
+  getPlaces(): Observable<EventPlace[]> {
+    return this.http.get<any>(`${environment.apiUrl}/event-places`).pipe(
+      map(res => (res.data?.places ?? []).map((p: any) => ({
+        id: Number(p.id),
+        name: p.name,
+        address: p.address ?? null,
+        lat: p.lat != null ? Number(p.lat) : null,
+        lng: p.lng != null ? Number(p.lng) : null,
+        notes: p.notes ?? null,
+      })))
+    );
+  }
+
+  /** POST /api/event-places — crea un nuevo lugar. */
+  createPlace(data: Omit<EventPlace, 'id'>): Observable<EventPlace> {
+    return this.http.post<any>(`${environment.apiUrl}/event-places`, data).pipe(
+      map(res => res.data.place)
+    );
+  }
+
+  /** PATCH /api/event-places/:id — actualiza un lugar existente. */
+  updatePlace(id: number, data: Partial<EventPlace>): Observable<EventPlace> {
+    return this.http.patch<any>(`${environment.apiUrl}/event-places/${id}`, data).pipe(
+      map(res => res.data.place)
+    );
+  }
+
+  /** GET /api/event-access-types — catálogo de tipos de acceso para eventos. */
+  getAccessTypes(): Observable<EventAccessType[]> {
+    return this.http.get<any>(`${environment.apiUrl}/event-access-types`).pipe(
+      map(res => res.types ?? [])
+    );
+  }
+
+  /** GET /api/event-color-themes — catálogo de temas de color para la landing. */
+  getColorThemes(): Observable<import('../models/institutional-event.model').EventColorTheme[]> {
+    return this.http.get<any>(`${environment.apiUrl}/event-color-themes`).pipe(
+      map(res => res.themes ?? [])
+    );
+  }
+}

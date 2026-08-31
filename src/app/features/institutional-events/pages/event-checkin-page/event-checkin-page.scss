@@ -1,0 +1,20 @@
+:host { display: block; }
+
+.att-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+
+.participant-row {
+  display: flex; align-items: center; gap: .75rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  transition: background .1s;
+  border-left: 3px solid transparent;
+}
+.participant-row:last-child { border-bottom: none; }
+.participant-row:hover { background: #f8fafc; }
+.participant-row.present { border-left-color: #198754; }
+.participant-row.absent  { border-left-color: #dc2626; }
+.participant-row.pending { border-left-color: #e2e8f0; }

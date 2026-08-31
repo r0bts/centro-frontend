@@ -91,6 +91,7 @@ export class ReglaService {
     if (params.accion) qp = qp.set('accion', params.accion);
     if (params.activa !== undefined && params.activa !== '')
       qp = qp.set('activa', params.activa);
+    if (params.vencida) qp = qp.set('vencida', params.vencida);
     if (params.search) qp = qp.set('search', params.search);
 
     return this.http
