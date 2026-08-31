@@ -147,6 +147,15 @@ export interface EventIndicator {
   value: string;
   label: string;
   prefix?: string;
+  suffix?: string;
+  icon?: string;
+}
+
+export interface EventAlly {
+  id: string; // uuid o identificador local temporal
+  name: string;
+  url?: string;
+  logo_url?: string;
 }
 
 export interface EventExtraData {
@@ -158,10 +167,13 @@ export interface EventExtraData {
   social_twitter?: string;
   social_tiktok?: string;
   indicators?: EventIndicator[];
-  allies?: string[];
+  allies?: EventAlly[] | string[];
   allies_header?: string;
   banner_mobile_url?: string;
   cover_image_url?: string;
+  donation_legend?: string;
+  donation_frequencies?: string[];
+  color_theme?: ColorTheme;
 }
 
 export interface InstitutionalEvent {
@@ -175,6 +187,7 @@ export interface InstitutionalEvent {
   name: string;
   kicker?: string | null;
   event_type: EventType;
+  color_theme?: ColorTheme;
   description?: string | null;
   banner_image_url?: string | null;
   start_date: string;

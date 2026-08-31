@@ -68,6 +68,29 @@
   }
 }
 
+.drop-zone-mobile {
+  border: 2px dashed #cbd5e1;
+  border-radius: .75rem;
+  padding: 1.6rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: #fafafa;
+  position: relative;
+  min-height: 240px;
+  max-width: 280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #406eba;
+    background: #eff6ff;
+  }
+}
+
 .drop-zone-sm {
   border: 2px dashed #cbd5e1;
   border-radius: .6rem;
@@ -92,6 +115,15 @@
   max-height: 90px;
   object-fit: cover;
   border-radius: .5rem;
+}
+
+.drop-zone-preview-mobile {
+  height: 160px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: .5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .drop-zone-label-over {

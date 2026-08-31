@@ -30,7 +30,13 @@ export class Step9ReviewComponent {
     const identity = this.state.identityGroup.value;
     const datetime = this.state.datetimeGroup.value;
     const access = this.state.accessGroup.value;
+    const hero = this.state.heroGroup.value;
     const sede = this.state.locations().find(l => l.id === identity.location_id);
+    const bannerUrl = (hero?.banner_image_url as string)
+      || (hero?.banner_mobile_url as string)
+      || (hero?.cover_image_url as string)
+      || null;
+
     return {
       name: identity.name,
       kicker: identity.kicker,
@@ -39,6 +45,7 @@ export class Step9ReviewComponent {
       start_date: datetime.start_date,
       has_cost: access.has_cost,
       cost: access.cost,
+      banner_image_url: bannerUrl,
     };
   });
 

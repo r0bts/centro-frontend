@@ -11,6 +11,7 @@ export interface EventCardPreviewData {
   start_date?: string | null;
   has_cost?: boolean;
   cost?: number | null;
+  banner_image_url?: string | null;
 }
 
 /**

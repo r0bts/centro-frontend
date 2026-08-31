@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, filter } from 'rxjs/operators';
 import { EventFormStateService } from '../../services/event-form-state.service';
 
 /**
@@ -28,7 +28,10 @@ export class Step7DocumentsComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this._sub = this.state.documentsArray.valueChanges
-      .pipe(debounceTime(600))
+      .pipe(
+        filter(() => !this.state.isPatching),
+        debounceTime(600)
+      )
       .subscribe(() => this.state.saveDraft());
   }
 

@@ -1,5 +1,7 @@
-<div class="ec-hero">
-  <div class="ec-kicker">{{ data.location_name || '—' }} · {{ eventTypeMeta[data.event_type].label }}</div>
+<div class="ec-hero"
+     [style.background-image]="data.banner_image_url ? 'url(\'' + data.banner_image_url + '\')' : null"
+     [class.has-bg]="!!data.banner_image_url">
+  <div class="ec-kicker">{{ data.location_name || '—' }} · {{ eventTypeMeta[data.event_type]?.label || data.event_type }}</div>
   <div class="ec-title">{{ data.name || 'Nombre del evento' }}</div>
   <div class="ec-subtitle">{{ data.kicker || 'Kicker del evento' }}</div>
   <div class="ec-meta">

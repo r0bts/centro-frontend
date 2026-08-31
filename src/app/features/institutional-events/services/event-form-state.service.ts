@@ -86,6 +86,10 @@ export class EventFormStateService {
   readonly loadingAccessTypes = signal(false);
   readonly colorThemes = signal<EventColorTheme[]>([]);
   readonly loadingColorThemes = signal(false);
+  isPatching = false;
+
+  /** Indica si hay cambios en el formulario que no han sido guardados en el backend */
+  readonly unsavedChanges = signal(false);
 
   /** Archivos pendientes de subir al backend — se procesan automáticamente dentro de save(). */
   readonly pendingImageUploads = new Map<string, File>();
@@ -103,8 +107,6 @@ export class EventFormStateService {
         place_id: [null as number | null],
         description: [''],
         color_theme: ['classic' as ColorTheme],
-        has_donations: [false],
-        donation_amounts: this.fb.control<number[]>([]),
       }),
       datetime: this.fb.group({
         start_date: ['', Validators.required],
@@ -127,8 +129,8 @@ export class EventFormStateService {
         banner_image_url: [''],
         banner_mobile_url: [''],
         cover_image_url: [''],
-        allies_header: ['Con el apoyo de'],
-        allies: this.fb.control<string[]>([]),
+        allies_header: ['Sponsors'],
+        allies: [[] as any[]],
       }),
       postEvent: this.fb.group({
         gallery: this.fb.array([]),
@@ -152,6 +154,14 @@ export class EventFormStateService {
         indicators: this.fb.array([]),
       }),
     });
+
+    // Detectar cambios para el botón inteligente de guardado
+    this.root.valueChanges.subscribe(() => {
+      if (this.eventId() !== null && !this.isPatching) {
+        this.unsavedChanges.set(true);
+      }
+    });
+
     this.loadLocations();
     this.loadAreas();
     this.loadPlaces();
@@ -176,11 +186,22 @@ export class EventFormStateService {
   get postGalleryArray(): FormArray { return this.postEventGroup.get('gallery') as FormArray; }
   get postMetricsArray(): FormArray { return this.postEventGroup.get('metrics') as FormArray; }
 
+  readonly maxStepReached = signal(1);
+
   // ── Navegación entre pasos ───────────────────────────────────────────────────
 
   goToStep(id: number): void {
     if (id < 1 || id > this.steps.length) return;
     this.currentStep.set(id);
+    if (id > this.maxStepReached()) {
+      this.maxStepReached.set(id);
+    }
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    
+    // Auto-guardado en segundo plano al cambiar de paso
+    this.saveDraft();
   }
 
   next(): void { this.goToStep(this.currentStep() + 1); }
@@ -395,13 +416,14 @@ export class EventFormStateService {
 
   // ── Allies (en heroGroup) ──────────────────────────────────────────────────────
 
-  addAlly(name = ''): void {
-    const current: string[] = this.heroGroup.get('allies')!.value ?? [];
-    this.heroGroup.get('allies')!.setValue([...current, name]);
+  addAlly(name = '', logo_url = '', url = ''): void {
+    const current: any[] = this.heroGroup.get('allies')!.value ?? [];
+    const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
+    this.heroGroup.get('allies')!.setValue([...current, { id, name, logo_url, url }]);
   }
 
   removeAlly(index: number): void {
-    const current: string[] = this.heroGroup.get('allies')!.value ?? [];
+    const current: any[] = this.heroGroup.get('allies')!.value ?? [];
     this.heroGroup.get('allies')!.setValue(current.filter((_, i) => i !== index));
   }
 
@@ -409,6 +431,7 @@ export class EventFormStateService {
 
   async loadForEdit(id: number): Promise<void> {
     this.eventId.set(id);
+    this.maxStepReached.set(3);
     this.loadError.set(null);
     this.saving.set(true);
     try {
@@ -418,7 +441,14 @@ export class EventFormStateService {
         firstValueFrom(this.svc.getById(id)),
         this.loadAreas(),
       ]);
+      this.isPatching = true;
       this.patchFromEvent(res.data.event);
+      setTimeout(() => {
+        this.isPatching = false;
+        this.unsavedChanges.set(false);
+        this.root.markAsPristine();
+      }, 500);
+
     } catch {
       this.loadError.set('No se pudo cargar el evento para edición.');
     } finally {
@@ -437,9 +467,7 @@ export class EventFormStateService {
       place_id: event.place_id ?? null,
       location_id: event.location_id,
       description: event.description ?? '',
-      color_theme: (event as any).color_theme ?? 'classic',
-      has_donations: event.has_donations,
-      donation_amounts: event.donation_amounts ?? [],
+      color_theme: event.color_theme ?? event.extra_data?.color_theme ?? 'classic',
     });
     this.datetimeGroup.patchValue({
       start_date: toDatetimeLocal(event.start_date),
@@ -461,7 +489,7 @@ export class EventFormStateService {
       banner_image_url: event.banner_image_url ?? '',
       banner_mobile_url: (event.extra_data as any)?.banner_mobile_url ?? '',
       cover_image_url: (event.extra_data as any)?.cover_image_url ?? '',
-      allies_header: event.extra_data?.allies_header ?? 'Con el apoyo de',
+      allies_header: event.extra_data?.allies_header ?? 'Sponsors',
       allies: event.extra_data?.allies ?? [],
     });
     this.faqContactGroup.patchValue({
@@ -526,6 +554,7 @@ export class EventFormStateService {
       allies_header: hero.allies_header || undefined,
       banner_mobile_url: hero.banner_mobile_url || undefined,
       cover_image_url: hero.cover_image_url || undefined,
+      color_theme: (identity as any).color_theme || 'classic',
     };
 
     const postEventData: PostEventData = {
@@ -556,8 +585,7 @@ export class EventFormStateService {
       max_capacity: access.max_capacity || null,
       has_cost: !!access.has_cost,
       cost: access.has_cost ? access.cost : null,
-      has_donations: !!identity.has_donations,
-      donation_amounts: identity.has_donations ? identity.donation_amounts : null,
+      has_donations: false,
       documents: this.documentsArray.value.length ? this.documentsArray.value : null,
       speakers: this.speakersArray.value.length ? this.speakersArray.value : null,
       testimonials: this.testimonialsArray.value.length ? this.testimonialsArray.value : null,
@@ -615,8 +643,13 @@ export class EventFormStateService {
         ? await firstValueFrom(this.svc.update(this.eventId()!, payload))
         : await firstValueFrom(this.svc.create(payload));
       this.eventId.set(res.data.event.id);
+      
+      await this.flushImageUploads();
+      
       // Limpiar cualquier error previo al guardar bien
       this.loadError.set(null);
+      this.root.markAsPristine();
+      this.unsavedChanges.set(false);
     } catch {
       // Auto-save silencioso: ignorar errores del servidor
     } finally {
@@ -673,17 +706,10 @@ export class EventFormStateService {
         : await firstValueFrom(this.svc.update(this.eventId()!, payload));
       this.eventId.set(res.data.event.id);
 
-      // Subir imágenes pendientes elegidas en Step 5 antes de este save
-      if (this.pendingImageUploads.size > 0) {
-        const urlMap = await this.uploadPendingImages(this.eventId()!);
-        if (Object.keys(urlMap).length > 0) {
-          if (urlMap['hero_desktop']) this.heroGroup.get('banner_image_url')?.setValue(urlMap['hero_desktop']);
-          if (urlMap['hero_mobile'])  this.heroGroup.get('banner_mobile_url')?.setValue(urlMap['hero_mobile']);
-          if (urlMap['cover'])        this.heroGroup.get('cover_image_url')?.setValue(urlMap['cover']);
-          // Segundo PATCH para persistir las URLs reales en la BD
-          await firstValueFrom(this.svc.update(this.eventId()!, this.buildPayload()));
-        }
-      }
+      await this.flushImageUploads();
+
+      this.root.markAsPristine();
+      this.unsavedChanges.set(false);
 
       return res.data.event;
     } catch (err: any) {
@@ -701,12 +727,47 @@ export class EventFormStateService {
     }
   }
 
+  private async flushImageUploads(): Promise<void> {
+    if (this.pendingImageUploads.size === 0) return;
+    
+    const urlMap = await this.uploadPendingImages(this.eventId()!);
+    if (Object.keys(urlMap).length > 0) {
+      if (urlMap['hero_desktop']) this.heroGroup.get('banner_image_url')?.setValue(urlMap['hero_desktop']);
+      if (urlMap['hero_mobile']) this.heroGroup.get('banner_mobile_url')?.setValue(urlMap['hero_mobile']);
+      if (urlMap['cover'])  this.heroGroup.get('cover_image_url')?.setValue(urlMap['cover']);
+
+      const allies = [...(this.heroGroup.get('allies')?.value || [])];
+      let alliesChanged = false;
+      for (const key of Object.keys(urlMap)) {
+        if (key.startsWith('ally_')) {
+          const allyId = key.replace('ally_', '');
+          const ally = allies.find(a => a.id === allyId);
+          if (ally) {
+            ally.logo_url = urlMap[key];
+            alliesChanged = true;
+          }
+        }
+      }
+      if (alliesChanged) this.heroGroup.get('allies')?.setValue(allies);
+
+      Object.keys(urlMap).filter(k => k.startsWith('post_gallery_')).forEach(k => {
+        const url = urlMap[k];
+        const item = this.postGalleryArray.controls.find(c => c.value.url === k);
+        if (item) item.get('url')?.setValue(url);
+      });
+
+      // Segundo PATCH para persistir las URLs reales en la BD
+      await firstValueFrom(this.svc.update(this.eventId()!, this.buildPayload()));
+    }
+  }
+
   /** Sube al backend todos los archivos en pendingImageUploads y devuelve un mapa type→url. */
   private async uploadPendingImages(eventId: number): Promise<Record<string, string>> {
     const urlMap: Record<string, string> = {};
     for (const [type, file] of this.pendingImageUploads) {
       try {
-        const res = await firstValueFrom(this.svc.uploadImage(eventId, type, file));
+        const backendType = type.startsWith('post_gallery_') ? 'post_gallery' : type.startsWith('ally_') ? 'ally' : type;
+        const res = await firstValueFrom(this.svc.uploadImage(eventId, backendType, file));
         if (res?.url) urlMap[type] = res.url;
       } catch (err) {
         console.error(`uploadPendingImages: error al subir "${type}"`, err);
@@ -734,14 +795,16 @@ export class EventFormStateService {
 
   /** Reinicia el formulario a su estado vacío inicial (modo creación). */
   reset(): void {
+    this.isPatching = true;
     this.eventId.set(null);
+    this.maxStepReached.set(1);
     this.eventStatus.set('draft');
     this.currentStep.set(1);
     this.loadError.set(null);
-    this.identityGroup.reset({ name: '', kicker: '', event_type: '', area_id: null, location_id: null, description: '', has_donations: false, donation_amounts: [] });
+    this.identityGroup.reset({ name: '', kicker: '', event_type: '', area_id: null, location_id: null, description: '' });
     this.datetimeGroup.reset({ start_date: '', end_date: '', all_day: false, venue: '', event_modality: 'presencial', stream_url: '', doors_open_time: '' });
     this.accessGroup.reset({ access_types: [], has_registration: true, max_capacity: null, has_cost: false, cost: null });
-    this.heroGroup.reset({ banner_image_url: '', banner_mobile_url: '', cover_image_url: '', allies_header: 'Con el apoyo de', allies: [] });
+    this.heroGroup.reset({ banner_image_url: '', banner_mobile_url: '', cover_image_url: '', allies_header: 'Sponsors', allies: [] });
     this.faqContactGroup.reset({ contact_email: '', contact_phone: '', contact_person: '', contact_schedule: '', maps_url: '', social_facebook: '', social_instagram: '', social_twitter: '', social_tiktok: '' });
     this.subeventsArray.clear();
     this.documentsArray.clear();
@@ -752,5 +815,10 @@ export class EventFormStateService {
     this.postGalleryArray.clear();
     this.postMetricsArray.clear();
     this.postEventGroup.get('summary')?.setValue('');
+    setTimeout(() => {
+      this.isPatching = false;
+      this.unsavedChanges.set(false);
+      this.root.markAsPristine();
+    }, 500);
   }
 }
