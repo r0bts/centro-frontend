@@ -10,46 +10,14 @@
         <i class="bi bi-calendar-plus me-2 text-primary"></i>
         {{ state.mode() === 'edit' ? 'Editar evento' : 'Nuevo evento' }}
       </h5>
-      <div class="d-flex gap-2 align-items-center">
-        <button class="btn-preview" (click)="autoGuardarYAbrir()">
-          <i class="bi bi-eye-fill"></i> Previsualizar Landing
-        </button>
-        <button class="btn btn-sm btn-outline-secondary" (click)="volver()">
-          <i class="bi bi-arrow-left me-1"></i>Volver
-        </button>
-      </div>
     </div>
 
     @if (state.loadError() && state.mode() === 'edit') {
       <div class="alert alert-danger mx-4 mt-2">{{ state.loadError() }}</div>
     }
 
-    <!-- Stepper -->
-    <div class="stepper-bar mt-3" id="stepper-bar">
-      <div class="step-wrap">
-        @for (step of steps; track step.id; let last = $last) {
-          <div class="step-item-bar"
-               [class.active]="state.currentStep() === step.id"
-               [class.done]="esPasoCompletado(step.id)"
-               (click)="autoGuardarYNavegar(step.id)">
-            <div class="step-circle">
-              @if (esPasoCompletado(step.id)) {
-                <i class="bi bi-check-lg"></i>
-              } @else {
-                {{ step.id }}
-              }
-            </div>
-            <div class="step-name">{{ step.label }}</div>
-          </div>
-          @if (!last) {
-            <div class="step-line-bar" [class.done]="esPasoCompletado(step.id)"></div>
-          }
-        }
-      </div>
-    </div>
-
     <!-- Layout: main form + sidebar -->
-    <div class="eventos-layout">
+    <div class="eventos-layout mt-2">
 
       <!-- Columna principal: wizard steps -->
       <div class="main-col">
@@ -60,19 +28,6 @@
               <app-step-5-hero [mobileOnly]="true" />
               <app-step-2-datetime />
               <app-step-3-access />
-            </div>
-            <div class="form-nav-footer mt-2">
-              <button class="btn btn-outline-success" [disabled]="state.saving()" (click)="guardarBorrador()">
-                @if (state.saving()) {
-                  <span class="spinner-border spinner-border-sm me-1"></span>
-                } @else {
-                  <i class="bi bi-floppy me-1"></i>
-                }
-                Guardar borrador
-              </button>
-              <button class="btn btn-primary px-4" (click)="autoGuardarYNavegar(2)">
-                Detalles opcionales <i class="bi bi-chevron-right ms-1"></i>
-              </button>
             </div>
           }
           @case (2) {
@@ -87,28 +42,48 @@
               <app-step-7-documents />
               <app-step-8-faq-contact />
             </div>
-            <div class="form-nav-footer mt-2">
-              <button class="btn btn-outline-secondary" (click)="autoGuardarYNavegar(1)">
-                <i class="bi bi-chevron-left me-1"></i>Básico
-              </button>
-              <button class="btn btn-primary px-4" (click)="autoGuardarYNavegar(3)">
-                Revisar y publicar <i class="bi bi-chevron-right ms-1"></i>
-              </button>
-            </div>
           }
           @case (3) {
             <app-step-9-review />
           }
         }
+        
       </div>
 
       <!-- Columna lateral: preview card (sticky) -->
       <div class="sidebar-col">
         <div class="preview-card">
-          <div class="preview-banner">
-            <i class="bi bi-calendar-event"></i>
+          <!-- Header / Live Banner Preview -->
+          <div class="preview-banner"
+               [style.background-image]="bannerBgUrl() ? 'url(\'' + bannerBgUrl() + '\')' : null"
+               [class.has-image]="!!bannerBgUrl()">
+            <div class="preview-banner-overlay"></div>
+            <div class="preview-banner-content">
+              <span class="preview-badge mb-1">
+                <i class="bi bi-calendar-event me-1"></i>Resumen del Evento
+              </span>
+              @if (!bannerBgUrl()) {
+                <span class="preview-hint-sub">Sube una imagen hero para previsualizar</span>
+              } @else {
+                <span class="preview-hint-sub">Vista previa del banner hero</span>
+              }
+            </div>
           </div>
           <div class="preview-body"><!-- body -->
+            @if (state.eventId() !== null) {
+              <div class="mb-2">
+                @if (state.eventStatus() === 'published') {
+                  <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill w-100 py-1.5 d-flex align-items-center justify-content-center gap-1" style="font-size:.72rem;">
+                    <i class="bi bi-broadcast"></i> Landing activa y publicada
+                  </span>
+                } @else {
+                  <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill w-100 py-1.5 d-flex align-items-center justify-content-center gap-1" style="font-size:.72rem;">
+                    <i class="bi bi-pencil-square"></i> Borrador no publicado
+                  </span>
+                }
+              </div>
+            }
+
             <div class="fw-bold" style="font-size:.88rem;min-height:1.2em;">
               {{ nombreEvento() || 'Nombre del evento' }}
             </div>
@@ -131,7 +106,31 @@
             <div class="preview-meta-row">
               <i class="bi bi-people"></i><span>{{ capacidadLabel() }}</span>
             </div>
-            <hr class="my-2">
+
+            <!-- Selector de Pasos Minimalista (Sin bordes ni cards) -->
+            <div class="minimal-step-nav">
+              @for (step of steps; track step.id; let last = $last) {
+                <button type="button"
+                        class="minimal-step-item"
+                        [class.active]="state.currentStep() === step.id"
+                        [class.completed]="esPasoCompletado(step.id)"
+                        [title]="'Ir al Paso ' + step.id + ': ' + step.label"
+                        (click)="autoGuardarYNavegar(step.id)">
+                  <span class="minimal-step-num">
+                    @if (esPasoCompletado(step.id) && state.currentStep() !== step.id) {
+                      <i class="bi bi-check-lg"></i>
+                    } @else {
+                      {{ step.id }}
+                    }
+                  </span>
+                  <span class="minimal-step-name">{{ step.label }}</span>
+                </button>
+                @if (!last) {
+                  <div class="minimal-step-divider"></div>
+                }
+              }
+            </div>
+
             <div class="d-flex justify-content-between mb-1">
               <span style="font-size:.7rem;color:#8a8a8a;">Completado</span>
               <span style="font-size:.7rem;font-weight:700;color:#406eba;">{{ progresoPct() }}%</span>
@@ -139,21 +138,93 @@
             <div class="preview-progress">
               <div class="preview-progress-fill" [style.width.%]="progresoPct()"></div>
             </div>
-            <div style="font-size:.68rem;color:#8a8a8a;margin-top:.35rem;">
-              Paso {{ state.currentStep() }} de {{ steps.length }}
-            </div>
           </div>
         </div>
 
-        <!-- Botón guardar (siempre visible, fuera del card) -->
-        <button class="btn btn-outline-success w-100" [disabled]="state.saving()" (click)="guardarBorrador()">
-          @if (state.saving()) {
-            <span class="spinner-border spinner-border-sm me-1"></span>
-          } @else {
-            <i class="bi bi-floppy me-1"></i>
+        <!-- Acciones en el sidebar -->
+        <div class="d-flex flex-column gap-2 w-100 mt-2">
+          
+          <!-- Botón principal de flujo / navegación de pasos -->
+          @if (state.currentStep() === 1) {
+            <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-1" 
+                    style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.88rem;" 
+                    (click)="autoGuardarYNavegar(2)">
+              <span>Guardar y continuar</span>
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          } @else if (state.currentStep() === 2) {
+            <div class="d-flex gap-2 w-100">
+              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 px-3" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" 
+                      (click)="autoGuardarYNavegar(1)">
+                <i class="bi bi-chevron-left"></i>
+                <span>Anterior</span>
+              </button>
+              <button class="btn btn-primary flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap;" 
+                      (click)="autoGuardarYNavegar(3)">
+                <span>Guardar y continuar</span>
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+          } @else if (state.currentStep() === 3) {
+            <div class="d-flex gap-2 w-100">
+              <button class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-1 px-3" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;" 
+                      (click)="autoGuardarYNavegar(2)">
+                <i class="bi bi-chevron-left"></i>
+                <span>Anterior</span>
+              </button>
+              <button class="btn btn-success flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                      style="height: 42px; border-radius: 10px; font-weight: 600; font-size: 0.82rem; white-space: nowrap;" 
+                      [disabled]="state.saving()"
+                      (click)="guardarBorrador()">
+                @if (state.saving()) {
+                  <span class="spinner-border spinner-border-sm"></span>
+                } @else {
+                  <i class="bi bi-check-lg"></i>
+                }
+                <span>{{ state.isAlreadyPublished() ? 'Guardar cambios' : 'Guardar evento' }}</span>
+              </button>
+            </div>
           }
-          Guardar borrador
-        </button>
+
+          <!-- Botones secundarios lado a lado (50/50) -->
+          <div class="d-flex gap-2 w-100">
+            <button class="btn flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                    [class.btn-outline-success]="!state.unsavedChanges()"
+                    [class.btn-warning]="state.unsavedChanges()"
+                    [class.text-dark]="state.unsavedChanges()"
+                    style="height: 38px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap;"
+                    [disabled]="state.saving()" 
+                    (click)="guardarBorrador()">
+              @if (state.saving()) {
+                <span class="spinner-border spinner-border-sm"></span>
+                <span>Guardando...</span>
+              } @else {
+                <i class="bi bi-floppy"></i>
+                <span>{{ state.unsavedChanges() ? 'Guardar borrador' : 'Borrador' }}</span>
+              }
+            </button>
+
+            <button class="btn-preview flex-grow-1 d-flex align-items-center justify-content-center gap-1 px-2" 
+                    style="height: 38px; border-radius: 10px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; box-shadow: none;"
+                    (click)="autoGuardarYAbrir()">
+              <i class="bi bi-eye-fill"></i>
+              <span>Previsualizar</span>
+            </button>
+          </div>
+
+          <!-- Enlace de salida discreto al final -->
+          <div class="text-center mt-1">
+            <button class="btn btn-link btn-sm text-decoration-none text-muted py-0" 
+                    style="font-size: 0.8rem;"
+                    (click)="volver()">
+              <i class="bi bi-arrow-left me-1"></i>Volver al listado
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
 

@@ -65,11 +65,20 @@ export class EventFormPageComponent implements OnInit, OnDestroy {
     this.state.accessGroup.valueChanges,
     { initialValue: this.state.accessGroup.value }
   );
+  readonly heroVal = toSignal(
+    this.state.heroGroup.valueChanges,
+    { initialValue: this.state.heroGroup.value }
+  );
 
   // ── Computed para el panel lateral ───────────────────────────────────────────
   readonly progresoPct = computed(() =>
     Math.round((this.state.currentStep() / this.steps.length) * 100)
   );
+
+  readonly bannerBgUrl = computed(() => {
+    const hero = this.heroVal();
+    return (hero?.banner_image_url as string) || (hero?.banner_mobile_url as string) || (hero?.cover_image_url as string) || null;
+  });
 
   readonly nombreEvento = computed(() => this.identityVal()?.name || '');
   readonly kickerEvento = computed(() => this.identityVal()?.kicker || '');
@@ -85,7 +94,15 @@ export class EventFormPageComponent implements OnInit, OnDestroy {
   });
   readonly lugarEvento = computed(() => {
     const v = this.datetimeVal()?.venue as string | undefined;
-    return v?.trim() || '—';
+    if (v?.trim()) return v.trim();
+
+    const areaId = this.identityVal()?.area_id;
+    if (areaId) {
+      const area = this.state.areas().find(a => a.id === Number(areaId));
+      if (area) return area.name;
+    }
+
+    return '—';
   });
   readonly accesosLabel = computed(() => {
     const types = this.accessVal()?.access_types as string[] | null;
@@ -147,10 +164,13 @@ export class EventFormPageComponent implements OnInit, OnDestroy {
         return;
       }
       await this.state.save();
-    } else {
-      await this.state.saveDraft();
     }
+    
+    // Al navegar a otro paso, goToStep ya invoca saveDraft internamente
     this.state.goToStep(step);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   /** Cierra el modal de validación sin navegar. */
@@ -174,7 +194,11 @@ export class EventFormPageComponent implements OnInit, OnDestroy {
     } else {
       await this.state.saveDraft();
     }
-    this.abrirPreview();
+    
+    const id = this.state.eventId();
+    if (id) {
+      window.open(`/eventos/landing/${id}`, '_blank');
+    }
   }
 
   async guardarBorrador(): Promise<void> {
@@ -192,7 +216,18 @@ export class EventFormPageComponent implements OnInit, OnDestroy {
     }
   }
 
-  esPasoCompletado(id: number): boolean { return id < this.state.currentStep(); }
+  async guardarCambiosInteligente(): Promise<void> {
+    if (this.state.eventId() === null) return;
+    await this.state.saveDraft();
+  }
+
+  esPasoCompletado(id: number): boolean {
+    return id <= this.state.maxStepReached() && id !== this.state.currentStep();
+  }
+
+  esPasoAccesible(id: number): boolean {
+    return id <= this.state.maxStepReached() || this.state.eventId() !== null;
+  }
 
   abrirPreview(): void { this.showPreviewOverlay.set(true); }
   cerrarPreview(): void { this.showPreviewOverlay.set(false); }

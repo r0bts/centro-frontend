@@ -23,10 +23,9 @@
 
       <div class="rev-section-title">Identidad</div>
       <div class="row g-2">
-        <div class="col-sm-8"><div class="rev-item"><div class="rev-item-label">Nombre</div><div class="rev-item-val">{{ identity.name || '—' }}</div></div></div>
-        <div class="col-sm-4"><div class="rev-item"><div class="rev-item-label">Sede</div><div class="rev-item-val" style="color:#406eba;">{{ sedeNombre }}</div></div></div>
-        <div class="col-sm-4"><div class="rev-item"><div class="rev-item-label">Tipo</div><div class="rev-item-val">{{ eventTypeLabel(identity.event_type) }}</div></div></div>
-        <div class="col-sm-4"><div class="rev-item"><div class="rev-item-label">Donativos</div><div class="rev-item-val" [style.color]="identity.has_donations ? '#43B581' : '#8a8a8a'">{{ identity.has_donations ? 'Sí, configurados' : 'Sin donativos' }}</div></div></div>
+        <div class="col-sm-6"><div class="rev-item"><div class="rev-item-label">Nombre</div><div class="rev-item-val">{{ identity.name || '—' }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Sede</div><div class="rev-item-val" style="color:#406eba;">{{ sedeNombre }}</div></div></div>
+        <div class="col-sm-3"><div class="rev-item"><div class="rev-item-label">Tipo</div><div class="rev-item-val">{{ eventTypeLabel(identity.event_type) }}</div></div></div>
       </div>
 
       <div class="rev-section-title">Fecha</div>
@@ -60,6 +59,10 @@
         <div>
           <div class="fw-bold">Tema de color</div>
           <div class="text-muted small">Define los colores de la landing page del evento</div>
+          <div class="text-muted mt-1" style="font-size: 0.75rem;">
+            <i class="bi bi-info-circle me-1"></i>
+            <strong>Orden de la paleta:</strong> 1º Fondo | 2º Primario | 3º Secundario (Acento)
+          </div>
         </div>
       </div>
       <div class="d-flex flex-wrap gap-2">
@@ -67,9 +70,9 @@
           <div class="theme-swatch" [class.sel]="state.identityGroup.get('color_theme')?.value === t.id"
                (click)="state.identityGroup.get('color_theme')?.setValue(t.id)">
             <div class="theme-dots">
-              <span [style.background]="t.color_bg"></span>
-              <span [style.background]="t.color_primary"></span>
-              <span [style.background]="t.color_accent"></span>
+              <span [style.background]="t.color_bg" title="1º Fondo base"></span>
+              <span [style.background]="t.color_primary" title="2º Color Primario"></span>
+              <span [style.background]="t.color_accent" title="3º Color Secundario (Acento)"></span>
             </div>
             <div class="theme-name">{{ t.name }}</div>
             <div class="theme-desc">{{ t.description }}</div>
@@ -124,20 +127,5 @@
     </div>
   </div>
 
-  <div class="form-nav-footer">
-    <button class="btn btn-outline-secondary" (click)="irAtras()">
-      <i class="bi bi-chevron-left me-1"></i>Atrás
-    </button>
-    <div class="d-flex gap-2">
-      <button class="btn btn-outline-secondary" (click)="cancelar()">Cancelar</button>
-      <button class="btn btn-success px-4" [disabled]="state.saving()" (click)="guardar()">
-        @if (state.saving()) {
-          <span class="spinner-border spinner-border-sm me-1"></span>
-        } @else {
-          <i class="bi bi-check-lg me-1"></i>
-        }
-        {{ state.isAlreadyPublished() ? 'Guardar cambios' : (publicarAlGuardar ? 'Guardar y publicar' : 'Guardar borrador') }}
-      </button>
-    </div>
-  </div>
+
 </div>

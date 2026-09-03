@@ -6,6 +6,7 @@ import {
   signal,
   computed,
   inject,
+  HostListener
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
@@ -54,6 +55,25 @@ export class EventLandingPageComponent implements OnInit {
   readonly nombreExterno = signal('');
   readonly correoExterno = signal('');
 
+  readonly accessLabel = computed(() => {
+    const ev = this.event();
+    if (!ev || !ev.access_types || !ev.access_types.length) return 'Público General';
+    const dicc: Record<string, string> = {
+      'public': 'Público General',
+      'members': 'Exclusivo Socios',
+      'patron': 'Comité Patronato',
+      'committee': 'Comité Directivo',
+      'registration': 'Con Registro'
+    };
+    return ev.access_types.map(k => dicc[k] || k).join(' y ');
+  });
+
+  readonly normalizedAllies = computed(() => {
+    const raw = this.event()?.extra_data?.allies;
+    if (!raw || !Array.isArray(raw)) return [];
+    return raw.map((a: any) => typeof a === 'string' ? { name: a, logo_url: null, url: null } : a);
+  });
+
   // ── Computed ─────────────────────────────────────────────────────────────────
   readonly isAuthenticated = computed(() => {
     const sub = this.auth.isAuthenticated$;
@@ -66,7 +86,7 @@ export class EventLandingPageComponent implements OnInit {
     const ev = this.event();
     const themes = this.colorThemes();
     if (!ev || !themes.length) return {};
-    const colorTheme = (ev as any).color_theme ?? 'classic';
+    const colorTheme = ev.color_theme ?? ev.extra_data?.color_theme ?? 'classic';
     const t = themes.find(th => th.id === colorTheme);
     if (!t) return {};
     return {
@@ -78,6 +98,19 @@ export class EventLandingPageComponent implements OnInit {
   });
 
   readonly eventTypeMeta = EVENT_TYPE_META;
+
+  readonly showNavButton = signal(false);
+
+  @HostListener('window:scroll', [])
+  onWindowScroll() {
+    if (!isPlatformBrowser(this.platformId)) return;
+    const heroBtn = document.getElementById('hero-main-btn');
+    if (heroBtn) {
+      const rect = heroBtn.getBoundingClientRect();
+      // Si el botón principal salió de la pantalla hacia arriba (bottom < 0), mostramos el del nav
+      this.showNavButton.set(rect.bottom < 0);
+    }
+  }
 
   ngOnInit(): void {
     const id = Number(this.route.snapshot.paramMap.get('id'));

@@ -19,7 +19,7 @@
         <div class="testimonio-row mb-2 d-flex align-items-center gap-3">
           <div class="flex-shrink-0">
             @if (item.value.url) {
-              <img [src]="item.value.url" alt="Foto" style="width:60px;height:45px;object-fit:cover;border-radius:.4rem;border:1px solid #dee2e6;">
+              <img [src]="getPreviewUrl(item.value.url)" alt="Foto" style="width:60px;height:45px;object-fit:cover;border-radius:.4rem;border:1px solid #dee2e6;">
             } @else {
               <div style="width:60px;height:45px;background:#f1f5f9;border-radius:.4rem;border:1px solid #dee2e6;display:flex;align-items:center;justify-content:center;color:#b0b0b0;">
                 <i class="bi bi-image"></i>
@@ -27,8 +27,14 @@
             }
           </div>
           <div class="flex-grow-1">
-            <div class="small text-muted text-truncate">{{ item.value.url || 'Sin URL' }}</div>
-            <div class="small text-muted fst-italic">{{ item.value.caption }}</div>
+            <div class="fw-semibold small text-dark">
+              {{ item.value.caption || ('Foto #' + ($index + 1)) }}
+            </div>
+            @if (item.value.url) {
+              <div class="small text-muted text-truncate" style="font-size: 0.75rem;">
+                {{ getFileName(item.value.url) }}
+              </div>
+            }
           </div>
           <button class="btn btn-sm btn-outline-danger py-0 px-2 flex-shrink-0" (click)="eliminarFoto($index)">
             <i class="bi bi-trash3"></i>
@@ -40,23 +46,61 @@
       <div class="card card-body bg-light p-3 mb-2">
         <div class="row g-2">
           <div class="col-12">
-            <input type="url" class="form-control form-control-sm" placeholder="URL de la foto *"
-                   [(ngModel)]="nuevaFotoUrl">
+            <div class="text-center p-3 mb-2" 
+                 style="border: 2px dashed #cbd5e1; border-radius: .5rem; cursor: pointer; background: #fff;"
+                 (click)="fileGallery.click()"
+                 (dragover)="$event.preventDefault()" 
+                 (drop)="onDropGallery($event)">
+              <i class="bi bi-cloud-arrow-up fs-3 text-muted d-block mb-1"></i>
+              <div class="text-muted small">Arrastra o <strong>selecciona</strong> una imagen</div>
+              <div class="text-muted" style="font-size:.72rem;">JPG/PNG/WEBP · Formato recomendado 16:9</div>
+            </div>
+            <input #fileGallery type="file" accept="image/*" hidden (change)="onFileSelectGallery($event)">
           </div>
           <div class="col-12">
-            <input type="text" class="form-control form-control-sm" placeholder="Pie de foto (opcional)"
+            <input type="text" class="form-control form-control-sm" placeholder="Pie de foto (se asociará a la próxima imagen subida)"
                    [(ngModel)]="nuevaFotoCaption">
-          </div>
-          <div class="col-12">
-            <button class="btn btn-sm w-100" style="border:2px dashed #cbd5e1;color:#406eba;border-radius:.75rem;padding:.5rem;"
-                    (click)="agregarFoto()" [disabled]="!nuevaFotoUrl.trim()">
-              <i class="bi bi-plus-circle me-1"></i>Agregar foto
-            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Modal para Recortar Imagen Galería -->
+  @if (showCropper()) {
+    <div class="modal fade show" tabindex="-1" aria-hidden="true" style="display: block; background: rgba(0,0,0,0.5);">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title fw-bold">Recortar Foto de Galería</h5>
+            <button type="button" class="btn-close" (click)="cancelCrop()" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-4 bg-light">
+            <div class="mb-3 text-muted small">
+              Ajusta la imagen (se guardará en proporción 16:9).
+            </div>
+            <div style="max-height: 60vh; overflow: hidden; border-radius: 8px; border: 1px solid #dee2e6;">
+              <image-cropper
+                [imageURL]="cropUrl() || undefined"
+                [maintainAspectRatio]="true"
+                [aspectRatio]="16 / 9"
+                [resizeToWidth]="1080"
+                format="jpeg"
+                (imageCropped)="imageCropped($event)"
+                style="max-height: 60vh;"
+              ></image-cropper>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button type="button" class="btn btn-outline-secondary" (click)="cancelCrop()">Cancelar</button>
+            <button type="button" class="btn btn-primary" (click)="applyCrop()">
+              <i class="bi bi-crop me-2"></i>Aplicar y Añadir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 
   <!-- ══ MÉTRICAS ALCANZADAS ══════════════════════════════════════════════════ -->
   <div class="card shadow-sm mb-3">

@@ -121,12 +121,28 @@
         </div>
       }
 
+      <!-- Lugar / Espacio específico -->
+      @if (modalidad() !== 'virtual') {
+        <div class="mb-3">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Espacio exacto / Lugar específico
+          </label>
+          <input type="text" class="form-control" formControlName="venue"
+                 placeholder="Ej. Salón Baalbek, Jardín Principal, Auditorio...">
+          <div class="form-text">Especifica la sala, salón o área exacta del evento dentro de la sede.</div>
+        </div>
+      }
+
       <!-- Alerta de sede -->
       <div class="alert alert-info d-flex align-items-start gap-2 py-2 mb-0" style="font-size:.82rem;">
         <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
         <span>
           El evento se realizará en la sede <strong>{{ sedeNombre() }}</strong>.
-          Especifica el espacio exacto dentro de la sede en el campo de arriba.
+          @if (modalidad() !== 'virtual') {
+            Especifica el espacio exacto dentro de la sede en el campo de arriba.
+          } @else {
+            Este es un evento virtual transmitido en línea.
+          }
         </span>
       </div>
     </div>

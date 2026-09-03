@@ -160,3 +160,26 @@
   font-size: .7rem;
   color: #8a8a8a;
 }
+
+.quill-wrapper {
+  background: #fff;
+  border-radius: var(--bs-border-radius);
+  border: var(--bs-border-width) solid var(--bs-border-color);
+}
+.quill-wrapper.is-invalid {
+  border-color: var(--bs-form-invalid-border-color);
+}
+:host ::ng-deep .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
+  background-color: #f8f9fa;
+}
+:host ::ng-deep .ql-container.ql-snow {
+  border: none;
+  border-radius: 0 0 var(--bs-border-radius) var(--bs-border-radius);
+  min-height: 200px;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
