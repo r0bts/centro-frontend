@@ -1294,6 +1294,237 @@
             </div>
         </div>
 
+        <!-- ══════════════════════════════════════════════════════ -->
+        <!-- Catálogos NS de Productos                              -->
+        <!-- ══════════════════════════════════════════════════════ -->
+        <div class="row mt-2">
+            <div class="col-12 mb-3">
+                <div class="alert alert-info py-2 mb-0 d-flex align-items-center" role="alert">
+                    <i class="bi bi-box-fill me-2 fs-5 text-info"></i>
+                    <div>
+                        <strong>Catálogos NS de Productos</strong> —
+                        Sincroniza catálogos auxiliares de NetSuite: servicios, descuentos, recargos, partes no inventariables y códigos de impuesto.
+                        <span class="badge bg-info text-dark ms-1">Independientes de socios/membresías</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Servicios NS -->
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_services')">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-gear-wide-connected"></i>
+                        </div>
+                        <h5 class="card-title">Servicios NS</h5>
+                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='Service'</code></p>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['ns_services'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['ns_services'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['ns_services'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-primary w-100"
+                            (click)="syncNsServices()"
+                            [disabled]="syncStatus['ns_services'].isLoading">
+                            <span *ngIf="!syncStatus['ns_services'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['ns_services'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Descuentos NS -->
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_discounts')">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-tag-fill"></i>
+                        </div>
+                        <h5 class="card-title">Descuentos NS</h5>
+                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='Discount'</code></p>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['ns_discounts'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['ns_discounts'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['ns_discounts'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-primary w-100"
+                            (click)="syncNsDiscounts()"
+                            [disabled]="syncStatus['ns_discounts'].isLoading">
+                            <span *ngIf="!syncStatus['ns_discounts'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['ns_discounts'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recargos NS -->
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_markups')">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </div>
+                        <h5 class="card-title">Recargos NS</h5>
+                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='Markup'</code></p>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['ns_markups'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['ns_markups'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['ns_markups'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-primary w-100"
+                            (click)="syncNsMarkups()"
+                            [disabled]="syncStatus['ns_markups'].isLoading">
+                            <span *ngIf="!syncStatus['ns_markups'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['ns_markups'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Partes No Inventariables NS -->
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_noninvt_parts')">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-boxes"></i>
+                        </div>
+                        <h5 class="card-title">Partes No Inventariables NS</h5>
+                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='NonInvtPart'</code></p>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['ns_noninvt_parts'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['ns_noninvt_parts'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['ns_noninvt_parts'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-primary w-100"
+                            (click)="syncNsNoninvtParts()"
+                            [disabled]="syncStatus['ns_noninvt_parts'].isLoading">
+                            <span *ngIf="!syncStatus['ns_noninvt_parts'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['ns_noninvt_parts'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Códigos de Impuesto NS -->
+            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_sales_tax_items')">
+                <div class="card sync-card h-100">
+                    <div class="card-body text-center">
+                        <div class="sync-icon mb-3">
+                            <i class="bi bi-receipt"></i>
+                        </div>
+                        <h5 class="card-title">Códigos de Impuesto NS</h5>
+                        <p class="text-muted small mb-3">Catálogo <code class="small">salestaxitem</code></p>
+
+                        <div class="sync-info mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Última sincronización:</span>
+                            </div>
+                            <p class="mb-1 small">
+                                {{ getTimeSinceLastSync(syncStatus['ns_sales_tax_items'].lastSync) }}
+                            </p>
+                            <p class="mb-0 small text-muted">
+                                {{ formatDate(syncStatus['ns_sales_tax_items'].lastSync) }}
+                            </p>
+                            <div class="mt-2">
+                                <span class="badge">
+                                    {{ syncStatus['ns_sales_tax_items'].recordCount }} registros
+                                </span>
+                            </div>
+                        </div>
+
+                        <button
+                            class="btn btn-primary w-100"
+                            (click)="syncNsSalesTaxItems()"
+                            [disabled]="syncStatus['ns_sales_tax_items'].isLoading">
+                            <span *ngIf="!syncStatus['ns_sales_tax_items'].isLoading">
+                                Sincronizar
+                            </span>
+                            <span *ngIf="syncStatus['ns_sales_tax_items'].isLoading">
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                Sincronizando...
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Información adicional -->
         <div class="row mt-4">
             <div class="col-12">

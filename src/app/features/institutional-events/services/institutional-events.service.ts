@@ -14,6 +14,8 @@ import {
   EventPlace,
   EventAccessType,
   ApiResponse,
+  EventSocioSearchResult,
+  AddAttendeePayload,
 } from '../models/institutional-event.model';
 
 /**
@@ -100,6 +102,33 @@ export class InstitutionalEventsService {
 
   cancelAttendee(eventId: number, attendeeId: number): Observable<AttendeeResponse> {
     return this.http.patch<AttendeeResponse>(`${this.base}/${eventId}/attendees/${attendeeId}/cancel`, {});
+  }
+
+  /** GET /api/institutional-events/socios/buscar?q= — busca socios con datos de titular */
+  searchSocio(q: string): Observable<ApiResponse<{ socios: EventSocioSearchResult[] }>> {
+    return this.http.get<ApiResponse<{ socios: EventSocioSearchResult[] }>>(
+      `${this.base}/socios/buscar`,
+      { params: new HttpParams().set('q', q) }
+    );
+  }
+
+  /** PATCH /api/institutional-events/:id/attendees/:aid/checkin */
+  checkinAttendee(eventId: number, attendeeId: number, status: 'present' | 'absent' | 'pending'): Observable<AttendeeResponse> {
+    return this.http.patch<AttendeeResponse>(
+      `${this.base}/${eventId}/attendees/${attendeeId}/checkin`,
+      { attendance_status: status }
+    );
+  }
+
+  /** POST /api/institutional-events/:id/attendees/batch — inscribe un grupo familiar de una sola llamada. */
+  addAttendeesBatch(eventId: number, data: {
+    attendees: { socio_id: number; full_name: string; subevent_ids: number[] }[];
+    registration_channel: 'admin_manual';
+    access_type_selected: string;
+    notes?: string | null;
+    create_ns_order: boolean;
+  }): Observable<any> {
+    return this.http.post<any>(`${this.base}/${eventId}/attendees/batch`, data);
   }
 
   // ── Catálogo de sedes ────────────────────────────────────────────────────────

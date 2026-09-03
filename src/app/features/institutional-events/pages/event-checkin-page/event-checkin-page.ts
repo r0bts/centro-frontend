@@ -106,7 +106,13 @@ export class EventCheckinPageComponent implements OnInit {
 
   toggleAsistencia(a: AttendeeCheckin): void {
     const next: AsistenciaEstado = a.asistencia === 'present' ? 'absent' : 'present';
-    this.marcar(a.id, next);
+    this.marcar(a.id, next); // optimistic update
+    firstValueFrom(
+      this.svc.checkinAttendee(this.eventId(), a.id, next)
+    ).catch(() => {
+      // revertir si falla
+      this.marcar(a.id, a.asistencia);
+    });
   }
 
   marcarTodosPresentes(): void {

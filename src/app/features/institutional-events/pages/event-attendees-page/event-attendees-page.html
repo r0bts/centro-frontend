@@ -39,6 +39,12 @@
           <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
             <i class="bi bi-download"></i>Exportar CSV
           </button>
+          @if (event()?.has_registration) {
+            <button class="btn btn-sm btn-success d-flex align-items-center gap-1"
+                    (click)="abrirWizard()">
+              <i class="bi bi-person-plus-fill"></i>Nueva inscripción
+            </button>
+          }
           <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
                   (click)="irACheckin()">
             <i class="bi bi-check2-square"></i>Marcar asistencia
@@ -176,6 +182,18 @@
                                   title="Ver detalle" style="padding:2px 6px;">
                             <i class="bi bi-eye" style="font-size:.75rem;"></i>
                           </button>
+                          @if (a.status !== 'cancelled') {
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Cancelar inscripción" style="padding:2px 6px;"
+                                    [disabled]="cancelando() === a.id"
+                                    (click)="cancelarInscripcion(a)">
+                              @if (cancelando() === a.id) {
+                                <span class="spinner-border spinner-border-sm" style="width:.75rem;height:.75rem;"></span>
+                              } @else {
+                                <i class="bi bi-x-circle" style="font-size:.75rem;"></i>
+                              }
+                            </button>
+                          }
                         </div>
                       </td>
                     </tr>
@@ -199,4 +217,28 @@
 
     }
   </div>
+
+  <!-- Wizard de inscripción -->
+  @if (wizardOpen() && event()) {
+    <app-inscribir-wizard
+      [event]="event()!"
+      [attendees]="attendees()"
+      (inscripcionGuardada)="onInscripcionGuardada()"
+      (cerrar)="wizardOpen.set(false)">
+    </app-inscribir-wizard>
+  }
+
+  <!-- Toast -->
+  @if (toastMsg()) {
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+      <div class="toast show align-items-center border-0"
+           [class]="'text-bg-' + toastType()" role="alert">
+        <div class="d-flex">
+          <div class="toast-body">{{ toastMsg() }}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                  (click)="toastMsg.set(null)"></button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

@@ -288,7 +288,8 @@ export class ConfiguracionComponent implements OnInit {
         'sync_payment_frequencies', 'sync_condicion_patrimonial', 'sync_condicion_adm',
         'sync_parentesco', 'sync_acceso_clubes', 'sync_genero', 'sync_estado_membresia',
         'sync_cuotas_membresia', 'sync_socios', 'sync_membresias', 'sync_detalle_membresias',
-        'sync_medical_records', 'evaluar_batch', 'sync_summer_payments'
+        'sync_medical_records', 'evaluar_batch', 'sync_summer_payments',
+        'sync_ns_services', 'sync_ns_discounts', 'sync_ns_markups', 'sync_ns_noninvt_parts', 'sync_ns_sales_tax_items'
       ]);
     }
 

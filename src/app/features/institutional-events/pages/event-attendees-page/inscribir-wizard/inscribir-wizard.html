@@ -1,0 +1,374 @@
+<div class="wz-overlay" (click)="emitirYCerrar()"></div>
+<div class="wz-modal" (click)="$event.stopPropagation()">
+
+  <!-- Cabecera -->
+  <div class="wz-header">
+    <div class="wz-header__left">
+      <div class="wz-header__icon"><i class="bi bi-person-plus-fill"></i></div>
+      <div>
+        <span class="wz-header__title">Inscribir al evento</span>
+        <span class="wz-course-chip">{{ event.name }}</span>
+      </div>
+    </div>
+    <button class="wz-close" aria-label="Cerrar" (click)="emitirYCerrar()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <!-- Indicador de pasos -->
+  <div class="wz-steps">
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'search'"
+         [class.wz-step--done]="paso() !== 'search'">
+      <div class="wz-step__bubble">
+        @if (paso() !== 'search') { <i class="bi bi-check-lg"></i> } @else { 1 }
+      </div>
+      <span class="wz-step__label">Buscar</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() !== 'search'"></div>
+
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'family'"
+         [class.wz-step--done]="paso() === 'confirm' || paso() === 'done'">
+      <div class="wz-step__bubble">
+        @if (paso() === 'confirm' || paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 2 }
+      </div>
+      <span class="wz-step__label">Familia</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'confirm' || paso() === 'done'"></div>
+
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'confirm'"
+         [class.wz-step--done]="paso() === 'done'">
+      <div class="wz-step__bubble">
+        @if (paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 3 }
+      </div>
+      <span class="wz-step__label">Confirmar</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'done'"></div>
+
+    <div class="wz-step" [class.wz-step--active]="paso() === 'done'">
+      <div class="wz-step__bubble">4</div>
+      <span class="wz-step__label">Listo</span>
+    </div>
+  </div>
+
+  <!-- Cuerpo -->
+  <div class="wz-body">
+
+    <!-- ══════════════════════════ PASO 1: BUSCAR ══════════════════════════ -->
+    @if (paso() === 'search') {
+      <div class="wz-step-header">
+        <div class="wz-section-title">
+          <i class="bi bi-search"></i>Buscar socio
+        </div>
+      </div>
+      <p class="wz-hint">Busca por nombre o número de socio. Al seleccionar un resultado se cargará su grupo familiar.</p>
+
+      <div class="wz-search-field">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Ej. 2270601 o García López..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchInput($event)"
+          autofocus />
+        @if (buscando()) { <div class="wz-search-spinner"></div> }
+      </div>
+
+      @if (resultados().length) {
+        <div class="wz-results">
+          @for (r of resultados(); track r.id) {
+            <div class="wz-result-card" (click)="seleccionarResultado(r)">
+              <div class="wz-result-card__avatar">{{ r.fullname[0] }}</div>
+              <div class="wz-result-card__info">
+                <span class="wz-result-card__name">{{ r.fullname }}</span>
+                <span class="wz-result-card__meta">
+                  No. {{ r.entityid }}
+                  @if ((r.family?.length ?? 0) > 1) {
+                    &nbsp;·&nbsp;<i class="bi bi-people-fill"></i> {{ r.family.length }} en familia
+                  }
+                </span>
+              </div>
+              <i class="bi bi-chevron-right wz-result-card__arrow"></i>
+            </div>
+          }
+        </div>
+      } @else if (searchTerm().length >= 2 && !buscando()) {
+        <div class="wz-no-results">
+          <i class="bi bi-person-x"></i>
+          <p>Sin resultados para "{{ searchTerm() }}"</p>
+        </div>
+      }
+    }
+
+    <!-- ══════════════════════════ PASO 2: FAMILIA ══════════════════════════ -->
+    @if (paso() === 'family') {
+      <div class="wz-step-header">
+        <button class="wz-back-btn" (click)="volver()"><i class="bi bi-arrow-left"></i></button>
+        <div class="wz-section-title">
+          <i class="bi bi-people-fill"></i>Seleccionar miembros
+        </div>
+      </div>
+      <p class="wz-hint">
+        Marca los miembros a inscribir.
+        @if (tieneSubeventos()) { Elige los subeventos para cada persona. }
+      </p>
+
+      <div class="wz-family-grid">
+        @for (m of pendingMembers(); track m.socio_id) {
+          <div class="wz-family-card"
+               [class.wz-card-selected]="m.selected && !m.alreadyEnrolled"
+               [class.wz-card-enrolled]="m.alreadyEnrolled">
+
+            <!-- Encabezado tarjeta -->
+            <div class="wz-card-header" (click)="toggleMiembro(m.socio_id)">
+              <div class="d-flex align-items-center gap-2">
+                <input class="form-check-input wz-check"
+                       type="checkbox"
+                       [checked]="m.selected && !m.alreadyEnrolled"
+                       [disabled]="m.alreadyEnrolled"
+                       (change)="toggleMiembro(m.socio_id)"
+                       (click)="$event.stopPropagation()" />
+                <div class="flex-grow-1">
+                  <div class="fw-semibold lh-sm">{{ m.fullname }}</div>
+                  <div class="text-muted" style="font-size:0.78rem">No. {{ m.entityid }}</div>
+                </div>
+              </div>
+              <div class="d-flex gap-1 mt-1 ms-4">
+                <span class="wz-chip wz-chip--blue">{{ m.parentesco }}</span>
+                @if (m.is_titular) {
+                  <span class="wz-chip" style="background:#1e293b;color:#fff">
+                    <i class="bi bi-star-fill"></i>Titular
+                  </span>
+                }
+                @if (m.alreadyEnrolled) {
+                  <span class="wz-chip wz-chip--green">
+                    <i class="bi bi-check-circle-fill"></i>Ya inscrito
+                  </span>
+                }
+                @if (event.has_cost && !m.alreadyEnrolled) {
+                  <span class="ms-auto fw-semibold small text-primary">${{ +m.totalCost | number:'1.2-2' }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Subeventos -->
+            @if (tieneSubeventos() && m.selected && !m.alreadyEnrolled) {
+              <div class="wz-subevent-panel">
+                <p class="wz-subevent-label">Subeventos:</p>
+                @for (sv of subevents(); track sv.id) {
+                  <label class="wz-subevent-item" [class.wz-subevent-blocked]="sv.access_type === 'committee'">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           [checked]="isSubeventoSeleccionado(m.socio_id, sv.id!)"
+                           [disabled]="sv.access_type === 'committee'"
+                           (change)="toggleSubevento(m.socio_id, sv.id!)" />
+                    <span class="flex-grow-1">{{ sv.name }}</span>
+                    <span [class]="subevCss(sv)" style="font-size:0.72rem">{{ sv.access_type }}</span>
+                    @if (event.has_cost && (sv.cost ?? 0) > 0) {
+                      <span class="text-muted small">+${{ (sv.cost ?? 0) | number:'1.2-2' }}</span>
+                    }
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      @if (event.has_cost) {
+        <div class="wz-running-total mt-3">
+          <span class="text-muted">Total estimado:</span>
+          <span class="fw-bold fs-5">${{ totalGrupo() | number:'1.2-2' }}</span>
+        </div>
+      }
+
+      @if (errorMsg()) {
+        <div class="wz-alert wz-alert--warning mt-3">
+          <i class="bi bi-exclamation-triangle-fill"></i>{{ errorMsg() }}
+        </div>
+      }
+    }
+
+    <!-- ══════════════════════════ PASO 3: CONFIRMAR ══════════════════════════ -->
+    @if (paso() === 'confirm') {
+      <div class="wz-step-header">
+        <button class="wz-back-btn" [disabled]="guardando()" (click)="volver()">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <div class="wz-section-title">
+          <i class="bi bi-clipboard-check"></i>Confirmar inscripción
+        </div>
+      </div>
+      <p class="wz-hint">Revisa el resumen antes de confirmar.</p>
+
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Socio</th>
+              <th>Parentesco</th>
+              @if (tieneSubeventos()) { <th>Subeventos</th> }
+              @if (event.has_cost) { <th class="text-end">Total</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of miembrosActivos(); track m.socio_id) {
+              <tr>
+                <td>
+                  <div class="fw-semibold">{{ m.fullname }}</div>
+                  <div class="text-muted small">No. {{ m.entityid }}</div>
+                </td>
+                <td>
+                  <span class="wz-chip wz-chip--blue">{{ m.parentesco }}</span>
+                </td>
+                @if (tieneSubeventos()) {
+                  <td>
+                    @if (m.selectedSubeventIds.length) {
+                      @for (svId of m.selectedSubeventIds; track svId) {
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle me-1">
+                          {{ nombreSubevento(svId) }}
+                        </span>
+                      }
+                    } @else {
+                      <span class="text-muted small">—</span>
+                    }
+                  </td>
+                }
+                @if (event.has_cost) {
+                  <td class="text-end fw-semibold">${{ m.totalCost | number:'1.2-2' }}</td>
+                }
+              </tr>
+            }
+          </tbody>
+          @if (event.has_cost && miembrosActivos().length > 1) {
+            <tfoot>
+              <tr class="table-secondary">
+                <td [attr.colspan]="tieneSubeventos() ? 3 : 2" class="text-end fw-bold">Total grupo:</td>
+                <td class="text-end fw-bold">${{ totalGrupo() | number:'1.2-2' }}</td>
+              </tr>
+            </tfoot>
+          }
+        </table>
+      </div>
+
+      @if (generaOrdenNS()) {
+        <div class="wz-alert wz-alert--info mb-3">
+          <i class="bi bi-receipt-cutoff"></i>
+          <div>
+            Se generará una <strong>Orden de Venta en NetSuite</strong> por
+            <strong>${{ totalGrupo() | number:'1.2-2' }}</strong> (+ IVA).
+          </div>
+        </div>
+      }
+
+      <div class="wz-notes">
+        <label class="wz-notes__label">Notas (opcional)</label>
+        <textarea class="wz-notes__input" rows="2"
+                  placeholder="Observaciones de la inscripción..."
+                  [ngModel]="notas()"
+                  (ngModelChange)="notas.set($event)"></textarea>
+      </div>
+
+      @if (errorMsg()) {
+        <div class="wz-alert wz-alert--danger">
+          <i class="bi bi-x-circle-fill"></i>{{ errorMsg() }}
+        </div>
+      }
+    }
+
+    <!-- ══════════════════════════ PASO 4: LISTO ══════════════════════════ -->
+    @if (paso() === 'done') {
+      <div class="wz-done">
+        <!-- KPIs -->
+        <div class="d-flex gap-4 justify-content-center mb-4">
+          <div class="text-center">
+            <div class="fs-2 fw-bold text-success">{{ inscritosOk() }}</div>
+            <div class="text-muted small">Inscritos</div>
+          </div>
+          @if (skipped() > 0) {
+            <div class="text-center">
+              <div class="fs-2 fw-bold text-warning">{{ skipped() }}</div>
+              <div class="text-muted small">Ya inscritos</div>
+            </div>
+          }
+          @if (errores() > 0) {
+            <div class="text-center">
+              <div class="fs-2 fw-bold text-danger">{{ errores() }}</div>
+              <div class="text-muted small">Errores</div>
+            </div>
+          }
+        </div>
+
+        <!-- Detalle por persona -->
+        <div class="wz-done-list">
+          @for (r of batchResults(); track r.socio_id) {
+            <div class="wz-done-row"
+                 [class.wz-done-ok]="r.status === 'inscrito'"
+                 [class.wz-done-skip]="r.status === 'skipped'"
+                 [class.wz-done-err]="r.status === 'error'">
+              <i class="bi"
+                 [class.bi-check-circle-fill]="r.status === 'inscrito'"
+                 [class.bi-dash-circle]="r.status === 'skipped'"
+                 [class.bi-x-circle-fill]="r.status === 'error'"></i>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ r.full_name }}</div>
+                @if (r.message) { <div class="text-muted small">{{ r.message }}</div> }
+              </div>
+              @if (event.has_cost && r.amount != null && r.amount > 0) {
+                <span class="text-muted small">${{ r.amount | number:'1.2-2' }}</span>
+              }
+            </div>
+          }
+        </div>
+
+        @if (nsSoId()) {
+          <div class="wz-alert wz-alert--success mt-3">
+            <i class="bi bi-receipt-cutoff"></i>
+            <div>Orden de Venta NS creada: <strong>#{{ nsSoId() }}</strong></div>
+          </div>
+        }
+        @if (nsSoError()) {
+          <div class="wz-alert wz-alert--warning mt-3">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <div>NS SO no generada: {{ nsSoError() }}</div>
+          </div>
+        }
+      </div>
+    }
+
+  </div><!-- /wz-body -->
+
+  <!-- Pie -->
+  <div class="wz-footer">
+    @if (paso() === 'search') {
+      <span></span>
+      <button class="btn btn-outline-secondary btn-sm" (click)="emitirYCerrar()">Cancelar</button>
+    }
+    @if (paso() === 'family') {
+      <span></span>
+      <button class="btn btn-primary btn-sm" (click)="avanzarAConfirm()"
+              [disabled]="!miembrosActivos().length">
+        Revisar ({{ miembrosActivos().length }})&nbsp;<i class="bi bi-arrow-right"></i>
+      </button>
+    }
+    @if (paso() === 'confirm') {
+      <span></span>
+      <button class="btn btn-success btn-sm" (click)="confirmar()" [disabled]="guardando()">
+        @if (guardando()) {
+          <span class="spinner-border spinner-border-sm me-1" role="status"></span>Guardando...
+        } @else {
+          <i class="bi bi-check-lg me-1"></i>Confirmar inscripción
+        }
+      </button>
+    }
+    @if (paso() === 'done') {
+      <span></span>
+      <button class="btn btn-primary btn-sm" (click)="emitirYCerrar()">
+        <i class="bi bi-check2-all me-1"></i>Cerrar
+      </button>
+    }
+  </div>
+
+</div>

@@ -121,6 +121,7 @@ export class EventFormStateService {
         max_capacity: [null as number | null],
         has_cost: [false],
         cost: [null as number | null],
+        ns_item_id: [null as number | null],
       }),
       subevents: this.fb.array([]),
       hero: this.fb.group({
@@ -456,6 +457,7 @@ export class EventFormStateService {
       max_capacity: event.max_capacity ?? null,
       has_cost: event.has_cost,
       cost: event.cost ?? null,
+      ns_item_id: event.ns_item_id ?? null,
     });
     this.heroGroup.patchValue({
       banner_image_url: event.banner_image_url ?? '',
@@ -556,6 +558,7 @@ export class EventFormStateService {
       max_capacity: access.max_capacity || null,
       has_cost: !!access.has_cost,
       cost: access.has_cost ? access.cost : null,
+      ns_item_id: access.has_cost ? (access.ns_item_id || null) : null,
       has_donations: !!identity.has_donations,
       donation_amounts: identity.has_donations ? identity.donation_amounts : null,
       documents: this.documentsArray.value.length ? this.documentsArray.value : null,
@@ -740,7 +743,7 @@ export class EventFormStateService {
     this.loadError.set(null);
     this.identityGroup.reset({ name: '', kicker: '', event_type: '', area_id: null, location_id: null, description: '', has_donations: false, donation_amounts: [] });
     this.datetimeGroup.reset({ start_date: '', end_date: '', all_day: false, venue: '', event_modality: 'presencial', stream_url: '', doors_open_time: '' });
-    this.accessGroup.reset({ access_types: [], has_registration: true, max_capacity: null, has_cost: false, cost: null });
+    this.accessGroup.reset({ access_types: [], has_registration: true, max_capacity: null, has_cost: false, cost: null, ns_item_id: null });
     this.heroGroup.reset({ banner_image_url: '', banner_mobile_url: '', cover_image_url: '', allies_header: 'Con el apoyo de', allies: [] });
     this.faqContactGroup.reset({ contact_email: '', contact_phone: '', contact_person: '', contact_schedule: '', maps_url: '', social_facebook: '', social_instagram: '', social_twitter: '', social_tiktok: '' });
     this.subeventsArray.clear();

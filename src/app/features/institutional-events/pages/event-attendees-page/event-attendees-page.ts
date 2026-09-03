@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ContentMenu } from '../../../../components/content-menu/content-menu';
+import { InscribirWizardComponent } from './inscribir-wizard/inscribir-wizard';
 import { InstitutionalEventsService } from '../../services/institutional-events.service';
 import {
   InstitutionalEvent,
@@ -23,7 +24,7 @@ import {
   selector: 'app-event-attendees-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ContentMenu],
+  imports: [CommonModule, ContentMenu, InscribirWizardComponent],
   templateUrl: './event-attendees-page.html',
   styleUrl: './event-attendees-page.scss',
 })
@@ -42,6 +43,10 @@ export class EventAttendeesPageComponent implements OnInit {
   readonly filtroTipo = signal('');
 
   readonly eventStatusMeta = EVENT_STATUS_META;
+  readonly wizardOpen = signal(false);
+  readonly cancelando = signal<number | null>(null);
+  readonly toastMsg = signal<string | null>(null);
+  readonly toastType = signal<'success'|'warning'|'danger'>('success');
 
   readonly attendeesFiltrados = computed(() => {
     let lista = this.attendees();
@@ -91,6 +96,38 @@ export class EventAttendeesPageComponent implements OnInit {
   volver(): void { this.router.navigate(['/eventos']); }
   irACheckin(): void { this.router.navigate(['/eventos', this.eventId(), 'checkin']); }
   irAEditar(): void { this.router.navigate(['/eventos/editar', this.eventId()]); }
+
+  abrirWizard(): void {
+    if (!this.event()?.has_registration) return;
+    this.wizardOpen.set(true);
+  }
+
+  onInscripcionGuardada(): void {
+    this.cargar(this.eventId());
+    this.wizardOpen.set(false);
+    this.showToast('Inscripciones guardadas correctamente.', 'success');
+  }
+
+  async cancelarInscripcion(a: InstitutionalEventAttendee): Promise<void> {
+    if (a.status === 'cancelled') return;
+    if (!confirm(`¿Cancelar inscripción de ${a.full_name}?`)) return;
+    this.cancelando.set(a.id);
+    try {
+      await firstValueFrom(this.svc.cancelAttendee(this.eventId(), a.id));
+      this.attendees.update(list => list.map(x => x.id === a.id ? { ...x, status: 'cancelled' as any } : x));
+      this.showToast('Inscripción cancelada.', 'danger');
+    } catch {
+      this.showToast('Error al cancelar la inscripción.', 'danger');
+    } finally {
+      this.cancelando.set(null);
+    }
+  }
+
+  private showToast(msg: string, type: 'success'|'warning'|'danger'): void {
+    this.toastMsg.set(msg);
+    this.toastType.set(type);
+    setTimeout(() => this.toastMsg.set(null), 4000);
+  }
 
   tipoLabel(tipo: string): string {
     const map: Record<string, string> = {

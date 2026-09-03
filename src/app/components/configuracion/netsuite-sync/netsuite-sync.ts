@@ -5,7 +5,7 @@ import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sy
 import { AuthService } from '../../../services/auth.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments' | 'ns_services' | 'ns_discounts' | 'ns_markups' | 'ns_noninvt_parts' | 'ns_sales_tax_items';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
@@ -152,6 +152,31 @@ export class NetsuiteSyncComponent implements OnInit {
       type: 'summer_payments',
       isLoading: false,
       recordCount: 0
+    },
+    ns_services: {
+      type: 'ns_services',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_discounts: {
+      type: 'ns_discounts',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_markups: {
+      type: 'ns_markups',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_noninvt_parts: {
+      type: 'ns_noninvt_parts',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_sales_tax_items: {
+      type: 'ns_sales_tax_items',
+      isLoading: false,
+      recordCount: 0
     }
   };
 
@@ -292,6 +317,26 @@ export class NetsuiteSyncComponent implements OnInit {
 
   syncMedicalRecords(): void {
     this.performSync('medical_records', 'Registros Médicos', () => this.netsuiteSyncService.syncMedicalRecords());
+  }
+
+  syncNsServices(): void {
+    this.performSync('ns_services', 'Servicios NS', () => this.netsuiteSyncService.syncNsServices());
+  }
+
+  syncNsDiscounts(): void {
+    this.performSync('ns_discounts', 'Descuentos NS', () => this.netsuiteSyncService.syncNsDiscounts());
+  }
+
+  syncNsMarkups(): void {
+    this.performSync('ns_markups', 'Recargos NS', () => this.netsuiteSyncService.syncNsMarkups());
+  }
+
+  syncNsNoninvtParts(): void {
+    this.performSync('ns_noninvt_parts', 'Partes No Inventariables NS', () => this.netsuiteSyncService.syncNsNoninvtParts());
+  }
+
+  syncNsSalesTaxItems(): void {
+    this.performSync('ns_sales_tax_items', 'Códigos de Impuesto NS', () => this.netsuiteSyncService.syncNsSalesTaxItems());
   }
 
   syncSocioHealth(): void {

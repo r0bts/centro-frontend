@@ -39,6 +39,8 @@ export type EventModality = 'presencial' | 'virtual' | 'hibrido';
 export type SubeventStatus = 'confirmed' | 'tentative' | 'cancelled';
 export type AttendeeType = 'socio' | 'invitado' | 'staff' | 'externo';
 export type AttendeeStatus = 'confirmed' | 'pending' | 'cancelled';
+export type AttendanceStatus = 'pending' | 'present' | 'absent';
+export type PaymentStatus = 'free' | 'pending' | 'paid' | 'cancelled';
 export type RegistrationChannel = 'public_self' | 'public_by_socio' | 'admin_manual';
 
 // ─── Metadatos de UI (labels/íconos/colores) ───────────────────────────────────
@@ -190,6 +192,7 @@ export interface InstitutionalEvent {
   current_attendee_count: number;
   has_cost: boolean;
   cost?: number | null;
+  ns_item_id?: number | null;
   has_donations: boolean;
   donation_amounts?: number[] | null;
   documents?: InstitutionalEventDocument[] | null;
@@ -228,8 +231,75 @@ export interface InstitutionalEventAttendee {
   registration_channel: RegistrationChannel;
   status: AttendeeStatus;
   notes?: string | null;
+  // Pago y NetSuite
+  payment_status?: PaymentStatus | null;
+  amount_paid?: number | null;
+  titular_id?: number | null;
+  ns_sales_order_id?: number | null;
+  ns_so_status?: string | null;
+  ns_so_sync_error?: string | null;
+  ns_so_synced_at?: string | null;
+  // Check-in evento
+  attendance_status?: AttendanceStatus;
+  checked_in_at?: string | null;
+  checked_in_by?: number | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Miembro de un grupo familiar (viene dentro de EventSocioSearchResult.family). */
+export interface FamilyMember {
+  id: number;
+  entityid: string;
+  fullname: string;
+  email: string | null;
+  phone: string | null;
+  parentesco: string;    // 'Titular', 'Esposo(a)', 'Hijo(a)', etc.
+  is_titular: boolean;
+}
+
+/** Miembro en el wizard v2 con estado de selección y costos calculados. */
+export interface PendingMember {
+  socio_id: number;
+  entityid: string;
+  fullname: string;
+  parentesco: string;
+  is_titular: boolean;
+  selected: boolean;
+  alreadyEnrolled: boolean;
+  selectedSubeventIds: number[];
+  baseCost: number;
+  subeventsCost: number;
+  totalCost: number;
+}
+
+/** Resultado de búsqueda de socio para el wizard de inscripción. */
+export interface EventSocioSearchResult {
+  id: number;
+  entityid: string;
+  fullname: string;
+  email: string | null;
+  phone: string | null;
+  membership_id: string | null;
+  /** socios.id del titular del grupo familiar (null si el socio ES el titular) */
+  titular_id: number | null;
+  /** fullname del titular, para mostrar en el wizard bajo "SO a nombre de:" */
+  titular_name: string | null;
+  /** Grupo familiar completo (todos los socios con la misma membership_id). */
+  family: FamilyMember[];
+}
+
+/** Payload para POST /api/institutional-events/:id/attendees (inscripción de socio). */
+export interface AddAttendeePayload {
+  attendee_type: 'socio';
+  socio_id: number;
+  full_name?: string;
+  email?: string | null;
+  phone?: string | null;
+  access_type_selected: AccessType;
+  subevent_ids?: number[];
+  registration_channel: 'admin_manual';
+  notes?: string | null;
 }
 
 // ─── Respuestas de la API ───────────────────────────────────────────────────────
@@ -305,6 +375,7 @@ export interface InstitutionalEventPayload {
   max_capacity?: number | null;
   has_cost: boolean;
   cost?: number | null;
+  ns_item_id?: number | null;
   has_donations: boolean;
   donation_amounts?: number[] | null;
   documents?: InstitutionalEventDocument[] | null;
