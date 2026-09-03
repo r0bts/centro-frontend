@@ -154,6 +154,18 @@ export class EventLandingPageComponent implements OnInit {
     return new Date(dateStr).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
   }
 
+  formatPhone(phone: string | null | undefined): string {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 10) {
+      return `${cleaned.substring(0,2)}-${cleaned.substring(2,6)}-${cleaned.substring(6)}`;
+    }
+    if (cleaned.length === 12) {
+      return `+${cleaned.substring(0,2)} ${cleaned.substring(2,4)}-${cleaned.substring(4,8)}-${cleaned.substring(8)}`;
+    }
+    return phone;
+  }
+
   // ── Modal de inscripción ─────────────────────────────────────────────────────
   abrirModal(): void {
     this.modalAbierto.set(true);
