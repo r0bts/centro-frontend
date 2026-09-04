@@ -99,43 +99,10 @@
         <div class="sobre-info">
 
           <div class="rich-text-content mt-3" [innerHTML]="ev.description"></div>
-          
-          
-            </div>
-
-            <div class="detalle-box">
-              <i class="bi bi-currency-dollar detalle-icon"></i>
-              <div>
-                <div class="detalle-title">Inscripción</div>
-                <div class="detalle-val text-success">
-                  {{ ev.cost && ev.cost > 0 ? '$' + ev.cost + ' MXN' : 'Gratuita' }}
-                </div>
-              </div>
-            </div>
-
-            @if (ev.max_capacity && ev.max_capacity > 0) {
-              <div class="detalle-box">
-                <i class="bi bi-people-fill detalle-icon"></i>
-                <div>
-                  <div class="detalle-title">Capacidad</div>
-                  <div class="detalle-val">{{ ev.max_capacity }} asistentes</div>
-                </div>
-              </div>
-            }
-
-            @if (ev.location?.name) {
-              <div class="detalle-box">
-                <i class="bi bi-geo-alt-fill detalle-icon"></i>
-                <div>
-                  <div class="detalle-title">Sede principal</div>
-                  <div class="detalle-val">{{ ev.location!.name }}</div>
-                </div>
-              </div>
-            }
-          </div>
         </div>
-      </div>
+        </div>
     </section>
+  }
 
 <!-- ───────────────── BARRA DE ALIADOS / PATROCINADORES ───────────────── -->
   @if (normalizedAllies().length > 0) {
@@ -148,10 +115,10 @@
               @if (aliado.logo_url) {
                 @if (aliado.url) {
                   <a [href]="aliado.url" target="_blank" [title]="aliado.name" class="d-flex flex-column align-items-center text-decoration-none">
-                    <img [src]="aliado.logo_url" [alt]="aliado.name" style="max-height: 80px; max-width: 140px; object-fit: contain;">
+                    <img [src]="aliado.logo_url" [alt]="aliado.name" style="height: 180px; max-width: 320px; object-fit: contain;">
                   </a>
                 } @else {
-                  <img [src]="aliado.logo_url" [alt]="aliado.name" [title]="aliado.name" style="max-height: 80px; max-width: 140px; object-fit: contain;">
+                  <img [src]="aliado.logo_url" [alt]="aliado.name" [title]="aliado.name" style="height: 180px; max-width: 320px; object-fit: contain;">
                 }
               } @else {
                 <i class="bi bi-shield-check text-primary mb-1 fs-5"></i>
@@ -164,7 +131,29 @@
     </div>
   }
 
-  }
+  <!-- ─────────────── DETALLES DEL EVENTO ─────────────── -->
+  <section class="seccion-info-banner">
+    <div class="contenedor">
+      <div class="banner-content">
+        <!-- Logo -->
+        <div class="banner-logo">
+          <img src="assets/images/logo-centro-libanes.png" alt="Centro Libanés" class="white-logo">
+        </div>
+
+        <!-- Info -->
+        <div class="banner-info">
+          <div class="deco-line"></div>
+          <h3 class="banner-title">{{ ev.location?.name || 'Sede del Evento' }}</h3>
+          <ul class="banner-details">
+            <li><strong>Fecha:</strong> {{ formatFechaLarga(ev.start_date) }}</li>
+            <li><strong>Hora:</strong> {{ ev.start_date | date:'HH:mm' }}hrs</li>
+            <li><strong>Ubicación:</strong> {{ ev.venue || (ev.place?.name || 'Sede por confirmar') }}</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
 
   <!-- ─────────────── PROGRAMA / SUBEVENTOS ─────────────── -->
   @if (ev.institutional_event_subevents?.length) {
@@ -323,28 +312,34 @@
     </section>
   }
 
-  <!-- ─────────────── PREGUNTAS FRECUENTES (FAQ) ─────────────── -->
+  <!-- ─────────────── PREGUNTAS FRECUENTES (FAQ) PREMIUM ─────────────── -->
   @if (ev.faqs?.length) {
-    <section id="faq" class="fondo-arena seccion-faq">
+    <section id="faq" class="seccion-faq-premium" [style.backgroundColor]="'var(--ev-primary)'">
       <div class="contenedor">
-        <div class="text-center max-w-700 mx-auto mb-5">
-          <p class="eyebrow">Dudas frecuentes</p>
-          <h2 class="titulo-seccion">Preguntas frecuentes</h2>
-          <p class="subtitulo mx-auto">Respuestas a las preguntas más comunes sobre el registro y asistencia.</p>
-        </div>
-
-        <div class="faq-accordion-wrapper mx-auto">
-          @for (faq of ev.faqs!; track faq.question) {
-            <details class="faq-details">
-              <summary class="faq-summary">
-                <span>{{ faq.question }}</span>
-                <i class="bi bi-chevron-down faq-chevron"></i>
-              </summary>
-              <div class="faq-answer">
-                <p>{{ faq.answer }}</p>
-              </div>
-            </details>
-          }
+        <div class="faq-premium-grid">
+          <!-- Columna Izquierda: Títulos -->
+          <div class="faq-header-side">
+            <span class="faq-eyebrow">FAQ</span>
+            <h2 class="faq-title">Preguntas<br>Frecuentes</h2>
+            <p class="faq-subtitle">Todo lo que necesitas saber sobre el registro, acceso y asistencia a nuestro evento.</p>
+          </div>
+          
+          <!-- Columna Derecha: Acordeón -->
+          <div class="faq-accordion-side">
+            @for (faq of ev.faqs!; track faq.question) {
+              <details class="faq-glass-details" name="faq-accordion">
+                <summary class="faq-glass-summary">
+                  <span class="faq-q-text">{{ faq.question }}</span>
+                  <div class="faq-icon-wrapper">
+                    <i class="bi bi-chevron-down"></i>
+                  </div>
+                </summary>
+                <div class="faq-glass-answer">
+                  <p>{{ faq.answer }}</p>
+                </div>
+              </details>
+            }
+          </div>
         </div>
       </div>
     </section>
@@ -376,7 +371,7 @@
               <i class="bi bi-telephone-fill contacto-icon"></i>
               <div>
                 <div class="contacto-label">Teléfono / WhatsApp</div>
-                <a [href]="'tel:' + ev.contact_phone" class="contacto-val">{{ ev.contact_phone }}</a>
+                <a [href]="'tel:' + ev.contact_phone" class="contacto-val">{{ formatPhone(ev.contact_phone) }}</a>
               </div>
             </div>
           }
@@ -412,19 +407,19 @@
       </div>
 
       <div class="card registro-cta-card">
-        <div class="badge bg-primary-subtle text-primary border rounded-pill px-3 py-1 fw-semibold mb-2" style="font-size:0.75rem;">
+        <div class="inscripcion-badge">
           <i class="bi bi-lightning-charge-fill me-1"></i>Inscripción abierta
         </div>
-        <h3 class="registro-title">Asegura tu lugar en el evento</h3>
+        <h3 class="registro-title mt-4">Asegura tu lugar en el evento</h3>
         <p class="registro-desc">
           Completa tu registro en menos de un minuto. Evento abierto para socios e invitados.
         </p>
 
-        <button type="button" class="btn btn-primario btn-lg w-100 mt-2" (click)="abrirModal()">
+        <button type="button" class="btn btn-registro w-100 mt-3" (click)="abrirModal()">
           <i class="bi bi-check-circle-fill me-1.5"></i>
-          Registrarme ahora{{ ev.cost && ev.cost > 0 ? ' — $' + ev.cost : ' gratis' }}
+          Registrarme ahora{{ ev.cost && ev.cost > 0 ? ' — $' + ev.cost + '.00' : ' gratis' }}
         </button>
-        <p class="registro-note mt-3">Al registrarte aceptas las políticas y reglamento del Centro Libanés.</p>
+        <p class="registro-note mt-3 text-center">Al registrarte aceptas las políticas y reglamento del Centro Libanés.</p>
       </div>
     </div>
   </section>
@@ -435,8 +430,8 @@
       <div class="footer-compact">
 
         <!-- Brand -->
-        <div class="footer-brand">
-          <span class="marca">CL</span>
+        <div class="footer-brand d-flex align-items-center gap-2">
+          <img src="/assets/images/logo-centro-libanes.png" alt="Centro Libanés" class="footer-logo">
           <span class="nombre-footer">{{ ev.name }}</span>
         </div>
 
