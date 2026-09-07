@@ -1,1629 +1,187 @@
 <div class="card">
-    <div class="card-header">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="card-title mb-0">
-                <i class="bi bi-cloud-arrow-down me-2"></i>Sincronización NetSuite
-            </h5>
-            <button class="btn btn-primary" *ngIf="canSync('sync')" (click)="syncAll()">
-                <i class="bi bi-arrow-repeat me-2"></i>Sincronizar Todo
+  <div class="card-header">
+    <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+      <div>
+        <h5 class="card-title mb-1">
+          <i class="bi bi-cloud-arrow-down me-2"></i>Sincronización NetSuite
+        </h5>
+        <p class="text-muted mb-0 small">Sincroniza catálogos y consulta una vista previa tabular por cada card.</p>
+      </div>
+      <button class="btn btn-primary" *ngIf="canSync('sync')" (click)="syncAll()">
+        Sincronizar Todo
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="alert alert-info mb-4" role="alert">
+      <strong>Configuración de Integración NetSuite</strong>
+      <p class="mb-0 mt-2">El icono de ojo despliega la información local sincronizada del catálogo seleccionado.</p>
+    </div>
+
+    <div class="section-title mb-3">
+      <h6 class="mb-1">Catálogos</h6>
+      <p class="text-muted mb-0 small">Sincronización y vista previa bajo demanda.</p>
+    </div>
+
+    <div class="row g-4">
+      <ng-container *ngFor="let card of catalogCards">
+        <div class="col-12 col-md-6 col-lg-4">
+          <div class="card sync-card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="sync-icon me-3">
+                  <i [class]="card.icon"></i>
+                </div>
+                <button
+                  *ngIf="card.previewable !== false && canPreview(card.permission)"
+                  type="button"
+                  class="btn btn-sm btn-light preview-toggle"
+                  [class.active]="isPreviewExpanded(card.key)"
+                  (click)="toggleCatalogPreview(card.key)"
+                  [attr.aria-label]="'Ver preview de ' + card.title">
+                  <i class="bi" [ngClass]="isPreviewExpanded(card.key) ? 'bi-eye-slash' : 'bi-eye'"></i>
+                </button>
+              </div>
+
+              <h5 class="card-title mb-1">{{ card.title }}</h5>
+              <p class="text-muted small mb-3">{{ card.description }}</p>
+
+              <div *ngIf="card.note" class="alert alert-warning py-2 mb-3 small">
+                <i class="bi bi-info-circle me-1"></i>{{ card.note }}
+              </div>
+
+              <div class="sync-info mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <span class="text-muted small">Última sincronización:</span>
+                </div>
+                <p class="mb-1 small">{{ getTimeSinceLastSync(syncStatus[card.key].lastSync) }}</p>
+                <p class="mb-0 small text-muted">{{ formatDate(syncStatus[card.key].lastSync) }}</p>
+                <div class="mt-2">
+                  <span class="badge">{{ syncStatus[card.key].recordCount }} registros</span>
+                </div>
+              </div>
+
+              <button
+                class="btn w-100"
+                [ngClass]="card.syncButtonClass"
+                (click)="card.syncAction()"
+                [disabled]="syncStatus[card.key].isLoading">
+                <span *ngIf="!syncStatus[card.key].isLoading">{{ card.syncButtonLabel }}</span>
+                <span *ngIf="syncStatus[card.key].isLoading">
+                  <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                  Sincronizando...
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12" *ngIf="isPreviewExpanded(card.key)">
+          <div class="card preview-panel shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                  <div class="text-muted small">Vista previa del catálogo</div>
+                  <h5 class="mb-0">{{ getCatalogTitle(card.key) }}</h5>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <button
+                    class="btn btn-sm btn-outline-secondary"
+                    type="button"
+                    (click)="reloadCatalogPreview(card.key)"
+                    [disabled]="getPreviewState(card.key).isLoading">
+                    Recargar
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" type="button" (click)="toggleCatalogPreview(card.key)">
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+
+              <ng-container *ngIf="getPreviewState(card.key) as previewState">
+                <div *ngIf="previewState.isLoading" class="text-center py-5 preview-loading preview-loading-large">
+                  <div class="spinner-border text-primary mb-2" role="status"></div>
+                  <div class="small text-muted">Cargando catálogo...</div>
+                </div>
+
+                <div *ngIf="!previewState.isLoading && previewState.error" class="alert alert-danger py-2 small mb-0">
+                  {{ previewState.error }}
+                </div>
+
+                <ng-container *ngIf="!previewState.isLoading && !previewState.error">
+                  <div class="table-responsive catalog-preview-table catalog-preview-table-large">
+                    <table class="table table-striped table-hover align-middle mb-0 preview-table">
+                      <thead>
+                        <tr>
+                          <th *ngFor="let column of previewColumns(previewState)">{{ formatColumnLabel(column) }}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngIf="previewState.rows.length === 0">
+                          <td [attr.colspan]="previewColumns(previewState).length || 1" class="text-center text-muted py-5">
+                            Sin registros para mostrar
+                          </td>
+                        </tr>
+                        <tr *ngFor="let row of previewState.rows">
+                          <td *ngFor="let column of previewColumns(previewState)">{{ previewValue(row[column]) }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div class="d-flex justify-content-between align-items-center mt-3 small text-muted flex-wrap gap-2">
+                    <span>Total: {{ previewState.total }} registros</span>
+                    <span>Página {{ previewState.page }} · Límite {{ previewState.limit }}</span>
+                    <span *ngIf="previewState.loadedAt">Actualizado {{ previewState.loadedAt | date:'short' }}</span>
+                  </div>
+                </ng-container>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="section-title mt-5 mb-3">
+      <h6 class="mb-1">Procesos especiales</h6>
+      <p class="text-muted mb-0 small">Acciones operativas no catalogables que siguen disponibles en esta pantalla.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-md-6 col-lg-4" *ngFor="let card of processCards">
+        <div class="card sync-card h-100">
+          <div class="card-body text-center">
+            <div class="sync-icon mb-3">
+              <i [class]="card.icon"></i>
+            </div>
+            <h5 class="card-title">{{ card.title }}</h5>
+            <p class="text-muted small mb-3">{{ card.description }}</p>
+            <button class="btn w-100" [ngClass]="card.buttonClass" (click)="card.action()" [disabled]="syncStatus[card.key].isLoading">
+              <span *ngIf="!syncStatus[card.key].isLoading">{{ card.buttonLabel }}</span>
+              <span *ngIf="syncStatus[card.key].isLoading">
+                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                Procesando...
+              </span>
             </button>
+          </div>
         </div>
+      </div>
     </div>
-    <div class="card-body">
-        <!-- Descripción -->
-        <div class="alert alert-info mb-4" role="alert">
-            <strong>Configuración de Integración NetSuite</strong>
-            <p class="mb-0 mt-2">
-                Desde aquí puedes sincronizar los datos principales desde NetSuite hacia el sistema. 
-                Cada sincronización actualiza los registros existentes y añade nuevos si es necesario.
-            </p>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card border-0 info-card">
+          <div class="card-body">
+            <h6 class="card-title"><i class="bi bi-info-circle me-2"></i>Información de Sincronización</h6>
+            <ul class="mb-0">
+              <li>Frecuencia recomendada: una vez al día.</li>
+              <li>La vista previa usa datos locales cargados bajo demanda.</li>
+              <li>La sincronización existente se mantiene intacta.</li>
+            </ul>
+          </div>
         </div>
-
-        <!-- Tarjetas de Sincronización -->
-        <div class="row">
-            <!-- Sincronizar Usuarios -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_usuarios')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-people-fill"></i>
-                        </div>
-                        <h5 class="card-title">Usuarios</h5>
-                        <p class="text-muted small mb-3">Sincronizar empleados desde NetSuite</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['users'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['users'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['users'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncUsers()"
-                            [disabled]="syncStatus['users'].isLoading">
-                            <span *ngIf="!syncStatus['users'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['users'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Productos -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_productos')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-box-seam"></i>
-                        </div>
-                        <h5 class="card-title">Productos</h5>
-                        <p class="text-muted small mb-3">Sincronizar catálogo de productos</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['products'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['products'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['products'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncProducts()"
-                            [disabled]="syncStatus['products'].isLoading">
-                            <span *ngIf="!syncStatus['products'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['products'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Departamentos -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_departamentos')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-diagram-3"></i>
-                        </div>
-                        <h5 class="card-title">Departamentos</h5>
-                        <p class="text-muted small mb-3">Sincronizar estructura de departamentos</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['departments'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['departments'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['departments'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncDepartments()"
-                            [disabled]="syncStatus['departments'].isLoading">
-                            <span *ngIf="!syncStatus['departments'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['departments'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Áreas -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_centros')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-grid-3x3-gap"></i>
-                        </div>
-                        <h5 class="card-title">Áreas</h5>
-                        <p class="text-muted small mb-3">Sincronizar áreas organizacionales</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['areas'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['areas'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['areas'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncAreas()"
-                            [disabled]="syncStatus['areas'].isLoading">
-                            <span *ngIf="!syncStatus['areas'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['areas'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Centros de Costos (Locations) -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ubicaciones')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-building"></i>
-                        </div>
-                        <h5 class="card-title">Centros de Costos</h5>
-                        <p class="text-muted small mb-3">Sincronizar centros de costos</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['locations'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['locations'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['locations'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncLocations()"
-                            [disabled]="syncStatus['locations'].isLoading">
-                            <span *ngIf="!syncStatus['locations'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['locations'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Eventos Centro Libanés (Projects) -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_proyectos')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-calendar-event"></i>
-                        </div>
-                        <h5 class="card-title">Eventos Centro Libanés</h5>
-                        <p class="text-muted small mb-3">Sincronizar eventos del Centro Libanés</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['projects'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['projects'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['projects'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncProjects()"
-                            [disabled]="syncStatus['projects'].isLoading">
-                            <span *ngIf="!syncStatus['projects'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['projects'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Cuentas de Inventario (Account Internal) -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_cuentas_inventario')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-box-seam"></i>
-                        </div>
-                        <h5 class="card-title">Cuentas de Inventario</h5>
-                        <p class="text-muted small mb-3">Sincronizar cuentas de inventario</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['accounti'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['accounti'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['accounti'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncAccountInternal()"
-                            [disabled]="syncStatus['accounti'].isLoading">
-                            <span *ngIf="!syncStatus['accounti'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['accounti'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Cuentas de Pagos (Account External) -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_cuentas_gastos')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-credit-card"></i>
-                        </div>
-                        <h5 class="card-title">Cuentas de Pagos</h5>
-                        <p class="text-muted small mb-3">Sincronizar cuentas de pagos</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['accounte'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['accounte'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['accounte'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncAccountExternal()"
-                            [disabled]="syncStatus['accounte'].isLoading">
-                            <span *ngIf="!syncStatus['accounte'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['accounte'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Razones de Ajuste -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_motivos_ajuste')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-sliders"></i>
-                        </div>
-                        <h5 class="card-title">Razones de Ajuste</h5>
-                        <p class="text-muted small mb-3">Sincronizar razones de ajuste de inventario</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['adjustment_reasons'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['adjustment_reasons'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['adjustment_reasons'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncAdjustmentReasons()"
-                            [disabled]="syncStatus['adjustment_reasons'].isLoading">
-                            <span *ngIf="!syncStatus['adjustment_reasons'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['adjustment_reasons'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Categorías -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_categorias')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-folder"></i>
-                        </div>
-                        <h5 class="card-title">Categorías</h5>
-                        <p class="text-muted small mb-3">Sincronizar categorías de productos</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['categories'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['categories'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['categories'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncCategories()"
-                            [disabled]="syncStatus['categories'].isLoading">
-                            <span *ngIf="!syncStatus['categories'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['categories'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Subcategorías -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_subcategorias')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-tags"></i>
-                        </div>
-                        <h5 class="card-title">Subcategorías</h5>
-                        <p class="text-muted small mb-3">Sincronizar subcategorías de productos</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['subcategories'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['subcategories'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['subcategories'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncSubcategories()"
-                            [disabled]="syncStatus['subcategories'].isLoading">
-                            <span *ngIf="!syncStatus['subcategories'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['subcategories'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Frecuencias de Pago -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_payment_frequencies')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-cash-stack"></i>
-                        </div>
-                        <h5 class="card-title">Frecuencias de Pago</h5>
-                        <p class="text-muted small mb-3">Sincronizar frecuencias de pago de membresías</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['payment_frequencies'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['payment_frequencies'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['payment_frequencies'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncPaymentFrequencies()"
-                            [disabled]="syncStatus['payment_frequencies'].isLoading">
-                            <span *ngIf="!syncStatus['payment_frequencies'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['payment_frequencies'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Condición Patrimonial -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_condicion_patrimonial')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-bank2"></i>
-                        </div>
-                        <h5 class="card-title">Condición Patrimonial</h5>
-                        <p class="text-muted small mb-3">Sincronizar condiciones patrimoniales de socios</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['condicion_patrimonial'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['condicion_patrimonial'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['condicion_patrimonial'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncCondicionPatrimonial()"
-                            [disabled]="syncStatus['condicion_patrimonial'].isLoading">
-                            <span *ngIf="!syncStatus['condicion_patrimonial'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['condicion_patrimonial'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Condición Administrativa -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_condicion_adm')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-file-earmark-check"></i>
-                        </div>
-                        <h5 class="card-title">Condición Administrativa</h5>
-                        <p class="text-muted small mb-3">Sincronizar condiciones administrativas de socios</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['condicion_adm'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['condicion_adm'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['condicion_adm'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncCondicionAdm()"
-                            [disabled]="syncStatus['condicion_adm'].isLoading">
-                            <span *ngIf="!syncStatus['condicion_adm'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['condicion_adm'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Parentesco -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_parentesco')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-diagram-2"></i>
-                        </div>
-                        <h5 class="card-title">Parentesco</h5>
-                        <p class="text-muted small mb-3">Sincronizar tipos de parentesco de socios</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['parentesco'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['parentesco'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['parentesco'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncParentesco()"
-                            [disabled]="syncStatus['parentesco'].isLoading">
-                            <span *ngIf="!syncStatus['parentesco'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['parentesco'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Acceso Clubes -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_acceso_clubes')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-key"></i>
-                        </div>
-                        <h5 class="card-title">Acceso Clubes</h5>
-                        <p class="text-muted small mb-3">Sincronizar tipos de acceso a clubes</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['acceso_clubes'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['acceso_clubes'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['acceso_clubes'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncAccesoClubes()"
-                            [disabled]="syncStatus['acceso_clubes'].isLoading">
-                            <span *ngIf="!syncStatus['acceso_clubes'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['acceso_clubes'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Género -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_genero')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-person-badge"></i>
-                        </div>
-                        <h5 class="card-title">Género</h5>
-                        <p class="text-muted small mb-3">Sincronizar tipos de género de socios</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['genero'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['genero'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['genero'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncGenero()"
-                            [disabled]="syncStatus['genero'].isLoading">
-                            <span *ngIf="!syncStatus['genero'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['genero'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Estado Membresía -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_estado_membresia')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-card-checklist"></i>
-                        </div>
-                        <h5 class="card-title">Estado Membresía</h5>
-                        <p class="text-muted small mb-3">Sincronizar estados de membresía de socios</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['estado_membresia'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['estado_membresia'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['estado_membresia'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncEstadoMembresia()"
-                            [disabled]="syncStatus['estado_membresia'].isLoading">
-                            <span *ngIf="!syncStatus['estado_membresia'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['estado_membresia'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Cuotas Membresía -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_cuotas_membresia')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-wallet2"></i>
-                        </div>
-                        <h5 class="card-title">Cuotas Membresía</h5>
-                        <p class="text-muted small mb-3">Sincronizar tipos de cuotas de membresía</p>
-                        
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['cuotas_membresia'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['cuotas_membresia'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['cuotas_membresia'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button 
-                            class="btn btn-primary w-100"
-                            (click)="syncCuotasMembresia()"
-                            [disabled]="syncStatus['cuotas_membresia'].isLoading">
-                            <span *ngIf="!syncStatus['cuotas_membresia'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['cuotas_membresia'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ════════════════════════════════════════════════════ -->
-        <!-- Módulo de Miembros: Socios → Membresías → Detalle  -->
-        <!-- ════════════════════════════════════════════════════ -->
-        <div class="row mt-2">
-            <div class="col-12 mb-3">
-                <div class="alert alert-secondary py-2 mb-0 d-flex align-items-center" role="alert">
-                    <i class="bi bi-diagram-3 me-2 fs-5"></i>
-                    <div>
-                        <strong>Módulo de Miembros</strong> —
-                        Estas sincronizaciones tienen dependencias entre sí. Ejecuta en orden:
-                        <span class="badge bg-primary ms-1">1. Socios</span>
-                        <i class="bi bi-arrow-right mx-1"></i>
-                        <span class="badge bg-primary">2. Membresías</span>
-                        <i class="bi bi-arrow-right mx-1"></i>
-                        <span class="badge bg-primary">3. Detalle Membresías</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Socios -->
-            <div class="col-md-4 mb-4" *ngIf="canSync('sync_socios')">
-                <div class="card sync-card h-100 border-primary">
-                    <div class="card-header bg-primary bg-opacity-10 text-center py-1">
-                        <small class="text-primary fw-bold">
-                            <i class="bi bi-1-circle me-1"></i>Paso 1
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-person-vcard"></i>
-                        </div>
-                        <h5 class="card-title">Socios</h5>
-                        <p class="text-muted small mb-3">Sincronizar miembros del club desde NetSuite</p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['socios'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['socios'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['socios'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncSocios()"
-                            [disabled]="syncStatus['socios'].isLoading">
-                            <span *ngIf="!syncStatus['socios'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['socios'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Membresías -->
-            <div class="col-md-4 mb-4" *ngIf="canSync('sync_membresias')">
-                <div class="card sync-card h-100 border-primary">
-                    <div class="card-header bg-primary bg-opacity-10 text-center py-1">
-                        <small class="text-primary fw-bold">
-                            <i class="bi bi-2-circle me-1"></i>Paso 2 — Requiere Socios
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-person-badge"></i>
-                        </div>
-                        <h5 class="card-title">Membresías</h5>
-                        <p class="text-muted small mb-3">Sincronizar membresías de socios desde NetSuite</p>
-
-                        <div *ngIf="!syncStatus['socios'].lastSync" class="alert alert-warning py-1 mb-2 small text-start">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Sincroniza <strong>Socios</strong> primero (Paso 1)
-                        </div>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['membresias'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['membresias'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['membresias'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncMembresias()"
-                            [disabled]="syncStatus['membresias'].isLoading">
-                            <span *ngIf="!syncStatus['membresias'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['membresias'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Detalle Membresías -->
-            <div class="col-md-4 mb-4" *ngIf="canSync('sync_detalle_membresias')">
-                <div class="card sync-card h-100 border-primary">
-                    <div class="card-header bg-primary bg-opacity-10 text-center py-1">
-                        <small class="text-primary fw-bold">
-                            <i class="bi bi-3-circle me-1"></i>Paso 3 — Requiere Socios + Membresías
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-journal-text"></i>
-                        </div>
-                        <h5 class="card-title">Detalle Membresías</h5>
-                        <p class="text-muted small mb-3">Sincronizar detalle de membresías desde NetSuite</p>
-
-                        <div *ngIf="!syncStatus['socios'].lastSync || !syncStatus['membresias'].lastSync" class="alert alert-warning py-1 mb-2 small text-start">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Requiere <strong>Socios</strong> y <strong>Membresías</strong> sincronizados
-                        </div>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['detalle_membresias'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['detalle_membresias'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['detalle_membresias'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncDetalleMembresias()"
-                            [disabled]="syncStatus['detalle_membresias'].isLoading">
-                            <span *ngIf="!syncStatus['detalle_membresias'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['detalle_membresias'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════════ -->
-        <!-- Paso 4 — Registros Médicos                            -->
-        <!-- ══════════════════════════════════════════════════════ -->
-        <div class="row mt-2">
-            <div class="col-12 mb-3">
-                <div class="alert alert-info py-2 mb-0 d-flex align-items-center" role="alert">
-                    <i class="bi bi-heart-pulse-fill me-2 fs-5 text-info"></i>
-                    <div>
-                        <strong>Paso 4 — Registros Médicos</strong> —
-                        Sincroniza las visitas médicas de los socios desde NetSuite.
-                        <span class="badge bg-info text-dark ms-1">Requiere Socios + Membresías + Detalle completados</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Registros Médicos -->
-            <div class="col-md-4 mb-4" *ngIf="canSync('sync_medical_records')">
-                <div class="card sync-card h-100 border-info">
-                    <div class="card-header bg-info bg-opacity-10 text-center py-1">
-                        <small class="text-info fw-bold">
-                            <i class="bi bi-4-circle me-1"></i>Paso 4 — Requiere Socios + Membresías + Detalle
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-heart-pulse text-info"></i>
-                        </div>
-                        <h5 class="card-title">Registros Médicos</h5>
-                        <p class="text-muted small mb-3">Sincronizar visitas médicas de socios desde NetSuite</p>
-
-                        <div *ngIf="!syncStatus['socios'].lastSync || !syncStatus['membresias'].lastSync || !syncStatus['detalle_membresias'].lastSync"
-                             class="alert alert-warning py-1 mb-2 small text-start">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Requiere <strong>Socios</strong>, <strong>Membresías</strong> y <strong>Detalle</strong> sincronizados
-                        </div>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['medical_records'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['medical_records'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['medical_records'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-info w-100"
-                            (click)="syncMedicalRecords()"
-                            [disabled]="syncStatus['medical_records'].isLoading">
-                            <span *ngIf="!syncStatus['medical_records'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['medical_records'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════════ -->
-        <!-- Paso 4b — Perfil de Salud                             -->
-        <!-- ══════════════════════════════════════════════════════ -->
-        <div class="row mt-2">
-            <div class="col-12 mb-3">
-                <div class="alert alert-danger py-2 mb-0 d-flex align-items-center" role="alert">
-                    <i class="bi bi-shield-heart-fill me-2 fs-5 text-danger"></i>
-                    <div>
-                        <strong>Paso 4b — Perfil de Salud</strong> —
-                        Sincroniza tipo de sangre, alergias, condiciones médicas y contacto de emergencia desde NetSuite.
-                        <span class="badge bg-danger ms-1">⚠️ Datos sensibles — LFPDPPP</span>
-                        <span class="badge bg-warning text-dark ms-1">~10–20 min</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Perfil de Salud -->
-            <div class="col-md-4 mb-4" *ngIf="canSync('sync_medical_records')">
-                <div class="card sync-card h-100 border-danger">
-                    <div class="card-header bg-danger bg-opacity-10 text-center py-1">
-                        <small class="text-danger fw-bold">
-                            <i class="bi bi-4-circle me-1"></i>Paso 4b — Requiere Socios sincronizados
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-shield-heart text-danger"></i>
-                        </div>
-                        <h5 class="card-title">Perfil de Salud</h5>
-                        <p class="text-muted small mb-2">Tipo de sangre, alergias, condiciones y contacto de emergencia</p>
-                        <span class="badge bg-danger mb-3">⚠️ Datos sensibles — LFPDPPP</span>
-
-                        <div *ngIf="!syncStatus['socios'].lastSync"
-                             class="alert alert-warning py-1 mb-2 small text-start">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Requiere <strong>Socios</strong> sincronizados primero
-                        </div>
-
-                        <div class="alert alert-warning py-1 mb-3 small text-start">
-                            <i class="bi bi-clock me-1"></i>
-                            <strong>Proceso lento</strong> — ~13,000 llamadas individuales a NetSuite
-                        </div>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['socio_health'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['socio_health'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['socio_health'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-danger w-100"
-                            (click)="syncSocioHealth()"
-                            [disabled]="syncStatus['socio_health'].isLoading">
-                            <span *ngIf="!syncStatus['socio_health'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Salud
-                            </span>
-                            <span *ngIf="syncStatus['socio_health'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════════ -->
-        <!-- Paso Final — Evaluación Masiva de Reglas              -->
-        <!-- ══════════════════════════════════════════════════════ -->
-        <div class="row mt-2">
-            <div class="col-12 mb-3">
-                <div class="alert alert-dark py-2 mb-0 d-flex align-items-center" role="alert">
-                    <i class="bi bi-lightning-charge-fill me-2 fs-5 text-warning"></i>
-                    <div>
-                        <strong>Paso Final — Motor de Reglas</strong> —
-                        Evalúa todos los socios activos contra las reglas de membresía configuradas.
-                        <span class="badge bg-warning text-dark ms-1">Requiere Pasos 1, 2, 3 y 4 completados</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Evaluación Masiva -->
-            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('evaluar_batch')">
-                <div class="card sync-card h-100 border-warning">
-                    <div class="card-header bg-warning bg-opacity-10 text-center py-1">
-                        <small class="fw-bold" style="color: var(--bs-warning-text-emphasis, #664d03);">
-                            <i class="bi bi-5-circle me-1"></i>Paso 5 — Requiere Socios + Membresías + Detalle + Registros Médicos
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-lightning-charge text-warning"></i>
-                        </div>
-                        <h5 class="card-title">Evaluación de Reglas</h5>
-                        <p class="text-muted small mb-3">Pasar todos los socios activos por el motor de reglas de membresía</p>
-
-                        <div *ngIf="!syncStatus['socios'].lastSync || !syncStatus['membresias'].lastSync || !syncStatus['detalle_membresias'].lastSync"
-                             class="alert alert-warning py-1 mb-2 small text-start">
-                            <i class="bi bi-exclamation-triangle me-1"></i>
-                            Sincroniza <strong>Socios</strong>, <strong>Membresías</strong> y <strong>Detalle</strong> primero
-                        </div>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última evaluación:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['evaluacion_batch'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['evaluacion_batch'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['evaluacion_batch'].recordCount }} socios procesados
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-warning w-100"
-                            (click)="runEvaluacionBatch()"
-                            [disabled]="syncStatus['evaluacion_batch'].isLoading">
-                            <span *ngIf="!syncStatus['evaluacion_batch'].isLoading">
-                                <i class="bi bi-lightning-charge me-1"></i>Evaluar Reglas
-                            </span>
-                            <span *ngIf="syncStatus['evaluacion_batch'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Evaluando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════════ -->
-        <!-- Curso de Verano — Sincronización de Pagos NS         -->
-        <!-- ══════════════════════════════════════════════════════ -->
-        <div class="row mt-2">
-            <div class="col-12 mb-3">
-                <div class="alert alert-success py-2 mb-0 d-flex align-items-center" role="alert">
-                    <i class="bi bi-sun-fill me-2 fs-5 text-success"></i>
-                    <div>
-                        <strong>Curso de Verano — Pagos</strong> —
-                        Consulta el estado de pago de las órdenes de venta en NetSuite y actualiza los registros de inscripción.
-                        <span class="badge bg-success ms-1">Independiente de los pasos anteriores</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Pagos Curso de Verano -->
-            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('sync_summer_payments')">
-                <div class="card sync-card h-100 border-success">
-                    <div class="card-header bg-success bg-opacity-10 text-center py-1">
-                        <small class="fw-bold" style="color: var(--bs-success-text-emphasis, #0a3622);">
-                            <i class="bi bi-sun me-1"></i>Paso 5b — Requiere inscripciones con SO de NetSuite
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-cash-coin text-success"></i>
-                        </div>
-                        <h5 class="card-title">Pagos Curso de Verano</h5>
-                        <p class="text-muted small mb-3">Sincroniza el estado de pago de las inscripciones del Curso de Verano contra las Sales Orders de NetSuite</p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 text-muted fw-medium" style="font-size: 0.9rem;">
-                                {{ getTimeSinceLastSync(syncStatus['summer_payments'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['summer_payments'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge bg-success bg-opacity-75">
-                                    {{ syncStatus['summer_payments'].recordCount ?? 0 }} inscripciones procesadas
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-success w-100"
-                            (click)="syncSummerPayments()"
-                            [disabled]="syncStatus['summer_payments'].isLoading">
-                            <span *ngIf="!syncStatus['summer_payments'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Pagos
-                            </span>
-                            <span *ngIf="syncStatus['summer_payments'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sincronizar Órdenes de Venta -->
-            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('sync')">
-                <div class="card sync-card h-100 border-info">
-                    <div class="card-header bg-info bg-opacity-10 text-center py-1">
-                        <small class="fw-bold" style="color: var(--bs-info-text-emphasis, #055160);">
-                            <i class="bi bi-receipt-cutoff me-1"></i>Saldos y Finanzas
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-wallet2 text-info"></i>
-                        </div>
-                        <h5 class="card-title">Órdenes de Venta</h5>
-                        <p class="text-muted small mb-3">Sincroniza el historial de transacciones pendientes y pagadas de todos los socios activos en NetSuite</p>
-
-                        <div class="mt-4 mb-3 text-center">
-                             <span class="badge bg-info bg-opacity-75">
-                                {{ syncStatus['sales_orders'].recordCount ?? 0 }} registros procesados
-                             </span>
-                        </div>
-
-                        <button
-                            class="btn btn-info text-white w-100"
-                            (click)="syncSalesOrders()"
-                            [disabled]="syncStatus['sales_orders'].isLoading">
-                            <span *ngIf="!syncStatus['sales_orders'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Órdenes
-                            </span>
-                            <span *ngIf="syncStatus['sales_orders'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Fila adicional de Sincronización -->
-        <div class="row mt-4">
-            <!-- Sincronizar Tipos de Venta -->
-            <div class="col-md-6 col-lg-4 mb-4" *ngIf="canSync('sync')">
-                <div class="card sync-card h-100 border-secondary">
-                    <div class="card-header bg-secondary bg-opacity-10 text-center py-1">
-                        <small class="fw-bold text-secondary">
-                            <i class="bi bi-tags me-1"></i>Catálogos NetSuite
-                        </small>
-                    </div>
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-list-ul text-secondary"></i>
-                        </div>
-                        <h5 class="card-title">Tipos de Venta</h5>
-                        <p class="text-muted small mb-3">Sincroniza el catálogo de tipos de venta (customlist_cl_tipo_venta) de NetSuite</p>
-
-                        <div class="mt-4 mb-3 text-center">
-                             <span class="badge bg-secondary bg-opacity-75">
-                                {{ syncStatus['sale_types'].recordCount ?? 0 }} registros procesados
-                             </span>
-                        </div>
-
-                        <button
-                            class="btn btn-secondary text-white w-100"
-                            (click)="syncSaleTypes()"
-                            [disabled]="syncStatus['sale_types'].isLoading">
-                            <span *ngIf="!syncStatus['sale_types'].isLoading">
-                                <i class="bi bi-arrow-repeat me-1"></i>Sincronizar Tipos
-                            </span>
-                            <span *ngIf="syncStatus['sale_types'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ══════════════════════════════════════════════════════ -->
-        <!-- Catálogos NS de Productos                              -->
-        <!-- ══════════════════════════════════════════════════════ -->
-        <div class="row mt-2">
-            <div class="col-12 mb-3">
-                <div class="alert alert-info py-2 mb-0 d-flex align-items-center" role="alert">
-                    <i class="bi bi-box-fill me-2 fs-5 text-info"></i>
-                    <div>
-                        <strong>Catálogos NS de Productos</strong> —
-                        Sincroniza catálogos auxiliares de NetSuite: servicios, descuentos, recargos, partes no inventariables y códigos de impuesto.
-                        <span class="badge bg-info text-dark ms-1">Independientes de socios/membresías</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Servicios NS -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_services')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-gear-wide-connected"></i>
-                        </div>
-                        <h5 class="card-title">Servicios NS</h5>
-                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='Service'</code></p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['ns_services'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['ns_services'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['ns_services'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncNsServices()"
-                            [disabled]="syncStatus['ns_services'].isLoading">
-                            <span *ngIf="!syncStatus['ns_services'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['ns_services'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Descuentos NS -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_discounts')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-tag-fill"></i>
-                        </div>
-                        <h5 class="card-title">Descuentos NS</h5>
-                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='Discount'</code></p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['ns_discounts'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['ns_discounts'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['ns_discounts'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncNsDiscounts()"
-                            [disabled]="syncStatus['ns_discounts'].isLoading">
-                            <span *ngIf="!syncStatus['ns_discounts'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['ns_discounts'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recargos NS -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_markups')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-graph-up-arrow"></i>
-                        </div>
-                        <h5 class="card-title">Recargos NS</h5>
-                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='Markup'</code></p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['ns_markups'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['ns_markups'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['ns_markups'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncNsMarkups()"
-                            [disabled]="syncStatus['ns_markups'].isLoading">
-                            <span *ngIf="!syncStatus['ns_markups'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['ns_markups'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Partes No Inventariables NS -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_noninvt_parts')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-boxes"></i>
-                        </div>
-                        <h5 class="card-title">Partes No Inventariables NS</h5>
-                        <p class="text-muted small mb-3">Catálogo <code class="small">item WHERE itemtype='NonInvtPart'</code></p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['ns_noninvt_parts'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['ns_noninvt_parts'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['ns_noninvt_parts'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncNsNoninvtParts()"
-                            [disabled]="syncStatus['ns_noninvt_parts'].isLoading">
-                            <span *ngIf="!syncStatus['ns_noninvt_parts'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['ns_noninvt_parts'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Códigos de Impuesto NS -->
-            <div class="col-md-6 col-lg-3 mb-4" *ngIf="canSync('sync_ns_sales_tax_items')">
-                <div class="card sync-card h-100">
-                    <div class="card-body text-center">
-                        <div class="sync-icon mb-3">
-                            <i class="bi bi-receipt"></i>
-                        </div>
-                        <h5 class="card-title">Códigos de Impuesto NS</h5>
-                        <p class="text-muted small mb-3">Catálogo <code class="small">salestaxitem</code></p>
-
-                        <div class="sync-info mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small">Última sincronización:</span>
-                            </div>
-                            <p class="mb-1 small">
-                                {{ getTimeSinceLastSync(syncStatus['ns_sales_tax_items'].lastSync) }}
-                            </p>
-                            <p class="mb-0 small text-muted">
-                                {{ formatDate(syncStatus['ns_sales_tax_items'].lastSync) }}
-                            </p>
-                            <div class="mt-2">
-                                <span class="badge">
-                                    {{ syncStatus['ns_sales_tax_items'].recordCount }} registros
-                                </span>
-                            </div>
-                        </div>
-
-                        <button
-                            class="btn btn-primary w-100"
-                            (click)="syncNsSalesTaxItems()"
-                            [disabled]="syncStatus['ns_sales_tax_items'].isLoading">
-                            <span *ngIf="!syncStatus['ns_sales_tax_items'].isLoading">
-                                Sincronizar
-                            </span>
-                            <span *ngIf="syncStatus['ns_sales_tax_items'].isLoading">
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                Sincronizando...
-                            </span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Información adicional -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="card border-0" style="background-color: var(--neutral-50);">
-                    <div class="card-body">
-                        <h6 class="card-title" style="color: var(--neutral-900);">
-                            <i class="bi bi-info-circle me-2"></i>Información de Sincronización
-                        </h6>
-                        <ul class="mb-0" style="color: var(--neutral-700);">
-                            <li class="mb-2">
-                                <strong style="color: var(--neutral-800);">Frecuencia recomendada:</strong> Se recomienda sincronizar los datos al menos una vez al día para mantener la información actualizada.
-                            </li>
-                            <li class="mb-2">
-                                <strong style="color: var(--neutral-800);">Duración del proceso:</strong> Cada sincronización puede tomar entre 1-5 minutos dependiendo de la cantidad de datos.
-                            </li>
-                            <li class="mb-2">
-                                <strong style="color: var(--neutral-800);">Sincronización automática:</strong> El sistema realiza sincronizaciones automáticas diariamente a las 4:00 AM.
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </div>

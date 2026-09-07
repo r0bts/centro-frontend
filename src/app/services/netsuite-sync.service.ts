@@ -16,6 +16,20 @@ export interface SyncResponse {
   };
 }
 
+export interface CatalogPreviewResponse {
+  success: boolean;
+  message: string;
+  data: {
+    catalog: string;
+    label: string;
+    page: number;
+    limit: number;
+    total: number;
+    columns: string[];
+    rows: any[];
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -182,6 +196,27 @@ export class NetsuiteSyncService {
     return this.http.post<SyncResponse>(
       `${this.apiUrl}/sale-types/sync`,
       {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Obtiene el preview tabular de un catálogo sincronizado desde NetSuite.
+   * GET /api/netsuite/catalog-preview?catalog=users&limit=25&page=1
+   */
+  getCatalogPreview(catalog: string, page = 1, limit = 25, q = ''): Observable<CatalogPreviewResponse> {
+    const params = new URLSearchParams({
+      catalog,
+      page: String(page),
+      limit: String(limit),
+    });
+
+    if (q) {
+      params.set('q', q);
+    }
+
+    return this.http.get<CatalogPreviewResponse>(
+      `${this.apiUrl}/netsuite/catalog-preview?${params.toString()}`,
       { headers: this.getHeaders() }
     );
   }
