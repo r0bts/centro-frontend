@@ -163,6 +163,30 @@ export class NetsuiteSyncService {
   }
 
   /**
+   * Sincroniza Sales Orders desde NetSuite
+   * POST /api/sales-orders/sync
+   */
+  syncSalesOrders(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/sales-orders/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza tipos de venta desde NetSuite
+   * POST /api/sale-types/sync
+   */
+  syncSaleTypes(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/sale-types/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
    * Sincroniza subcategorías desde NetSuite
    * POST /api/subcategories/sync
    * Total: 129 registros
