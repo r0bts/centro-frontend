@@ -123,6 +123,7 @@ export class EventFormStateService {
         max_capacity: [null as number | null],
         has_cost: [false],
         cost: [null as number | null],
+        ns_item_id: [null as number | null],
       }),
       subevents: this.fb.array([]),
       hero: this.fb.group({
@@ -484,6 +485,7 @@ export class EventFormStateService {
       max_capacity: event.max_capacity ?? null,
       has_cost: event.has_cost,
       cost: event.cost ?? null,
+      ns_item_id: event.ns_item_id ?? null,
     });
     this.heroGroup.patchValue({
       banner_image_url: event.banner_image_url ?? '',
@@ -585,6 +587,7 @@ export class EventFormStateService {
       max_capacity: access.max_capacity || null,
       has_cost: !!access.has_cost,
       cost: access.has_cost ? access.cost : null,
+      ns_item_id: access.has_cost ? (access.ns_item_id ?? null) : null,
       has_donations: false,
       documents: this.documentsArray.value.length ? this.documentsArray.value : null,
       speakers: this.speakersArray.value.length ? this.speakersArray.value : null,
@@ -669,6 +672,12 @@ export class EventFormStateService {
     if (!identity.area_id)              missing.push('Área');
     if (!datetime.start_date)           missing.push('Fecha de inicio');
     if (!access.access_types?.length)   missing.push('Tipo de acceso');
+    if (access.has_cost && (access.cost === null || access.cost === undefined || access.cost <= 0)) {
+      missing.push('Costo del evento');
+    }
+    if (access.has_cost && !access.ns_item_id) {
+      missing.push('Servicio de NetSuite (tipo de servicio del costo)');
+    }
     const hasBanner = !!(this.heroGroup.get('banner_mobile_url')?.value || this.pendingImageUploads.has('hero_mobile'));
     if (!hasBanner)                     missing.push('Banner Mobile');
     return missing;

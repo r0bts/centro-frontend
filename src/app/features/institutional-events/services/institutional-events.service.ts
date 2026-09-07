@@ -16,6 +16,7 @@ import {
   ApiResponse,
   EventSocioSearchResult,
   AddAttendeePayload,
+  NsService,
 } from '../models/institutional-event.model';
 
 /**
@@ -205,5 +206,36 @@ export class InstitutionalEventsService {
     return this.http.get<any>(`${environment.apiUrl}/event-color-themes`).pipe(
       map(res => res.themes ?? [])
     );
+  }
+
+  // ── Catálogo de servicios NetSuite (para costo del evento) ─────────────────
+
+  /**
+   * GET /api/ns-catalogs/services — devuelve los Servicios de NetSuite
+   * sincronizados en `ns_services`. Filtros:
+   *   - `q`           búsqueda parcial en item_name / item_id.
+   *   - `active`      default true (sólo activos).
+   *   - `sellable`    default true (sólo con `has_incomeaccount = 1`, aptos para Sales Order).
+   *   - `purchasable` opcional (sólo con `has_expenseaccount = 1`, aptos para Purchase Order).
+   *   - `limit`       tope 500.
+   * Se usa en Paso 3 para poblar el selector de “Tipo de servicio de NetSuite”
+   * cuando el evento tiene costo (`has_cost = true`).
+   */
+  getNsServices(opts: {
+    q?: string;
+    active?: boolean;
+    sellable?: boolean;
+    purchasable?: boolean;
+    limit?: number;
+  } = {}): Observable<NsService[]> {
+    let params = new HttpParams();
+    if (opts.q)                         params = params.set('q', opts.q);
+    if (opts.active !== undefined)      params = params.set('active', opts.active ? '1' : '0');
+    if (opts.sellable !== undefined)    params = params.set('sellable', opts.sellable ? '1' : '0');
+    if (opts.purchasable !== undefined) params = params.set('purchasable', opts.purchasable ? '1' : '0');
+    if (opts.limit)                     params = params.set('limit', String(opts.limit));
+    return this.http
+      .get<ApiResponse<{ services: NsService[]; count: number }>>(`${environment.apiUrl}/ns-catalogs/services`, { params })
+      .pipe(map(res => res.data?.services ?? []));
   }
 }

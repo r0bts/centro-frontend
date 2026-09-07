@@ -1,8 +1,11 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, effect, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { debounceTime, distinctUntilChanged, switchMap, catchError, of, tap } from 'rxjs';
 import { EventFormStateService } from '../../services/event-form-state.service';
-import { AccessType, ACCESS_TYPE_META } from '../../models/institutional-event.model';
+import { InstitutionalEventsService } from '../../services/institutional-events.service';
+import { AccessType, ACCESS_TYPE_META, NsService } from '../../models/institutional-event.model';
 
 @Component({
   selector: 'app-step-3-access',
@@ -19,7 +22,69 @@ export class Step3AccessComponent {
   /** Lista dinámica desde el API — se usa en el template */
   get accessTypes() { return this.state.accessTypes(); }
 
-  constructor(public state: EventFormStateService) {}
+  // ── Selector de servicio NetSuite (aparece sólo cuando has_cost = true) ──
+  readonly nsServices = signal<NsService[]>([]);
+  readonly nsQuery = signal<string>('');
+  readonly showInactive = signal<boolean>(false);
+  readonly nsLoading = signal<boolean>(false);
+  readonly nsError = signal<string | null>(null);
+
+  /** Servicio actualmente seleccionado (resuelto a partir del ns_item_id del form). */
+  readonly selectedNsService = computed<NsService | null>(() => {
+    const currentId = this.group.get('ns_item_id')?.value as number | null;
+    if (!currentId) return null;
+    return this.nsServices().find(s => s.id === currentId) ?? null;
+  });
+
+  /**
+   * True cuando el evento en edición ya tenía asignado un `ns_item_id`,
+   * pero ese ítem no aparece en el catálogo visible (por default filtramos
+   * vendibles + activos). Cubre dos escenarios legacy:
+   *   - Ítem NS marcado como inactivo posteriormente.
+   *   - Ítem NS que no es vendible (`has_incomeaccount = false`), como el 4740.
+   * En ambos casos el admin debe volver a elegir uno válido antes de guardar.
+   */
+  readonly legacyItemInvalid = computed<boolean>(() => {
+    const currentId = this.group.get('ns_item_id')?.value as number | null;
+    if (!currentId) return false;
+    if (this.nsLoading()) return false;
+    return this.selectedNsService() === null;
+  });
+
+  private readonly destroyRef = inject(DestroyRef);
+
+  constructor(public state: EventFormStateService, private svc: InstitutionalEventsService) {
+    // Recarga automática del catálogo cuando cambia la búsqueda o el toggle de inactivos.
+    toObservable(this.nsQuery).pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      switchMap(q => {
+        this.nsLoading.set(true);
+        this.nsError.set(null);
+        return this.svc.getNsServices({
+          q: q.trim() || undefined,
+          active: !this.showInactive(),
+          sellable: true,
+          limit: 200,
+        }).pipe(
+          catchError(err => {
+            this.nsError.set(err?.error?.message ?? 'No se pudo cargar el catálogo de servicios.');
+            return of<NsService[]>([]);
+          }),
+          tap(() => this.nsLoading.set(false)),
+        );
+      }),
+      takeUntilDestroyed(this.destroyRef),
+    ).subscribe(list => this.nsServices.set(list));
+
+    // Al activar has_cost por primera vez, dispara una carga inicial.
+    effect(() => {
+      const hasCost = this.group.get('has_cost')?.value;
+      if (hasCost && this.nsServices().length === 0 && !this.nsLoading()) {
+        this.reloadNsServices();
+      }
+    });
+  }
 
   get group() { return this.state.accessGroup; }
   get seleccionados(): AccessType[] { return this.group.get('access_types')!.value ?? []; }
@@ -38,7 +103,56 @@ export class Step3AccessComponent {
 
   toggleHasCost(checked: boolean): void {
     this.group.get('has_cost')!.setValue(checked);
-    if (!checked) this.group.get('cost')!.setValue(null);
+    if (!checked) {
+      // Al apagar "con costo", limpia el costo y el ítem NS para no dejar basura.
+      this.group.get('cost')!.setValue(null);
+      this.group.get('ns_item_id')!.setValue(null);
+    }
+  }
+
+  // ── Handlers del selector NS ────────────────────────────────────────────
+  onNsQueryChange(value: string): void { this.nsQuery.set(value ?? ''); }
+
+  toggleShowInactive(): void {
+    this.showInactive.update(v => !v);
+    this.reloadNsServices();
+  }
+
+  reloadNsServices(): void {
+    this.nsLoading.set(true);
+    this.nsError.set(null);
+    this.svc.getNsServices({
+      q: this.nsQuery().trim() || undefined,
+      active: !this.showInactive(),
+      sellable: true,
+      limit: 200,
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: list => { this.nsServices.set(list); this.nsLoading.set(false); },
+        error: err => {
+          this.nsError.set(err?.error?.message ?? 'No se pudo cargar el catálogo de servicios.');
+          this.nsLoading.set(false);
+        },
+      });
+  }
+
+  onSelectNsService(item: NsService): void {
+    // Guard defensivo: nunca aceptar un ítem no vendible aunque llegara vía URL
+    // o payload manipulado. El backend igual lo rechazaría al crear el SO.
+    if (!item.has_incomeaccount) {
+      this.nsError.set(`El ítem "${item.item_name}" no es vendible en NetSuite y no puede usarse para eventos con costo.`);
+      return;
+    }
+    this.group.get('ns_item_id')!.setValue(item.id);
+    // Asegura que el servicio elegido esté en la lista visible aunque estuviera fuera del filtro actual.
+    if (!this.nsServices().some(s => s.id === item.id)) {
+      this.nsServices.update(l => [item, ...l]);
+    }
+  }
+
+  clearNsSelection(): void {
+    this.group.get('ns_item_id')!.setValue(null);
   }
 
   submitted = false;
@@ -46,6 +160,14 @@ export class Step3AccessComponent {
   irSiguiente(): void {
     this.submitted = true;
     if (this.seleccionados.length === 0) return;
+    // Si el evento es de pago, exige costo > 0 y servicio NS antes de avanzar.
+    const hasCost = !!this.group.get('has_cost')!.value;
+    const costVal = this.group.get('cost')!.value as number | null;
+    const nsItemId = this.group.get('ns_item_id')!.value as number | null;
+    if (hasCost && (costVal === null || costVal === undefined || costVal <= 0)) return;
+    if (hasCost && !nsItemId) return;
+    // Bloquea avanzar cuando el ítem asignado ya no es válido (legacy/inactivo/no vendible).
+    if (hasCost && this.legacyItemInvalid()) return;
     this.state.tryNext(this.group);
   }
   irAtras(): void { this.state.prev(); }

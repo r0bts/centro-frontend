@@ -365,6 +365,25 @@ export interface EventPlace {
   notes?: string | null;
 }
 
+/**
+ * Servicio de NetSuite sincronizado en la tabla local `ns_services`.
+ * Devuelto por `GET /api/ns-catalogs/services`. Se usa en el Paso 3 del
+ * formulario de eventos institucionales para seleccionar el ítem con el
+ * que se generará la Sales Order cuando el evento tiene costo.
+ * - `id`: ID interno de NetSuite (INT). Este es el que se guarda en `institutional_events.ns_item_id`.
+ * - `item_id`: código legible del ítem en NS (ej. "CURSOVER").
+ * - `item_name`: nombre visible del ítem/servicio.
+ */
+export interface NsService {
+  id: number;
+  item_id: string;
+  item_name: string;
+  is_inactive: boolean;
+  has_assetaccount: boolean;   // Legacy: cuenta de activo asociada (inventario).
+  has_incomeaccount: boolean;  // Vendible en Sales Order (Service for Sale).
+  has_expenseaccount: boolean; // Comprable en Purchase Order / gastos (Service for Purchase).
+}
+
 /** Payload exacto que espera la API para crear/editar un evento (snake_case, 1:1 con la BD). */
 export interface InstitutionalEventPayload {
   location_id: number;

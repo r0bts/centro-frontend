@@ -75,18 +75,116 @@
       @if (group.get('has_cost')!.value) {
         <div class="row g-3">
           <div class="col-sm-6">
-            <label class="form-label fw-semibold small text-uppercase text-muted">Costo</label>
+            <label class="form-label fw-semibold small text-uppercase text-muted">Costo <span class="text-danger">*</span></label>
             <div class="input-group">
               <span class="input-group-text">$</span>
               <input type="number" class="form-control" formControlName="cost" min="0" placeholder="0.00">
             </div>
+            @if (submitted && (!group.get('cost')!.value || group.get('cost')!.value <= 0)) {
+              <div class="field-error small mt-1"><i class="bi bi-exclamation-circle me-1"></i>Indica el costo del evento.</div>
+            }
           </div>
           <div class="col-sm-6">
             <label class="form-label fw-semibold small text-uppercase text-muted">
-              Item ID en NetSuite
+              Tipo de servicio de NetSuite <span class="text-danger">*</span>
             </label>
-            <input type="number" class="form-control" formControlName="ns_item_id" min="1" placeholder="Ej: 12345">
-            <div class="form-text">ID del ítem de NS para generar la Orden de Venta al inscribir socios.</div>
+
+            <!-- Buscador -->
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Buscar servicio por nombre o código..."
+                [value]="nsQuery()"
+                (input)="onNsQueryChange($any($event.target).value)">
+              @if (nsLoading()) {
+                <span class="input-group-text bg-white">
+                  <span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
+                </span>
+              }
+            </div>
+
+            <!-- Toggle inactivos -->
+            <div class="form-check form-check-inline mt-1">
+              <input class="form-check-input" type="checkbox" id="showInactive"
+                     [checked]="showInactive()" (change)="toggleShowInactive()">
+              <label class="form-check-label small text-muted" for="showInactive">Mostrar inactivos</label>
+            </div>
+
+            <!-- Error del API -->
+            @if (nsError()) {
+              <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
+              </div>
+            }
+
+            <!-- Lista de resultados -->
+            <div class="list-group ns-services-list mt-1" style="max-height: 200px; overflow-y: auto;">
+              @for (item of nsServices(); track item.id) {
+                <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                        [class.active]="group.get('ns_item_id')!.value === item.id"
+                        (click)="onSelectNsService(item)">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div class="small">
+                      <span class="fw-semibold">{{ item.item_id }}</span>
+                      <span class="text-muted"> · </span>
+                      <span>{{ item.item_name }}</span>
+                    </div>
+                    <div class="d-flex gap-1">
+                      @if (item.has_incomeaccount) {
+                        <span class="badge bg-success-subtle text-success border border-success-subtle" title="Ítem apto para Sales Order">
+                          <i class="bi bi-cash-coin me-1"></i>Vendible
+                        </span>
+                      }
+                      @if (item.is_inactive) {
+                        <span class="badge bg-secondary">Inactivo</span>
+                      }
+                    </div>
+                  </div>
+                </button>
+              } @empty {
+                <div class="list-group-item text-center small text-muted py-2">
+                  @if (nsLoading()) {
+                    Cargando servicios...
+                  } @else {
+                    Sin resultados
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Advertencia legacy: el ítem asignado no aparece en el catálogo vendible/activo -->
+            @if (legacyItemInvalid()) {
+              <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                El servicio NetSuite asignado a este evento (id
+                <strong>{{ group.get('ns_item_id')!.value }}</strong>)
+                no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
+                de compra. Selecciona otro servicio para poder guardar y generar la Orden de Venta.
+              </div>
+            }
+
+            <!-- Seleccionado -->
+            @if (selectedNsService(); as sel) {
+              <div class="alert alert-success py-2 px-2 mt-2 mb-0 d-flex justify-content-between align-items-center">
+                <div class="small">
+                  <div class="fw-semibold">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ sel.item_id }} · {{ sel.item_name }}
+                  </div>
+                  <div class="text-muted">ID de NS que se enviará: <strong>{{ sel.id }}</strong></div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearNsSelection()" title="Quitar selección">
+                  <i class="bi bi-x-lg"></i>
+                </button>
+              </div>
+            } @else if (submitted && !legacyItemInvalid()) {
+              <div class="field-error small mt-1"><i class="bi bi-exclamation-circle me-1"></i>Selecciona un servicio de NetSuite.</div>
+            } @else if (!legacyItemInvalid()) {
+              <div class="form-text">Selecciona el servicio de NS que se usará al generar la Orden de Venta cuando un socio se inscriba.</div>
+            }
           </div>
         </div>
       }
