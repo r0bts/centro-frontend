@@ -52,6 +52,38 @@
         }
       </div>
 
+      <!-- Tipos de acceso del subevento (mapa 15 §8): múltiple, propio, no heredado -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">
+          Tipos de acceso habilitados <span class="text-danger">*</span>
+        </label>
+        <div class="d-flex flex-wrap gap-2">
+          @for (t of eventAccessTypesChips; track t.id) {
+            <button type="button"
+                    class="btn btn-sm"
+                    [class.btn-primary]="isAccesoSeleccionado(t.id)"
+                    [class.btn-outline-secondary]="!isAccesoSeleccionado(t.id)"
+                    (click)="toggleAcceso(t.id)">
+              @if (isAccesoSeleccionado(t.id)) {
+                <i class="bi bi-check-circle-fill me-1"></i>
+              } @else {
+                <i class="bi bi-circle me-1"></i>
+              }
+              {{ t.label }}
+            </button>
+          }
+        </div>
+        <div class="form-text">
+          Solo los tipos marcados podrán elegir este subevento en la inscripción.
+        </div>
+        @if (submitted && form.access_types.length === 0) {
+          <div class="field-error small mt-1">
+            <i class="bi bi-exclamation-circle me-1"></i>
+            Selecciona al menos un tipo de acceso.
+          </div>
+        }
+      </div>
+
       <div class="row g-3 mb-3">
         <div class="col-sm-6">
           <label class="form-label fw-semibold small text-uppercase text-muted">Cupo</label>
@@ -59,23 +91,185 @@
           <div class="form-text">0 = sin límite.</div>
         </div>
         <div class="col-sm-6">
-          <label class="form-label fw-semibold small text-uppercase text-muted">Costo</label>
-          <div class="input-group">
-            <input type="number" class="form-control" min="0" [(ngModel)]="form.cost">
+          <label class="form-label fw-semibold small text-uppercase text-muted d-block">¿El subevento tiene costo propio?</label>
+          <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" role="switch" id="subHasCost"
+                   [checked]="form.has_matrix_pricing"
+                   (change)="onToggleHasCostOwn($any($event.target).checked)">
+            <label class="form-check-label small" for="subHasCost">
+              {{ form.has_matrix_pricing ? 'Con costo (usa precios por tipo)' : 'Gratuito / heredado' }}
+            </label>
           </div>
+          <div class="form-text">Si está apagado, el subevento es gratuito o hereda el precio del evento.</div>
         </div>
       </div>
 
-      <div class="row g-3 mb-3">
-        <div class="col-sm-6">
-          <label class="form-label fw-semibold small text-uppercase text-muted">Acceso</label>
-          <select class="form-select" [(ngModel)]="form.access_type">
-            @for (t of accessTypes; track t.id) {
-              <option [value]="t.id">{{ t.label }}</option>
+      @if (form.has_matrix_pricing) {
+        <div class="mb-3">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Tipo de servicio de NetSuite <span class="text-danger">*</span>
+          </label>
+
+          <!-- Buscador -->
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-white">
+              <i class="bi bi-search"></i>
+            </span>
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Buscar servicio por nombre o código..."
+              [value]="nsQuery()"
+              (input)="onNsQueryChange($any($event.target).value)">
+            @if (nsLoading()) {
+              <span class="input-group-text bg-white">
+                <span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
+              </span>
             }
-          </select>
+          </div>
+
+          <!-- Toggle inactivos -->
+          <div class="form-check form-check-inline mt-1">
+            <input class="form-check-input" type="checkbox" id="subShowInactive"
+                   [checked]="showInactive()" (change)="toggleShowInactive()">
+            <label class="form-check-label small text-muted" for="subShowInactive">Mostrar inactivos</label>
+          </div>
+
+          <!-- Error del API -->
+          @if (nsError()) {
+            <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
+              <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
+            </div>
+          }
+
+          <!-- Lista de resultados -->
+          <div class="list-group ns-services-list mt-1" style="max-height: 200px; overflow-y: auto;">
+            @for (item of nsServices(); track item.id) {
+              <button type="button" class="list-group-item list-group-item-action py-1 px-2"
+                      [class.active]="form.ns_item_id === item.id"
+                      (click)="onSelectNsService(item)">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="small">
+                    <span class="fw-semibold">{{ item.item_id }}</span>
+                    <span class="text-muted"> · </span>
+                    <span>{{ item.item_name }}</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    @if (item.has_incomeaccount) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle" title="Ítem apto para Sales Order">
+                        <i class="bi bi-cash-coin me-1"></i>Vendible
+                      </span>
+                    }
+                    @if (item.is_inactive) {
+                      <span class="badge bg-secondary">Inactivo</span>
+                    }
+                  </div>
+                </div>
+              </button>
+            } @empty {
+              <div class="list-group-item text-center small text-muted py-2">
+                @if (nsLoading()) {
+                  Cargando servicios...
+                } @else {
+                  Sin resultados
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Advertencia legacy: el ítem asignado no aparece en el catálogo vendible/activo -->
+          @if (legacyItemInvalid()) {
+            <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              El servicio NetSuite asignado a este subevento (id
+              <strong>{{ form.ns_item_id }}</strong>)
+              no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
+              de compra. Selecciona otro servicio para poder guardar.
+            </div>
+          }
+
+          <!-- Seleccionado -->
+          @if (selectedNsService(); as sel) {
+            <div class="alert alert-success py-2 px-2 mt-2 mb-0 d-flex justify-content-between align-items-center">
+              <div class="small">
+                <div class="fw-semibold">
+                  <i class="bi bi-check-circle-fill me-1"></i>{{ sel.item_id }} · {{ sel.item_name }}
+                </div>
+                <div class="text-muted">ID de NS que se enviará: <strong>{{ sel.id }}</strong></div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearNsSelection()" title="Quitar selección">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+          } @else if (submitted && !legacyItemInvalid()) {
+            <div class="field-error small mt-1"><i class="bi bi-exclamation-circle me-1"></i>Selecciona un servicio de NetSuite.</div>
+          } @else if (!legacyItemInvalid()) {
+            <div class="form-text">Selecciona el servicio de NS para este subevento. Se prellena con el del evento cuando el costo es mayor a 0.</div>
+          }
         </div>
-        <div class="col-sm-6">
+
+        <!-- Precios por tipo de acceso (obligatorio cuando el subevento tiene costo propio) -->
+        <div class="mt-3 pt-3 border-top">
+          <label class="form-label fw-semibold small text-uppercase text-muted mb-1">
+            <i class="bi bi-table me-1"></i>Precios por tipo de acceso <span class="text-danger">*</span>
+          </label>
+          <div class="form-text mb-2">
+            Marca los tipos de acceso habilitados para este subevento y asigna el
+            costo de cada uno. Los tipos <strong>no marcados</strong> NO podrán
+            elegir este subevento en la inscripción.
+          </div>
+
+          @if (form.matrix_prices.length === 0) {
+            <div class="alert alert-warning py-2 mt-2 mb-0 small">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              El evento no tiene tipos de acceso configurados. Regresa al paso "Acceso" para agregarlos.
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 40%;">Tipo de acceso</th>
+                    <th class="text-center" style="width: 20%;">Habilitado</th>
+                    <th style="width: 40%;">Costo (MXN)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of form.matrix_prices; track row.access_type) {
+                    <tr>
+                      <td>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                          <i class="bi bi-shield-check me-1"></i>{{ matrixRowLabel(row.access_type) }}
+                        </span>
+                      </td>
+                      <td class="text-center">
+                        <div class="form-check form-switch d-inline-block m-0">
+                          <input class="form-check-input" type="checkbox" role="switch"
+                                 [(ngModel)]="row.enabled"
+                                 [ngModelOptions]="{ standalone: true }">
+                        </div>
+                      </td>
+                      <td>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text">$</span>
+                          <input type="number" class="form-control"
+                                 [(ngModel)]="row.cost"
+                                 [ngModelOptions]="{ standalone: true }"
+                                 [disabled]="!row.enabled"
+                                 min="0" step="0.01" placeholder="0.00">
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-12">
           <label class="form-label fw-semibold small text-uppercase text-muted">Estado</label>
           <select class="form-select" [(ngModel)]="form.status">
             @for (s of statuses; track s) {

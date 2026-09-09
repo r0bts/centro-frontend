@@ -25,7 +25,7 @@
           <table class="sub-table">
             <thead>
               <tr>
-                <th>Nombre</th><th>Fecha</th><th>Lugar</th><th>Acceso</th><th>Cupo</th><th>Estado</th><th>Acciones</th>
+                <th>Nombre</th><th>Fecha</th><th>Lugar</th><th>Acceso</th><th>Cupo</th><th>Costo</th><th>Estado</th><th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -36,6 +36,24 @@
                   <td>{{ s.value.venue || s.value.area?.name || '—' }}</td>
                   <td><span class="badge rounded-pill bg-light text-dark border">{{ accessMeta(s.value.access_type).label }}</span></td>
                   <td>{{ s.value.max_capacity > 0 ? s.value.max_capacity : '∞' }}</td>
+                  <td>
+                    @if (s.value.cost && s.value.cost > 0) {
+                      <div class="d-flex flex-column gap-1">
+                        <span class="fw-semibold">${{ s.value.cost | number:'1.2-2' }}</span>
+                        @if (s.value.ns_item_id) {
+                          <span class="badge bg-success-subtle text-success border border-success-subtle" title="Ítem NetSuite propio">
+                            <i class="bi bi-tag-fill me-1"></i>NS #{{ s.value.ns_item_id }}
+                          </span>
+                        } @else {
+                          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" title="Heredará el ítem NetSuite del evento">
+                            <i class="bi bi-arrow-up-circle me-1"></i>Hereda del evento
+                          </span>
+                        }
+                      </div>
+                    } @else {
+                      <span class="text-muted small">Gratis</span>
+                    }
+                  </td>
                   <td>
                     <span class="badge border" [class]="statusMeta(s.value.status).badgeClass">
                       {{ statusMeta(s.value.status).label }}

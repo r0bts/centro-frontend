@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, signal, computed, effect, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormArray, FormGroup } from '@angular/forms';
 import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { debounceTime, distinctUntilChanged, switchMap, catchError, of, tap } from 'rxjs';
 import { EventFormStateService } from '../../services/event-form-state.service';
@@ -103,11 +103,44 @@ export class Step3AccessComponent {
 
   toggleHasCost(checked: boolean): void {
     this.group.get('has_cost')!.setValue(checked);
-    if (!checked) {
-      // Al apagar "con costo", limpia el costo y el ítem NS para no dejar basura.
+    if (checked) {
+      // La matriz de precios es el único mecanismo de cobro: siempre encendida
+      // cuando el evento tiene costo. El campo `cost` legacy queda en null.
+      this.group.get('cost')!.setValue(null);
+      this.group.get('has_matrix_pricing')!.setValue(true);
+      this.state.syncMatrixPricesWithAccessTypes();
+    } else {
+      // Al apagar "con costo", limpia el ítem NS y desactiva la matriz.
       this.group.get('cost')!.setValue(null);
       this.group.get('ns_item_id')!.setValue(null);
+      this.group.get('has_matrix_pricing')!.setValue(false);
     }
+  }
+
+  // ── Matriz de precios (evento base) ─────────────────────────────────────
+  /** FormArray de la matriz de precios del evento base. Una fila por access_type. */
+  get matrixPrices(): FormArray {
+    return this.state.matrixPricesArray;
+  }
+
+  /** Cast tipado para el template — evita `$any(...)` repetido en Angular. */
+  matrixRowGroup(i: number): FormGroup {
+    return this.matrixPrices.at(i) as FormGroup;
+  }
+
+  /** Etiqueta legible del `access_type` de una fila de la matriz. */
+  matrixRowLabel(i: number): string {
+    const at = this.matrixRowGroup(i).get('access_type')!.value as AccessType;
+    return this.accessTypes.find(a => a.id === at)?.label
+      ?? this.accessTypeMeta[at]?.label
+      ?? at;
+  }
+
+  /** True cuando ninguna fila de la matriz tiene cost > 0 (usado en template). */
+  matrixTodosEnCero(): boolean {
+    const filas = this.matrixPrices.controls as FormGroup[];
+    if (filas.length === 0) return true;
+    return !filas.some(g => Number(g.get('cost')!.value) > 0);
   }
 
   // ── Handlers del selector NS ────────────────────────────────────────────
@@ -160,14 +193,14 @@ export class Step3AccessComponent {
   irSiguiente(): void {
     this.submitted = true;
     if (this.seleccionados.length === 0) return;
-    // Si el evento es de pago, exige costo > 0 y servicio NS antes de avanzar.
+    // Si el evento es de pago, exige servicio NS + matriz con al menos una fila > 0.
     const hasCost = !!this.group.get('has_cost')!.value;
-    const costVal = this.group.get('cost')!.value as number | null;
     const nsItemId = this.group.get('ns_item_id')!.value as number | null;
-    if (hasCost && (costVal === null || costVal === undefined || costVal <= 0)) return;
     if (hasCost && !nsItemId) return;
     // Bloquea avanzar cuando el ítem asignado ya no es válido (legacy/inactivo/no vendible).
     if (hasCost && this.legacyItemInvalid()) return;
+    // Matriz obligatoria: al menos una fila con cost > 0.
+    if (hasCost && this.matrixTodosEnCero()) return;
     this.state.tryNext(this.group);
   }
   irAtras(): void { this.state.prev(); }

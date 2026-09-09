@@ -92,7 +92,34 @@ export interface InstitutionalEventSubevent {
   max_capacity: number;
   current_attendee_count?: number;
   cost?: number | null;
-  access_type: AccessType;
+  /**
+   * ID del ítem NetSuite específico del subevento.
+   * Si es `null`/`undefined`, el backend hereda `ns_item_id` del evento padre
+   * al construir la Sales Order. El modal del formulario lo prellena con el
+   * valor del evento cuando `cost > 0`. Ver docs/Events/15-SUBEVENTOS-NS-ITEM-ID.md.
+   */
+  ns_item_id?: number | null;
+  /**
+   * Activa la matriz de precios por `access_type` en el subevento.
+   * Cuando es `true`, el `cost` del subevento se resuelve desde
+   * `institutional_event_prices` según el `access_type_selected` del asistente.
+   * En opción C (mapa 15 §7.3): la ausencia de fila para un `access_type`
+   * significa que el subevento NO está habilitado para ese tipo.
+   */
+  has_matrix_pricing?: boolean;
+  /** Filas de la matriz de precios del subevento (una por `access_type` habilitado). */
+  institutional_event_prices?: InstitutionalEventPrice[];
+  /**
+   * @deprecated Usar `access_types[]` múltiple. Se conserva 1-2 iteraciones
+   * para retro-compat con eventos históricos (mapa 15 §8). El backend lo
+   * mantiene sincronizado con el primer elemento de `access_types[]`.
+   */
+  access_type?: AccessType | null;
+  /**
+   * Tipos de acceso habilitados en el subevento (múltiple, propio, no heredado
+   * del evento contenedor). Subset estricto de `event.access_types[]`.
+   */
+  access_types: AccessType[];
   instructor_name?:  string | null;
   instructor_phone?: string | null;
   instructor_email?: string | null;
@@ -105,6 +132,25 @@ export interface InstitutionalEventSubevent {
 export interface InstitutionalEventDocument {
   name: string;
   url: string;
+}
+
+/**
+ * Precio para un `access_type` específico de un evento o subevento (matriz
+ * de precios de la iteración del mapa 15 §7).
+ *
+ *  - `subevent_id === null`  → fila del evento base para ese `access_type`.
+ *  - `subevent_id !== null`  → fila de un subevento específico.
+ *
+ * El `ns_item_id` NO se almacena aquí: sigue siendo único por (evento|subevento).
+ */
+export interface InstitutionalEventPrice {
+  id?: number;
+  event_id?: number;
+  subevent_id?: number | null;
+  access_type: AccessType;
+  cost: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface InstitutionalEventFaq {
@@ -206,6 +252,15 @@ export interface InstitutionalEvent {
   has_cost: boolean;
   cost?: number | null;
   ns_item_id?: number | null;
+  /**
+   * Activa la matriz de precios por `access_type` en el evento base.
+   * Cuando es `true`, el precio del evento se resuelve desde
+   * `institutional_event_prices` según el `access_type_selected` del asistente;
+   * si falta la fila para su tipo, se cae al `cost` plano (fallback, mapa 15 §7.9).
+   */
+  has_matrix_pricing?: boolean;
+  /** Filas de la matriz de precios del evento base (una por `access_type`). */
+  institutional_event_prices?: InstitutionalEventPrice[];
   has_donations: boolean;
   donation_amounts?: number[] | null;
   documents?: InstitutionalEventDocument[] | null;
@@ -408,6 +463,8 @@ export interface InstitutionalEventPayload {
   has_cost: boolean;
   cost?: number | null;
   ns_item_id?: number | null;
+  has_matrix_pricing?: boolean;
+  institutional_event_prices?: InstitutionalEventPrice[];
   has_donations: boolean;
   donation_amounts?: number[] | null;
   documents?: InstitutionalEventDocument[] | null;

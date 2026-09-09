@@ -1,0 +1,78 @@
+<div class="guest-filters-panel">
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="text-center py-3">
+      <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+      <span class="ms-2 small text-muted">Cargando…</span>
+    </div>
+  } @else if (errorMsg()) {
+    <div class="alert alert-warning py-2 small">
+      <i class="bi bi-exclamation-triangle me-1"></i>{{ errorMsg() }}
+    </div>
+  }
+
+  <!-- Sin access_types visibles -->
+  @if (visibleAccessTypes.length === 0) {
+    <div class="alert alert-info py-2 small mb-0">
+      <i class="bi bi-info-circle me-1"></i>
+      Este alcance no tiene tipos de acceso configurados.
+    </div>
+  } @else {
+    <div class="small fw-semibold text-uppercase text-muted mb-2">
+      Tipos de acceso
+    </div>
+    <ul class="list-group list-group-flush mb-3">
+      @for (at of visibleAccessTypes; track at) {
+        <li class="list-group-item px-0">
+          <div class="d-flex align-items-center justify-content-between">
+            <!-- Etiqueta + icono + descripción -->
+            <div class="flex-grow-1 me-2">
+              <div class="d-flex align-items-center">
+                <i class="bi me-2" [class]="'bi ' + accessMeta[at].icon"></i>
+                <strong>{{ accessMeta[at].label }}</strong>
+                @if (at === 'committee') {
+                  <span class="badge bg-secondary ms-2">Solo manual</span>
+                }
+              </div>
+              <div class="small text-muted">
+                @let c = countFor(at);
+                @if (c.mode === 'auto') {
+                  <i class="bi bi-check-circle-fill text-success me-1"></i>
+                  {{ c.auto_count | number }} automático{{ c.manual_count > 0 ? ' · ' + (c.manual_count | number) + ' manual' : '' }}
+                } @else {
+                  <i class="bi bi-hand-index-fill text-warning me-1"></i>
+                  {{ c.manual_count | number }} agregado{{ c.manual_count === 1 ? '' : 's' }} manualmente
+                }
+                <span class="ms-2">· Total <strong>{{ c.total | number }}</strong></span>
+              </div>
+            </div>
+
+            <!-- Toggle auto/manual -->
+            <div class="form-check form-switch m-0">
+              @let cnt = countFor(at);
+              <input
+                class="form-check-input"
+                type="checkbox"
+                role="switch"
+                [id]="'toggle-' + at"
+                [checked]="cnt.mode === 'auto'"
+                [disabled]="isAutoDisabled(at) || loading()"
+                (change)="toggleMode(at, $any($event.target).checked)">
+              <label class="form-check-label small text-muted" [for]="'toggle-' + at">
+                {{ cnt.mode === 'auto' ? 'Auto' : 'Manual' }}
+              </label>
+            </div>
+          </div>
+        </li>
+      }
+    </ul>
+
+    <!-- Chip resumen final -->
+    <div class="d-flex align-items-center justify-content-between border-top pt-3">
+      <div class="small text-muted">
+        <i class="bi bi-people-fill me-1"></i>Total del alcance
+      </div>
+      <span class="badge bg-primary fs-6">{{ grandTotal() | number }}</span>
+    </div>
+  }
+</div>

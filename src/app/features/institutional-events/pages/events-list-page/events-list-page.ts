@@ -126,6 +126,10 @@ export class EventsListPageComponent implements OnInit {
     this.router.navigate(['/eventos', event.id, 'inscritos']);
   }
 
+  goToGuests(event: InstitutionalEvent): void {
+    this.router.navigate(['/eventos', event.id, 'guests']);
+  }
+
   irACheckin(event: InstitutionalEvent): void {
     this.router.navigate(['/eventos', event.id, 'checkin']);
   }

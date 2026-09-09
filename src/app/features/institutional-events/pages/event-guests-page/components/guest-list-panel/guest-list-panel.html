@@ -1,0 +1,318 @@
+<div class="guest-list-panel">
+  <!-- Loading / Error -->
+  @if (loading()) {
+    <div class="text-center py-4">
+      <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+      <div class="small text-muted mt-2">Cargando invitados…</div>
+    </div>
+  } @else {
+    @if (errorMsg()) {
+      <div class="alert alert-warning py-2 small">
+        <i class="bi bi-exclamation-triangle me-1"></i>{{ errorMsg() }}
+      </div>
+    }
+
+    <!-- Resumen -->
+    <div class="d-flex flex-wrap gap-2 mb-3 pb-3 border-bottom">
+      <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+        <i class="bi bi-check-circle-fill me-1"></i>{{ autoCount() | number }} automáticos
+      </span>
+      <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+        <i class="bi bi-hand-index-fill me-1"></i>{{ manualCount() | number }} manuales
+      </span>
+      <span class="badge bg-primary fs-6 ms-auto">
+        Total: {{ total() | number }}
+      </span>
+    </div>
+
+    <!-- Buscador (solo si hay algún access_type en modo manual) -->
+    @if (manualAccessTypes().length > 0) {
+      <div class="card border-warning-subtle mb-3">
+        <div class="card-body py-2 px-3">
+          <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold text-uppercase text-muted mb-1">
+                Agregar a
+              </label>
+              <select
+                class="form-select form-select-sm"
+                [ngModel]="manualAccessType()"
+                (change)="onManualAccessTypeChange($any($event.target).value)">
+                @for (at of manualAccessTypes(); track at) {
+                  <option [value]="at">{{ accessMeta[at].label }}</option>
+                }
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label small fw-semibold text-uppercase text-muted mb-1">
+                Buscar por nombre, id o email
+              </label>
+              <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input
+                  type="text"
+                  class="form-control"
+                  [value]="searchTerm()"
+                  (input)="onSearchInput($any($event.target).value)"
+                  placeholder="Escribe al menos 2 caracteres…">
+                @if (searching()) {
+                  <span class="input-group-text bg-white">
+                    <span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Resultados del buscador -->
+          @if (searchResults().length > 0) {
+            <div class="list-group list-group-flush mt-2 border rounded" style="max-height: 250px; overflow-y: auto;">
+              @for (r of searchResults(); track r.id) {
+                <button type="button" class="list-group-item list-group-item-action py-2 px-2" (click)="addResult(r)">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div class="text-start">
+                      <div class="small fw-semibold">{{ resultFullName(r) }}</div>
+                      <div class="small text-muted">{{ resultSubtitle(r) }}</div>
+                    </div>
+                    <i class="bi bi-plus-circle-fill text-primary fs-5"></i>
+                  </div>
+                </button>
+              }
+            </div>
+          } @else if (searchTerm().length >= 2 && !searching()) {
+            @if (foundInOtherAccessType(); as otherAt) {
+              <div class="alert alert-info py-2 small mt-2 mb-0">
+                <i class="bi bi-info-circle-fill me-1"></i>
+                Sin resultados en <strong>{{ accessMeta[manualAccessType()!].label }}</strong>,
+                pero coincide con <strong>{{ accessMeta[otherAt].label }}</strong>.
+                @if (manualAccessTypes().includes(otherAt)) {
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary ms-2"
+                    (click)="switchToSuggestedAccessType()">
+                    <i class="bi bi-arrow-right-circle me-1"></i>
+                    Cambiar a {{ accessMeta[otherAt].label }}
+                  </button>
+                } @else {
+                  <div class="small text-muted mt-1">
+                    Activa el modo <strong>Manual</strong> en <em>{{ accessMeta[otherAt].label }}</em> desde el panel de la derecha para agregarlo.
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="text-muted small mt-2 text-center py-2">Sin resultados.</div>
+            }
+          }
+
+          <!-- Botón "Crear externo" (solo para public / registration) -->
+          @if (canCreateExternal() && !showExternalForm()) {
+            <div class="text-center mt-3">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                (click)="openExternalForm()">
+                <i class="bi bi-person-plus-fill me-1"></i>
+                Crear invitado externo (no está en la base)
+              </button>
+            </div>
+          }
+
+          <!-- Formulario "Crear externo" -->
+          @if (showExternalForm()) {
+            <div class="card border-primary mt-3">
+              <div class="card-header bg-primary-subtle text-primary-emphasis py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center">
+                  <strong>
+                    <i class="bi bi-person-plus-fill me-1"></i>
+                    Nuevo invitado externo ({{ accessMeta[manualAccessType()!].label }})
+                  </strong>
+                  <button
+                    type="button"
+                    class="btn-close btn-sm"
+                    (click)="closeExternalForm()"
+                    [disabled]="savingExternal()"
+                    aria-label="Cerrar"></button>
+                </div>
+              </div>
+              <div class="card-body py-2 px-3">
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label small mb-1">Nombre <span class="text-danger">*</span></label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      [value]="externalForm().first_name"
+                      (input)="updateExternalField('first_name', $any($event.target).value)"
+                      [disabled]="savingExternal()"
+                      placeholder="Nombre">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label small mb-1">Apellidos</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      [value]="externalForm().last_name"
+                      (input)="updateExternalField('last_name', $any($event.target).value)"
+                      [disabled]="savingExternal()"
+                      placeholder="Apellidos">
+                  </div>
+                  <div class="col-md-7">
+                    <label class="form-label small mb-1">Email <span class="text-danger">*</span></label>
+                    <input
+                      type="email"
+                      class="form-control form-control-sm"
+                      [value]="externalForm().email"
+                      (input)="updateExternalField('email', $any($event.target).value)"
+                      [disabled]="savingExternal()"
+                      placeholder="correo@ejemplo.com">
+                  </div>
+                  <div class="col-md-5">
+                    <label class="form-label small mb-1">Teléfono</label>
+                    <input
+                      type="tel"
+                      class="form-control form-control-sm"
+                      [value]="externalForm().phone"
+                      (input)="updateExternalField('phone', $any($event.target).value)"
+                      [disabled]="savingExternal()"
+                      maxlength="10"
+                      placeholder="10 dígitos">
+                  </div>
+                  <div class="col-12">
+                    <label class="form-label small mb-1">Notas (opcional)</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      [value]="externalForm().notes"
+                      (input)="updateExternalField('notes', $any($event.target).value)"
+                      [disabled]="savingExternal()"
+                      placeholder="Comentario interno">
+                  </div>
+                </div>
+
+                @if (externalFormError()) {
+                  <div class="alert alert-danger py-1 px-2 small mt-2 mb-0">
+                    <i class="bi bi-exclamation-triangle me-1"></i>{{ externalFormError() }}
+                  </div>
+                }
+
+                <div class="text-end mt-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-secondary me-2"
+                    (click)="closeExternalForm()"
+                    [disabled]="savingExternal()">
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-primary"
+                    (click)="saveExternal()"
+                    [disabled]="savingExternal()">
+                    @if (savingExternal()) {
+                      <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                      Guardando…
+                    } @else {
+                      <i class="bi bi-check-lg me-1"></i>Agregar
+                    }
+                  </button>
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Tabla efectiva -->
+    @if (guests().length === 0) {
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-clipboard-x fs-2 d-block mb-2"></i>
+        Sin invitados en este alcance.
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 40%;">Nombre</th>
+              <th style="width: 25%;">Tipo</th>
+              <th style="width: 15%;" class="text-center">Origen</th>
+              <th style="width: 10%;" class="text-center">Estado</th>
+              <th style="width: 10%;" class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (g of guests(); track $index) {
+              <tr>
+                <td>
+                  <div class="small fw-semibold">{{ g.person.full_name }}</div>
+                  <div class="small text-muted">
+                    @if (g.person.entity_id) {
+                      Socio #{{ g.person.entity_id }}
+                    }
+                    @if (g.person.email) {
+                      · {{ g.person.email }}
+                    }
+                  </div>
+                </td>
+                <td>
+                  <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle">
+                    <i class="bi me-1" [class]="'bi ' + accessMeta[g.access_type].icon"></i>
+                    {{ accessMeta[g.access_type].label }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  @if (g.source === 'manual') {
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">
+                      <i class="bi bi-hand-index-fill me-1"></i>Manual
+                    </span>
+                  } @else {
+                    <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle">
+                      <i class="bi bi-check-circle-fill me-1"></i>Auto
+                    </span>
+                  }
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark border">{{ g.status }}</span>
+                </td>
+                <td class="text-center">
+                  @if (g.source === 'manual' && g.guest_id) {
+                    <button
+                      class="btn btn-sm btn-outline-danger py-0 px-2"
+                      title="Quitar de la lista"
+                      (click)="removeManual(g)">
+                      <i class="bi bi-x-lg"></i>
+                    </button>
+                  } @else {
+                    <span class="text-muted small">—</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginación -->
+      @if (totalPages > 1) {
+        <nav aria-label="Paginación" class="mt-3">
+          <ul class="pagination pagination-sm justify-content-center mb-0">
+            <li class="page-item" [class.disabled]="page() === 1">
+              <button class="page-link" (click)="goToPage(page() - 1)">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+            </li>
+            <li class="page-item disabled">
+              <span class="page-link">Página {{ page() }} de {{ totalPages }}</span>
+            </li>
+            <li class="page-item" [class.disabled]="page() === totalPages">
+              <button class="page-link" (click)="goToPage(page() + 1)">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      }
+    }
+  }
+</div>

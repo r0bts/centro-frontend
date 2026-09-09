@@ -190,7 +190,13 @@ export class InscribirWizardComponent implements OnDestroy {
       patron:       'bg-warning-subtle text-warning-emphasis border-warning-subtle',
       committee:    'bg-danger-subtle text-danger-emphasis border-danger-subtle',
     };
-    return 'badge border ' + (map[sv.access_type] ?? map['public']);
+    // Mapa 15 §8: el subevento ahora usa access_types[] (múltiple). Se toma
+    // el primer elemento para pintar el badge; fallback a access_type singular
+    // (retro-compat) y luego a 'public' como último recurso.
+    const first = (sv.access_types && sv.access_types.length > 0)
+      ? sv.access_types[0]
+      : (sv.access_type ?? 'public');
+    return 'badge border ' + (map[first] ?? map['public']);
   }
 
   avanzarAConfirm(): void {
