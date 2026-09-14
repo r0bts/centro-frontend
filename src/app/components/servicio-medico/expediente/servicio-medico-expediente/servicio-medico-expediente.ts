@@ -41,6 +41,7 @@ export class ServicioMedicoExpediente implements OnInit {
   isSavingProfile: boolean = false;
   isSavingConsulta: boolean = false;
   isNotifyingAdmin: boolean = false;
+  isSyncingNetSuite: boolean = false;
   
   errorProfile: string = '';
   
@@ -304,7 +305,13 @@ export class ServicioMedicoExpediente implements OnInit {
   loadProfile() {
     this.isLoadingProfile = true;
     this.errorProfile = '';
-    this.servicioMedico.getMedicalProfileByQr(this.token)
+    
+    const type = this.route.snapshot.queryParamMap.get('type');
+    const request$ = type === 'socio' 
+      ? this.servicioMedico.getSocioMedicalProfile(this.token)
+      : this.servicioMedico.getMedicalProfileByQr(this.token);
+
+    request$
       .pipe(finalize(() => {
         this.isLoadingProfile = false;
         this.cdr.detectChanges();
@@ -352,6 +359,12 @@ export class ServicioMedicoExpediente implements OnInit {
   }
 
   goBack() {
+    const type = this.route.snapshot.queryParamMap.get('type');
+    if (type === 'socio') {
+      this.router.navigate(['/servicio-medico/socios']);
+      return;
+    }
+
     const source = this.route.snapshot.queryParamMap.get('source');
     if (source === 'visitas') {
       this.router.navigate(['/servicio-medico/visitas']);
@@ -362,8 +375,9 @@ export class ServicioMedicoExpediente implements OnInit {
 
   guardarDatosGenerales() {
     this.isSavingProfile = true;
-    const payload = {
-      token: this.token,
+    const type = this.route.snapshot.queryParamMap.get('type');
+    
+    let payload: any = {
       blood_type: this.medicalProfile.blood_type,
       allergies: this.medicalProfile.allergies,
       chronic_conditions: this.medicalProfile.chronic_conditions,
@@ -373,7 +387,17 @@ export class ServicioMedicoExpediente implements OnInit {
       general_notes: this.medicalProfile.general_notes
     };
 
-    this.servicioMedico.updateMedicalProfile(payload)
+    if (type === 'socio') {
+      payload.id = this.token;
+    } else {
+      payload.token = this.token;
+    }
+
+    const request$ = type === 'socio'
+      ? this.servicioMedico.updateSocioMedicalProfile(payload)
+      : this.servicioMedico.updateMedicalProfile(payload);
+
+    request$
       .pipe(finalize(() => {
         this.isSavingProfile = false;
         this.cdr.detectChanges();
@@ -389,6 +413,39 @@ export class ServicioMedicoExpediente implements OnInit {
         error: (err) => {
           console.error(err);
           Swal.fire('Error', 'Error al guardar datos generales.', 'error');
+        }
+      });
+  }
+
+  syncFromNetSuite() {
+    if (!this.medicalProfile?.is_socio || !this.token) return;
+    
+    this.isSyncingNetSuite = true;
+    this.servicioMedico.syncSocioHealth(this.token)
+      .pipe(finalize(() => {
+        this.isSyncingNetSuite = false;
+        this.cdr.detectChanges();
+      }))
+      .subscribe({
+        next: (res: any) => {
+          if (res.success) {
+            Swal.fire({
+              toast: true,
+              position: 'top-end',
+              icon: 'success',
+              title: 'Datos médicos sincronizados',
+              showConfirmButton: false,
+              timer: 3000
+            });
+            // Reload the profile to show the new data
+            this.loadProfile();
+          } else {
+            Swal.fire('Atención', res.message || 'El socio no tiene expediente en NetSuite', 'info');
+          }
+        },
+        error: (err) => {
+          console.error(err);
+          Swal.fire('Error', 'No se pudo conectar con NetSuite', 'error');
         }
       });
   }
