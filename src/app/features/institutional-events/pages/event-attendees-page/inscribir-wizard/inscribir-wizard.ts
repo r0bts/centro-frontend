@@ -16,6 +16,7 @@ import {
   InstitutionalEventSubevent,
   EventSocioSearchResult,
   PendingMember,
+  AccessType,
 } from '../../../models/institutional-event.model';
 
 type Paso = 'search' | 'family' | 'confirm' | 'done';
@@ -123,7 +124,10 @@ export class InscribirWizardComponent implements OnDestroy {
       email: result.email, phone: result.phone, parentesco: 'Socio', is_titular: true,
     }];
 
-    const baseCost = this.event.has_cost ? Number(this.event.cost ?? 0) : 0;
+    // Fase 2 mapa 15 §9.3 P3: cada miembro arranca con el primer access_type del
+    // evento como default. El admin puede cambiarlo en el paso 2 con el dropdown.
+    const defaultAccessType: AccessType = (this.eventAccessTypes()[0] ?? 'members') as AccessType;
+    const baseCost = this.resolveEventBase(defaultAccessType);
 
     const members: PendingMember[] = familia.map(f => {
       const alreadyEnrolled = this.estaYaInscrito(f.id);
@@ -136,6 +140,7 @@ export class InscribirWizardComponent implements OnDestroy {
         baseCost,
         subeventsCost: 0,
         totalCost: 0,
+        access_type_selected: defaultAccessType,
       };
     });
 
@@ -169,17 +174,99 @@ export class InscribirWizardComponent implements OnDestroy {
     this.pendingMembers.update(ms => ms.map(m => {
       if (m.socio_id !== socioId) return m;
       const sv = this.subevents().find(s => s.id === svId);
-      if (!sv || sv.access_type === 'committee') return m;
+      if (!sv) return m;
+      // Fase 2 §9.3 P4: bloqueo por access_types[] del subevento.
+      if (!this.isSubeventoDisponible(sv, m.access_type_selected)) return m;
       const ids = m.selectedSubeventIds.includes(svId)
         ? m.selectedSubeventIds.filter(id => id !== svId)
         : [...m.selectedSubeventIds, svId];
-      const subCost = ids.reduce((sum, id) => sum + Number(this.subevents().find(s => s.id === id)?.cost ?? 0), 0);
+      // Fase 2 §9.3 P3: precio desde la matriz según el access_type del miembro.
+      const subCost = ids.reduce((sum, id) => {
+        const s = this.subevents().find(x => x.id === id);
+        return sum + (s ? this.resolveSubeventCost(s, m.access_type_selected) : 0);
+      }, 0);
       return { ...m, selectedSubeventIds: ids, subeventsCost: subCost, totalCost: m.baseCost + subCost };
     }));
   }
 
   isSubeventoSeleccionado(socioId: number, svId: number): boolean {
     return this.pendingMembers().find(m => m.socio_id === socioId)?.selectedSubeventIds.includes(svId) ?? false;
+  }
+
+  // ── Fase 2 mapa 15 §9.3 P3: resolución de precios desde la matriz ─────────
+
+  /** Access types válidos del evento — para el selector por miembro (paso 2). */
+  readonly eventAccessTypes = computed((): AccessType[] =>
+    (this.event.access_types ?? []) as AccessType[]
+  );
+
+  /**
+   * Precio del evento base según la matriz para el `access_type` dado. Si el
+   * evento tiene `has_matrix_pricing=true` busca la fila con `subevent_id=null`;
+   * si no hay fila (o no hay matriz), cae al `event.cost` legacy.
+   */
+  private resolveEventBase(accessType: AccessType): number {
+    if (!this.event.has_cost) return 0;
+    if (this.event.has_matrix_pricing && this.event.institutional_event_prices) {
+      const row = this.event.institutional_event_prices.find(p =>
+        (p.subevent_id === null || p.subevent_id === undefined) && p.access_type === accessType,
+      );
+      if (row) return Number(row.cost) || 0;
+    }
+    return Number(this.event.cost ?? 0);
+  }
+
+  /**
+   * Precio de un subevento según la matriz para el `access_type` dado. Busca
+   * primero en la matriz del subevento (`institutional_event_prices` embebido
+   * en el subevento) — si no está, cae al `subevent.cost` legacy. Público
+   * porque también lo usa el HTML para mostrar el precio dinámico según el
+   * access_type del miembro.
+   */
+  resolveSubeventCostPublic(sv: InstitutionalEventSubevent, accessType: AccessType): number {
+    return this.resolveSubeventCost(sv, accessType);
+  }
+
+  private resolveSubeventCost(sv: InstitutionalEventSubevent, accessType: AccessType): number {
+    if (sv.has_matrix_pricing && sv.institutional_event_prices) {
+      const row = sv.institutional_event_prices.find(p => p.access_type === accessType);
+      if (row) return Number(row.cost) || 0;
+    }
+    return Number(sv.cost ?? 0);
+  }
+
+  /** True cuando `sv.access_types[]` acepta el `access_type` del miembro. */
+  isSubeventoDisponible(sv: InstitutionalEventSubevent, accessType: AccessType): boolean {
+    if (!sv.access_types || sv.access_types.length === 0) return true;
+    return sv.access_types.includes(accessType);
+  }
+
+  /**
+   * Cambio de access_type del miembro (dropdown en paso 2). Recalcula `baseCost`
+   * y `subeventsCost` con la matriz, y quita subeventos que ya no aplican.
+   */
+  changeAccessType(socioId: number, accessType: AccessType): void {
+    this.pendingMembers.update(ms => ms.map(m => {
+      if (m.socio_id !== socioId) return m;
+      const newBase = this.resolveEventBase(accessType);
+      // Filtra subeventos que ya no acepten este access_type.
+      const validSubs = m.selectedSubeventIds.filter(svId => {
+        const sv = this.subevents().find(s => s.id === svId);
+        return sv ? this.isSubeventoDisponible(sv, accessType) : false;
+      });
+      const newSubCost = validSubs.reduce((sum, id) => {
+        const sv = this.subevents().find(s => s.id === id);
+        return sum + (sv ? this.resolveSubeventCost(sv, accessType) : 0);
+      }, 0);
+      return {
+        ...m,
+        access_type_selected: accessType,
+        baseCost: newBase,
+        selectedSubeventIds: validSubs,
+        subeventsCost: newSubCost,
+        totalCost: m.selected ? newBase + newSubCost : 0,
+      };
+    }));
   }
 
   subevCss(sv: InstitutionalEventSubevent): string {
@@ -228,9 +315,13 @@ export class InscribirWizardComponent implements OnDestroy {
           socio_id:     m.socio_id,
           full_name:    m.fullname,
           subevent_ids: m.selectedSubeventIds,
+          // Fase 2 mapa 15 §9.3 P3: access_type por-attendee (el backend cobra
+          // según la matriz de precios para este tipo específico).
+          access_type_selected: m.access_type_selected,
         })),
         registration_channel: 'admin_manual',
-        access_type_selected: 'members',
+        // Fallback a nivel batch para retro-compat (backend usa el por-attendee si viene).
+        access_type_selected: activos[0]?.access_type_selected ?? 'members',
         notes:           this.notas() || null,
         create_ns_order: this.generaOrdenNS(),
       }));

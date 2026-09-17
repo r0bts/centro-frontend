@@ -17,6 +17,7 @@ import {
   EventSocioSearchResult,
   AddAttendeePayload,
   NsService,
+  SaleType,
 } from '../models/institutional-event.model';
 
 /**
@@ -123,7 +124,17 @@ export class InstitutionalEventsService {
 
   /** POST /api/institutional-events/:id/attendees/batch — inscribe un grupo familiar de una sola llamada. */
   addAttendeesBatch(eventId: number, data: {
-    attendees: { socio_id: number; full_name: string; subevent_ids: number[] }[];
+    attendees: {
+      socio_id: number;
+      full_name: string;
+      subevent_ids: number[];
+      /**
+       * access_type por-persona (fase 2 mapa 15 §9.3 P3). Si se envía, el backend
+       * cobra según la matriz de precios; si no, cae al `access_type_selected`
+       * del nivel del batch como fallback.
+       */
+      access_type_selected?: string;
+    }[];
     registration_channel: 'admin_manual';
     access_type_selected: string;
     notes?: string | null;
@@ -237,5 +248,22 @@ export class InstitutionalEventsService {
     return this.http
       .get<ApiResponse<{ services: NsService[]; count: number }>>(`${environment.apiUrl}/ns-catalogs/services`, { params })
       .pipe(map(res => res.data?.services ?? []));
+  }
+
+  // ── Catálogo de tipos de venta NetSuite (customlist_cl_tipo_venta) ─────────
+
+  /**
+   * GET /api/sale-types — devuelve el catálogo local de tipos de venta
+   * sincronizados en `sale_types`. Sólo activos por default. Se usa en el
+   * Paso 3 del formulario para poblar el selector de `sale_type_id` del
+   * evento (mapa 15 §pendiente saleType).
+   */
+  getSaleTypes(opts: { active?: boolean; limit?: number } = {}): Observable<SaleType[]> {
+    let params = new HttpParams();
+    if (opts.active !== undefined) params = params.set('active', opts.active ? '1' : '0');
+    if (opts.limit)                params = params.set('limit', String(opts.limit));
+    return this.http
+      .get<ApiResponse<{ sale_types: SaleType[]; total: number }>>(`${environment.apiUrl}/sale-types`, { params })
+      .pipe(map(res => res.data?.sale_types ?? []));
   }
 }

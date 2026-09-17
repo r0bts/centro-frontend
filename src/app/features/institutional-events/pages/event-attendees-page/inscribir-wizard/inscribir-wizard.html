@@ -151,6 +151,21 @@
                   <span class="ms-auto fw-semibold small text-primary">${{ +m.totalCost | number:'1.2-2' }}</span>
                 }
               </div>
+
+              <!-- Fase 2 §9.3 P3: selector de access_type por miembro -->
+              @if (m.selected && !m.alreadyEnrolled && eventAccessTypes().length > 1) {
+                <div class="ms-4 mt-2" (click)="$event.stopPropagation()">
+                  <label class="text-muted small d-block mb-1">Tipo de acceso:</label>
+                  <select class="form-select form-select-sm"
+                          style="max-width:220px"
+                          [ngModel]="m.access_type_selected"
+                          (ngModelChange)="changeAccessType(m.socio_id, $event)">
+                    @for (at of eventAccessTypes(); track at) {
+                      <option [ngValue]="at">{{ at }}</option>
+                    }
+                  </select>
+                </div>
+              }
             </div>
 
             <!-- Subeventos -->
@@ -158,16 +173,21 @@
               <div class="wz-subevent-panel">
                 <p class="wz-subevent-label">Subeventos:</p>
                 @for (sv of subevents(); track sv.id) {
-                  <label class="wz-subevent-item" [class.wz-subevent-blocked]="sv.access_type === 'committee'">
+                  <label class="wz-subevent-item"
+                         [class.wz-subevent-blocked]="!isSubeventoDisponible(sv, m.access_type_selected)">
                     <input type="checkbox"
                            class="form-check-input"
                            [checked]="isSubeventoSeleccionado(m.socio_id, sv.id!)"
-                           [disabled]="sv.access_type === 'committee'"
+                           [disabled]="!isSubeventoDisponible(sv, m.access_type_selected)"
                            (change)="toggleSubevento(m.socio_id, sv.id!)" />
                     <span class="flex-grow-1">{{ sv.name }}</span>
-                    <span [class]="subevCss(sv)" style="font-size:0.72rem">{{ sv.access_type }}</span>
-                    @if (event.has_cost && (sv.cost ?? 0) > 0) {
-                      <span class="text-muted small">+${{ (sv.cost ?? 0) | number:'1.2-2' }}</span>
+                    <span [class]="subevCss(sv)" style="font-size:0.72rem">
+                      {{ sv.access_types.join(', ') || sv.access_type }}
+                    </span>
+                    @if (event.has_cost) {
+                      <span class="text-muted small">
+                        +${{ resolveSubeventCostPublic(sv, m.access_type_selected) | number:'1.2-2' }}
+                      </span>
                     }
                   </label>
                 }

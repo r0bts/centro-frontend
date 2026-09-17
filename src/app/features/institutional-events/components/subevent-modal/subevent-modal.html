@@ -105,49 +105,33 @@
       </div>
 
       @if (form.has_matrix_pricing) {
-        <div class="mb-3">
-          <label class="form-label fw-semibold small text-uppercase text-muted">
-            Tipo de servicio de NetSuite <span class="text-danger">*</span>
-          </label>
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold small text-uppercase text-muted">
+              Tipo de servicio de NetSuite <span class="text-danger">*</span>
+            </label>
+            <ng-select
+              [items]="nsServices()"
+              [(ngModel)]="form.ns_item_id"
+              name="sub_ns_item_id"
+              bindLabel="item_name"
+              bindValue="id"
+              placeholder="Buscar servicio por nombre o código…"
+              notFoundText="Sin resultados"
+              loadingText="Cargando…"
+              [loading]="nsLoading()"
+              [searchable]="true"
+              [clearable]="true"
+              [searchFn]="nsSearchFn"
+              [class.is-invalid]="(submitted && !form.ns_item_id) || legacyItemInvalid()">
 
-          <!-- Buscador -->
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white">
-              <i class="bi bi-search"></i>
-            </span>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Buscar servicio por nombre o código..."
-              [value]="nsQuery()"
-              (input)="onNsQueryChange($any($event.target).value)">
-            @if (nsLoading()) {
-              <span class="input-group-text bg-white">
-                <span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
-              </span>
-            }
-          </div>
+              <ng-template ng-label-tmp let-item="item">
+                <span class="fw-semibold">{{ item.item_id }}</span>
+                <span class="text-muted"> · </span>
+                <span>{{ item.item_name }}</span>
+              </ng-template>
 
-          <!-- Toggle inactivos -->
-          <div class="form-check form-check-inline mt-1">
-            <input class="form-check-input" type="checkbox" id="subShowInactive"
-                   [checked]="showInactive()" (change)="toggleShowInactive()">
-            <label class="form-check-label small text-muted" for="subShowInactive">Mostrar inactivos</label>
-          </div>
-
-          <!-- Error del API -->
-          @if (nsError()) {
-            <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
-              <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
-            </div>
-          }
-
-          <!-- Lista de resultados -->
-          <div class="list-group ns-services-list mt-1" style="max-height: 200px; overflow-y: auto;">
-            @for (item of nsServices(); track item.id) {
-              <button type="button" class="list-group-item list-group-item-action py-1 px-2"
-                      [class.active]="form.ns_item_id === item.id"
-                      (click)="onSelectNsService(item)">
+              <ng-template ng-option-tmp let-item="item">
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="small">
                     <span class="fw-semibold">{{ item.item_id }}</span>
@@ -165,47 +149,62 @@
                     }
                   </div>
                 </div>
-              </button>
-            } @empty {
-              <div class="list-group-item text-center small text-muted py-2">
-                @if (nsLoading()) {
-                  Cargando servicios...
-                } @else {
-                  Sin resultados
-                }
+              </ng-template>
+            </ng-select>
+
+            @if (nsError()) {
+              <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
               </div>
+            }
+            <!--
+              Advertencia legacy del ns_item_id (comentada por decisión del user 2026-09-13,
+              mismo criterio que en step-3-access): la validación sigue activa por
+              `[class.is-invalid]` y por `guardar()`, pero no se muestra el mensaje.
+
+            @if (legacyItemInvalid()) {
+              <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                El servicio NetSuite asignado a este subevento (id
+                <strong>{{ form.ns_item_id }}</strong>)
+                no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
+                de compra. Selecciona otro servicio para poder guardar.
+              </div>
+            }
+            -->
+            @if (submitted && !form.ns_item_id) {
+              <div class="invalid-feedback d-block">Selecciona un servicio de NetSuite.</div>
             }
           </div>
 
-          <!-- Advertencia legacy: el ítem asignado no aparece en el catálogo vendible/activo -->
-          @if (legacyItemInvalid()) {
-            <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
-              <i class="bi bi-exclamation-triangle-fill me-1"></i>
-              El servicio NetSuite asignado a este subevento (id
-              <strong>{{ form.ns_item_id }}</strong>)
-              no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
-              de compra. Selecciona otro servicio para poder guardar.
-            </div>
-          }
+          <!-- Tipo de venta (custbody_cl_tipo_venta) del subevento — override opcional -->
+          <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold small text-uppercase text-muted">
+              Tipo de venta (NetSuite)
+            </label>
+            <ng-select
+              [items]="state.saleTypes()"
+              [(ngModel)]="form.sale_type_id"
+              name="sub_sale_type_id"
+              bindLabel="name"
+              bindValue="id"
+              placeholder="Buscar tipo de venta…"
+              notFoundText="Sin resultados"
+              loadingText="Cargando…"
+              [loading]="state.loadingSaleTypes()"
+              [searchable]="true"
+              [clearable]="true">
+            </ng-select>
+            <!--
+              Nota de ayuda del sale_type_id del subevento (comentada por
+              decisión del user 2026-09-13, mismo criterio que en step-3-access).
 
-          <!-- Seleccionado -->
-          @if (selectedNsService(); as sel) {
-            <div class="alert alert-success py-2 px-2 mt-2 mb-0 d-flex justify-content-between align-items-center">
-              <div class="small">
-                <div class="fw-semibold">
-                  <i class="bi bi-check-circle-fill me-1"></i>{{ sel.item_id }} · {{ sel.item_name }}
-                </div>
-                <div class="text-muted">ID de NS que se enviará: <strong>{{ sel.id }}</strong></div>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearNsSelection()" title="Quitar selección">
-                <i class="bi bi-x-lg"></i>
-              </button>
+            <div class="form-text">
+              Se envía como <code>custbody_cl_tipo_venta</code> en la Orden de Venta
+              del subevento. Si se deja vacío, hereda el tipo de venta del evento.
             </div>
-          } @else if (submitted && !legacyItemInvalid()) {
-            <div class="field-error small mt-1"><i class="bi bi-exclamation-circle me-1"></i>Selecciona un servicio de NetSuite.</div>
-          } @else if (!legacyItemInvalid()) {
-            <div class="form-text">Selecciona el servicio de NS para este subevento. Se prellena con el del evento cuando el costo es mayor a 0.</div>
-          }
+            -->
+          </div>
         </div>
 
         <!-- Precios por tipo de acceso (obligatorio cuando el subevento tiene costo propio) -->

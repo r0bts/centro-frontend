@@ -1,8 +1,8 @@
-import { Component, ChangeDetectionStrategy, signal, computed, effect, DestroyRef, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, computed, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormArray, FormGroup } from '@angular/forms';
-import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { debounceTime, distinctUntilChanged, switchMap, catchError, of, tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { EventFormStateService } from '../../services/event-form-state.service';
 import { InstitutionalEventsService } from '../../services/institutional-events.service';
 import { AccessType, ACCESS_TYPE_META, NsService } from '../../models/institutional-event.model';
@@ -11,7 +11,7 @@ import { AccessType, ACCESS_TYPE_META, NsService } from '../../models/institutio
   selector: 'app-step-3-access',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, NgSelectModule],
   templateUrl: './step-3-access.html',
   styleUrl: './step-3-access.scss',
 })
@@ -24,17 +24,21 @@ export class Step3AccessComponent {
 
   // ── Selector de servicio NetSuite (aparece sólo cuando has_cost = true) ──
   readonly nsServices = signal<NsService[]>([]);
-  readonly nsQuery = signal<string>('');
-  readonly showInactive = signal<boolean>(false);
   readonly nsLoading = signal<boolean>(false);
   readonly nsError = signal<string | null>(null);
 
-  /** Servicio actualmente seleccionado (resuelto a partir del ns_item_id del form). */
-  readonly selectedNsService = computed<NsService | null>(() => {
-    const currentId = this.group.get('ns_item_id')?.value as number | null;
-    if (!currentId) return null;
-    return this.nsServices().find(s => s.id === currentId) ?? null;
-  });
+  /**
+   * Filtro custom del `<ng-select>` para el catálogo NS: busca en item_id
+   * (código) y en item_name (nombre) simultáneamente.
+   */
+  readonly nsSearchFn = (term: string, item: NsService): boolean => {
+    const t = (term ?? '').toLowerCase().trim();
+    if (!t) return true;
+    return (
+      (item.item_id ?? '').toLowerCase().includes(t) ||
+      (item.item_name ?? '').toLowerCase().includes(t)
+    );
+  };
 
   /**
    * True cuando el evento en edición ya tenía asignado un `ns_item_id`,
@@ -48,42 +52,19 @@ export class Step3AccessComponent {
     const currentId = this.group.get('ns_item_id')?.value as number | null;
     if (!currentId) return false;
     if (this.nsLoading()) return false;
-    return this.selectedNsService() === null;
+    return !this.nsServices().some(s => s.id === currentId);
   });
 
   private readonly destroyRef = inject(DestroyRef);
 
   constructor(public state: EventFormStateService, private svc: InstitutionalEventsService) {
-    // Recarga automática del catálogo cuando cambia la búsqueda o el toggle de inactivos.
-    toObservable(this.nsQuery).pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap(q => {
-        this.nsLoading.set(true);
-        this.nsError.set(null);
-        return this.svc.getNsServices({
-          q: q.trim() || undefined,
-          active: !this.showInactive(),
-          sellable: true,
-          limit: 200,
-        }).pipe(
-          catchError(err => {
-            this.nsError.set(err?.error?.message ?? 'No se pudo cargar el catálogo de servicios.');
-            return of<NsService[]>([]);
-          }),
-          tap(() => this.nsLoading.set(false)),
-        );
-      }),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(list => this.nsServices.set(list));
-
-    // Al activar has_cost por primera vez, dispara una carga inicial.
-    effect(() => {
-      const hasCost = this.group.get('has_cost')?.value;
-      if (hasCost && this.nsServices().length === 0 && !this.nsLoading()) {
-        this.reloadNsServices();
-      }
-    });
+    // Carga inicial del catálogo NS al montar el componente. Se hace siempre
+    // (no condicionada a `has_cost`) porque el FormControl NO es un signal y
+    // un `effect()` sobre `group.get('has_cost').value` no reacciona a sus
+    // cambios — el resultado era que el `<ng-select>` aparecía vacío al
+    // activar "con costo". El catálogo es pequeño (≤ 500 items) y el filtrado
+    // por texto lo hace el propio ng-select en memoria.
+    this.reloadNsServices();
   }
 
   get group() { return this.state.accessGroup; }
@@ -144,21 +125,13 @@ export class Step3AccessComponent {
   }
 
   // ── Handlers del selector NS ────────────────────────────────────────────
-  onNsQueryChange(value: string): void { this.nsQuery.set(value ?? ''); }
-
-  toggleShowInactive(): void {
-    this.showInactive.update(v => !v);
-    this.reloadNsServices();
-  }
-
   reloadNsServices(): void {
     this.nsLoading.set(true);
     this.nsError.set(null);
     this.svc.getNsServices({
-      q: this.nsQuery().trim() || undefined,
-      active: !this.showInactive(),
+      active: true,
       sellable: true,
-      limit: 200,
+      limit: 500,
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -168,24 +141,6 @@ export class Step3AccessComponent {
           this.nsLoading.set(false);
         },
       });
-  }
-
-  onSelectNsService(item: NsService): void {
-    // Guard defensivo: nunca aceptar un ítem no vendible aunque llegara vía URL
-    // o payload manipulado. El backend igual lo rechazaría al crear el SO.
-    if (!item.has_incomeaccount) {
-      this.nsError.set(`El ítem "${item.item_name}" no es vendible en NetSuite y no puede usarse para eventos con costo.`);
-      return;
-    }
-    this.group.get('ns_item_id')!.setValue(item.id);
-    // Asegura que el servicio elegido esté en la lista visible aunque estuviera fuera del filtro actual.
-    if (!this.nsServices().some(s => s.id === item.id)) {
-      this.nsServices.update(l => [item, ...l]);
-    }
-  }
-
-  clearNsSelection(): void {
-    this.group.get('ns_item_id')!.setValue(null);
   }
 
   submitted = false;

@@ -73,49 +73,32 @@
       </div>
 
       @if (group.get('has_cost')!.value) {
-        <div>
-          <label class="form-label fw-semibold small text-uppercase text-muted">
-            Tipo de servicio de NetSuite <span class="text-danger">*</span>
-          </label>
+        <div class="row g-3">
+          <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold small text-uppercase text-muted">
+              Tipo de servicio de NetSuite <span class="text-danger">*</span>
+            </label>
+            <ng-select
+              formControlName="ns_item_id"
+              [items]="nsServices()"
+              bindLabel="item_name"
+              bindValue="id"
+              placeholder="Buscar servicio por nombre o código…"
+              notFoundText="Sin resultados"
+              loadingText="Cargando…"
+              [loading]="nsLoading()"
+              [searchable]="true"
+              [clearable]="true"
+              [searchFn]="nsSearchFn"
+              [class.is-invalid]="(submitted && !group.get('ns_item_id')?.value) || legacyItemInvalid()">
 
-          <!-- Buscador -->
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white">
-              <i class="bi bi-search"></i>
-            </span>
-            <input
-              type="text"
-              class="form-control"
-              placeholder="Buscar servicio por nombre o código..."
-              [value]="nsQuery()"
-              (input)="onNsQueryChange($any($event.target).value)">
-            @if (nsLoading()) {
-              <span class="input-group-text bg-white">
-                <span class="spinner-border spinner-border-sm text-secondary" role="status" aria-hidden="true"></span>
-              </span>
-            }
-          </div>
+              <ng-template ng-label-tmp let-item="item">
+                <span class="fw-semibold">{{ item.item_id }}</span>
+                <span class="text-muted"> · </span>
+                <span>{{ item.item_name }}</span>
+              </ng-template>
 
-          <!-- Toggle inactivos -->
-          <div class="form-check form-check-inline mt-1">
-            <input class="form-check-input" type="checkbox" id="showInactive"
-                   [checked]="showInactive()" (change)="toggleShowInactive()">
-            <label class="form-check-label small text-muted" for="showInactive">Mostrar inactivos</label>
-          </div>
-
-          <!-- Error del API -->
-          @if (nsError()) {
-            <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
-              <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
-            </div>
-          }
-
-          <!-- Lista de resultados -->
-          <div class="list-group ns-services-list mt-1" style="max-height: 200px; overflow-y: auto;">
-            @for (item of nsServices(); track item.id) {
-              <button type="button" class="list-group-item list-group-item-action py-1 px-2"
-                      [class.active]="group.get('ns_item_id')!.value === item.id"
-                      (click)="onSelectNsService(item)">
+              <ng-template ng-option-tmp let-item="item">
                 <div class="d-flex justify-content-between align-items-center">
                   <div class="small">
                     <span class="fw-semibold">{{ item.item_id }}</span>
@@ -133,47 +116,62 @@
                     }
                   </div>
                 </div>
-              </button>
-            } @empty {
-              <div class="list-group-item text-center small text-muted py-2">
-                @if (nsLoading()) {
-                  Cargando servicios...
-                } @else {
-                  Sin resultados
-                }
+              </ng-template>
+            </ng-select>
+
+            @if (nsError()) {
+              <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
               </div>
+            }
+            <!--
+              Advertencia legacy del ns_item_id (comentada por decisión del user 2026-09-13):
+              se ocultaba el warning pero la validación `legacyItemInvalid()` sigue activa
+              a nivel del `[class.is-invalid]` del ng-select y el bloqueo de `irSiguiente()`.
+              Si en el futuro se quiere volver a mostrar el mensaje al admin, descomentar.
+
+            @if (legacyItemInvalid()) {
+              <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                El servicio NetSuite asignado a este evento (id
+                <strong>{{ group.get('ns_item_id')!.value }}</strong>)
+                no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
+                de compra. Selecciona otro servicio para poder guardar y generar la Orden de Venta.
+              </div>
+            }
+            -->
+            @if (submitted && !group.get('ns_item_id')?.value) {
+              <div class="invalid-feedback d-block">Selecciona un servicio de NetSuite.</div>
             }
           </div>
 
-          <!-- Advertencia legacy: el ítem asignado no aparece en el catálogo vendible/activo -->
-          @if (legacyItemInvalid()) {
-            <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
-              <i class="bi bi-exclamation-triangle-fill me-1"></i>
-              El servicio NetSuite asignado a este evento (id
-              <strong>{{ group.get('ns_item_id')!.value }}</strong>)
-              no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
-              de compra. Selecciona otro servicio para poder guardar y generar la Orden de Venta.
-            </div>
-          }
+          <!-- Tipo de venta (custbody_cl_tipo_venta) — clasifica la SO en NS -->
+          <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold small text-uppercase text-muted">
+              Tipo de venta (NetSuite)
+            </label>
+            <ng-select
+              formControlName="sale_type_id"
+              [items]="state.saleTypes()"
+              bindLabel="name"
+              bindValue="id"
+              placeholder="Buscar tipo de venta…"
+              notFoundText="Sin resultados"
+              loadingText="Cargando…"
+              [loading]="state.loadingSaleTypes()"
+              [searchable]="true"
+              [clearable]="true">
+            </ng-select>
+            <!--
+              Nota de ayuda del sale_type_id (comentada por decisión del user 2026-09-13).
+              Descomentar si se decide mostrar el texto de contexto al admin.
 
-          <!-- Seleccionado -->
-          @if (selectedNsService(); as sel) {
-            <div class="alert alert-success py-2 px-2 mt-2 mb-0 d-flex justify-content-between align-items-center">
-              <div class="small">
-                <div class="fw-semibold">
-                  <i class="bi bi-check-circle-fill me-1"></i>{{ sel.item_id }} · {{ sel.item_name }}
-                </div>
-                <div class="text-muted">ID de NS que se enviará: <strong>{{ sel.id }}</strong></div>
-              </div>
-              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="clearNsSelection()" title="Quitar selección">
-                <i class="bi bi-x-lg"></i>
-              </button>
+            <div class="form-text">
+              Se envía como <code>custbody_cl_tipo_venta</code> en la Orden de Venta.
+              Si se deja vacío, NetSuite tomará el default configurado en el servicio.
             </div>
-          } @else if (submitted && !legacyItemInvalid()) {
-            <div class="field-error small mt-1"><i class="bi bi-exclamation-circle me-1"></i>Selecciona un servicio de NetSuite.</div>
-          } @else if (!legacyItemInvalid()) {
-            <div class="form-text">Selecciona el servicio de NS que se usará al generar la Orden de Venta cuando un socio se inscriba.</div>
-          }
+            -->
+          </div>
         </div>
 
         <!-- Precios por tipo de acceso (obligatorio cuando el evento tiene costo) ─── -->

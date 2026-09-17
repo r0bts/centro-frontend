@@ -13,8 +13,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { toObservable, takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, debounceTime, distinctUntilChanged, of, switchMap, tap } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AccessType,
   ACCESS_TYPE_META,
@@ -53,6 +52,12 @@ type SubeventoForm = {
   cost: number;
   ns_item_id: number | null;
   /**
+   * Tipo de venta NS (custbody_cl_tipo_venta) específico del subevento.
+   * `null` = hereda del evento padre. Se propaga al `sale_type_id` del payload
+   * al guardar; el resolver del `NetSuiteService` decide cascada padre → default.
+   */
+  sale_type_id: number | null;
+  /**
    * @deprecated Se conserva por retro-compat (mapa 15 §8). Se calcula como el
    * primer elemento de `access_types[]` al guardar; no se edita directamente.
    */
@@ -80,6 +85,7 @@ function empty(): SubeventoForm {
     name: '', start_date: '', end_date: '', venue: '',
     area_id: null,
     max_capacity: 0, cost: 0, ns_item_id: null,
+    sale_type_id: null,
     access_type: 'public',
     access_types: [],
     status: 'confirmed',
@@ -125,17 +131,22 @@ export class SubeventModalComponent implements OnChanges {
 
   // ── Selector NetSuite (aparece sólo cuando cost > 0). Mismo diseño que step-3-access. ──
   readonly nsServices = signal<NsService[]>([]);
-  readonly nsQuery = signal<string>('');
-  readonly showInactive = signal<boolean>(false);
   readonly nsLoading = signal<boolean>(false);
   readonly nsError = signal<string | null>(null);
 
-  /** Ítem seleccionado, resuelto contra el catálogo cargado. */
-  readonly selectedNsService = computed<NsService | null>(() => {
-    const id = this.form.ns_item_id;
-    if (!id) return null;
-    return this.nsServices().find(s => s.id === id) ?? null;
-  });
+  /**
+   * Filtro custom del `<ng-select>` para el catálogo NS: busca en item_id
+   * (código) y en item_name (nombre) simultáneamente. Mismo patrón que el
+   * step-3-access del formulario del evento.
+   */
+  readonly nsSearchFn = (term: string, item: NsService): boolean => {
+    const t = (term ?? '').toLowerCase().trim();
+    if (!t) return true;
+    return (
+      (item.item_id ?? '').toLowerCase().includes(t) ||
+      (item.item_name ?? '').toLowerCase().includes(t)
+    );
+  };
 
   /**
    * True cuando el subevento en edición ya trae un `ns_item_id` que no aparece
@@ -145,32 +156,15 @@ export class SubeventModalComponent implements OnChanges {
     const id = this.form.ns_item_id;
     if (!id) return false;
     if (this.nsLoading()) return false;
-    return this.selectedNsService() === null;
+    return !this.nsServices().some(s => s.id === id);
   });
 
   constructor() {
-    // Suscripción reactiva al buscador (misma UX que step-3-access).
-    toObservable(this.nsQuery).pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap(q => {
-        this.nsLoading.set(true);
-        this.nsError.set(null);
-        return this.svc.getNsServices({
-          q: q.trim() || undefined,
-          active: !this.showInactive(),
-          sellable: true,
-          limit: 200,
-        }).pipe(
-          catchError(err => {
-            this.nsError.set(err?.error?.message ?? 'No se pudo cargar el catálogo de servicios.');
-            return of<NsService[]>([]);
-          }),
-          tap(() => this.nsLoading.set(false)),
-        );
-      }),
-      takeUntilDestroyed(this.destroyRef),
-    ).subscribe(list => this.nsServices.set(list));
+    // Carga inicial del catálogo NS al montar el modal (mismo motivo que en
+    // step-3-access.ts: el `form` es un objeto plano no reactivo, un
+    // `effect()` sobre `form.has_matrix_pricing` no dispara). El catálogo es
+    // pequeño (≤ 500 items) y ng-select filtra en memoria.
+    this.reloadNsServices();
   }
 
   /** ns_item_id del evento contenedor — se usa como valor por defecto al prellenar. */
@@ -213,6 +207,7 @@ export class SubeventModalComponent implements OnChanges {
           max_capacity: this.subevento.max_capacity ?? 0,
           cost: this.subevento.cost ?? 0,
           ns_item_id: this.subevento.ns_item_id ?? null,
+          sale_type_id: this.subevento.sale_type_id ?? null,
           access_type: this.subevento.access_type ?? 'public',
           access_types: resolveAccessTypes(),
           status: this.subevento.status ?? 'confirmed',
@@ -260,11 +255,6 @@ export class SubeventModalComponent implements OnChanges {
     // hay uno asignado aún.
     if (this.form.has_matrix_pricing && !this.form.ns_item_id) {
       this.form.ns_item_id = this.eventNsItemId();
-    }
-
-    // Carga inicial del catálogo si el bloque va a mostrarse.
-    if (this.form.has_matrix_pricing && this.nsServices().length === 0 && !this.nsLoading()) {
-      this.reloadNsServices();
     }
   }
 
@@ -349,9 +339,6 @@ export class SubeventModalComponent implements OnChanges {
       if (!this.form.ns_item_id) {
         this.form.ns_item_id = this.eventNsItemId();
       }
-      if (this.nsServices().length === 0 && !this.nsLoading()) {
-        this.reloadNsServices();
-      }
     } else {
       this.form.ns_item_id = null;
       this.form.cost = 0;
@@ -372,22 +359,14 @@ export class SubeventModalComponent implements OnChanges {
       ?? at;
   }
 
-  // ── Handlers del selector NS (mismos nombres que step-3-access) ──
-  onNsQueryChange(value: string): void { this.nsQuery.set(value ?? ''); }
-
-  toggleShowInactive(): void {
-    this.showInactive.update(v => !v);
-    this.reloadNsServices();
-  }
-
+  // ── Handlers del selector NS (mismo patrón que step-3-access) ──
   reloadNsServices(): void {
     this.nsLoading.set(true);
     this.nsError.set(null);
     this.svc.getNsServices({
-      q: this.nsQuery().trim() || undefined,
-      active: !this.showInactive(),
+      active: true,
       sellable: true,
-      limit: 200,
+      limit: 500,
     })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -397,21 +376,6 @@ export class SubeventModalComponent implements OnChanges {
           this.nsLoading.set(false);
         },
       });
-  }
-
-  onSelectNsService(item: NsService): void {
-    if (!item.has_incomeaccount) {
-      this.nsError.set(`El ítem "${item.item_name}" no es vendible en NetSuite y no puede usarse para un subevento con costo.`);
-      return;
-    }
-    this.form.ns_item_id = item.id;
-    if (!this.nsServices().some(s => s.id === item.id)) {
-      this.nsServices.update(l => [item, ...l]);
-    }
-  }
-
-  clearNsSelection(): void {
-    this.form.ns_item_id = null;
   }
 
   guardar(): void {

@@ -100,6 +100,14 @@ export interface InstitutionalEventSubevent {
    */
   ns_item_id?: number | null;
   /**
+   * FK a `sale_types.id` (customlist_cl_tipo_venta NS) para este subevento.
+   * `null` = hereda del `sale_type_id` del evento padre; si el evento tampoco
+   * lo tiene, cae al default global (id 6 = curso de verano). Se propaga como
+   * `custbody_cl_tipo_venta` al generar la Sales Order.
+   */
+  sale_type_id?: number | null;
+  sale_type?: SaleType | null;
+  /**
    * Activa la matriz de precios por `access_type` en el subevento.
    * Cuando es `true`, el `cost` del subevento se resuelve desde
    * `institutional_event_prices` según el `access_type_selected` del asistente.
@@ -253,6 +261,13 @@ export interface InstitutionalEvent {
   cost?: number | null;
   ns_item_id?: number | null;
   /**
+   * FK a `sale_types.id` (customlist_cl_tipo_venta de NS). El backend lo
+   * propaga como `custbody_cl_tipo_venta` al generar la Sales Order.
+   * `null` = usa el default hardcodeado del servicio (id 6 = curso de verano).
+   */
+  sale_type_id?: number | null;
+  sale_type?: SaleType | null;
+  /**
    * Activa la matriz de precios por `access_type` en el evento base.
    * Cuando es `true`, el precio del evento se resuelve desde
    * `institutional_event_prices` según el `access_type_selected` del asistente;
@@ -339,6 +354,12 @@ export interface PendingMember {
   baseCost: number;
   subeventsCost: number;
   totalCost: number;
+  /**
+   * Tipo de acceso con el que se inscribe este miembro (fase 2 mapa 15 §9.3 P3).
+   * Determina qué fila de la matriz de precios aplica al calcular `baseCost` y
+   * `subeventsCost` para esta persona.
+   */
+  access_type_selected: AccessType;
 }
 
 /** Resultado de búsqueda de socio para el wizard de inscripción. */
@@ -439,6 +460,22 @@ export interface NsService {
   has_expenseaccount: boolean; // Comprable en Purchase Order / gastos (Service for Purchase).
 }
 
+/**
+ * Tipo de venta NetSuite sincronizado en la tabla local `sale_types`
+ * desde el customlist `customlist_cl_tipo_venta`. Devuelto por
+ * `GET /api/sale-types`. Se usa en el formulario de eventos institucionales
+ * para elegir el `sale_type_id` que el backend propaga a
+ * `custbody_cl_tipo_venta` al generar la Sales Order.
+ * - `id`: ID interno del customlist NS. Este es el que se guarda en
+ *   `institutional_events.sale_type_id`.
+ * - `name`: etiqueta visible (ej. "Curso de verano", "Pases de Invitados").
+ */
+export interface SaleType {
+  id: number;
+  name: string;
+  is_inactive: boolean;
+}
+
 /** Payload exacto que espera la API para crear/editar un evento (snake_case, 1:1 con la BD). */
 export interface InstitutionalEventPayload {
   location_id: number;
@@ -463,6 +500,7 @@ export interface InstitutionalEventPayload {
   has_cost: boolean;
   cost?: number | null;
   ns_item_id?: number | null;
+  sale_type_id?: number | null;
   has_matrix_pricing?: boolean;
   institutional_event_prices?: InstitutionalEventPrice[];
   has_donations: boolean;

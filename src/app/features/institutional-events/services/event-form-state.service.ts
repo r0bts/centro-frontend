@@ -24,6 +24,7 @@ import {
   EventArea,
   EventPlace,
   EventStatus,
+  SaleType,
 } from '../models/institutional-event.model';
 
 export interface WizardStepMeta {
@@ -87,6 +88,8 @@ export class EventFormStateService {
   readonly loadingAccessTypes = signal(false);
   readonly colorThemes = signal<EventColorTheme[]>([]);
   readonly loadingColorThemes = signal(false);
+  readonly saleTypes = signal<SaleType[]>([]);
+  readonly loadingSaleTypes = signal(false);
   isPatching = false;
 
   /** Indica si hay cambios en el formulario que no han sido guardados en el backend */
@@ -125,6 +128,7 @@ export class EventFormStateService {
         has_cost: [false],
         cost: [null as number | null],
         ns_item_id: [null as number | null],
+        sale_type_id: [null as number | null],
         has_matrix_pricing: [false],
         // Matriz de precios del evento base: una fila por `access_type` que el evento acepta.
         // Se sincroniza automáticamente con `access_types` (ver syncMatrixPricesWithAccessTypes).
@@ -181,6 +185,7 @@ export class EventFormStateService {
     this.loadPlaces();
     this.loadAccessTypes();
     this.loadColorThemes();
+    this.loadSaleTypes();
   }
 
   // ── Getters de conveniencia ──────────────────────────────────────────────────
@@ -295,6 +300,22 @@ export class EventFormStateService {
     }
   }
 
+  /**
+   * Catálogo de tipos de venta NetSuite (`sale_types`). Se usa en el Paso 3
+   * para poblar el selector `sale_type_id` del evento base. Solo activos.
+   */
+  async loadSaleTypes(): Promise<void> {
+    this.loadingSaleTypes.set(true);
+    try {
+      const lista = await firstValueFrom(this.svc.getSaleTypes({ active: true, limit: 500 }));
+      this.saleTypes.set(lista);
+    } catch {
+      this.saleTypes.set([]);
+    } finally {
+      this.loadingSaleTypes.set(false);
+    }
+  }
+
   // ── Matriz de precios del evento base (FormArray) ────────────────────────────
 
   /**
@@ -367,6 +388,8 @@ export class EventFormStateService {
       max_capacity: [s?.max_capacity ?? 0],
       cost: [s?.cost ?? 0],
       ns_item_id: [s?.ns_item_id ?? null],
+      // sale_type_id (custbody_cl_tipo_venta): opcional; NULL = hereda del evento padre.
+      sale_type_id: [s?.sale_type_id ?? null],
       // access_type (singular, deprecated): se conserva por retro-compat (§8.4).
       // Al guardar en el payload se calcula como el primer elemento de access_types[].
       access_type: [s?.access_type ?? seedTypes[0] ?? 'public'],
@@ -573,6 +596,7 @@ export class EventFormStateService {
       // pero no lo mostramos ni lo enviamos de vuelta al guardar).
       cost: null,
       ns_item_id: event.ns_item_id ?? null,
+      sale_type_id: event.sale_type_id ?? null,
       // Si el evento histórico tiene has_cost=true pero has_matrix_pricing=false,
       // lo forzamos a true para que al guardar migre automáticamente al nuevo modelo.
       has_matrix_pricing: !!event.has_cost,
@@ -701,6 +725,8 @@ export class EventFormStateService {
       // romper datos históricos, pero ya no se escribe desde la UI.
       cost: null,
       ns_item_id: access.has_cost ? (access.ns_item_id ?? null) : null,
+      // sale_type_id se conserva aunque el evento no tenga costo (clasifica la venta al enviar a NS).
+      sale_type_id: access.sale_type_id ?? null,
       // has_cost implica siempre matriz.
       has_matrix_pricing: !!access.has_cost,
       // Matriz de precios del evento base: se envía siempre que has_cost=true.
@@ -742,6 +768,9 @@ export class EventFormStateService {
           cost: s.cost || 0,
           // ns_item_id se envía solo si el subevento tiene costo; si es 0 se limpia.
           ns_item_id: (s.cost && Number(s.cost) > 0) ? (s.ns_item_id ?? null) : null,
+          // sale_type_id: override del sale_type del evento padre. Se conserva
+          // aunque el subevento no tenga costo (clasifica la SO en NS).
+          sale_type_id: s.sale_type_id ?? null,
           // access_type (deprecated): primer elemento del array múltiple.
           access_type: at[0] ?? null,
           // access_types[] (fuente de verdad, mapa 15 §8).
