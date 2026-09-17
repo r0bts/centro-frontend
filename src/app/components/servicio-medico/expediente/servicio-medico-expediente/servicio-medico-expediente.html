@@ -140,8 +140,19 @@
           
           <!-- Datos Generales -->
           <div class="card glass-card border-0 rounded-4 mb-4">
-            <div class="card-header bg-transparent border-bottom px-4 py-3">
+            <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clipboard2-pulse text-primary me-2"></i> Ficha Clínica del Paciente</h5>
+              <div *ngIf="medicalProfile.is_socio" class="d-flex align-items-center gap-2">
+                <small class="text-muted">
+                  Última sinc. NetSuite: 
+                  <strong>{{ medicalProfile.ns_last_sync ? (medicalProfile.ns_last_sync | date:'dd/MM/yyyy HH:mm') : 'Nunca' }}</strong>
+                </small>
+                <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center" 
+                        (click)="syncFromNetSuite()" [disabled]="isSyncingNetSuite">
+                  <i class="bi" [ngClass]="isSyncingNetSuite ? 'bi-arrow-repeat spinner-icon me-1' : 'bi-cloud-download me-1'"></i>
+                  {{ isSyncingNetSuite ? 'Sincronizando...' : 'Actualizar de NetSuite' }}
+                </button>
+              </div>
             </div>
             <div class="card-body p-4">
               

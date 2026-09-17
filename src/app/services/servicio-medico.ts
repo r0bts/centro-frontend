@@ -8,8 +8,31 @@ import { Observable } from 'rxjs';
 })
 export class ServicioMedicoService {
   private apiUrl = `${environment.apiUrl}/expedientes`;
+  private sociosMedicalUrl = `${environment.apiUrl}/socios-medical`;
 
   constructor(private http: HttpClient) { }
+
+  /**
+   * Obtiene la información médica de un socio
+   * @param socioId El ID del socio
+   */
+  getSocioMedicalProfile(socioId: string | number): Observable<any> {
+    return this.http.get(`${this.sociosMedicalUrl}/profile?id=${socioId}`);
+  }
+
+  /**
+   * Actualiza los datos generales del perfil médico de un socio
+   */
+  updateSocioMedicalProfile(payload: any): Observable<any> {
+    return this.http.post(`${this.sociosMedicalUrl}/profile`, payload);
+  }
+
+  /**
+   * Sincroniza el perfil de salud de un solo socio con NetSuite
+   */
+  syncSocioHealth(socioId: string | number): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/socios/sync-health/${socioId}`, {});
+  }
 
   /**
    * Obtiene la información médica asociada a un QR del curso de verano (u otra entidad).
