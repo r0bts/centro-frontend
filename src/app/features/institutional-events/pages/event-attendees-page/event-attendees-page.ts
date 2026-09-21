@@ -44,7 +44,12 @@ export class EventAttendeesPageComponent implements OnInit {
 
   readonly eventStatusMeta = EVENT_STATUS_META;
   readonly wizardOpen = signal(false);
+  readonly selectedAttendee = signal<InstitutionalEventAttendee | null>(null);
+  readonly detalleModalOpen = signal(false);
+  
   readonly cancelando = signal<number | null>(null);
+  readonly enviando = signal(false);
+  readonly enviandoIndividual = signal<number | null>(null);
   readonly toastMsg = signal<string | null>(null);
   readonly toastType = signal<'success'|'warning'|'danger'>('success');
 
@@ -127,6 +132,44 @@ export class EventAttendeesPageComponent implements OnInit {
     this.toastMsg.set(msg);
     this.toastType.set(type);
     setTimeout(() => this.toastMsg.set(null), 4000);
+  }
+
+  async enviarAccesos(): Promise<void> {
+    if (!confirm('¿Seguro que deseas enviar los boletos (correo y WhatsApp) a TODOS los inscritos?')) return;
+    
+    this.enviando.set(true);
+    try {
+      await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'all' }));
+      this.showToast('Boletos enviados correctamente a todos los asistentes.', 'success');
+    } catch {
+      this.showToast('Hubo un error al enviar los boletos.', 'danger');
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  verDetalle(a: InstitutionalEventAttendee): void {
+    this.selectedAttendee.set(a);
+    this.detalleModalOpen.set(true);
+  }
+
+  cerrarDetalle(): void {
+    this.detalleModalOpen.set(false);
+    this.selectedAttendee.set(null);
+  }
+
+  async enviarAccesoIndividual(a: InstitutionalEventAttendee): Promise<void> {
+    if (!confirm(`¿Seguro que deseas enviar el boleto a ${a.full_name}?`)) return;
+    
+    this.enviandoIndividual.set(a.id);
+    try {
+      await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'selected', attendee_ids: [a.id] }));
+      this.showToast('Boleto enviado correctamente.', 'success');
+    } catch {
+      this.showToast('Hubo un error al enviar el boleto.', 'danger');
+    } finally {
+      this.enviandoIndividual.set(null);
+    }
   }
 
   tipoLabel(tipo: string): string {

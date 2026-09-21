@@ -1,4 +1,4 @@
-<div class="wz-overlay" (click)="emitirYCerrar()"></div>
+<div class="wz-overlay"></div>
 <div class="wz-modal" (click)="$event.stopPropagation()">
 
   <!-- Cabecera -->
@@ -18,20 +18,30 @@
   <!-- Indicador de pasos -->
   <div class="wz-steps">
     <div class="wz-step"
-         [class.wz-step--active]="paso() === 'search'"
-         [class.wz-step--done]="paso() !== 'search'">
+         [class.wz-step--active]="paso() === 'type'"
+         [class.wz-step--done]="paso() !== 'type'">
       <div class="wz-step__bubble">
-        @if (paso() !== 'search') { <i class="bi bi-check-lg"></i> } @else { 1 }
+        @if (paso() !== 'type') { <i class="bi bi-check-lg"></i> } @else { 1 }
+      </div>
+      <span class="wz-step__label">Tipo</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() !== 'type'"></div>
+
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'search'"
+         [class.wz-step--done]="paso() === 'family' || paso() === 'confirm' || paso() === 'done'">
+      <div class="wz-step__bubble">
+        @if (paso() === 'family' || paso() === 'confirm' || paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 2 }
       </div>
       <span class="wz-step__label">Buscar</span>
     </div>
-    <div class="wz-step-track" [class.wz-step-track--done]="paso() !== 'search'"></div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'family' || paso() === 'confirm' || paso() === 'done'"></div>
 
     <div class="wz-step"
          [class.wz-step--active]="paso() === 'family'"
          [class.wz-step--done]="paso() === 'confirm' || paso() === 'done'">
       <div class="wz-step__bubble">
-        @if (paso() === 'confirm' || paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 2 }
+        @if (paso() === 'confirm' || paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 3 }
       </div>
       <span class="wz-step__label">Familia</span>
     </div>
@@ -41,64 +51,167 @@
          [class.wz-step--active]="paso() === 'confirm'"
          [class.wz-step--done]="paso() === 'done'">
       <div class="wz-step__bubble">
-        @if (paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 3 }
+        @if (paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 4 }
       </div>
       <span class="wz-step__label">Confirmar</span>
     </div>
     <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'done'"></div>
 
     <div class="wz-step" [class.wz-step--active]="paso() === 'done'">
-      <div class="wz-step__bubble">4</div>
+      <div class="wz-step__bubble">5</div>
       <span class="wz-step__label">Listo</span>
     </div>
   </div>
 
   <!-- Cuerpo -->
   <div class="wz-body">
+    @if (guestModalOpen() && selectedHostSocio()) {
+      <app-socio-guest-modal
+        [socioId]="selectedHostSocio()!.id"
+        [socioName]="selectedHostSocio()!.fullname"
+        [socioEmail]="selectedHostSocio()!.email"
+        [socioPhone]="selectedHostSocio()!.phone"
+        [enrolledGuestIds]="enrolledGuestIds()"
+        (guestSelected)="onGuestSelected($event)"
+        (closed)="guestModalOpen.set(false)">
+      </app-socio-guest-modal>
+    } @else {
+
+    <!-- ══════════════════════════ PASO 0: TIPO ══════════════════════════ -->
+    @if (paso() === 'type') {
+      <div class="wz-step-header">
+        <div class="wz-section-title">
+          <i class="bi bi-tags"></i>Seleccionar Tipo de Inscripción
+        </div>
+      </div>
+      <p class="wz-hint">¿A quién deseas inscribir?</p>
+      
+      <div class="d-flex flex-column gap-3 mt-3">
+        <button class="btn btn-outline-primary text-start p-3 shadow-sm" (click)="seleccionarModo('socio')">
+          <i class="bi bi-person-badge fs-4 me-3 align-middle"></i>
+          <span class="fw-semibold fs-5 align-middle">Socio / Patrono</span>
+        </button>
+        <button class="btn btn-outline-primary text-start p-3 shadow-sm" (click)="seleccionarModo('registro_previo')">
+          <i class="bi bi-card-checklist fs-4 me-3 align-middle"></i>
+          <span class="fw-semibold fs-5 align-middle">Con Previo Registro</span>
+        </button>
+        <button class="btn btn-outline-primary text-start p-3 shadow-sm" (click)="seleccionarModo('publico')">
+          <i class="bi bi-globe fs-4 me-3 align-middle"></i>
+          <span class="fw-semibold fs-5 align-middle">Público en General</span>
+        </button>
+      </div>
+    }
 
     <!-- ══════════════════════════ PASO 1: BUSCAR ══════════════════════════ -->
     @if (paso() === 'search') {
       <div class="wz-step-header">
+        <button class="wz-back-btn" (click)="volver()"><i class="bi bi-arrow-left"></i></button>
         <div class="wz-section-title">
-          <i class="bi bi-search"></i>Buscar socio
+          <i class="bi bi-search"></i>
+          @if (registrationMode() === 'publico' || registrationMode() === 'registro_previo') { Buscar asistente previo }
+          @else { Buscar socio }
         </div>
       </div>
-      <p class="wz-hint">Busca por nombre o número de socio. Al seleccionar un resultado se cargará su grupo familiar.</p>
+      @if (registrationMode() === 'publico' || registrationMode() === 'registro_previo') {
+        <p class="wz-hint">Busca un visitante externo previo o ingresa los datos de un nuevo asistente.</p>
+      } @else {
+        <p class="wz-hint">Busca por nombre o número de socio. Al seleccionar un resultado se cargará su grupo familiar.</p>
+      }
 
-      <div class="wz-search-field">
-        <i class="bi bi-search"></i>
-        <input
-          type="text"
-          placeholder="Ej. 2270601 o García López..."
-          [ngModel]="searchTerm()"
-          (ngModelChange)="onSearchInput($event)"
-          autofocus />
-        @if (buscando()) { <div class="wz-search-spinner"></div> }
-      </div>
+      @if (registrationMode() === 'publico' || registrationMode() === 'registro_previo') {
+        <div class="wz-search-field mb-4">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            placeholder="Buscar visitante previo por email, nombre..."
+            [ngModel]="searchExternalTerm()"
+            (ngModelChange)="onSearchExternalInput($event)" />
+          @if (buscandoExternal()) { <div class="wz-search-spinner"></div> }
+        </div>
 
-      @if (resultados().length) {
-        <div class="wz-results">
-          @for (r of resultados(); track r.id) {
-            <div class="wz-result-card" (click)="seleccionarResultado(r)">
-              <div class="wz-result-card__avatar">{{ r.fullname[0] }}</div>
-              <div class="wz-result-card__info">
-                <span class="wz-result-card__name">{{ r.fullname }}</span>
-                <span class="wz-result-card__meta">
-                  No. {{ r.entityid }}
-                  @if ((r.family?.length ?? 0) > 1) {
-                    &nbsp;·&nbsp;<i class="bi bi-people-fill"></i> {{ r.family.length }} en familia
-                  }
-                </span>
+        @if (resultadosExternal().length) {
+          <div class="wz-results mb-4">
+            @for (r of resultadosExternal(); track r.id) {
+              <div class="wz-result-card" (click)="seleccionarVisitanteExterno(r)">
+                <div class="wz-result-card__avatar"><i class="bi bi-person"></i></div>
+                <div class="wz-result-card__info">
+                  <span class="wz-result-card__name">{{ r.full_name }}</span>
+                  <span class="wz-result-card__meta">
+                    {{ r.email }}
+                    @if (r.phone) { &nbsp;·&nbsp;{{ r.phone }} }
+                  </span>
+                </div>
+                <i class="bi bi-chevron-right wz-result-card__arrow"></i>
               </div>
-              <i class="bi bi-chevron-right wz-result-card__arrow"></i>
-            </div>
-          }
+            }
+          </div>
+        } @else if (searchExternalTerm().length >= 2 && !buscandoExternal()) {
+          <div class="wz-no-results mb-4">
+            <i class="bi bi-person-x"></i>
+            <p>Sin resultados para "{{ searchExternalTerm() }}"</p>
+          </div>
+        }
+
+        <div class="wz-manual-form mt-3 p-3 border rounded shadow-sm bg-light">
+          <h5 class="mb-3 text-primary"><i class="bi bi-person-lines-fill me-2"></i>Datos del Asistente (Nuevo o Editado)</h5>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Nombre Completo <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" placeholder="Ej. Juan Pérez"
+                   [ngModel]="manualFullname()" (ngModelChange)="manualFullname.set($event)">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Correo Electrónico <span class="text-danger">*</span></label>
+            <input type="email" class="form-control" placeholder="ejemplo@correo.com"
+                   [ngModel]="manualEmail()" (ngModelChange)="manualEmail.set($event)">
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Teléfono</label>
+            <input type="tel" class="form-control" placeholder="10 dígitos"
+                   [ngModel]="manualPhone()" (ngModelChange)="manualPhone.set($event)">
+          </div>
+          <div class="text-end">
+            <button class="btn btn-primary" (click)="avanzarManual()"
+                    [disabled]="!manualFullname() || !manualEmail()">
+              Continuar a Subeventos <i class="bi bi-arrow-right"></i>
+            </button>
+          </div>
         </div>
-      } @else if (searchTerm().length >= 2 && !buscando()) {
-        <div class="wz-no-results">
-          <i class="bi bi-person-x"></i>
-          <p>Sin resultados para "{{ searchTerm() }}"</p>
+      } @else {
+        <div class="wz-search-field">
+          <i class="bi bi-search"></i>
+          <input
+            type="text"
+            placeholder="Ej. 2270601 o García López..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="onSearchInput($event)"
+            autofocus />
+          @if (buscando()) { <div class="wz-search-spinner"></div> }
         </div>
+
+        @if (resultados().length) {
+          <div class="wz-results">
+            @for (r of resultados(); track r.id) {
+              <div class="wz-result-card" (click)="seleccionarResultado(r)">
+                <div class="wz-result-card__avatar">{{ r.fullname[0] }}</div>
+                <div class="wz-result-card__info">
+                  <span class="wz-result-card__name">{{ r.fullname }}</span>
+                  <span class="wz-result-card__meta">
+                    No. {{ r.entityid }}
+                    @if ((r.family.length ?? 0) > 1) {
+                      &nbsp;·&nbsp;<i class="bi bi-people-fill"></i> {{ r.family.length }} en familia
+                    }
+                  </span>
+                </div>
+                <i class="bi bi-chevron-right wz-result-card__arrow"></i>
+              </div>
+            }
+          </div>
+        } @else if (searchTerm().length >= 2 && !buscando()) {
+          <div class="wz-no-results">
+            <i class="bi bi-person-x"></i>
+            <p>Sin resultados para "{{ searchTerm() }}"</p>
+          </div>
+        }
       }
     }
 
@@ -109,6 +222,9 @@
         <div class="wz-section-title">
           <i class="bi bi-people-fill"></i>Seleccionar miembros
         </div>
+        <button class="btn btn-sm btn-outline-primary ms-auto d-flex align-items-center" (click)="guestModalOpen.set(true)">
+          <i class="bi bi-person-plus-fill me-1"></i>Añadir invitado
+        </button>
       </div>
       <p class="wz-hint">
         Marca los miembros a inscribir.
@@ -116,27 +232,30 @@
       </p>
 
       <div class="wz-family-grid">
-        @for (m of pendingMembers(); track m.socio_id) {
+        @for (m of pendingMembers(); track (m.socio_id || m.socio_guest_id || m.fullname)) {
           <div class="wz-family-card"
-               [class.wz-card-selected]="m.selected && !m.alreadyEnrolled"
-               [class.wz-card-enrolled]="m.alreadyEnrolled">
+               [class.wz-card-selected]="m.selected"
+               [class.wz-card-enrolled]="m.alreadyEnrolled && !m.selected">
 
             <!-- Encabezado tarjeta -->
-            <div class="wz-card-header" (click)="toggleMiembro(m.socio_id)">
+            <div class="wz-card-header" (click)="toggleMiembro(m)">
               <div class="d-flex align-items-center gap-2">
                 <input class="form-check-input wz-check"
                        type="checkbox"
-                       [checked]="m.selected && !m.alreadyEnrolled"
-                       [disabled]="m.alreadyEnrolled"
-                       (change)="toggleMiembro(m.socio_id)"
+                       [checked]="m.selected"
+                       (change)="toggleMiembro(m)"
                        (click)="$event.stopPropagation()" />
                 <div class="flex-grow-1">
                   <div class="fw-semibold lh-sm">{{ m.fullname }}</div>
                   <div class="text-muted" style="font-size:0.78rem">No. {{ m.entityid }}</div>
                 </div>
               </div>
-              <div class="d-flex gap-1 mt-1 ms-4">
+              <div class="d-flex gap-1 mt-1 ms-4 align-items-center">
                 <span class="wz-chip wz-chip--blue">{{ m.parentesco }}</span>
+                <!-- Chip extra para ver qué rol se le asignó automáticamente (members, patron, etc.) -->
+                <span class="badge bg-secondary opacity-75 fw-normal" style="font-size:0.75rem">
+                  Cobro como: {{ m.access_type_selected }}
+                </span>
                 @if (m.is_titular) {
                   <span class="wz-chip" style="background:#1e293b;color:#fff">
                     <i class="bi bi-star-fill"></i>Titular
@@ -147,19 +266,19 @@
                     <i class="bi bi-check-circle-fill"></i>Ya inscrito
                   </span>
                 }
-                @if (event.has_cost && !m.alreadyEnrolled) {
+                @if (event.has_cost && m.selected) {
                   <span class="ms-auto fw-semibold small text-primary">${{ +m.totalCost | number:'1.2-2' }}</span>
                 }
               </div>
 
               <!-- Fase 2 §9.3 P3: selector de access_type por miembro -->
-              @if (m.selected && !m.alreadyEnrolled && eventAccessTypes().length > 1) {
+              @if (m.selected && eventAccessTypes().length > 1 && (wizardMode() !== 'socio' || m.parentesco === 'Patrono' || m.parentesco === 'Socio')) {
                 <div class="ms-4 mt-2" (click)="$event.stopPropagation()">
                   <label class="text-muted small d-block mb-1">Tipo de acceso:</label>
                   <select class="form-select form-select-sm"
                           style="max-width:220px"
                           [ngModel]="m.access_type_selected"
-                          (ngModelChange)="changeAccessType(m.socio_id, $event)">
+                          (ngModelChange)="changeAccessType(m, $event)">
                     @for (at of eventAccessTypes(); track at) {
                       <option [ngValue]="at">{{ at }}</option>
                     }
@@ -169,7 +288,7 @@
             </div>
 
             <!-- Subeventos -->
-            @if (tieneSubeventos() && m.selected && !m.alreadyEnrolled) {
+            @if (tieneSubeventos() && m.selected) {
               <div class="wz-subevent-panel">
                 <p class="wz-subevent-label">Subeventos:</p>
                 @for (sv of subevents(); track sv.id) {
@@ -177,13 +296,10 @@
                          [class.wz-subevent-blocked]="!isSubeventoDisponible(sv, m.access_type_selected)">
                     <input type="checkbox"
                            class="form-check-input"
-                           [checked]="isSubeventoSeleccionado(m.socio_id, sv.id!)"
-                           [disabled]="!isSubeventoDisponible(sv, m.access_type_selected)"
-                           (change)="toggleSubevento(m.socio_id, sv.id!)" />
+                           [checked]="isSubeventoSeleccionado(m, sv.id!)"
+                           [disabled]="!isSubeventoDisponible(sv, m.access_type_selected) || (m.alreadyEnrolled && m.existingSubeventIds.includes(sv.id!))"
+                           (change)="toggleSubevento(m, sv.id!)" />
                     <span class="flex-grow-1">{{ sv.name }}</span>
-                    <span [class]="subevCss(sv)" style="font-size:0.72rem">
-                      {{ sv.access_types.join(', ') || sv.access_type }}
-                    </span>
                     @if (event.has_cost) {
                       <span class="text-muted small">
                         +${{ resolveSubeventCostPublic(sv, m.access_type_selected) | number:'1.2-2' }}
@@ -234,7 +350,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (m of miembrosActivos(); track m.socio_id) {
+            @for (m of miembrosActivos(); track (m.socio_id || m.socio_guest_id || m.fullname)) {
               <tr>
                 <td>
                   <div class="fw-semibold">{{ m.fullname }}</div>
@@ -283,13 +399,23 @@
         </div>
       }
 
-      <div class="wz-notes">
+      <div class="wz-notes mb-3">
         <label class="wz-notes__label">Notas (opcional)</label>
         <textarea class="wz-notes__input" rows="2"
                   placeholder="Observaciones de la inscripción..."
                   [ngModel]="notas()"
                   (ngModelChange)="notas.set($event)"></textarea>
       </div>
+
+      @if (wizardMode() === 'invitacion') {
+        <div class="form-check mb-3 ms-2">
+          <input class="form-check-input" type="checkbox" id="skipBillingCheck"
+                 [ngModel]="skipBilling()" (ngModelChange)="skipBilling.set($event)">
+          <label class="form-check-label text-warning fw-semibold" for="skipBillingCheck">
+            <i class="bi bi-gift-fill me-1"></i> Cortesía (No cobrar orden de venta)
+          </label>
+        </div>
+      }
 
       @if (errorMsg()) {
         <div class="wz-alert wz-alert--danger">
@@ -358,11 +484,13 @@
       </div>
     }
 
+    } <!-- Cierra el @else de guestModalOpen -->
   </div><!-- /wz-body -->
 
   <!-- Pie -->
-  <div class="wz-footer">
-    @if (paso() === 'search') {
+  @if (!guestModalOpen()) {
+    <div class="wz-footer">
+      @if (paso() === 'search') {
       <span></span>
       <button class="btn btn-outline-secondary btn-sm" (click)="emitirYCerrar()">Cancelar</button>
     }
@@ -390,5 +518,5 @@
       </button>
     }
   </div>
-
+  }
 </div>

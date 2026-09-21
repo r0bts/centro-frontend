@@ -22,7 +22,7 @@
         @for (t of accessTypes; track t.id) {
           <span class="acceso-badge" [class.sel]="seleccionados.includes(t.id)" (click)="toggleAcceso(t.id)">
             <i class="bi bi-check-lg ab-check"></i>
-            <i class="bi" [class]="accessTypeMeta[t.id]?.icon ?? 'bi-check-circle'"></i>
+            <i class="bi" [class]="accessTypeMeta[t.id].icon ?? 'bi-check-circle'"></i>
             <span>{{ t.label }}</span>
             <small class="ab-desc">{{ t.description }}</small>
           </span>

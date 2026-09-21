@@ -304,6 +304,7 @@ export interface InstitutionalEventAttendee {
   attendee_type: AttendeeType;
   socio_id?: number | null;
   host_socio_id?: number | null;
+  external_visitor_id?: number | null;
   relationship_id?: number | null;
   relationship_other_label?: string | null;
   staff_role?: string | null;
@@ -322,6 +323,7 @@ export interface InstitutionalEventAttendee {
   ns_so_status?: string | null;
   ns_so_sync_error?: string | null;
   ns_so_synced_at?: string | null;
+  institutional_event_attendee_subevents?: { subevent_id: number }[];
   // Check-in evento
   attendance_status?: AttendanceStatus;
   checked_in_at?: string | null;
@@ -351,6 +353,7 @@ export interface PendingMember {
   selected: boolean;
   alreadyEnrolled: boolean;
   selectedSubeventIds: number[];
+  existingSubeventIds: number[];
   baseCost: number;
   subeventsCost: number;
   totalCost: number;
@@ -360,6 +363,11 @@ export interface PendingMember {
    * `subeventsCost` para esta persona.
    */
   access_type_selected: AccessType;
+  email?: string;
+  phone?: string;
+  attendee_type?: AttendeeType;
+  socio_guest_id?: number;
+  host_socio_id?: number;
 }
 
 /** Resultado de búsqueda de socio para el wizard de inscripción. */

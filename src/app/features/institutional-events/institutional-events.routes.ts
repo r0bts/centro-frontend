@@ -4,7 +4,6 @@ import { EventFormPageComponent } from './pages/event-form-page/event-form-page'
 import { EventAttendeesPageComponent } from './pages/event-attendees-page/event-attendees-page';
 import { EventCheckinPageComponent } from './pages/event-checkin-page/event-checkin-page';
 import { EventSummaryPageComponent } from './pages/event-summary-page/event-summary-page';
-import { EventGuestsPageComponent } from './pages/event-guests-page/event-guests-page';
 
 /**
  * Rutas hijas del módulo de Eventos Institucionales, montadas bajo `/eventos`
@@ -20,7 +19,5 @@ export const INSTITUTIONAL_EVENTS_ROUTES: Routes = [
   { path: ':id/checkin', component: EventCheckinPageComponent },
   // SCR-007 — Resumen ejecutivo
   { path: ':id/resumen', component: EventSummaryPageComponent },
-  // SCR-008 — Guest list (placeholder, en construcción)
-  { path: ':id/guests', component: EventGuestsPageComponent },
 ];
 

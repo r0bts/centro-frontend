@@ -114,6 +114,22 @@ export class InstitutionalEventsService {
     );
   }
 
+  /** GET /api/external-visitors?search= — busca visitantes externos por nombre, email o teléfono */
+  searchExternalVisitor(q: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(
+      `${environment.apiUrl}/external-visitors`,
+      { params: new HttpParams().set('search', q) }
+    );
+  }
+
+  /** GET /api/institutional-event-preregistrants?search= — busca pre-registrados */
+  searchPreregistrant(q: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(
+      `${environment.apiUrl}/institutional-event-preregistrants`,
+      { params: new HttpParams().set('search', q) }
+    );
+  }
+
   /** PATCH /api/institutional-events/:id/attendees/:aid/checkin */
   checkinAttendee(eventId: number, attendeeId: number, status: 'present' | 'absent' | 'pending'): Observable<AttendeeResponse> {
     return this.http.patch<AttendeeResponse>(
@@ -122,10 +138,12 @@ export class InstitutionalEventsService {
     );
   }
 
-  /** POST /api/institutional-events/:id/attendees/batch — inscribe un grupo familiar de una sola llamada. */
   addAttendeesBatch(eventId: number, data: {
     attendees: {
-      socio_id: number;
+      socio_id?: number;
+      host_socio_id?: number;
+      socio_guest_id?: number;
+      attendee_type?: string;
       full_name: string;
       subevent_ids: number[];
       /**
@@ -139,8 +157,14 @@ export class InstitutionalEventsService {
     access_type_selected: string;
     notes?: string | null;
     create_ns_order: boolean;
+    skip_billing?: boolean;
   }): Observable<any> {
     return this.http.post<any>(`${this.base}/${eventId}/attendees/batch`, data);
+  }
+
+  /** POST /api/institutional-events/:id/attendees/send-tickets */
+  sendTickets(eventId: number, payload: { target: 'all' } | { target: 'selected'; attendee_ids: number[] }): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.base}/${eventId}/attendees/send-tickets`, payload);
   }
 
   // ── Catálogo de sedes ────────────────────────────────────────────────────────
