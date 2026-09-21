@@ -12,11 +12,32 @@
         <!-- Panel izquierdo - Selección de productos -->
         <div [class]="isResumeCollapsed ? 'col-11' : 'col-lg-7'" class="transition-all">
           <div class="card shadow req-card">
-            <div class="card-header bg-primary text-white">
-              <h4>Agregar</h4>
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+              <h4 class="mb-0">Agregar</h4>
+              <button
+                class="btn btn-warning btn-sm fw-bold"
+                (click)="openExtraordinaryModal()"
+                [disabled]="isLoadingFormData || !businessUnit || !currentDeliveryDate"
+                title="Crear una requisición extraordinaria de un solo producto">
+                <i class="bi bi-lightning-charge-fill me-1"></i>Req. Extraordinaria
+              </button>
             </div>
             
             <div class="card-body d-flex flex-column">
+              <!-- Banner de modo EXTRAORDINARIO -->
+              <div *ngIf="isExtraordinaryMode" class="alert alert-warning d-flex align-items-center justify-content-between mb-3 py-2" role="alert">
+                <div>
+                  <i class="bi bi-lightning-charge-fill me-2 text-danger"></i>
+                  <strong>Modo Extraordinario activo.</strong>
+                  Solo 1 producto · 1 área. El formulario normal está bloqueado.
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger ms-3" (click)="resetExtraordinaryMode()">
+                  <i class="bi bi-x-circle me-1"></i>Cancelar
+                </button>
+              </div>
+              <!-- Formulario normal (bloqueado en modo extraordinario) -->
+              <div [class.opacity-50]="isExtraordinaryMode" [style.pointer-events]="isExtraordinaryMode ? 'none' : 'auto'">
+
               <!-- 1. Configuración de fecha de entrega (OBLIGATORIO) -->
               <div class="row mb-4">
                 <div class="col-12">
@@ -299,6 +320,8 @@
                   Aceptar
                 </button>
               </div>
+
+              </div><!-- fin formulario normal -->
             </div>
           </div>
         </div>
@@ -309,7 +332,12 @@
         <div class="card-header bg-success text-white">
           <div class="d-flex justify-content-between align-items-center">
             <div class="flex-grow-1" [class.d-none]="isResumeCollapsed">
-              <h4 class="text-white mb-0">Resumen de solicitud</h4>
+              <h4 class="text-white mb-0">
+                Resumen de solicitud
+                <span *ngIf="isExtraordinaryMode" class="badge bg-danger ms-2 fs-6">
+                  <i class="bi bi-lightning-charge-fill me-1"></i>Extraordinaria
+                </span>
+              </h4>
             </div>
             <!-- Spacer invisible para mantener el botón a la derecha cuando está colapsado -->
             <div class="flex-grow-1" [class.d-none]="!isResumeCollapsed"></div>
@@ -492,6 +520,117 @@
           Agregar a requisición
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Requisición Extraordinaria -->
+<div class="modal" *ngIf="showExtraordinaryModal"
+     style="display: block; z-index: 9999; background-color: rgba(0,0,0,0.5);"
+     (click)="cancelExtraordinaryModal()">
+  <div class="modal-dialog modal-dialog-centered" (click)="$event.stopPropagation()">
+    <div class="modal-content shadow-lg border-0">
+
+      <div class="modal-header bg-danger text-white border-0">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-lightning-charge-fill me-2"></i>Requisición Extraordinaria
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="cancelExtraordinaryModal()"></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="text-muted small mb-3">
+          Esta requisición queda <strong>restringida a 1 producto y 1 área</strong>.
+          El autorizador recibirá una notificación de análisis especial.
+        </p>
+
+        <!-- Spinner de carga -->
+        <div *ngIf="isLoadingExtProducts" class="text-center py-4">
+          <div class="spinner-border text-danger" role="status"></div>
+          <p class="mt-2 text-muted">Cargando catálogo de productos activos...</p>
+        </div>
+
+        <ng-container *ngIf="!isLoadingExtProducts">
+          <!-- Producto -->
+          <div class="mb-3 position-relative">
+            <label class="form-label fw-bold"><span class="text-danger">*</span> Producto</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="extProductSearch"
+              (input)="onExtProductSearch()"
+              (focus)="showExtProductDropdown = true; onExtProductSearch()"
+              placeholder="Buscar producto activo..."
+              autocomplete="off">
+            <div
+              *ngIf="showExtProductDropdown && extFilteredProducts.length > 0"
+              class="dropdown-menu show w-100"
+              style="position:absolute; top:100%; z-index:1100; max-height:200px; overflow-y:auto;">
+              <button
+                type="button"
+                class="dropdown-item"
+                *ngFor="let p of extFilteredProducts; trackBy: trackByRequisitionProductId"
+                (mousedown)="selectExtProduct(p)">
+                {{ p.name }}
+                <small class="text-muted ms-2">{{ p.unit }}</small>
+              </button>
+            </div>
+            <small *ngIf="extSelectedProduct" class="text-success">
+              <i class="bi bi-check-circle me-1"></i>{{ extSelectedProduct.unit }}
+            </small>
+          </div>
+
+          <!-- Área -->
+          <div class="mb-3 position-relative">
+            <label class="form-label fw-bold"><span class="text-danger">*</span> Área</label>
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="extAreaSearch"
+              (input)="onExtAreaSearch()"
+              (focus)="showExtAreaDropdown = true; onExtAreaSearch()"
+              placeholder="Buscar área..."
+              autocomplete="off">
+            <div
+              *ngIf="showExtAreaDropdown && extFilteredAreas.length > 0"
+              class="dropdown-menu show w-100"
+              style="position:absolute; top:100%; z-index:1100; max-height:200px; overflow-y:auto;">
+              <button
+                type="button"
+                class="dropdown-item"
+                *ngFor="let a of extFilteredAreas; trackBy: trackByRequisitionAreaId"
+                (mousedown)="selectExtArea(a)">
+                {{ a.name }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Cantidad -->
+          <div class="mb-3">
+            <label class="form-label fw-bold"><span class="text-danger">*</span> Cantidad</label>
+            <input
+              type="number"
+              class="form-control"
+              [(ngModel)]="extQuantity"
+              min="1"
+              placeholder="Ingresa la cantidad">
+          </div>
+        </ng-container>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-secondary" (click)="cancelExtraordinaryModal()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-danger fw-bold"
+          (click)="confirmExtraordinary()"
+          [disabled]="isLoadingExtProducts || !extSelectedProduct || !extSelectedArea || !extQuantity || extQuantity <= 0">
+          <i class="bi bi-lightning-charge-fill me-1"></i>Confirmar Extraordinaria
+        </button>
+      </div>
+
     </div>
   </div>
 </div>

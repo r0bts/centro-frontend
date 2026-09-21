@@ -1,0 +1,32 @@
+:host { display: block; }
+
+.hero-card {
+  background: linear-gradient(135deg, #1e3a5f 0%, #406eba 100%);
+  color: #fff;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.hero-meta-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: .5rem;
+  padding: .2rem .65rem;
+  font-size: .78rem;
+}
+
+.hero-stat {
+  display: flex; flex-direction: column; align-items: center;
+  padding: .5rem 1.5rem;
+  border-right: 1px solid rgba(255,255,255,.2);
+  &:last-child { border-right: none; }
+
+  .val { font-size: 1.75rem; font-weight: 800; line-height: 1.1; }
+  .lbl { font-size: .7rem; opacity: .8; margin-top: .1rem; text-transform: uppercase; letter-spacing: .04em; }
+}
+
+@media (max-width: 576px) {
+  .hero-stat { padding: .5rem .75rem; }
+}

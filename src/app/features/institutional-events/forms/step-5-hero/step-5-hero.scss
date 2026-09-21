@@ -1,0 +1,156 @@
+:host { display: block; }
+
+.hero-preview-box {
+  background: linear-gradient(135deg, #1d3d79, #406eba);
+  border-radius: .75rem;
+  padding: 28px 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+
+  &.has-bg {
+    /* Cuando hay imagen: oscurecemos con un overlay para que el texto sea legible */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      border-radius: .75rem;
+    }
+    > * { position: relative; z-index: 1; }
+  }
+
+  .hp-over {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: .65rem;
+    background: rgba(0,0,0,.25);
+    padding: 2px 7px;
+    border-radius: 4px;
+    z-index: 2;
+  }
+
+  .hp-meta { font-size: .7rem; opacity: .7; margin-bottom: 5px; }
+  .hp-title { font-size: 1.25rem; font-weight: 800; margin-bottom: 3px; }
+  .hp-kicker { font-size: .8rem; opacity: .8; margin-bottom: 10px; }
+  .hp-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: .72rem;
+    opacity: .85;
+    margin-bottom: 12px;
+  }
+}
+
+/* ── Drop zones (calco del mockup) ── */
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: .75rem;
+  padding: 1.6rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: #fafafa;
+  position: relative;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #406eba;
+    background: #eff6ff;
+  }
+}
+
+.drop-zone-mobile {
+  border: 2px dashed #cbd5e1;
+  border-radius: .75rem;
+  padding: 1.6rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: #fafafa;
+  position: relative;
+  min-height: 240px;
+  max-width: 280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #406eba;
+    background: #eff6ff;
+  }
+}
+
+.drop-zone-sm {
+  border: 2px dashed #cbd5e1;
+  border-radius: .6rem;
+  padding: .9rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+  background: #fafafa;
+  font-size: .8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    border-color: #406eba;
+    background: #eff6ff;
+  }
+}
+
+.drop-zone-preview {
+  width: 100%;
+  max-height: 90px;
+  object-fit: cover;
+  border-radius: .5rem;
+}
+
+.drop-zone-preview-mobile {
+  height: 160px;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  border-radius: .5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.drop-zone-label-over {
+  font-size: .72rem;
+  color: #406eba;
+  margin-top: .4rem;
+}
+
+.aliado-tile {
+  border: 2px dashed #cbd5e1;
+  border-radius: .6rem;
+  min-height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .75rem;
+  color: #8a8a8a;
+  text-align: center;
+  padding: .5rem;
+  transition: border-color .15s;
+
+  &:hover { border-color: #406eba; }
+
+  &.filled {
+    border-style: solid;
+    border-color: #bfdbfe;
+    background: #eff6ff;
+  }
+}
+

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, loginGuard } from './guards/auth.guard';
+import { ConfiguracionComponent } from './components/configuracion/configuracion';
 
 export const routes: Routes = [
   {
@@ -78,6 +79,23 @@ export const routes: Routes = [
     loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
     canActivate: [authGuard]
   },
+  // ── Ruta PÚBLICA: landing de evento — NO requiere login (SCR-003) ───────────
+  {
+    path: 'eventos/landing/:id',
+    loadComponent: () => import('./features/institutional-events/pages/event-landing-page/event-landing-page').then(m => m.EventLandingPageComponent),
+    // Sin canActivate — accesible sin sesión
+  },
+  {
+    path: 'eventos',
+    loadChildren: () => import('./features/institutional-events/institutional-events.routes').then(m => m.INSTITUTIONAL_EVENTS_ROUTES),
+    canActivate: [authGuard]
+  },
+  {
+    // Alias: por si el menú del backend tiene la ruta almacenada como /institutional-events
+    path: 'institutional-events',
+    redirectTo: '/eventos',
+    pathMatch: 'prefix'
+  },
   {
     path: 'reportes/historial',
     loadComponent: () => import('./components/reportes/reportes').then(m => m.ReportesComponent),
@@ -90,42 +108,42 @@ export const routes: Routes = [
   },
   {
     path: 'configuracion/general',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/usuarios',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/productos',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/categorias',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/netsuite',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/areas_clubes',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/roles',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
     path: 'configuracion/limites-departamento',
-    loadComponent: () => import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {
@@ -280,6 +298,12 @@ export const routes: Routes = [
           import('./components/deportivo/comunicados/deportivo-comunicados').then(m => m.DeportivoComunicadosComponent)
       },
       {
+        // /deportivo/eventos no tiene módulo propio — redirige al módulo institucional
+        path: 'eventos',
+        redirectTo: '/eventos',
+        pathMatch: 'full'
+      },
+      {
         path: 'usuarios',
         loadComponent: () =>
           import('./components/deportivo/usuarios/deportivo-usuarios').then(m => m.DeportivoUsuariosComponent)
@@ -375,8 +399,7 @@ export const routes: Routes = [
   },
   {
     path: 'configuracion/instructores',
-    loadComponent: () =>
-      import('./components/configuracion/configuracion').then(m => m.ConfiguracionComponent),
+    component: ConfiguracionComponent,
     canActivate: [authGuard]
   },
   {

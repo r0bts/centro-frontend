@@ -58,6 +58,7 @@ export interface ReglaFilterParams {
   tipo?: string;
   accion?: string;
   activa?: string;
+  vencida?: string;
   search?: string;
 }
 

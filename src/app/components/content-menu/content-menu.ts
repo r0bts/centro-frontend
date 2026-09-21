@@ -256,8 +256,17 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     this.isMobileMenuOpen.set(false);
 
     if (menuItem?.route) {
-      this.router.navigate([menuItem.route]).catch(err =>
-        console.error('❌ Error en navegación:', err)
+      const targetRoute = typeof menuItem.route === 'string' ? menuItem.route.trim() : '';
+
+      if (!targetRoute) {
+        console.error('❌ Ruta inválida para navegación:', menuItem);
+        return;
+      }
+
+      const normalizedRoute = targetRoute.startsWith('/') ? targetRoute : `/${targetRoute}`;
+
+      this.router.navigateByUrl(normalizedRoute).catch(err =>
+        console.error('❌ Error en navegación:', err, { sectionId, targetRoute: normalizedRoute, menuItem })
       );
     } else {
       this.activeSection = sectionId;
@@ -389,6 +398,10 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
         break;
       case 'listo_recoger':
       case 'entregado':
+      case 'extraordinario':
+      case 'solicitud_cancelacion':
+      case 'cancelacion_autorizada':
+      case 'entrega_cerrada':
         this.router.navigate(
           ['/requisicion/confirmacion'],
           { queryParams: { id: n.requisition_id, mode: 'edit' } }

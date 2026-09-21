@@ -1,0 +1,53 @@
+:host { display: block; }
+
+/* ── Sub-modal (calco del mockup 02-event-form.html) ── */
+.sub-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1055;
+  padding: 1rem;
+}
+
+.sub-modal-box {
+  background: #fff;
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 700px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+}
+
+.sub-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 1;
+}
+
+.sub-modal-body { padding: 1.5rem; }
+
+.sub-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+}
+
+/* sec-icon variants (compartido con otros steps) */
+.sec-icon {
+  width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; flex-shrink: 0;
+}
+.sec-purple { background: rgba(124,58,237,.10); color: #7c3aed; }

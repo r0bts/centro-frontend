@@ -1,0 +1,181 @@
+<div class="container-fluid bg-light min-vh-100">
+  <app-content-menu></app-content-menu>
+
+  <div class="page-content">
+
+    @if (loading()) {
+      <div class="text-center py-5 text-muted">
+        <div class="spinner-border spinner-border-sm me-2"></div>Cargando lista de asistentes…
+      </div>
+    } @else if (error()) {
+      <div class="alert alert-danger d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle"></i>{{ error() }}
+        <button class="btn btn-sm btn-link ms-auto" (click)="cargar(eventId())">Reintentar</button>
+      </div>
+    } @else {
+
+      <!-- Header -->
+      <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-sm btn-outline-secondary" (click)="volver()">
+            <i class="bi bi-arrow-left"></i>
+          </button>
+          <div>
+            <h4 class="mb-0 fw-bold">
+              <i class="bi bi-check2-square me-2 text-primary"></i>Check-in / Asistencia
+            </h4>
+            <small class="text-muted">
+              {{ event()?.name }}
+              @if (event()?.location?.name) { · {{ event()!.location!.name }} }
+            </small>
+          </div>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+          <span class="badge border px-3 py-2"
+                [class]="eventStatusMeta[event()!.status].badgeClass">
+            <i class="bi bi-circle-fill me-1" style="font-size:.45rem;"></i>
+            {{ eventStatusMeta[event()!.status].label }}
+          </span>
+          <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
+            <i class="bi bi-download"></i>Exportar
+          </button>
+          <button class="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                  (click)="marcarTodosPresentes()">
+            <i class="bi bi-check-all"></i>Todos presentes
+          </button>
+          <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
+                  (click)="irAResumen()">
+            <i class="bi bi-bar-chart"></i>Ver resumen
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="kpi-strip">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+          <div class="kpi-body">
+            <span class="kpi-value">{{ kpis().total }}</span>
+            <span class="kpi-label">Total</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-green">
+          <div class="kpi-icon"><i class="bi bi-person-check-fill"></i></div>
+          <div class="kpi-body">
+            <span class="kpi-value">{{ kpis().presentes }}</span>
+            <span class="kpi-label">Presentes</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-red">
+          <div class="kpi-icon"><i class="bi bi-person-x-fill"></i></div>
+          <div class="kpi-body">
+            <span class="kpi-value">{{ kpis().ausentes }}</span>
+            <span class="kpi-label">Ausentes</span>
+          </div>
+        </div>
+        <div class="kpi-card kpi-yellow">
+          <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+          <div class="kpi-body">
+            <span class="kpi-value">{{ kpis().pendientes }}</span>
+            <span class="kpi-label">Sin marcar</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de progreso -->
+      <div class="card mb-3 p-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="small fw-semibold text-muted">Asistencia registrada</span>
+          <span class="small fw-bold text-success">{{ pctAsistencia() }}%</span>
+        </div>
+        <div class="progress" style="height:8px;">
+          <div class="progress-bar bg-success" [style.width.%]="pctAsistencia()"></div>
+        </div>
+      </div>
+
+      <!-- Filtros + lista -->
+      <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <h5 class="card-title mb-0 fw-semibold" style="font-size:.95rem;">
+            <i class="bi bi-list-check me-2 text-primary"></i>Lista de asistentes
+          </h5>
+          <div class="d-flex gap-2 flex-wrap">
+            <div class="input-group input-group-sm" style="min-width:180px;max-width:240px;">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-search text-muted"></i>
+              </span>
+              <input type="text" class="form-control border-start-0 ps-0"
+                     placeholder="Buscar…"
+                     [value]="searchTerm()"
+                     (input)="searchTerm.set($any($event.target).value)">
+            </div>
+            <select class="form-select form-select-sm" style="max-width:160px;"
+                    (change)="filtroEstado.set($any($event.target).value)">
+              <option value="">Todos los estados</option>
+              <option value="present">Presentes</option>
+              <option value="absent">Ausentes</option>
+              <option value="pending">Sin marcar</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          @if (listaFiltrada().length === 0) {
+            <div class="text-center py-5 text-muted">
+              <i class="bi bi-person-x fs-2 d-block mb-2"></i>No hay asistentes que coincidan.
+            </div>
+          } @else {
+            @for (a of listaFiltrada(); track a.id) {
+              <div class="participant-row"
+                   [class.present]="a.asistencia === 'present'"
+                   [class.absent]="a.asistencia === 'absent'"
+                   [class.pending]="a.asistencia === 'pending'">
+                <div class="att-avatar" [style.background]="avatarBg(a.attendee_type)">
+                  {{ initials(a.full_name) }}
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                  <div class="fw-semibold small text-truncate">{{ a.full_name }}</div>
+                  <div class="text-muted" style="font-size:.72rem;">
+                    {{ a.email || '—' }}
+                    @if (a.phone) { · {{ a.phone }} }
+                  </div>
+                </div>
+                <div class="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+                  @if (a.asistencia === 'present') {
+                    <span class="badge bg-success-subtle text-success-emphasis border-success-subtle px-2 py-1">
+                      <i class="bi bi-check-circle me-1"></i>Presente
+                    </span>
+                  } @else if (a.asistencia === 'absent') {
+                    <span class="badge bg-danger-subtle text-danger-emphasis border-danger-subtle px-2 py-1">
+                      <i class="bi bi-x-circle me-1"></i>Ausente
+                    </span>
+                  } @else {
+                    <span class="badge bg-warning-subtle text-warning-emphasis border-warning-subtle px-2 py-1">
+                      <i class="bi bi-hourglass me-1"></i>Sin marcar
+                    </span>
+                  }
+                  <button class="btn btn-sm btn-success" style="padding:3px 10px;font-size:.75rem;"
+                          (click)="marcar(a.id, 'present')">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" style="padding:3px 10px;font-size:.75rem;"
+                          (click)="marcar(a.id, 'absent')">
+                    <i class="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              </div>
+            }
+          }
+        </div>
+
+        <div class="card-footer d-flex justify-content-between align-items-center bg-white"
+             style="border-top:1px solid var(--bs-border-color);padding:.6rem 1rem;">
+          <span class="text-muted small">
+            {{ kpis().presentes }} presentes de {{ kpis().total }} inscritos
+          </span>
+        </div>
+      </div>
+
+    }
+  </div>
+</div>

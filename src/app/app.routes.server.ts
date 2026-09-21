@@ -97,6 +97,11 @@ export const serverRoutes: ServerRoute[] = [
     path: 'membresias/reglas/:id',
     renderMode: RenderMode.Client,
   },
+  // Eventos institucionales — todas las sub-rutas son Client (lazy-loaded + authGuard)
+  { path: 'eventos',          renderMode: RenderMode.Client },
+  { path: 'eventos/**',       renderMode: RenderMode.Client },
+  // Landing pública del evento
+  { path: 'eventos/landing/:id', renderMode: RenderMode.Client },
 
   // ── Catch-all ────────────────────────────────────────────────────────────
   {

@@ -542,6 +542,28 @@
                     <i class="bi bi-x-circle me-1"></i>
                     Cerrar Entrega
                   </button>
+
+                  <!-- Botón: Solicitar cancelación (req. autorizada o lista para recoger, sin datos en NS) -->
+                  <button
+                    *ngIf="canRequestCancelAuth()"
+                    type="button"
+                    class="btn btn-outline-warning"
+                    title="Solicitar cancelación de esta requisición"
+                    (click)="requestCancelAuth()">
+                    <i class="bi bi-x-circle me-1"></i>
+                    Solicitar Cancelación
+                  </button>
+
+                  <!-- Botón: Autorizar cancelación (req. pendiente de cancelación) -->
+                  <button
+                    *ngIf="canAuthorizeCancel()"
+                    type="button"
+                    class="btn btn-danger"
+                    title="Autorizar la cancelación de esta requisición"
+                    (click)="authorizeCancellation()">
+                    <i class="bi bi-slash-circle me-1"></i>
+                    Autorizar Cancelación
+                  </button>
                   
                   <!-- Mensaje: Requisición completada (entregado sin devoluciones pendientes) -->
                   <div *ngIf="requisition()?.statusRaw === 'entregado' && !requisition()?.awaiting_return" 

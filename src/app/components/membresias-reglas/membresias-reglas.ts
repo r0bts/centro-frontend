@@ -86,6 +86,7 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
   isLoadingEdit = signal(false);
   isLoadingVars = signal(false);
   isEditMode = signal(false);
+  isTogglingActiva = signal(false);
   editId = signal<number | null>(null);
   private destroy$ = new Subject<void>();
 
@@ -256,6 +257,49 @@ export class MembresiasReglasComponent implements OnInit, OnDestroy {
 
   onVolver(): void {
     this.router.navigate(['/membresias/reglas']);
+  }
+
+  onToggleActiva(): void {
+    const id = this.editId();
+    if (!id || this.isTogglingActiva()) return;
+    const nuevoEstado = !this.activa();
+    Swal.fire({
+      title: nuevoEstado ? '¿Activar regla?' : '¿Desactivar regla?',
+      html: `La regla <strong>#${this.numeroRegla()} — ${this.nombre()}</strong> quedará <strong>${nuevoEstado ? 'activa' : 'inactiva'}</strong> inmediatamente.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: nuevoEstado ? 'Sí, activar' : 'Sí, desactivar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: nuevoEstado ? '#43B581' : '#F4D35E',
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+      this.isTogglingActiva.set(true);
+      this.reglaService.toggleRegla(id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (res) => {
+            this.isTogglingActiva.set(false);
+            this.activa.set(res.data.activa);
+            Swal.fire({
+              icon: 'success',
+              title: res.data.activa ? 'Regla activada' : 'Regla desactivada',
+              timer: 1800,
+              showConfirmButton: false,
+              toast: true,
+              position: 'top-end',
+            });
+          },
+          error: () => {
+            this.isTogglingActiva.set(false);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al cambiar estado',
+              text: 'No se pudo cambiar el estado de la regla.',
+              confirmButtonColor: '#DA3E3E',
+            });
+          },
+        });
+    });
   }
 
   goTo(n: number): void {

@@ -1,0 +1,166 @@
+<div class="pane-anim" [formGroup]="group">
+  <div class="pane-header">
+    <h2>Fecha, Horario y Lugar</h2>
+    <p class="text-muted small">Define cuándo, dónde y bajo qué modalidad se realiza el evento.</p>
+  </div>
+
+  <!-- ── Bloque A: Fechas y horarios ─────────────────────────────────────── -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-blue"><i class="bi bi-calendar3-range"></i></div>
+        <div>
+          <div class="fw-bold">Fechas y horarios</div>
+          <div class="text-muted small">Inicio, fin y horario de apertura de puertas</div>
+        </div>
+      </div>
+
+      <!-- Fecha inicio / fin -->
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Fecha de inicio <span class="text-danger">*</span>
+          </label>
+          <input type="datetime-local" class="form-control" formControlName="start_date"
+                 [class.is-invalid]="state.camposInvalidos().includes('Fecha de inicio') && !group.get('start_date')?.value">
+          @if (state.camposInvalidos().includes('Fecha de inicio') && !group.get('start_date')?.value) {
+            <div class="invalid-feedback d-block">La fecha de inicio es obligatoria.</div>
+          }
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Fecha de fin</label>
+          <input type="datetime-local" class="form-control" formControlName="end_date">
+        </div>
+      </div>
+
+      <!-- Hora apertura / All-day -->
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Horario de apertura de puertas
+          </label>
+          <input type="time" class="form-control" formControlName="doors_open_time">
+          <div class="form-text">Opcional. Se muestra en la Landing como "Puertas abren".</div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Evento de día completo</label>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="allDay" formControlName="all_day">
+            <label class="form-check-label small" for="allDay">Sin horario específico</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bloque B: Lugar y modalidad ─────────────────────────────────────── -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-teal"><i class="bi bi-geo-alt-fill"></i></div>
+        <div>
+          <div class="fw-bold">Lugar y modalidad</div>
+          <div class="text-muted small">Espacio físico, virtual o híbrido del evento</div>
+        </div>
+      </div>
+
+      <!-- Tarjetas de modalidad -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted">
+          Modalidad <span class="text-danger">*</span>
+        </label>
+        <div class="row g-2">
+          <!-- Presencial -->
+          <div class="col-4">
+            <div class="opt-card" [class.sel-primary]="modalidad() === 'presencial'"
+                 (click)="selectModalidad('presencial')">
+              <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+              <div class="oc-top">
+                <span class="oc-icon">🏛️</span>
+                <span class="oc-label">Presencial</span>
+              </div>
+              <div class="oc-sub">En las instalaciones</div>
+            </div>
+          </div>
+          <!-- Virtual -->
+          <div class="col-4">
+            <div class="opt-card" [class.sel-primary]="modalidad() === 'virtual'"
+                 (click)="selectModalidad('virtual')">
+              <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+              <div class="oc-top">
+                <span class="oc-icon">💻</span>
+                <span class="oc-label">Virtual</span>
+              </div>
+              <div class="oc-sub">Transmisión en línea</div>
+            </div>
+          </div>
+          <!-- Híbrido -->
+          <div class="col-4">
+            <div class="opt-card" [class.sel-primary]="modalidad() === 'hibrido'"
+                 (click)="selectModalidad('hibrido')">
+              <div class="opt-check"><i class="bi bi-check-lg"></i></div>
+              <div class="oc-top">
+                <span class="oc-icon">🌐</span>
+                <span class="oc-label">Híbrido</span>
+              </div>
+              <div class="oc-sub">Presencial + virtual</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enlace de transmisión (solo Virtual o Híbrido) -->
+      @if (modalidad() === 'virtual' || modalidad() === 'hibrido') {
+        <div class="mb-3">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Enlace de transmisión
+          </label>
+          <input type="url" class="form-control" formControlName="stream_url"
+                 placeholder="https://meet.google.com/...">
+          <div class="form-text">Se enviará a los asistentes registrados por correo.</div>
+        </div>
+      }
+
+      <!-- Lugar / Espacio específico -->
+      @if (modalidad() !== 'virtual') {
+        <div class="mb-3">
+          <label class="form-label fw-semibold small text-uppercase text-muted">
+            Espacio exacto / Lugar específico
+          </label>
+          <input type="text" class="form-control" formControlName="venue"
+                 placeholder="Ej. Salón Baalbek, Jardín Principal, Auditorio...">
+          <div class="form-text">Especifica la sala, salón o área exacta del evento dentro de la sede.</div>
+        </div>
+      }
+
+      <!-- Alerta de sede -->
+      <div class="alert alert-info d-flex align-items-start gap-2 py-2 mb-0" style="font-size:.82rem;">
+        <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+        <span>
+          El evento se realizará en la sede <strong>{{ sedeNombre() }}</strong>.
+          @if (modalidad() !== 'virtual') {
+            Especifica el espacio exacto dentro de la sede en el campo de arriba.
+          } @else {
+            Este es un evento virtual transmitido en línea.
+          }
+        </span>
+      </div>
+    </div>
+  </div>
+
+  @if (submitted && group.invalid) {
+    <div class="alert alert-danger py-2 px-3 d-flex align-items-center gap-2 mb-2" style="font-size:.85rem;">
+      <i class="bi bi-exclamation-circle-fill"></i>
+      <span>Indica la <strong>fecha de inicio</strong> del evento para continuar.</span>
+    </div>
+  }
+
+  <div class="form-nav-footer">
+    <button class="btn btn-outline-secondary" type="button" (click)="irAtras()">
+      <i class="bi bi-chevron-left me-1"></i>Atrás
+    </button>
+    <button class="btn btn-primary px-4" type="button" (click)="irSiguiente()">
+      Siguiente: Acceso <i class="bi bi-chevron-right ms-1"></i>
+    </button>
+  </div>
+</div>

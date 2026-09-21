@@ -1,17 +1,42 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 import { AuthService } from '../../../services/auth.service';
 
 interface SyncStatus {
-  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments';
+  type: 'users' | 'products' | 'departments' | 'areas' | 'locations' | 'projects' | 'accounti' | 'accounte' | 'adjustment_reasons' | 'categories' | 'subcategories' | 'payment_frequencies' | 'condicion_patrimonial' | 'condicion_adm' | 'parentesco' | 'acceso_clubes' | 'genero' | 'estado_membresia' | 'cuotas_membresia' | 'socios' | 'membresias' | 'detalle_membresias' | 'medical_records' | 'socio_health' | 'evaluacion_batch' | 'summer_payments' | 'ns_services' | 'ns_discounts' | 'ns_markups' | 'ns_noninvt_parts' | 'ns_sales_tax_items' | 'sales_orders' | 'sale_types';
   isLoading: boolean;
   lastSync?: Date;
   recordCount?: number;
   created?: number;
   updated?: number;
   errors?: number;
+}
+
+interface CatalogPreviewState {
+  isOpen: boolean;
+  isLoading: boolean;
+  error: string | null;
+  rows: any[];
+  columns: string[];
+  total: number;
+  page: number;
+  limit: number;
+  loadedAt?: Date;
+}
+
+interface CatalogCardConfig {
+  key: string;
+  title: string;
+  description: string;
+  icon: string;
+  permission: string;
+  syncButtonClass: string;
+  syncButtonLabel: string;
+  syncAction: () => void;
+  previewable?: boolean;
+  note?: string;
 }
 
 @Component({
@@ -152,13 +177,245 @@ export class NetsuiteSyncComponent implements OnInit {
       type: 'summer_payments',
       isLoading: false,
       recordCount: 0
-    }
+    },
+    ns_services: {
+      type: 'ns_services',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_discounts: {
+      type: 'ns_discounts',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_markups: {
+      type: 'ns_markups',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_noninvt_parts: {
+      type: 'ns_noninvt_parts',
+      isLoading: false,
+      recordCount: 0
+    },
+    ns_sales_tax_items: {
+      type: 'ns_sales_tax_items',
+      isLoading: false,
+      recordCount: 0
+    },
+    sales_orders: {
+      type: 'sales_orders',
+      isLoading: false,
+      recordCount: 0
+    },
+    sale_types: {
+      type: 'sale_types',
+      isLoading: false,
+      recordCount: 0
+    },
   };
+
+  readonly catalogPreviewLimit = 8;
+  readonly catalogCards: CatalogCardConfig[] = [
+    { key: 'users', title: 'Usuarios', description: 'Empleados sincronizados desde NetSuite', icon: 'bi-people-fill', permission: 'sync_usuarios', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncUsers() },
+    { key: 'products', title: 'Productos', description: 'Catálogo de productos', icon: 'bi-box-seam', permission: 'sync_productos', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncProducts() },
+    { key: 'departments', title: 'Departamentos', description: 'Estructura de departamentos', icon: 'bi-diagram-3', permission: 'sync_departamentos', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncDepartments() },
+    { key: 'areas', title: 'Áreas', description: 'Áreas organizacionales', icon: 'bi-grid-3x3-gap', permission: 'sync_centros', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncAreas() },
+    { key: 'locations', title: 'Centros de Costos', description: 'Centros de costos / ubicaciones', icon: 'bi-building', permission: 'sync_ubicaciones', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncLocations() },
+    { key: 'projects', title: 'Eventos Centro Libanés', description: 'Eventos y proyectos sincronizados', icon: 'bi-calendar-event', permission: 'sync_proyectos', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncProjects() },
+    { key: 'accounti', title: 'Cuentas de Inventario', description: 'Cuentas internas de inventario', icon: 'bi-box-seam', permission: 'sync_cuentas_inventario', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncAccountInternal() },
+    { key: 'accounte', title: 'Cuentas de Pagos', description: 'Cuentas externas / gastos', icon: 'bi-credit-card', permission: 'sync_cuentas_gastos', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncAccountExternal() },
+    { key: 'adjustment_reasons', title: 'Razones de Ajuste', description: 'Motivos de ajuste de inventario', icon: 'bi-sliders', permission: 'sync_motivos_ajuste', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncAdjustmentReasons() },
+    { key: 'categories', title: 'Categorías', description: 'Categorías de productos', icon: 'bi-folder', permission: 'sync_categorias', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncCategories() },
+    { key: 'subcategories', title: 'Subcategorías', description: 'Subcategorías de productos', icon: 'bi-tags', permission: 'sync_subcategorias', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncSubcategories() },
+    { key: 'payment_frequencies', title: 'Frecuencias de Pago', description: 'Frecuencias de pago de membresías', icon: 'bi-cash-stack', permission: 'sync_payment_frequencies', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncPaymentFrequencies() },
+    { key: 'condicion_patrimonial', title: 'Condición Patrimonial', description: 'Condiciones patrimoniales de socios', icon: 'bi-bank2', permission: 'sync_condicion_patrimonial', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncCondicionPatrimonial() },
+    { key: 'condicion_adm', title: 'Condición Administrativa', description: 'Condiciones administrativas de socios', icon: 'bi-file-earmark-check', permission: 'sync_condicion_adm', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncCondicionAdm() },
+    { key: 'parentesco', title: 'Parentesco', description: 'Tipos de parentesco de socios', icon: 'bi-diagram-2', permission: 'sync_parentesco', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncParentesco() },
+    { key: 'acceso_clubes', title: 'Acceso Clubes', description: 'Tipos de acceso a clubes', icon: 'bi-key', permission: 'sync_acceso_clubes', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncAccesoClubes() },
+    { key: 'genero', title: 'Género', description: 'Tipos de género de socios', icon: 'bi-person-badge', permission: 'sync_genero', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncGenero() },
+    { key: 'estado_membresia', title: 'Estado Membresía', description: 'Estados de membresía de socios', icon: 'bi-card-checklist', permission: 'sync_estado_membresia', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncEstadoMembresia() },
+    { key: 'cuotas_membresia', title: 'Cuotas Membresía', description: 'Tipos de cuotas de membresía', icon: 'bi-wallet2', permission: 'sync_cuotas_membresia', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncCuotasMembresia() },
+    { key: 'socios', title: 'Socios', description: 'Miembros del club', icon: 'bi-person-vcard', permission: 'sync_socios', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncSocios(), note: 'Paso 1 del módulo de miembros' },
+    { key: 'membresias', title: 'Membresías', description: 'Membresías de socios', icon: 'bi-person-badge', permission: 'sync_membresias', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncMembresias(), note: 'Requiere Socios' },
+    { key: 'detalle_membresias', title: 'Detalle Membresías', description: 'Detalle de membresías', icon: 'bi-journal-text', permission: 'sync_detalle_membresias', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncDetalleMembresias(), note: 'Requiere Socios + Membresías' },
+    { key: 'medical_records', title: 'Registros Médicos', description: 'Visitas médicas de socios', icon: 'bi-heart-pulse', permission: 'sync_medical_records', syncButtonClass: 'btn-info text-white', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncMedicalRecords(), note: 'Requiere Socios + Membresías + Detalle' },
+    { key: 'ns_services', title: 'Servicios NS', description: "item WHERE itemtype='Service'", icon: 'bi-gear-wide-connected', permission: 'sync_ns_services', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncNsServices() },
+    { key: 'ns_discounts', title: 'Descuentos NS', description: "item WHERE itemtype='Discount'", icon: 'bi-tag-fill', permission: 'sync_ns_discounts', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncNsDiscounts() },
+    { key: 'ns_markups', title: 'Recargos NS', description: "item WHERE itemtype='Markup'", icon: 'bi-graph-up-arrow', permission: 'sync_ns_markups', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncNsMarkups() },
+    { key: 'ns_noninvt_parts', title: 'Partes No Inventariables NS', description: "item WHERE itemtype='NonInvtPart'", icon: 'bi-boxes', permission: 'sync_ns_noninvt_parts', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncNsNoninvtParts() },
+    { key: 'ns_sales_tax_items', title: 'Códigos de Impuesto NS', description: 'salestaxitem', icon: 'bi-receipt', permission: 'sync_ns_sales_tax_items', syncButtonClass: 'btn-primary', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncNsSalesTaxItems() },
+    { key: 'sales_orders', title: 'Órdenes de Venta', description: 'Saldos y finanzas de ventas', icon: 'bi-wallet2', permission: 'sync', syncButtonClass: 'btn-info text-white', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncSalesOrders(), previewable: false },
+    { key: 'sale_types', title: 'Tipos de Venta', description: 'Catálogo de tipos de venta', icon: 'bi-list-ul', permission: 'sync', syncButtonClass: 'btn-secondary text-white', syncButtonLabel: 'Sincronizar', syncAction: () => this.syncSaleTypes() },
+  ];
+
+  readonly processCards = [
+    {
+      key: 'summer_payments',
+      title: 'Pagos Curso de Verano',
+      description: 'Sincroniza el estado de pago contra Sales Orders',
+      icon: 'bi-cash-coin',
+      buttonClass: 'btn-success',
+      buttonLabel: 'Sincronizar Pagos',
+      action: () => this.syncSummerPayments(),
+      permission: 'sync_summer_payments'
+    },
+    {
+      key: 'socio_health',
+      title: 'Perfil de Salud',
+      description: 'Tipo de sangre, alergias, condiciones y contacto de emergencia',
+      icon: 'bi-shield-heart',
+      buttonClass: 'btn-danger',
+      buttonLabel: 'Sincronizar Salud',
+      action: () => this.syncSocioHealth(),
+      permission: 'sync_medical_records'
+    },
+    {
+      key: 'evaluacion_batch',
+      title: 'Evaluación de Reglas',
+      description: 'Evalúa todos los socios activos contra el motor de reglas',
+      icon: 'bi-lightning-charge',
+      buttonClass: 'btn-warning',
+      buttonLabel: 'Evaluar Reglas',
+      action: () => this.runEvaluacionBatch(),
+      permission: 'evaluar_batch'
+    }
+  ];
+
+  catalogPreviewState: { [key: string]: CatalogPreviewState } = {};
+  selectedPreviewKey: string | null = null;
 
   constructor(
     private netsuiteSyncService: NetsuiteSyncService,
-    private authService: AuthService
+    private authService: AuthService,
+    private cdr: ChangeDetectorRef
   ) {}
+
+  canPreview(permission: string): boolean {
+    return this.authService.hasPermission('netsuite_sync', 'view') || this.canSync(permission);
+  }
+
+  getPreviewState(key: string): CatalogPreviewState {
+    if (!this.catalogPreviewState[key]) {
+      this.catalogPreviewState[key] = {
+        isOpen: false,
+        isLoading: false,
+        error: null,
+        rows: [],
+        columns: [],
+        total: 0,
+        page: 1,
+        limit: this.catalogPreviewLimit,
+      };
+    }
+
+    return this.catalogPreviewState[key];
+  }
+
+  toggleCatalogPreview(key: string): void {
+    const state = this.getPreviewState(key);
+    const willOpen = this.selectedPreviewKey !== key;
+
+    this.selectedPreviewKey = willOpen ? key : null;
+
+    state.isOpen = willOpen;
+
+    if (willOpen) {
+      state.error = null;
+      if (!state.loadedAt && !state.isLoading) {
+        this.loadCatalogPreview(key);
+      }
+    }
+
+    this.cdr.markForCheck();
+  }
+
+  loadCatalogPreview(key: string, force = false): void {
+    const state = this.getPreviewState(key);
+
+    if (state.isLoading) {
+      return;
+    }
+
+    if (!force && state.loadedAt && state.rows.length > 0) {
+      return;
+    }
+
+    state.isLoading = true;
+    state.error = null;
+    this.cdr.markForCheck();
+
+    this.netsuiteSyncService.getCatalogPreview(key, state.page, state.limit).subscribe({
+      next: (response: any) => {
+        state.isLoading = false;
+        if (response.success && response.data) {
+          state.rows = response.data.rows || [];
+          state.columns = response.data.columns || (state.rows[0] ? Object.keys(state.rows[0]) : []);
+          state.total = response.data.total || state.rows.length;
+          state.loadedAt = new Date();
+          state.error = null;
+        } else {
+          state.error = response.message || 'No se pudo cargar el preview';
+        }
+        this.cdr.markForCheck();
+      },
+      error: (error) => {
+        state.isLoading = false;
+        state.error = error.error?.message || 'No se pudo cargar el preview';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  reloadCatalogPreview(key: string): void {
+    this.loadCatalogPreview(key, true);
+  }
+
+  previewValue(value: any): string {
+    if (value === null || value === undefined || value === '') {
+      return '—';
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'Sí' : 'No';
+    }
+
+    if (Array.isArray(value)) {
+      return value.join(', ');
+    }
+
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+
+    return String(value);
+  }
+
+  previewColumns(state: CatalogPreviewState): string[] {
+    return state.columns.length > 0 ? state.columns : (state.rows[0] ? Object.keys(state.rows[0]) : []);
+  }
+
+  formatColumnLabel(column: string): string {
+    return column
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
+  isPreviewExpanded(key: string): boolean {
+    return this.selectedPreviewKey === key;
+  }
+
+  getCatalogTitle(key: string): string {
+    return this.catalogCards.find((card) => card.key === key)?.title || 'Catálogo';
+  }
+
+  syncSalesOrders(): void {
+    this.performSync('sales_orders', 'Órdenes de Venta', () => this.netsuiteSyncService.syncSalesOrders());
+  }
+
+  syncSaleTypes(): void {
+    this.performSync('sale_types', 'Tipos de Venta', () => this.netsuiteSyncService.syncSaleTypes());
+  }
 
   canSync(permission: string): boolean {
     return this.authService.hasPermission('netsuite_sync', permission);
@@ -292,6 +549,26 @@ export class NetsuiteSyncComponent implements OnInit {
 
   syncMedicalRecords(): void {
     this.performSync('medical_records', 'Registros Médicos', () => this.netsuiteSyncService.syncMedicalRecords());
+  }
+
+  syncNsServices(): void {
+    this.performSync('ns_services', 'Servicios NS', () => this.netsuiteSyncService.syncNsServices());
+  }
+
+  syncNsDiscounts(): void {
+    this.performSync('ns_discounts', 'Descuentos NS', () => this.netsuiteSyncService.syncNsDiscounts());
+  }
+
+  syncNsMarkups(): void {
+    this.performSync('ns_markups', 'Recargos NS', () => this.netsuiteSyncService.syncNsMarkups());
+  }
+
+  syncNsNoninvtParts(): void {
+    this.performSync('ns_noninvt_parts', 'Partes No Inventariables NS', () => this.netsuiteSyncService.syncNsNoninvtParts());
+  }
+
+  syncNsSalesTaxItems(): void {
+    this.performSync('ns_sales_tax_items', 'Códigos de Impuesto NS', () => this.netsuiteSyncService.syncNsSalesTaxItems());
   }
 
   syncSocioHealth(): void {

@@ -77,9 +77,12 @@ export class WarehouseSupplyHelper {
       'Listo para Recoger': 'listo_recoger',
       'Entregado': 'entregado',
       'Entregada': 'entregado',
+      'Parcialmente Entregado': 'parcialmente_entregado',
       'Espera Devolución': 'espera_devolucion',
       'Cancelado': 'cancelado',
-      'Cancelada': 'cancelado'
+      'Cancelada': 'cancelado',
+      'Pendiente Cancelación': 'pendiente_cancelacion',
+      'En Proceso': 'en_proceso',
     };
     return statusMap[status] || status.toLowerCase().replace(/ /g, '_');
   }

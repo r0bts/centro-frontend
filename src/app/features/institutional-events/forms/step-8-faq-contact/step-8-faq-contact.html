@@ -1,0 +1,210 @@
+<div class="pane-anim">
+  <div class="pane-header">
+    <h2>Indicadores, FAQ y Contacto</h2>
+    <p class="text-muted small">Contadores de impacto, preguntas frecuentes y datos de contacto para la Landing.</p>
+  </div>
+
+  <!-- ══ INDICADORES ══════════════════════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-success"><i class="bi bi-bar-chart-fill"></i></div>
+        <div>
+          <div class="fw-bold">Indicadores / Contadores de impacto</div>
+          <div class="text-muted small">Aparecen en la sección de impacto de la Landing</div>
+        </div>
+      </div>
+
+      @for (ind of indicators; track $index) {
+        <div class="indicador-row mb-2">
+          <div class="row g-2 align-items-center w-100">
+            <div class="col-sm-3">
+              <input type="text" class="form-control form-control-sm" [value]="ind.value.value"
+                     (input)="ind.get('value')!.setValue($any($event.target).value)" placeholder="Valor">
+            </div>
+            <div class="col-sm-4">
+              <input type="text" class="form-control form-control-sm" [value]="ind.value.label"
+                     (input)="ind.get('label')!.setValue($any($event.target).value)" placeholder="Etiqueta">
+            </div>
+            <div class="col-sm-3">
+              <input type="text" class="form-control form-control-sm" [value]="ind.value.prefix"
+                     (input)="ind.get('prefix')!.setValue($any($event.target).value)" placeholder="$, +, %">
+            </div>
+            <div class="col-sm-2 text-end">
+              <button class="btn btn-sm btn-outline-danger py-0 px-2" (click)="eliminarIndicador($index)">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+      <button class="btn btn-sm w-100" style="border:2px dashed #cbd5e1;color:#406eba;border-radius:.75rem;padding:.55rem;"
+              (click)="agregarIndicador()">
+        <i class="bi bi-plus-circle me-1"></i>Agregar indicador
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ FAQ ══════════════════════════════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-warning"><i class="bi bi-question-circle-fill"></i></div>
+        <div>
+          <div class="fw-bold">Preguntas frecuentes (FAQ)</div>
+          <div class="text-muted small">Acordeón en la Landing para resolver dudas antes del registro</div>
+        </div>
+      </div>
+
+      @for (f of faqs; track $index) {
+        <div class="faq-row">
+          <div class="row g-2">
+            <div class="col-12">
+              <label class="form-label small mb-1 fw-semibold">Pregunta <span class="text-danger">*</span></label>
+              <input type="text" class="form-control form-control-sm"
+                     [value]="f.value.question"
+                     (input)="f.get('question')!.setValue($any($event.target).value)">
+            </div>
+            <div class="col-12">
+              <label class="form-label small mb-1 fw-semibold">Respuesta <span class="text-danger">*</span></label>
+              <textarea class="form-control form-control-sm" rows="2"
+                        [value]="f.value.answer"
+                        (input)="f.get('answer')!.setValue($any($event.target).value)"></textarea>
+            </div>
+            <div class="col-12 text-end">
+              <button class="btn btn-sm btn-outline-danger py-0 px-2" (click)="eliminarFaq($index)">
+                <i class="bi bi-trash3 me-1"></i>Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+      <button class="btn btn-sm w-100 mt-2" style="border:2px dashed #cbd5e1;color:#406eba;border-radius:.75rem;padding:.6rem;"
+              (click)="agregarFaq()">
+        <i class="bi bi-plus-circle me-1"></i>Agregar pregunta frecuente
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ CONTACTO ═════════════════════════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-3" [formGroup]="group">
+    <div class="card-body">
+      <div class="sec-head mb-3">
+        <div class="sec-icon sec-blue"><i class="bi bi-envelope-at-fill"></i></div>
+        <div>
+          <div class="fw-bold">Datos de contacto del evento</div>
+          <div class="text-muted small">Aparecen en la sección de contacto de la Landing</div>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Correo de contacto</label>
+          <div class="input-group input-group-sm">
+            <input type="email" class="form-control" formControlName="contact_email" placeholder="contacto@ejemplo.com">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Teléfono / WhatsApp</label>
+          <div class="input-group input-group-sm">
+            <input type="tel" class="form-control" formControlName="contact_phone" placeholder="55 1234 5678">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label fw-semibold small text-uppercase text-muted">Persona de contacto</label>
+          <input type="text" class="form-control form-control-sm" formControlName="contact_person"
+                 placeholder="Ej. Lic. Ana García">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold small text-uppercase text-muted d-flex justify-content-between align-items-center mb-1">
+            <span>Horario de atención</span>
+            <span class="text-muted" style="font-size:0.75rem;font-weight:400;">Selecciona los días u horas de atención</span>
+          </label>
+          
+          <!-- Selector rápido de días y rango de horas -->
+          <div class="p-2.5 bg-light rounded-3 border mb-2">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+              <span class="small fw-medium text-muted me-1">Días:</span>
+              <div class="btn-group btn-group-sm" role="group" aria-label="Selección de días">
+                @for (d of diasSemana; track d.key) {
+                  <button type="button" 
+                          class="btn"
+                          [class.btn-primary]="isDiaSelected(d.key)"
+                          [class.btn-outline-secondary]="!isDiaSelected(d.key)"
+                          style="min-width: 32px; font-weight: 600; padding: 2px 8px;"
+                          (click)="toggleDia(d.key)">
+                    {{ d.label }}
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <span class="small fw-medium text-muted me-1">Horario:</span>
+              <div class="d-flex align-items-center gap-1">
+                <input type="time" class="form-control form-control-sm py-1 px-2" style="width:110px;"
+                       [(ngModel)]="horaInicio" [ngModelOptions]="{standalone: true}" (change)="aplicarHorarioConstruido()">
+                <span class="small text-muted">a</span>
+                <input type="time" class="form-control form-control-sm py-1 px-2" style="width:110px;"
+                       [(ngModel)]="horaFin" [ngModelOptions]="{standalone: true}" (change)="aplicarHorarioConstruido()">
+              </div>
+              <button type="button" class="btn btn-sm btn-link text-decoration-none py-0 text-muted ms-auto" style="font-size:0.75rem;" (click)="aplicarHorarioConstruido()">
+                <i class="bi bi-arrow-repeat me-1"></i>Aplicar al campo
+              </button>
+            </div>
+          </div>
+
+          <input type="text" class="form-control form-control-sm" formControlName="contact_schedule"
+                 placeholder="Ej. L, M, X, J, V de 09:00 a 18:00 hrs">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label fw-semibold small text-uppercase text-muted d-flex align-items-center gap-1">
+          <span>URL de mapa / ubicación GPS</span>
+          <span class="badge bg-light text-muted ms-1">Opcional · Landing</span>
+        </label>
+        <input type="url" class="form-control form-control-sm" formControlName="maps_url"
+               placeholder="https://maps.google.com/...">
+        <div class="form-text">Opcional — Enlace externo de Google Maps para incluir el botón de ruta GPS en la Landing Page pública.</div>
+      </div>
+
+      <label class="form-label fw-semibold small text-uppercase text-muted">Redes sociales del evento</label>
+      <div class="row g-2">
+        <div class="col-sm-6">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-facebook" style="color:#1877f2;"></i></span>
+            <input type="url" class="form-control" formControlName="social_facebook" placeholder="facebook.com/…">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-instagram" style="color:#e1306c;"></i></span>
+            <input type="url" class="form-control" formControlName="social_instagram" placeholder="instagram.com/…">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-twitter-x"></i></span>
+            <input type="url" class="form-control" formControlName="social_twitter" placeholder="x.com/…">
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="input-group input-group-sm">
+            <span class="input-group-text"><i class="bi bi-tiktok" style="color:#010101;"></i></span>
+            <input type="url" class="form-control" formControlName="social_tiktok" placeholder="tiktok.com/@…">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-nav-footer">
+    <button class="btn btn-outline-secondary" (click)="irAtras()">
+      <i class="bi bi-chevron-left me-1"></i>Atrás
+    </button>
+    <button class="btn btn-primary px-4" (click)="irSiguiente()">
+      Siguiente: Revisión final <i class="bi bi-chevron-right ms-1"></i>
+    </button>
+  </div>
+</div>
