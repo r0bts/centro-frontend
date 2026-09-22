@@ -58,7 +58,7 @@ export class EventAttendeesPageComponent implements OnInit {
     const term = this.searchTerm().toLowerCase().trim();
     const st = this.filtroStatus();
     const tipo = this.filtroTipo();
-    if (term) lista = lista.filter(a => a.full_name.toLowerCase().includes(term) || a.email?.toLowerCase().includes(term));
+    if (term) lista = lista.filter(a => a.full_name.toLowerCase().includes(term) || a.email?.toLowerCase().includes(term) || a.socio?.entityid?.toLowerCase().includes(term));
     if (st) lista = lista.filter(a => a.status === st);
     if (tipo) lista = lista.filter(a => a.attendee_type === tipo);
     return lista;

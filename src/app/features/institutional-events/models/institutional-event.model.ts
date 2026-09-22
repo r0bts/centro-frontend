@@ -303,6 +303,7 @@ export interface InstitutionalEventAttendee {
   event_id: number;
   attendee_type: AttendeeType;
   socio_id?: number | null;
+  socio?: { entityid: string };
   host_socio_id?: number | null;
   external_visitor_id?: number | null;
   relationship_id?: number | null;

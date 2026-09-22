@@ -165,7 +165,12 @@
                           <div class="att-avatar" [style.background]="avatarBg(a.attendee_type)">
                             {{ initials(a.full_name) }}
                           </div>
-                          <span class="fw-semibold small">{{ a.full_name }}</span>
+                          <span class="fw-semibold small">
+                            @if (a.attendee_type === 'socio' && a.socio?.entityid) {
+                              <span class="text-primary me-1">{{ a.socio?.entityid }}</span> -
+                            }
+                            {{ a.full_name }}
+                          </span>
                         </div>
                       </td>
                       <td><span class="small text-muted">{{ a.email || '—' }}</span></td>
