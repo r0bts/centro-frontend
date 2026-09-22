@@ -92,6 +92,10 @@ export class InstitutionalEventsService {
     return this.http.get<EventResponse>(`${environment.apiUrl}/public/events/${id}`);
   }
 
+  registerPublic(eventId: number, data: any): Observable<ApiResponse<{ created: number; skipped: number; details?: any[]; sales_order_id?: number }>> {
+    return this.http.post<ApiResponse<{ created: number; skipped: number; details?: any[]; sales_order_id?: number }>>(`${environment.apiUrl}/public/events/${eventId}/register`, data);
+  }
+
   // ── Asistentes ───────────────────────────────────────────────────────────────
 
   getAttendees(eventId: number): Observable<AttendeeListResponse> {
