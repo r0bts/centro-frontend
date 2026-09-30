@@ -1,0 +1,95 @@
+<app-content-menu></app-content-menu>
+<div class="page-content py-5 text-center" *ngIf="loading">  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<div class="wizard-overlay" style="align-items:flex-start;padding-top:6vh;" *ngIf="!loading && procedure">
+  <div class="access-modal-box">
+    <div class="access-modal-header">
+      <div>
+        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2 text-primary"></i>Gestión de accesos</h5>
+        <small class="text-muted">Procedimiento: {{ procedure.name }}</small>
+      </div>
+      <button class="btn-close" (click)="goBack()"></button>
+    </div>
+
+    <div class="access-modal-body">
+      
+      <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+      <!-- Visibilidad por departamento -->
+      <div class="mb-4">
+        <div class="sec-head mb-2">
+          <div class="sec-icon sec-blue"><i class="bi bi-building"></i></div>
+          <div>
+            <div class="fw-bold" style="font-size:.9rem;">Departamento(s)</div>
+            <div class="text-muted" style="font-size:.75rem;">Todo el departamento seleccionado podrá ver este procedimiento.</div>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <div class="acceso-badge" *ngFor="let dept of departments" [class.sel]="dept.selected" (click)="toggleDepartment(dept)">
+            <span class="ab-check"><i class="bi bi-check-circle-fill"></i></span>
+            <i class="bi" [class]="dept.icon"></i> {{ dept.name }}
+          </div>
+        </div>
+      </div>
+
+      <hr>
+
+      <!-- Usuarios adicionales -->
+      <div class="mb-2">
+        <div class="sec-head mb-2">
+          <div class="sec-icon sec-purple"><i class="bi bi-person-plus"></i></div>
+          <div>
+            <div class="fw-bold" style="font-size:.9rem;">Usuarios adicionales</div>
+            <div class="text-muted" style="font-size:.75rem;">Agrega personas que no pertenecen al departamento pero deben tener acceso.</div>
+          </div>
+        </div>
+
+        <div class="input-group input-group-sm mb-2 mt-3">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" class="form-control" placeholder="Buscar usuario por nombre o correo..." [(ngModel)]="searchUserTerm" (keyup.enter)="searchUser()">
+          <button class="btn btn-outline-primary" type="button" (click)="searchUser()">Buscar</button>
+        </div>
+        
+        <div class="border rounded-3 mb-3" style="max-height:120px;overflow-y:auto;" *ngIf="usersSearchResults.length > 0">
+          <div class="access-search-result" *ngFor="let user of usersSearchResults">
+            <div class="chip-avatar" style="background:var(--primary-color);color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">
+              {{ getInitials(user.name) }}
+            </div>
+            <div class="flex-grow-1">
+              <div class="fw-semibold" style="font-size:.82rem;">{{ user.name }}</div>
+              <div class="text-muted" style="font-size:.7rem;">{{ user.email }}</div>
+            </div>
+            <button class="btn btn-sm btn-primary" (click)="addUser(user)">Agregar</button>
+          </div>
+        </div>
+
+        <div class="mb-1 small text-muted" *ngIf="selectedUsers.length > 0">Usuarios con acceso individual</div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="user-chip" *ngFor="let user of selectedUsers; let i = index">
+            <span class="chip-avatar">{{ getInitials(user.name) }}</span>{{ user.name }}
+            <span class="chip-remove" (click)="removeUser(i)"><i class="bi bi-x-circle-fill"></i></span>
+          </span>
+        </div>
+      </div>
+
+      <div class="alert alert-light border d-flex align-items-start gap-2 mt-3 mb-0" style="font-size:.78rem;">
+        <i class="bi bi-info-circle text-primary mt-1"></i>
+        <div>Los usuarios visores solo podrán consultar el procedimiento y sus documentos; no podrán editarlos ni eliminarlos.</div>
+      </div>
+    </div>
+
+    <div class="access-modal-footer">
+      <span class="small text-muted"><i class="bi bi-shield-check me-1"></i>{{ selectedDepartmentsCount }} departamento(s) · {{ selectedUsers.length }} usuario(s) adicional(es)</span>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm" (click)="goBack()" [disabled]="saving">Cancelar</button>
+        <button class="btn btn-primary btn-sm d-flex align-items-center gap-1" (click)="saveAccess()" [disabled]="saving">
+          <span class="spinner-border spinner-border-sm" *ngIf="saving"></span>
+          <i class="bi bi-check-lg" *ngIf="!saving"></i> Guardar accesos
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -505,6 +505,19 @@
 
         <!-- Body del modal -->
         <div class="insc-modal-body">
+        
+          @if (modalPaso() !== 'exito') {
+            <div class="mb-4 p-3 rounded d-flex justify-content-between align-items-center" style="background-color: var(--bs-primary-bg-subtle); border: 1px dashed var(--bs-primary-border-subtle);">
+              <div>
+                <h6 class="fw-bold mb-1" style="color: var(--bs-primary-text-emphasis);">{{ ev.name }}</h6>
+                <span class="small text-muted"><i class="bi bi-calendar-event me-1"></i>{{ formatFechaLarga(ev.start_date) }}</span>
+              </div>
+              <div class="text-end">
+                <div class="small text-muted mb-1">Costo del evento</div>
+                <div class="fw-bold text-primary fs-5">{{ ev.cost && ev.cost > 0 ? (ev.cost | currency:'MXN':'symbol':'1.2-2') : 'Gratis' }}</div>
+              </div>
+            </div>
+          }
 
           <!-- Paso: ¿Eres socio? -->
           @if (modalPaso() === 'inicio') {
@@ -589,12 +602,23 @@
                 </div>
               </div>
               <div class="col-12 col-md-6">
-                <label class="insc-label text-muted small fw-semibold mb-1">Teléfono</label>
+                <label class="insc-label text-muted small fw-semibold mb-1">Teléfono celular *</label>
                 <div class="input-group mb-2">
                   <span class="input-group-text bg-light text-muted"><i class="bi bi-telephone-fill"></i></span>
-                  <input type="tel" class="form-control" placeholder="Ej. 5512345678"
+                  <select class="form-select bg-light" style="max-width: 90px;" [value]="ladaExterno()" (change)="ladaExterno.set($any($event.target).value)">
+                    <option value="+52">+52 (MX)</option>
+                    <option value="+1">+1 (US/CA)</option>
+                    <option value="+34">+34 (ES)</option>
+                    <option value="+54">+54 (AR)</option>
+                    <option value="+57">+57 (CO)</option>
+                    <option value="+56">+56 (CL)</option>
+                    <option value="+51">+51 (PE)</option>
+                  </select>
+                  <input type="tel" class="form-control" placeholder="10 dígitos"
+                         maxlength="10"
+                         pattern="[0-9]{10}"
                          [value]="telefonoExterno()"
-                         (input)="telefonoExterno.set($any($event.target).value)">
+                         (input)="onPhoneInput($event)">
                 </div>
               </div>
             </div>
@@ -647,6 +671,10 @@
                         @if (sub.venue) {
                           <div class="mt-1"><i class="bi bi-geo-alt me-1 text-primary"></i>{{ sub.venue }}</div>
                         }
+                        <div class="mt-2 pt-2 border-top fw-bold text-success" style="font-size: 0.9rem;">
+                          <i class="bi bi-tag-fill me-1"></i>
+                          {{ sub.cost && sub.cost > 0 ? (sub.cost | currency:'MXN':'symbol':'1.2-2') : 'Gratis' }}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -697,6 +725,22 @@
 
       </div><!-- /insc-modal-box -->
     </div><!-- /modal-inscripcion -->
+  }
+
+  <!-- ── MODAL DE ALERTAS (Reemplazo de SweetAlert) ────────────────────────── -->
+  @if (alertMessage()) {
+    <div class="modal-inscripcion open" style="z-index: 2050;">
+      <div class="insc-modal-box" (click)="$event.stopPropagation()" style="max-width: 400px; text-align: center;">
+        <div class="insc-modal-body p-4">
+          <i class="bi bi-exclamation-circle text-primary" style="font-size: 3rem;"></i>
+          <h4 class="mt-3 fw-bold">{{ alertMessage()?.title }}</h4>
+          <p class="text-muted mt-2">{{ alertMessage()?.text }}</p>
+          <button type="button" class="btn btn-primary rounded-pill px-4 mt-3" (click)="alertMessage.set(null)">
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
   }
 
 </div><!-- /event-landing-themed -->

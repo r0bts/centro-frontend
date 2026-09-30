@@ -1,4 +1,4 @@
-import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 
 @Injectable({
@@ -6,7 +6,7 @@ import { isPlatformBrowser } from '@angular/common';
 })
 export class StorageService {
   
-  constructor(@Inject(PLATFORM_ID) private platformId: Object) {}
+  private readonly platformId = inject(PLATFORM_ID);
 
   setItem(key: string, value: string): void {
     if (isPlatformBrowser(this.platformId)) {

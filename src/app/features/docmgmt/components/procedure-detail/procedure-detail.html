@@ -1,0 +1,110 @@
+<app-content-menu></app-content-menu>
+<div class="page-content pt-4" *ngIf="procedure">
+  <div class="d-flex align-items-center gap-2 mb-3">
+    <a routerLink="/docmgmt" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+      <i class="bi bi-arrow-left"></i> Volver
+    </a>
+  </div>
+
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <div class="proc-icon" style="background:linear-gradient(135deg,#406eba,#1d3d79); width:56px; height:56px; font-size:1.5rem;">
+        {{ getInitials(procedure.name) }}
+      </div>
+      <div>
+        <h3 class="mb-1 fw-bold">{{ procedure.name }}</h3>
+        <div class="d-flex align-items-center gap-2" style="font-size:.85rem; color:#6c757d;">
+          <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle" *ngIf="procedure.status === 'published'">Publicado</span>
+          <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" *ngIf="procedure.status === 'draft'">Borrador</span>
+          <span class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle" *ngIf="procedure.status === 'archived'">Archivado</span>
+          <span>·</span>
+          <span>Actualizado el {{ procedure.modified | date:'dd MMM yyyy' }}</span>
+        </div>
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button *ngIf="canEdit" class="btn btn-outline-secondary d-flex align-items-center gap-2" [routerLink]="['/docmgmt', procedure.id, 'access']">
+        <i class="bi bi-shield-lock"></i> Accesos
+      </button>
+      <button *ngIf="canEdit" class="btn btn-primary d-flex align-items-center gap-2" [routerLink]="['/docmgmt', procedure.id, 'edit']">
+        <i class="bi bi-pencil"></i> Editar
+      </button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-white">
+          <h6 class="mb-0 fw-semibold">Detalles</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="text-muted small fw-semibold text-uppercase mb-1">Descripción</div>
+            <div>{{ procedure.description || 'Sin descripción' }}</div>
+          </div>
+          <div>
+            <div class="text-muted small fw-semibold text-uppercase mb-1">Visibilidad</div>
+            <div class="d-flex flex-wrap gap-2 mt-2">
+              <span class="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle" *ngFor="let p of procedure.docmgmt_procedure_permissions">
+                <i class="bi bi-building me-1" *ngIf="p.permission_type === 'department'"></i>
+                <i class="bi bi-person me-1" *ngIf="p.permission_type === 'user'"></i>
+                {{ p.permission_type === 'department' ? 'Depto ' + p.department_id : 'Usuario ' + p.user_id }}
+              </span>
+              <span *ngIf="!procedure.docmgmt_procedure_permissions?.length" class="text-muted small">No se han definido accesos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-8 mb-4">
+      <div class="card h-100">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+          <h6 class="mb-0 fw-semibold">Documentos ({{ procedure.docmgmt_procedure_documents?.length || 0 }})</h6>
+        </div>
+        <div class="card-body p-0">
+          <table class="table mb-0 doc-table">
+            <thead>
+              <tr>
+                <th class="ps-3">Nombre del archivo</th>
+                <th>Fecha de subida</th>
+                <th class="text-center" style="width:100px;">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let doc of procedure.docmgmt_procedure_documents">
+                <td class="ps-3">
+                  <div class="d-flex align-items-center gap-2">
+                    <i class="bi" [ngClass]="getFileIconClass(doc.file_name)" style="font-size:1.2rem;"></i>
+                    <span class="fw-medium">{{ doc.file_name }}</span>
+                  </div>
+                </td>
+                <td>{{ doc.created | date:'dd MMM yyyy HH:mm' }}</td>
+                <td class="text-center">
+                  <a [href]="getDownloadUrl(doc.file_name)" target="_blank" class="btn btn-sm btn-outline-primary" title="Descargar">
+                    <i class="bi bi-download"></i>
+                  </a>
+                </td>
+              </tr>
+              <tr *ngIf="!procedure.docmgmt_procedure_documents?.length">
+                <td colspan="3" class="text-center py-4 text-muted">No hay documentos asociados a este procedimiento.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="page-content py-5 text-center" *ngIf="loading">
+  <div class="spinner-border text-primary" role="status">
+    <span class="visually-hidden">Cargando...</span>
+  </div>
+</div>
+
+<div class="page-content pt-4" *ngIf="error">
+  <div class="alert alert-danger">{{ error }}</div>
+</div>

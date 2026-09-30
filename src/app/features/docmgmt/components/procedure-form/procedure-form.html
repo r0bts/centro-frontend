@@ -1,0 +1,275 @@
+<app-content-menu></app-content-menu>
+<div class="page-content pb-0 pt-4">  <a routerLink="/docmgmt" class="text-decoration-none small text-muted d-inline-flex align-items-center gap-1 mb-2">
+    <i class="bi bi-arrow-left"></i> Volver al listado de procedimientos
+  </a>
+</div>
+
+<div class="stepper-bar">
+  <div class="step-wrap">
+    <div class="step-item-bar" [class.active]="currentStep === 1" [class.done]="currentStep > 1" (click)="goStep(1)">
+      <div class="step-circle"><i class="bi bi-check-lg" *ngIf="currentStep > 1"></i><span *ngIf="currentStep <= 1">1</span></div>
+      <span class="step-name">Datos generales</span>
+    </div>
+    <div class="step-line-bar" [class.done]="currentStep > 1"></div>
+    <div class="step-item-bar" [class.active]="currentStep === 2" [class.done]="currentStep > 2" (click)="goStep(2)">
+      <div class="step-circle"><i class="bi bi-check-lg" *ngIf="currentStep > 2"></i><span *ngIf="currentStep <= 2">2</span></div>
+      <span class="step-name">Documentos</span>
+    </div>
+    <div class="step-line-bar" [class.done]="currentStep > 2"></div>
+    <div class="step-item-bar" [class.active]="currentStep === 3" [class.done]="currentStep > 3" (click)="goStep(3)">
+      <div class="step-circle"><i class="bi bi-check-lg" *ngIf="currentStep > 3"></i><span *ngIf="currentStep <= 3">3</span></div>
+      <span class="step-name">Visibilidad</span>
+    </div>
+    <div class="step-line-bar" [class.done]="currentStep > 3"></div>
+    <div class="step-item-bar" [class.active]="currentStep === 4" (click)="goStep(4)">
+      <div class="step-circle">4</div>
+      <span class="step-name">Revisión</span>
+    </div>
+  </div>
+</div>
+
+<div class="procform-layout">
+  <div class="main-col">
+
+    <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+    <!-- PASO 1: DATOS GENERALES -->
+    <div class="pane-anim step-pane" [class.active-pane]="currentStep === 1">
+      <div class="pane-header">
+        <div class="sec-head mb-2">
+          <div class="sec-icon sec-blue"><i class="bi bi-card-text"></i></div>
+          <div>
+            <h2>Datos generales</h2>
+            <p>Información básica que identifica al procedimiento.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">Nombre del procedimiento <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" [(ngModel)]="procedure.name" placeholder="Ej. Contratación de personal">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label small fw-semibold">Descripción</label>
+        <textarea class="form-control" [(ngModel)]="procedure.description" rows="5" placeholder="Explica el objetivo y los pasos generales..."></textarea>
+      </div>
+
+      <div class="form-nav-footer">
+        <button class="btn btn-outline-secondary d-flex align-items-center gap-1" disabled>
+          <i class="bi bi-arrow-left"></i> Atrás
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" routerLink="/docmgmt">Cancelar</button>
+          <button class="btn btn-primary d-flex align-items-center gap-1" (click)="goStep(2)" [disabled]="!procedure.name">
+            Siguiente <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 2: DOCUMENTOS -->
+    <div class="pane-anim step-pane" [class.active-pane]="currentStep === 2">
+      <div class="pane-header">
+        <div class="sec-head mb-2">
+          <div class="sec-icon sec-blue"><i class="bi bi-paperclip"></i></div>
+          <div>
+            <h2>Documentos del procedimiento</h2>
+            <p>Un procedimiento puede tener uno o varios documentos.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="drop-zone mb-3" (click)="fileInput.click()">
+        <i class="bi bi-cloud-upload fs-2 text-primary mb-2 d-block"></i>
+        <div class="fw-semibold small">Haz clic para seleccionar</div>
+        <div class="text-muted" style="font-size:.72rem;">PDF, Word, Excel — máx. 20 MB por archivo</div>
+        <input type="file" #fileInput class="d-none" (change)="onFileSelected($event)">
+      </div>
+
+      <div id="doc-list">
+        <!-- Documentos guardados en DB -->
+        <div class="doc-form-row" *ngFor="let doc of documents">
+          <div class="doc-file-icon" style="background:#fef2f2;color:#dc2626;"><i class="bi bi-file-earmark-text"></i></div>
+          <div class="flex-grow-1">
+            <div class="doc-form-name">{{ doc.file_name }}</div>
+            <div class="doc-form-meta">Guardado en servidor</div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger btn-table-action" title="Quitar" (click)="confirmDeleteDoc(doc.id!)"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <!-- Documentos pendientes (solo en frontend, para un procedure nuevo) -->
+        <div class="doc-form-row" *ngFor="let file of pendingFiles; let i = index">
+          <div class="doc-file-icon" style="background:#eff6ff;color:#2563eb;"><i class="bi bi-file-earmark-plus"></i></div>
+          <div class="flex-grow-1">
+            <div class="doc-form-name">{{ file.name }}</div>
+            <div class="doc-form-meta">{{ (file.size / 1024).toFixed(0) }} KB · Pendiente de subir</div>
+          </div>
+          <button class="btn btn-sm btn-outline-danger btn-table-action" title="Quitar" (click)="removePendingFile(i)"><i class="bi bi-x-lg"></i></button>
+        </div>
+      </div>
+
+      <div class="form-nav-footer">
+        <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="goStep(1)">
+          <i class="bi bi-arrow-left"></i> Atrás
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary d-flex align-items-center gap-1" (click)="goStep(3)">
+            Siguiente <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 3: VISIBILIDAD -->
+    <div class="pane-anim step-pane" [class.active-pane]="currentStep === 3">
+      <div class="pane-header">
+        <div class="sec-head mb-2">
+          <div class="sec-icon sec-purple"><i class="bi bi-shield-lock"></i></div>
+          <div>
+            <h2>Visibilidad</h2>
+            <p>Define qué departamento(s) podrán consultar este procedimiento.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="fw-semibold small mb-2">Departamento(s)</div>
+        <div class="d-flex flex-wrap gap-2">
+          <div class="acceso-badge" *ngFor="let dept of departments" 
+               [class.sel]="dept.selected" (click)="toggleDepartment(dept)">
+            <span class="ab-check"><i class="bi bi-check-circle-fill"></i></span>
+            <i class="bi" [class]="dept.icon"></i> {{ dept.name }}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-nav-footer">
+        <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="goStep(2)">
+          <i class="bi bi-arrow-left"></i> Atrás
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary d-flex align-items-center gap-1" (click)="goStep(4)">
+            Siguiente <i class="bi bi-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASO 4: REVISION -->
+    <div class="pane-anim step-pane" [class.active-pane]="currentStep === 4">
+      <div class="pane-header">
+        <div class="sec-head mb-2">
+          <div class="sec-icon sec-success"><i class="bi bi-clipboard-check"></i></div>
+          <div>
+            <h2>Revisión final</h2>
+            <p>Confirma la información antes de guardar el procedimiento.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rev-section-title">Datos generales</div>
+      <div class="rev-item">
+        <div class="rev-item-label">Nombre</div>
+        <div class="rev-item-val">{{ procedure.name }}</div>
+      </div>
+      <div class="rev-item mb-4">
+        <div class="rev-item-label">Descripción</div>
+        <div class="rev-item-val" style="font-weight:500;">{{ procedure.description || 'Sin descripción' }}</div>
+      </div>
+
+      <div class="rev-section-title">Documentos ({{ documents.length + pendingFiles.length }})</div>
+      <div class="rev-item" *ngFor="let doc of documents">
+        <div class="rev-item-val"><i class="bi me-1" [ngClass]="getFileIconClass(doc.file_name)"></i> {{ doc.file_name }}</div>
+      </div>
+      <div class="rev-item" *ngFor="let file of pendingFiles">
+        <div class="rev-item-val"><i class="bi me-1" [ngClass]="getFileIconClass(file.name)"></i> {{ file.name }} (Pendiente)</div>
+      </div>
+      <div class="mb-4"></div>
+
+      <div class="form-nav-footer">
+        <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="goStep(3)" [disabled]="saving">
+          <i class="bi bi-arrow-left"></i> Atrás
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" (click)="finishForm(false)" [disabled]="saving">Guardar como borrador</button>
+          <button class="btn btn-primary d-flex align-items-center gap-1" (click)="finishForm(true)" [disabled]="saving">
+            <span class="spinner-border spinner-border-sm" *ngIf="saving"></span>
+            <i class="bi bi-check-lg" *ngIf="!saving"></i> {{ isEdit ? 'Actualizar procedimiento' : 'Publicar procedimiento' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="d-none d-lg-block">
+    <div class="preview-card">
+      <div class="preview-banner"><i class="bi bi-person-vcard"></i></div>
+      <div class="preview-body">
+        <div class="fw-bold mb-1" style="font-size:.9rem;">{{ procedure.name || 'Sin nombre' }}</div>
+        <div class="preview-meta-row"><i class="bi bi-paperclip"></i> {{ documents.length + pendingFiles.length }} documentos agregados</div>
+        <hr>
+        <div class="small text-muted" style="font-size:.72rem;">
+          Vista previa de cómo lucirá la tarjeta del procedimiento en el listado.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal confirmación de eliminación de documento ── -->
+<div *ngIf="docDeleteTarget">
+  <div class="modal-backdrop fade show" style="z-index: 1050;"></div>
+  <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">
+            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+            Eliminar documento
+          </h5>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1">¿Estás seguro de que deseas eliminar este documento?</p>
+          <p class="text-muted small">Esta acción no se puede deshacer.</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button class="btn btn-outline-secondary" (click)="cancelDeleteDoc()" [disabled]="deletingDoc">
+            Cancelar
+          </button>
+          <button class="btn btn-danger d-flex align-items-center gap-2"
+                  (click)="executeDeleteDoc()" [disabled]="deletingDoc">
+            <span class="spinner-border spinner-border-sm" *ngIf="deletingDoc"></span>
+            Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal validación ── -->
+<div *ngIf="validationMessage">
+  <div class="modal-backdrop fade show" style="z-index: 1050;"></div>
+  <div class="modal fade show d-block" tabindex="-1" style="z-index: 1055;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-0">
+          <h5 class="modal-title">
+            <i class="bi bi-info-circle-fill text-warning me-2"></i>
+            Aviso
+          </h5>
+        </div>
+        <div class="modal-body">
+          <p class="mb-0">{{ validationMessage }}</p>
+        </div>
+        <div class="modal-footer border-0">
+          <button class="btn btn-primary px-4" (click)="closeValidation()">
+            Entendido
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

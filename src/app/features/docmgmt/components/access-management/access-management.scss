@@ -1,0 +1,18 @@
+@import '../../styles/shared';
+
+.bg-blurred { filter: blur(2px); pointer-events: none; user-select: none; }
+.detail-layout {
+  display: grid; grid-template-columns: 1fr 320px; gap: 24px;
+  max-width: 1140px; margin: 0 auto;
+}
+@media (max-width: 900px) { .detail-layout { grid-template-columns: 1fr; } }
+
+.access-modal-box { background: #fff; border-radius: 1.25rem; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+.access-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #dee2e6; }
+.access-modal-body { padding: 1.5rem; }
+.access-modal-footer { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: 1rem 1.5rem; border-top: 1px solid #dee2e6; }
+.access-search-result {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .6rem; border-radius: .6rem; cursor: pointer; transition: background .15s;
+}
+.access-search-result:hover { background: #f8fafc; }

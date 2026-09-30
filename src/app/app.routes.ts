@@ -419,6 +419,11 @@ export const routes: Routes = [
       import('./components/summer-course/sc-instructor-scan/sc-instructor-scan.component').then(m => m.ScInstructorScanComponent)
   },
   {
+    path: 'docmgmt',
+    loadChildren: () => import('./features/docmgmt/docmgmt.routes').then(m => m.DOCMGMT_ROUTES),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: '/dashboard'
   }

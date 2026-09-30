@@ -69,15 +69,23 @@ export class InscribirWizardComponent implements OnDestroy {
 
   readonly pendingMembers = signal<PendingMember[]>([]);
   readonly guardando = signal(false);
-  readonly errorMsg = signal<string | null>(null);
+  readonly alertMessage = signal<{title: string, text: string, type?: 'success' | 'warning' | 'error' | 'info'} | null>(null);
   readonly notas = signal('');
   readonly skipBilling = signal(false);
 
   // ── Formulario Manual ──────────────────────────────────────────────────────
   readonly manualFullname = signal('');
   readonly manualEmail = signal('');
+  readonly manualLada = signal('+52');
   readonly manualPhone = signal('');
   readonly manualAccessType = signal<AccessType>('public');
+
+  onManualPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digitsOnly = input.value.replace(/\D/g, '');
+    this.manualPhone.set(digitsOnly);
+    input.value = digitsOnly;
+  }
 
   // ── Modal de invitados ────────────────────────────────────────────────────
   readonly guestModalOpen = signal(false);
@@ -197,7 +205,7 @@ export class InscribirWizardComponent implements OnDestroy {
     this.searchTerm.set('');
     this.resultados.set([]);
     this.pendingMembers.set([]);
-    this.errorMsg.set(null);
+    this.alertMessage.set(null);
 
     if (mode !== 'socio') {
       let ac: AccessType = 'public';
@@ -218,7 +226,7 @@ export class InscribirWizardComponent implements OnDestroy {
 
   avanzarManual(): void {
     if (!this.manualFullname().trim() || !this.manualEmail().trim()) {
-      this.errorMsg.set('Nombre y correo son obligatorios.');
+      this.alertMessage.set({ title: 'Datos incompletos', text: 'Nombre y correo son obligatorios.', type: 'error' });
       return;
     }
     const ac = this.manualAccessType();
@@ -236,7 +244,7 @@ export class InscribirWizardComponent implements OnDestroy {
       entityid: 'EXTERNO',
       fullname: this.manualFullname().trim(),
       email: this.manualEmail().trim(),
-      phone: this.manualPhone().trim(),
+      phone: (this.manualLada() + this.manualPhone().trim()),
       parentesco: 'Participante',
       is_titular: true,
       selected: false,
@@ -250,13 +258,13 @@ export class InscribirWizardComponent implements OnDestroy {
     };
 
     this.pendingMembers.set([m]);
-    this.errorMsg.set(null);
+    this.alertMessage.set(null);
     this.paso.set('family');
   }
 
   // ── Paso 1 → 2: seleccionar resultado y cargar familia ───────────────────
   async seleccionarResultado(result: EventSocioSearchResult): Promise<void> {
-    this.errorMsg.set(null);
+    this.alertMessage.set(null);
     let defaultAccessType: AccessType = 'members';
     if (this.eventAccessTypes().length > 0 && !this.eventAccessTypes().includes('members')) {
       defaultAccessType = this.eventAccessTypes()[0] as AccessType;
@@ -270,7 +278,7 @@ export class InscribirWizardComponent implements OnDestroy {
         const res: any = await firstValueFrom(this.guestsSvc.getBySocio(result.id));
         const guests = res.data ?? [];
         if (guests.length === 0) {
-          this.errorMsg.set('El socio no tiene invitados registrados.');
+          this.alertMessage.set({ title: 'Atención', text: 'El socio no tiene invitados registrados.', type: 'warning' });
           // Aún así, pasamos al paso 2 para que pueda agregar invitados con el botón
           this.pendingMembers.set([]);
           this.paso.set('family');
@@ -301,7 +309,7 @@ export class InscribirWizardComponent implements OnDestroy {
         this.pendingMembers.set(members);
         this.paso.set('family');
       } catch (e: any) {
-        this.errorMsg.set('Error al cargar los invitados.');
+        this.alertMessage.set({ title: 'Error', text: 'Error al cargar los invitados.', type: 'error' });
       }
       return;
     }
@@ -507,10 +515,10 @@ export class InscribirWizardComponent implements OnDestroy {
 
   avanzarAConfirm(): void {
     if (!this.miembrosActivos().length) {
-      this.errorMsg.set('Selecciona al menos un miembro para inscribir.');
+      this.alertMessage.set({ title: 'Selección vacía', text: 'Selecciona al menos un miembro para inscribir.', type: 'warning' });
       return;
     }
-    this.errorMsg.set(null);
+    this.alertMessage.set(null);
     this.paso.set('confirm');
   }
 
@@ -580,12 +588,12 @@ export class InscribirWizardComponent implements OnDestroy {
 
     if (!activos.length || this.guardando()) {
       this.guardando.set(false);
-      this.errorMsg.set('No seleccionó nuevos subeventos para los miembros ya inscritos.');
+      this.alertMessage.set({ title: 'Atención', text: 'No seleccionó nuevos subeventos para los miembros ya inscritos.', type: 'warning' });
       return;
     }
 
     this.guardando.set(true);
-    this.errorMsg.set(null);
+    this.alertMessage.set(null);
 
     try {
       if (this.wizardMode() === 'socio' || this.wizardMode() === 'invitacion') {
@@ -641,7 +649,7 @@ export class InscribirWizardComponent implements OnDestroy {
         this.inscripcionGuardada.emit();
       }
     } catch (err: any) {
-      this.errorMsg.set(err?.error?.message ?? 'Error de red al inscribir.');
+      this.alertMessage.set({ title: 'Error de inscripción', text: err?.error?.message ?? 'Error de red al inscribir.', type: 'error' });
       this.guardando.set(false);
       return; // Do not advance to 'done' if there is an error
     }

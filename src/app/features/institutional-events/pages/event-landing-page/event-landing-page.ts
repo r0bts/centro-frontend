@@ -55,7 +55,15 @@ export class EventLandingPageComponent implements OnInit {
   readonly modoInscripcion = signal<'titular' | 'invitado' | null>(null);
   readonly nombreExterno = signal('');
   readonly correoExterno = signal('');
+  readonly ladaExterno = signal('+52');
   readonly telefonoExterno = signal('');
+
+  onPhoneInput(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const digitsOnly = input.value.replace(/\D/g, '');
+    this.telefonoExterno.set(digitsOnly);
+    input.value = digitsOnly;
+  }
 
   readonly allowMembers = computed(() => {
     const types = this.event()?.access_types || [];
@@ -127,6 +135,7 @@ export class EventLandingPageComponent implements OnInit {
   readonly eventTypeMeta = EVENT_TYPE_META;
 
   readonly showNavButton = signal(false);
+  readonly alertMessage = signal<{title: string, text: string} | null>(null);
 
   @HostListener('window:scroll', [])
   onWindowScroll() {
@@ -221,11 +230,24 @@ export class EventLandingPageComponent implements OnInit {
     }
   }
 
-  continuarDesdeExterno(): void {
-    if (!this.nombreExterno() || !this.correoExterno()) {
-      alert('Por favor completa los campos requeridos.');
+  async continuarDesdeExterno(): Promise<void> {
+    if (!this.nombreExterno() || !this.correoExterno() || !this.telefonoExterno()) {
+      this.alertMessage.set({ title: 'Campos incompletos', text: 'Por favor completa todos los campos requeridos.' });
       return;
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(this.correoExterno())) {
+      this.alertMessage.set({ title: 'Correo inválido', text: 'Por favor ingresa un correo electrónico válido.' });
+      return;
+    }
+
+    const phoneDigits = this.telefonoExterno().replace(/\D/g, '');
+    if (phoneDigits.length !== 10) {
+      this.alertMessage.set({ title: 'Teléfono inválido', text: 'El teléfono celular debe contener exactamente 10 dígitos.' });
+      return;
+    }
+
     this.verificarSubvencion();
   }
 
@@ -273,7 +295,9 @@ export class EventLandingPageComponent implements OnInit {
         attendee.attendee_type = 'externo';
         attendee.full_name = this.nombreExterno();
         attendee.email = this.correoExterno();
-        attendee.phone = this.telefonoExterno();
+        
+        const digits = this.telefonoExterno().replace(/\D/g, '');
+        attendee.phone = this.ladaExterno() + digits;
       }
 
       const payload = {
@@ -284,14 +308,14 @@ export class EventLandingPageComponent implements OnInit {
 
       const res = await firstValueFrom(this.svc.registerPublic(ev.id, payload));
       if ((res.data as any)?.details?.[0]?.status === 'skipped') {
-        alert('Ya estabas inscrito en este evento.');
+        this.alertMessage.set({ title: 'Registro existente', text: 'Ya estabas inscrito en este evento.' });
         this.cerrarModal();
         return;
       }
       this.modalPaso.set('exito');
     } catch (e: any) {
       console.error(e);
-      alert(e.error?.message || 'Hubo un error al procesar tu inscripción. Por favor, verifica tus datos e intenta de nuevo.');
+      this.alertMessage.set({ title: 'Error de inscripción', text: e.error?.message || 'Hubo un error al procesar tu inscripción. Por favor, verifica tus datos e intenta de nuevo.' });
     } finally {
       this.loading.set(false);
     }

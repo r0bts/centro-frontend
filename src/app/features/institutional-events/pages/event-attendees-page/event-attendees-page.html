@@ -296,30 +296,27 @@
               <!-- Detalle de Venta -->
               <div class="col-md-6">
                 <h6 class="text-muted fw-bold mb-3 border-bottom pb-2">Detalle de Venta (NetSuite)</h6>
-                <p class="mb-1">
-                  <strong>ID Orden Venta (SO):</strong> 
-                  @if (selectedAttendee()!.ns_sales_order_id) {
-                    {{ selectedAttendee()!.ns_sales_order_id }}
-                  } @else {
-                    <span class="text-muted fst-italic">Sin orden (o gratis)</span>
-                  }
-                </p>
-                <p class="mb-1">
-                  <strong>Estado Orden:</strong> 
-                  @if (selectedAttendee()!.ns_so_status) {
-                    <span class="badge bg-info-subtle text-info-emphasis">{{ selectedAttendee()!.ns_so_status }}</span>
-                  } @else {
-                    <span class="text-muted fst-italic">N/A</span>
-                  }
-                </p>
+                
+                @if (selectedAttendee()!.ns_sales_order_id) {
+                  <p class="mb-1">
+                    <strong>ID Orden Venta (SO):</strong> {{ selectedAttendee()!.ns_sales_order_id }}
+                  </p>
+                  <p class="mb-1">
+                    <strong>Estado Orden:</strong> 
+                    <span class="badge bg-info-subtle text-info-emphasis">{{ selectedAttendee()!.ns_so_status || 'N/A' }}</span>
+                  </p>
+                }
+
                 <p class="mb-1">
                   <strong>Estado Pago:</strong> 
                   <span class="badge bg-light text-dark border">{{ selectedAttendee()!.payment_status || 'pending' }}</span>
                 </p>
                 <p class="mb-1"><strong>Monto Pagado:</strong> {{ (selectedAttendee()!.amount_paid | currency) || '$0.00' }}</p>
+                
                 @if (selectedAttendee()!.ns_so_sync_error) {
-                  <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
-                    <i class="bi bi-exclamation-circle me-1"></i>Error SO: {{ selectedAttendee()!.ns_so_sync_error }}
+                  <div class="alert alert-danger py-2 px-3 mt-3 mb-0 small border-danger border-opacity-50">
+                    <i class="bi bi-exclamation-triangle-fill me-1 text-danger"></i><strong>Atención:</strong> No se logró crear la orden/inscripción correctamente.<br>
+                    <span class="d-block mt-1 text-danger opacity-75">Error: {{ selectedAttendee()!.ns_so_sync_error }}</span>
                   </div>
                 }
               </div>
@@ -343,6 +340,34 @@
                 Enviar Boleto
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+  <!-- Custom Modal para confirmaciones -->
+  @if (confirmConfig()) {
+    <div class="modal-inscripcion open" style="z-index: 2050;">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 400px; width: 100%; margin: 1.75rem auto;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden bg-white">
+          <div class="modal-header border-0 bg-light pb-0 pt-4 px-4">
+            <div class="d-flex align-items-center mb-2">
+              <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                <i class="bi bi-question-circle fs-3"></i>
+              </div>
+              <h4 class="modal-title fw-bold text-dark mb-0 fs-5">{{ confirmConfig()!.title }}</h4>
+            </div>
+          </div>
+          <div class="modal-body px-4 py-3">
+            <p class="text-secondary mb-0" style="font-size: 1.05rem;">{{ confirmConfig()!.text }}</p>
+          </div>
+          <div class="modal-footer border-0 px-4 pb-4 pt-2 d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" (click)="confirmConfig.set(null)">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-primary rounded-pill px-4 shadow-sm" (click)="confirmConfig()!.onConfirm()">
+              Confirmar
+            </button>
           </div>
         </div>
       </div>

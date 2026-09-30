@@ -1,0 +1,7 @@
+@import '../../styles/shared';
+
+.doc-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.doc-table th { background: #f8fafc; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; padding: .75rem 1rem; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
+.doc-table td { padding: .75rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.doc-table tr:last-child td { border-bottom: none; }
+.doc-table tr:hover td { background: #f8fafc; }

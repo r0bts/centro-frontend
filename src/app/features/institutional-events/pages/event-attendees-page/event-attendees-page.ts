@@ -134,18 +134,25 @@ export class EventAttendeesPageComponent implements OnInit {
     setTimeout(() => this.toastMsg.set(null), 4000);
   }
 
-  async enviarAccesos(): Promise<void> {
-    if (!confirm('¿Seguro que deseas enviar los boletos (correo y WhatsApp) a TODOS los inscritos?')) return;
-    
-    this.enviando.set(true);
-    try {
-      await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'all' }));
-      this.showToast('Boletos enviados correctamente a todos los asistentes.', 'success');
-    } catch {
-      this.showToast('Hubo un error al enviar los boletos.', 'danger');
-    } finally {
-      this.enviando.set(false);
-    }
+  confirmConfig = signal<{ title: string, text: string, onConfirm: () => void } | null>(null);
+
+  enviarAccesos(): void {
+    this.confirmConfig.set({
+      title: 'Confirmar envío masivo',
+      text: '¿Seguro que deseas enviar los boletos (correo y WhatsApp) a TODOS los inscritos?',
+      onConfirm: async () => {
+        this.confirmConfig.set(null);
+        this.enviando.set(true);
+        try {
+          await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'all' }));
+          this.showToast('Boletos enviados correctamente a todos los asistentes.', 'success');
+        } catch {
+          this.showToast('Hubo un error al enviar los boletos.', 'danger');
+        } finally {
+          this.enviando.set(false);
+        }
+      }
+    });
   }
 
   verDetalle(a: InstitutionalEventAttendee): void {
@@ -158,18 +165,23 @@ export class EventAttendeesPageComponent implements OnInit {
     this.selectedAttendee.set(null);
   }
 
-  async enviarAccesoIndividual(a: InstitutionalEventAttendee): Promise<void> {
-    if (!confirm(`¿Seguro que deseas enviar el boleto a ${a.full_name}?`)) return;
-    
-    this.enviandoIndividual.set(a.id);
-    try {
-      await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'selected', attendee_ids: [a.id] }));
-      this.showToast('Boleto enviado correctamente.', 'success');
-    } catch {
-      this.showToast('Hubo un error al enviar el boleto.', 'danger');
-    } finally {
-      this.enviandoIndividual.set(null);
-    }
+  enviarAccesoIndividual(a: InstitutionalEventAttendee): void {
+    this.confirmConfig.set({
+      title: 'Confirmar envío',
+      text: `¿Seguro que deseas enviar el boleto a ${a.full_name}?`,
+      onConfirm: async () => {
+        this.confirmConfig.set(null);
+        this.enviandoIndividual.set(a.id);
+        try {
+          await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'selected', attendee_ids: [a.id] }));
+          this.showToast('Boleto enviado correctamente.', 'success');
+        } catch {
+          this.showToast('Hubo un error al enviar el boleto.', 'danger');
+        } finally {
+          this.enviandoIndividual.set(null);
+        }
+      }
+    });
   }
 
   tipoLabel(tipo: string): string {
