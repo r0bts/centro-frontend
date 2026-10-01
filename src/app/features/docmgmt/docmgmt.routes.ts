@@ -16,9 +16,5 @@ export const DOCMGMT_ROUTES: Routes = [
   {
     path: ':id/edit',
     loadComponent: () => import('./components/procedure-form/procedure-form').then(m => m.ProcedureFormComponent)
-  },
-  {
-    path: ':id/access',
-    loadComponent: () => import('./components/access-management/access-management').then(m => m.AccessManagementComponent)
   }
 ];

@@ -58,4 +58,13 @@ export class DocmgmtService {
     const baseUrl = this.apiUrl.replace('/api', '');
     return `${baseUrl}/uploads/docmgmt/${procedureId}/${fileName}`;
   }
+
+  // Master Data
+  getDepartments(): Observable<{departments: any[]}> {
+    return this.http.get<{departments: any[]}>(`${this.apiUrl}/departments`);
+  }
+
+  getUsers(): Observable<{users: any[]}> {
+    return this.http.get<{users: any[]}>(`${this.apiUrl}/users?limit=10000`);
+  }
 }

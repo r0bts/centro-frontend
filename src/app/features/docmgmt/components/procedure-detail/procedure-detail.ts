@@ -6,11 +6,12 @@ import { DocmgmtProcedure } from '../../models/docmgmt.model';
 import { AuthService } from '../../../../services/auth.service';
 
 import { ContentMenu } from '../../../../components/content-menu/content-menu';
+import { AccessManagementComponent } from '../access-management/access-management';
 
 @Component({
   selector: 'app-procedure-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, ContentMenu],
+  imports: [CommonModule, RouterModule, ContentMenu, AccessManagementComponent],
   templateUrl: './procedure-detail.html',
   styleUrls: ['./procedure-detail.scss']
 })
@@ -21,6 +22,7 @@ export class ProcedureDetailComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
 
   canEdit = false;
+  showAccessModal = false;
 
   procedure: DocmgmtProcedure | null = null;
   loading = true;
@@ -75,5 +77,16 @@ export class ProcedureDetailComponent implements OnInit {
 
   getInitials(name: string): string {
     return name.substring(0, 2).toUpperCase();
+  }
+
+  openAccessModal() {
+    this.showAccessModal = true;
+  }
+
+  closeAccessModal(saved: boolean) {
+    this.showAccessModal = false;
+    if (saved && this.procedure?.id) {
+      this.loadProcedure(this.procedure.id);
+    }
   }
 }

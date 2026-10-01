@@ -1,6 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule, Location } from '@angular/common';
-import { RouterModule, ActivatedRoute, Router } from '@angular/router';
+import { Component, OnInit, Input, Output, EventEmitter, inject, ChangeDetectorRef } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DocmgmtService } from '../../docmgmt.service';
 import { DocmgmtProcedure, DocmgmtPermission } from '../../models/docmgmt.model';
@@ -8,22 +7,22 @@ import { finalize, forkJoin, Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { DepartmentLimitsService } from '../../../../services/department-limits.service';
 import { UserService } from '../../../../services/user.service';
-import { ContentMenu } from '../../../../components/content-menu/content-menu';
 
 @Component({
   selector: 'app-access-management',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ContentMenu],
+  imports: [CommonModule, FormsModule],
   templateUrl: './access-management.html',
   styleUrls: ['./access-management.scss']
 })
 export class AccessManagementComponent implements OnInit {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private location = inject(Location);
   private docmgmtService = inject(DocmgmtService);
   private deptLimitsService = inject(DepartmentLimitsService);
   private userService = inject(UserService);
+  private cdr = inject(ChangeDetectorRef);
+
+  @Input() procedureId!: number;
+  @Output() close = new EventEmitter<boolean>(); // Emit true if saved, false if cancelled
 
   procedure: DocmgmtProcedure | null = null;
   loading = true;
@@ -59,11 +58,11 @@ export class AccessManagementComponent implements OnInit {
         }
         
         // After loading departments, load the procedure
-        const id = this.route.snapshot.paramMap.get('id');
-        if (id) {
-          this.loadProcedure(+id);
+        if (this.procedureId) {
+          this.loadProcedure(this.procedureId);
         } else {
           this.loading = false;
+          this.cdr.detectChanges();
         }
       },
       error: () => {
@@ -84,10 +83,12 @@ export class AccessManagementComponent implements OnInit {
           this.error = 'Procedimiento no encontrado.';
         }
         this.loading = false;
+        this.cdr.detectChanges();
       },
       error: () => {
         this.error = 'Error de conexión.';
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -156,8 +157,8 @@ export class AccessManagementComponent implements OnInit {
     return name.substring(0, 2).toUpperCase();
   }
 
-  goBack() {
-    this.location.back();
+  goBack(saved = false) {
+    this.close.emit(saved);
   }
 
   saveAccess() {
@@ -211,7 +212,7 @@ export class AccessManagementComponent implements OnInit {
     forkJoin(observables).subscribe({
       next: () => {
         this.saving = false;
-        this.goBack();
+        this.goBack(true);
       },
       error: () => {
         this.error = 'Ocurrió un error al guardar los permisos.';

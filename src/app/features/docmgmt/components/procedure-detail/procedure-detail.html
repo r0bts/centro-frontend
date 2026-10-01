@@ -23,7 +23,7 @@
       </div>
     </div>
     <div class="d-flex gap-2">
-      <button *ngIf="canEdit" class="btn btn-outline-secondary d-flex align-items-center gap-2" [routerLink]="['/docmgmt', procedure.id, 'access']">
+      <button *ngIf="canEdit" class="btn btn-outline-secondary d-flex align-items-center gap-2" (click)="openAccessModal()">
         <i class="bi bi-shield-lock"></i> Accesos
       </button>
       <button *ngIf="canEdit" class="btn btn-primary d-flex align-items-center gap-2" [routerLink]="['/docmgmt', procedure.id, 'edit']">
@@ -108,3 +108,5 @@
 <div class="page-content pt-4" *ngIf="error">
   <div class="alert alert-danger">{{ error }}</div>
 </div>
+
+<app-access-management *ngIf="showAccessModal && procedure?.id" [procedureId]="procedure!.id!" (close)="closeAccessModal($event)"></app-access-management>

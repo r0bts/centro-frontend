@@ -2,6 +2,7 @@ import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { DocmgmtService } from '../../docmgmt.service';
 import { DocmgmtProcedure, DocmgmtDocument, DocmgmtPermission } from '../../models/docmgmt.model';
 
@@ -39,15 +40,46 @@ export class ProcedureFormComponent implements OnInit {
   pendingFiles: File[] = [];
 
   // Visibility selection
-  departments = [
-    { id: 1, name: 'Recursos Humanos', icon: 'bi-building', selected: false },
-    { id: 2, name: 'Contabilidad', icon: 'bi-building', selected: false },
-    { id: 3, name: 'Sistemas', icon: 'bi-building', selected: false },
-    { id: 4, name: 'Dirección General', icon: 'bi-building', selected: false },
-    { id: 5, name: 'Todos los departamentos', icon: 'bi-globe', selected: false }
-  ];
+  departments: any[] = [];
+  users: any[] = [];
+  
+  // Search inputs
+  searchDept: string = '';
+  searchUser: string = '';
+
+  // Getters for filtered lists
+  get filteredDepartments() {
+    if (!this.searchDept) return this.departments;
+    const s = this.searchDept.toLowerCase();
+    return this.departments.filter(d => d.name?.toLowerCase().includes(s));
+  }
+
+  get filteredUsers() {
+    if (!this.searchUser) return this.users;
+    const s = this.searchUser.toLowerCase();
+    return this.users.filter(u => {
+      const fName = u.firstName || u.first_name || '';
+      const lName = u.lastName || u.last_name || '';
+      const numEmp = u.employeeNumber || u.number_employee || '';
+      const username = u.username?.toLowerCase() || '';
+      const fullName = (fName + ' ' + lName).toLowerCase();
+      const empNumStr = numEmp.toString().toLowerCase();
+      return fullName.includes(s) || username.includes(s) || empNumStr.includes(s);
+    });
+  }
+
+  // Getters for counts
+  get selectedDeptCount() {
+    return this.departments.filter(d => d.selected).length;
+  }
+
+  get selectedUserCount() {
+    return this.users.filter(u => u.selected).length;
+  }
 
   ngOnInit() {
+    this.loadMasterData();
+
     const idParam = this.route.snapshot.paramMap.get('id');
     if (idParam) {
       this.isEdit = true;
@@ -65,19 +97,54 @@ export class ProcedureFormComponent implements OnInit {
           this.documents = res.docmgmtProcedure.docmgmt_procedure_documents || [];
           this.permissions = res.docmgmtProcedure.docmgmt_procedure_permissions || [];
           
-          // Map permissions to local departments (simplified)
-          this.permissions.forEach(p => {
-            if (p.permission_type === 'department') {
-              const dept = this.departments.find(d => d.id === p.department_id);
-              if (dept) dept.selected = true;
-            }
-          });
+          this.applyPermissionsToDepartments();
+          this.applyPermissionsToUsers();
           this.cdr.detectChanges();
         }
       },
       error: () => {
         this.error = 'Error cargando procedimiento';
         this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadMasterData() {
+    this.docmgmtService.getDepartments().subscribe({
+      next: (res: any) => {
+        const depts = res.data?.departments || res.departments || [];
+        this.departments = depts.map((d: any) => ({ ...d, selected: false, icon: 'bi-building' }));
+        this.applyPermissionsToDepartments();
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.docmgmtService.getUsers().subscribe({
+      next: (res: any) => {
+        const usersList = res.data || res.users || [];
+        this.users = usersList.map((u: any) => ({ ...u, selected: false, icon: 'bi-person' }));
+        this.applyPermissionsToUsers();
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  applyPermissionsToDepartments() {
+    if (!this.departments.length || !this.permissions.length) return;
+    this.permissions.forEach(p => {
+      if (p.permission_type === 'department') {
+        const dept = this.departments.find(d => d.id === p.department_id);
+        if (dept) dept.selected = true;
+      }
+    });
+  }
+
+  applyPermissionsToUsers() {
+    if (!this.users.length || !this.permissions.length) return;
+    this.permissions.forEach(p => {
+      if (p.permission_type === 'user') {
+        const u = this.users.find(x => Number(x.id) === Number(p.user_id));
+        if (u) u.selected = true;
       }
     });
   }
@@ -151,9 +218,27 @@ export class ProcedureFormComponent implements OnInit {
     dept.selected = !dept.selected;
   }
 
+  toggleUser(user: any) {
+    user.selected = !user.selected;
+  }
+
+  selectAllDepts(val: boolean) {
+    this.filteredDepartments.forEach(d => d.selected = val);
+  }
+
+  selectAllUsers(val: boolean) {
+    this.filteredUsers.forEach(u => u.selected = val);
+  }
+
   finishForm(publish: boolean) {
     this.procedure.status = publish ? 'published' : 'draft';
     this.saving = true;
+
+    const mappedPermissions: DocmgmtPermission[] = [
+      ...this.departments.filter(d => d.selected).map(d => ({ permission_type: 'department' as const, department_id: d.id })),
+      ...this.users.filter(u => u.selected).map(u => ({ permission_type: 'user' as const, user_id: u.id }))
+    ];
+    this.procedure.docmgmt_procedure_permissions = mappedPermissions;
 
     const request = this.isEdit && this.procedureId 
       ? this.docmgmtService.updateProcedure(this.procedureId, this.procedure)
@@ -172,10 +257,10 @@ export class ProcedureFormComponent implements OnInit {
           
           // If new, upload pending files
           if (!this.isEdit && this.pendingFiles.length > 0) {
-            // For simplicity in UI, we'll upload the first one and navigate.
-            // Ideally we'd forkJoin all uploads.
-            this.docmgmtService.uploadDocument(procId, this.pendingFiles[0]).subscribe({
-              next: () => this.router.navigate(['/docmgmt', procId])
+            const uploadRequests = this.pendingFiles.map(file => this.docmgmtService.uploadDocument(procId, file));
+            forkJoin(uploadRequests).subscribe({
+              next: () => this.router.navigate(['/docmgmt', procId]),
+              error: () => this.router.navigate(['/docmgmt', procId])
             });
           } else {
             this.router.navigate(['/docmgmt', procId]);

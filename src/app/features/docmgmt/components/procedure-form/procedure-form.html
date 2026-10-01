@@ -134,12 +134,53 @@
       </div>
 
       <div class="mb-4">
-        <div class="fw-semibold small mb-2">Departamento(s)</div>
-        <div class="d-flex flex-wrap gap-2">
-          <div class="acceso-badge" *ngFor="let dept of departments" 
-               [class.sel]="dept.selected" (click)="toggleDepartment(dept)">
-            <span class="ab-check"><i class="bi bi-check-circle-fill"></i></span>
-            <i class="bi" [class]="dept.icon"></i> {{ dept.name }}
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="fw-semibold small">Departamento(s) <span class="badge bg-primary rounded-pill ms-1" *ngIf="selectedDeptCount > 0">{{ selectedDeptCount }}</span></div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-link text-decoration-none py-0 px-1" (click)="selectAllDepts(true)">Todos</button>
+            <button class="btn btn-sm btn-link text-decoration-none py-0 px-1 text-muted" (click)="selectAllDepts(false)">Ninguno</button>
+          </div>
+        </div>
+        <div class="input-group input-group-sm mb-2">
+          <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input type="search" class="form-control border-start-0 ps-0" placeholder="Buscar departamento..." [(ngModel)]="searchDept">
+        </div>
+        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto; background-color: #fcfcfc;">
+          <div class="d-flex flex-wrap gap-2">
+            <div class="acceso-badge" *ngFor="let dept of filteredDepartments" 
+                 [class.sel]="dept.selected" (click)="toggleDepartment(dept)">
+              <span class="ab-check"><i class="bi bi-check-circle-fill"></i></span>
+              <i class="bi" [class]="dept.icon"></i> {{ dept.name }}
+            </div>
+            <div *ngIf="filteredDepartments.length === 0" class="text-muted small w-100 text-center py-3">No hay departamentos que coincidan.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="fw-semibold small">Usuario(s) Específico(s) <span class="badge bg-primary rounded-pill ms-1" *ngIf="selectedUserCount > 0">{{ selectedUserCount }}</span></div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-link text-decoration-none py-0 px-1" (click)="selectAllUsers(true)">Todos</button>
+            <button class="btn btn-sm btn-link text-decoration-none py-0 px-1 text-muted" (click)="selectAllUsers(false)">Ninguno</button>
+          </div>
+        </div>
+        <div class="input-group input-group-sm mb-2">
+          <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
+          <input type="search" class="form-control border-start-0 ps-0" placeholder="Buscar por nombre, usuario o no. de empleado..." [(ngModel)]="searchUser">
+        </div>
+        <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto; background-color: #fcfcfc;">
+          <div class="d-flex flex-wrap gap-2">
+            <div class="acceso-badge d-flex flex-column align-items-start text-start p-2" *ngFor="let user of filteredUsers" 
+                 [class.sel]="user.selected" (click)="toggleUser(user)" style="min-width: 180px; max-width: 220px; border-radius: 12px; gap: 4px;">
+              <div class="d-flex w-100 justify-content-between align-items-start">
+                <div class="fw-bold text-truncate" style="font-size: .85rem;"><i class="bi me-1" [class]="user.icon"></i> {{ user.username || 'Sin usuario' }}</div>
+                <span class="ab-check ms-2"><i class="bi bi-check-circle-fill"></i></span>
+              </div>
+              <div class="small text-truncate w-100 text-secondary" style="font-size: .75rem;">{{ user.firstName || user.first_name }} {{ user.lastName || user.last_name }}</div>
+              <div *ngIf="user.employeeNumber || user.number_employee" class="text-muted" style="font-size: .7rem;">No. {{ user.employeeNumber || user.number_employee }}</div>
+            </div>
+            <div *ngIf="filteredUsers.length === 0" class="text-muted small w-100 text-center py-3">No hay usuarios que coincidan.</div>
           </div>
         </div>
       </div>
@@ -186,6 +227,31 @@
         <div class="rev-item-val"><i class="bi me-1" [ngClass]="getFileIconClass(file.name)"></i> {{ file.name }} (Pendiente)</div>
       </div>
       <div class="mb-4"></div>
+
+      <div class="rev-section-title">Visibilidad</div>
+      <div class="rev-item">
+        <div class="rev-item-label">Departamentos Específicos ({{ selectedDeptCount }})</div>
+        <div class="rev-item-val" style="font-weight:500;">
+          <ng-container *ngIf="selectedDeptCount > 0">
+            <div *ngFor="let d of departments">
+              <span *ngIf="d.selected" class="d-block text-truncate" style="max-width: 100%;"><i class="bi bi-building me-1"></i> {{ d.name }}</span>
+            </div>
+          </ng-container>
+          <ng-container *ngIf="selectedDeptCount === 0"><span class="text-muted">Ninguno</span></ng-container>
+        </div>
+      </div>
+
+      <div class="rev-item mb-4">
+        <div class="rev-item-label">Usuarios Específicos ({{ selectedUserCount }})</div>
+        <div class="rev-item-val" style="font-weight:500;">
+          <ng-container *ngIf="selectedUserCount > 0">
+            <div *ngFor="let u of users">
+              <span *ngIf="u.selected" class="d-block text-truncate" style="max-width: 100%;"><i class="bi bi-person me-1"></i> {{ u.username }} <small class="text-muted fw-normal ms-1">({{ u.firstName || u.first_name }} {{ u.lastName || u.last_name }})</small></span>
+            </div>
+          </ng-container>
+          <ng-container *ngIf="selectedUserCount === 0"><span class="text-muted">Ninguno</span></ng-container>
+        </div>
+      </div>
 
       <div class="form-nav-footer">
         <button class="btn btn-outline-secondary d-flex align-items-center gap-1" (click)="goStep(3)" [disabled]="saving">
