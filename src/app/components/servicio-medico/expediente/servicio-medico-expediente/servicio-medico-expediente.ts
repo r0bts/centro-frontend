@@ -142,7 +142,14 @@ export class ServicioMedicoExpediente implements OnInit {
 
   loadProducts() {
     this.productsLoading = true;
-    this.servicioMedico.getProducts('').subscribe({
+    const locationId = this.nuevaConsultaData.ubicacion_netsuite || '';
+    if (!locationId) {
+      this.products = [];
+      this.filteredProducts = [];
+      this.productsLoading = false;
+      return;
+    }
+    this.servicioMedico.getProducts('', locationId).subscribe({
       next: (res: any) => {
         if (res.success) {
           this.products = res.data.products || res.data;
@@ -154,8 +161,15 @@ export class ServicioMedicoExpediente implements OnInit {
       error: (err) => {
         console.error(err);
         this.productsLoading = false;
+        Swal.fire('Error', 'No se pudieron cargar los productos. Verifique conexión con NetSuite.', 'error');
       }
     });
+  }
+
+  onUbicacionChange() {
+    this.nuevoMaterial.product_id = null;
+    this.nuevoMaterial.product_name = '';
+    this.loadProducts();
   }
 
   onProductSearchInput(event: any) {
@@ -171,12 +185,13 @@ export class ServicioMedicoExpediente implements OnInit {
 
     const term = event.target.value.toLowerCase();
     this.nuevoMaterial.product_id = null; // reset if typing
-    setTimeout(() => { this.productDropdownOpen = true; });
+    this.productDropdownOpen = true;
     
     // Búsqueda en servidor si hay al menos 3 caracteres
     if (term.length >= 3) {
       this.productsLoading = true;
-      this.servicioMedico.getProducts(term).subscribe({
+      const locationId = this.nuevaConsultaData.ubicacion_netsuite || '';
+      this.servicioMedico.getProducts(term, locationId).subscribe({
         next: (res: any) => {
           if (res.success) {
             this.products = res.data.products || res.data;
@@ -188,6 +203,7 @@ export class ServicioMedicoExpediente implements OnInit {
         error: (err) => {
           console.error(err);
           this.productsLoading = false;
+          Swal.fire('Error', 'Error al buscar productos en NetSuite.', 'error');
         }
       });
     } else {
@@ -204,22 +220,19 @@ export class ServicioMedicoExpediente implements OnInit {
     this.nuevoMaterial.product_name = prod.name || prod.displayname;
     // Set descuenta_inventario to inverse of no_incluir_ajuste if available, else true
     this.nuevoMaterial.descuenta_inventario = prod.no_incluir_ajuste !== undefined ? !prod.no_incluir_ajuste : true;
-    setTimeout(() => { this.productDropdownOpen = false; });
+    this.productDropdownOpen = false;
   }
 
   openProductDropdown() {
-    setTimeout(() => { this.productDropdownOpen = true; });
+    this.productDropdownOpen = true;
   }
 
   onBlurProductDropdown() {
-    // Timeout to allow mousedown on dropdown item to fire first
-    setTimeout(() => {
-      this.productDropdownOpen = false;
-      // Revert if no valid selection was made
-      if (!this.nuevoMaterial.product_id) {
-        this.nuevoMaterial.product_name = '';
-      }
-    }, 200);
+    this.productDropdownOpen = false;
+    // Revert if no valid selection was made
+    if (!this.nuevoMaterial.product_id) {
+      this.nuevoMaterial.product_name = '';
+    }
   }
 
   getMedicoName(id: number | null): string {
@@ -237,7 +250,7 @@ export class ServicioMedicoExpediente implements OnInit {
   onMedicoSearchInput(event: any) {
     const term = event.target.value.toLowerCase();
     this.nuevaConsultaData.medico_user_id = null; // reset if typing
-    setTimeout(() => { this.medicoDropdownOpen = true; });
+    this.medicoDropdownOpen = true;
     this.filteredMedicos = this.medicos.filter(m => 
       `${m.first_name} ${m.last_name}`.toLowerCase().includes(term)
     );
@@ -246,32 +259,28 @@ export class ServicioMedicoExpediente implements OnInit {
   selectMedico(med: any) {
     this.nuevaConsultaData.medico_user_id = med ? med.id : null;
     this.medicoSearchTerm = med ? `${med.first_name} ${med.last_name}` : '';
-    setTimeout(() => { this.medicoDropdownOpen = false; });
+    this.medicoDropdownOpen = false;
   }
 
   openMedicoDropdown() {
-    setTimeout(() => { 
-      this.medicoDropdownOpen = true; 
-      this.medicoSearchTerm = '';
-      this.filteredMedicos = [...this.medicos];
-    });
+    this.medicoDropdownOpen = true; 
+    this.medicoSearchTerm = '';
+    this.filteredMedicos = [...this.medicos];
   }
 
   onBlurMedicoDropdown() {
-    setTimeout(() => {
-      this.medicoDropdownOpen = false;
-      if (!this.nuevaConsultaData.medico_user_id) {
-        this.medicoSearchTerm = '';
-      } else {
-        this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
-      }
-    }, 200);
+    this.medicoDropdownOpen = false;
+    if (!this.nuevaConsultaData.medico_user_id) {
+      this.medicoSearchTerm = '';
+    } else {
+      this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
+    }
   }
 
   onEnfermeraSearchInput(event: any) {
     const term = event.target.value.toLowerCase();
     this.nuevaConsultaData.enfermera_user_id = null;
-    setTimeout(() => { this.enfermeraDropdownOpen = true; });
+    this.enfermeraDropdownOpen = true;
     this.filteredEnfermeras = this.enfermeras.filter(e => 
       `${e.first_name} ${e.last_name}`.toLowerCase().includes(term)
     );
@@ -280,26 +289,22 @@ export class ServicioMedicoExpediente implements OnInit {
   selectEnfermera(enf: any) {
     this.nuevaConsultaData.enfermera_user_id = enf ? enf.id : null;
     this.enfermeraSearchTerm = enf ? `${enf.first_name} ${enf.last_name}` : '';
-    setTimeout(() => { this.enfermeraDropdownOpen = false; });
+    this.enfermeraDropdownOpen = false;
   }
 
   openEnfermeraDropdown() {
-    setTimeout(() => { 
-      this.enfermeraDropdownOpen = true; 
-      this.enfermeraSearchTerm = '';
-      this.filteredEnfermeras = [...this.enfermeras];
-    });
+    this.enfermeraDropdownOpen = true; 
+    this.enfermeraSearchTerm = '';
+    this.filteredEnfermeras = [...this.enfermeras];
   }
 
   onBlurEnfermeraDropdown() {
-    setTimeout(() => {
-      this.enfermeraDropdownOpen = false;
-      if (!this.nuevaConsultaData.enfermera_user_id) {
-        this.enfermeraSearchTerm = '';
-      } else {
-        this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
-      }
-    }, 200);
+    this.enfermeraDropdownOpen = false;
+    if (!this.nuevaConsultaData.enfermera_user_id) {
+      this.enfermeraSearchTerm = '';
+    } else {
+      this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
+    }
   }
 
   loadProfile() {
@@ -489,6 +494,7 @@ export class ServicioMedicoExpediente implements OnInit {
     this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
     this.enfermeraSearchTerm = '';
     this.activeTab = 'nueva_consulta';
+    this.loadProducts();
   }
 
   eliminarConsulta(consulta: any, event: Event) {
@@ -591,6 +597,7 @@ export class ServicioMedicoExpediente implements OnInit {
     this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
     this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
     this.activeTab = 'editar_consulta';
+    this.loadProducts();
   }
 
   cancelarConsulta() {

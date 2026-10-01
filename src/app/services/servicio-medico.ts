@@ -114,8 +114,14 @@ export class ServicioMedicoService {
   /**
    * Obtiene la lista de productos (insumos médicos) desde NetSuite
    */
-  getProducts(search: string = ''): Observable<any> {
-    return this.http.get(`${environment.apiUrl}/products?limit=1000&search=${search}&active=true`);
+  getProducts(search: string = '', locationId: string = ''): Observable<any> {
+    const encodedSearch = encodeURIComponent(search);
+    const encodedCategory = encodeURIComponent('Servicio Médico,Material Medico');
+    let url = `${environment.apiUrl}/products?limit=1000&search=${encodedSearch}&active=true&category_name=${encodedCategory}`;
+    if (locationId) {
+      url += `&location_id=${locationId}`;
+    }
+    return this.http.get(url);
   }
 
   /**
