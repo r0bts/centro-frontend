@@ -126,6 +126,8 @@ export class EventsListPageComponent implements OnInit {
     this.router.navigate(['/eventos', event.id, 'inscritos']);
   }
 
+
+
   irACheckin(event: InstitutionalEvent): void {
     this.router.navigate(['/eventos', event.id, 'checkin']);
   }

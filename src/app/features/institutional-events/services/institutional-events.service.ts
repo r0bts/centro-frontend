@@ -14,6 +14,10 @@ import {
   EventPlace,
   EventAccessType,
   ApiResponse,
+  EventSocioSearchResult,
+  AddAttendeePayload,
+  NsService,
+  SaleType,
 } from '../models/institutional-event.model';
 
 /**
@@ -88,6 +92,10 @@ export class InstitutionalEventsService {
     return this.http.get<EventResponse>(`${environment.apiUrl}/public/events/${id}`);
   }
 
+  registerPublic(eventId: number, data: any): Observable<ApiResponse<{ created: number; skipped: number; details?: any[]; sales_order_id?: number }>> {
+    return this.http.post<ApiResponse<{ created: number; skipped: number; details?: any[]; sales_order_id?: number }>>(`${environment.apiUrl}/public/events/${eventId}/register`, data);
+  }
+
   // ── Asistentes ───────────────────────────────────────────────────────────────
 
   getAttendees(eventId: number): Observable<AttendeeListResponse> {
@@ -100,6 +108,67 @@ export class InstitutionalEventsService {
 
   cancelAttendee(eventId: number, attendeeId: number): Observable<AttendeeResponse> {
     return this.http.patch<AttendeeResponse>(`${this.base}/${eventId}/attendees/${attendeeId}/cancel`, {});
+  }
+
+  /** GET /api/institutional-events/socios/buscar?q= — busca socios con datos de titular */
+  searchSocio(q: string): Observable<ApiResponse<{ socios: EventSocioSearchResult[] }>> {
+    return this.http.get<ApiResponse<{ socios: EventSocioSearchResult[] }>>(
+      `${this.base}/socios/buscar`,
+      { params: new HttpParams().set('q', q) }
+    );
+  }
+
+  /** GET /api/external-visitors?search= — busca visitantes externos por nombre, email o teléfono */
+  searchExternalVisitor(q: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(
+      `${environment.apiUrl}/external-visitors`,
+      { params: new HttpParams().set('search', q) }
+    );
+  }
+
+  /** GET /api/institutional-event-preregistrants?search= — busca pre-registrados */
+  searchPreregistrant(q: string): Observable<ApiResponse<any[]>> {
+    return this.http.get<ApiResponse<any[]>>(
+      `${environment.apiUrl}/institutional-event-preregistrants`,
+      { params: new HttpParams().set('search', q) }
+    );
+  }
+
+  /** PATCH /api/institutional-events/:id/attendees/:aid/checkin */
+  checkinAttendee(eventId: number, attendeeId: number, status: 'present' | 'absent' | 'pending'): Observable<AttendeeResponse> {
+    return this.http.patch<AttendeeResponse>(
+      `${this.base}/${eventId}/attendees/${attendeeId}/checkin`,
+      { attendance_status: status }
+    );
+  }
+
+  addAttendeesBatch(eventId: number, data: {
+    attendees: {
+      socio_id?: number;
+      host_socio_id?: number;
+      socio_guest_id?: number;
+      attendee_type?: string;
+      full_name: string;
+      subevent_ids: number[];
+      /**
+       * access_type por-persona (fase 2 mapa 15 §9.3 P3). Si se envía, el backend
+       * cobra según la matriz de precios; si no, cae al `access_type_selected`
+       * del nivel del batch como fallback.
+       */
+      access_type_selected?: string;
+    }[];
+    registration_channel: 'admin_manual';
+    access_type_selected: string;
+    notes?: string | null;
+    create_ns_order: boolean;
+    skip_billing?: boolean;
+  }): Observable<any> {
+    return this.http.post<any>(`${this.base}/${eventId}/attendees/batch`, data);
+  }
+
+  /** POST /api/institutional-events/:id/attendees/send-tickets */
+  sendTickets(eventId: number, payload: { target: 'all' } | { target: 'selected'; attendee_ids: number[] }): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.base}/${eventId}/attendees/send-tickets`, payload);
   }
 
   // ── Catálogo de sedes ────────────────────────────────────────────────────────
@@ -176,5 +245,53 @@ export class InstitutionalEventsService {
     return this.http.get<any>(`${environment.apiUrl}/event-color-themes`).pipe(
       map(res => res.themes ?? [])
     );
+  }
+
+  // ── Catálogo de servicios NetSuite (para costo del evento) ─────────────────
+
+  /**
+   * GET /api/ns-catalogs/services — devuelve los Servicios de NetSuite
+   * sincronizados en `ns_services`. Filtros:
+   *   - `q`           búsqueda parcial en item_name / item_id.
+   *   - `active`      default true (sólo activos).
+   *   - `sellable`    default true (sólo con `has_incomeaccount = 1`, aptos para Sales Order).
+   *   - `purchasable` opcional (sólo con `has_expenseaccount = 1`, aptos para Purchase Order).
+   *   - `limit`       tope 500.
+   * Se usa en Paso 3 para poblar el selector de “Tipo de servicio de NetSuite”
+   * cuando el evento tiene costo (`has_cost = true`).
+   */
+  getNsServices(opts: {
+    q?: string;
+    active?: boolean;
+    sellable?: boolean;
+    purchasable?: boolean;
+    limit?: number;
+  } = {}): Observable<NsService[]> {
+    let params = new HttpParams();
+    if (opts.q)                         params = params.set('q', opts.q);
+    if (opts.active !== undefined)      params = params.set('active', opts.active ? '1' : '0');
+    if (opts.sellable !== undefined)    params = params.set('sellable', opts.sellable ? '1' : '0');
+    if (opts.purchasable !== undefined) params = params.set('purchasable', opts.purchasable ? '1' : '0');
+    if (opts.limit)                     params = params.set('limit', String(opts.limit));
+    return this.http
+      .get<ApiResponse<{ services: NsService[]; count: number }>>(`${environment.apiUrl}/ns-catalogs/services`, { params })
+      .pipe(map(res => res.data?.services ?? []));
+  }
+
+  // ── Catálogo de tipos de venta NetSuite (customlist_cl_tipo_venta) ─────────
+
+  /**
+   * GET /api/sale-types — devuelve el catálogo local de tipos de venta
+   * sincronizados en `sale_types`. Sólo activos por default. Se usa en el
+   * Paso 3 del formulario para poblar el selector de `sale_type_id` del
+   * evento (mapa 15 §pendiente saleType).
+   */
+  getSaleTypes(opts: { active?: boolean; limit?: number } = {}): Observable<SaleType[]> {
+    let params = new HttpParams();
+    if (opts.active !== undefined) params = params.set('active', opts.active ? '1' : '0');
+    if (opts.limit)                params = params.set('limit', String(opts.limit));
+    return this.http
+      .get<ApiResponse<{ sale_types: SaleType[]; total: number }>>(`${environment.apiUrl}/sale-types`, { params })
+      .pipe(map(res => res.data?.sale_types ?? []));
   }
 }

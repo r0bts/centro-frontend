@@ -256,8 +256,17 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     this.isMobileMenuOpen.set(false);
 
     if (menuItem?.route) {
-      this.router.navigate([menuItem.route]).catch(err =>
-        console.error('❌ Error en navegación:', err)
+      const targetRoute = typeof menuItem.route === 'string' ? menuItem.route.trim() : '';
+
+      if (!targetRoute) {
+        console.error('❌ Ruta inválida para navegación:', menuItem);
+        return;
+      }
+
+      const normalizedRoute = targetRoute.startsWith('/') ? targetRoute : `/${targetRoute}`;
+
+      this.router.navigateByUrl(normalizedRoute).catch(err =>
+        console.error('❌ Error en navegación:', err, { sectionId, targetRoute: normalizedRoute, menuItem })
       );
     } else {
       this.activeSection = sectionId;

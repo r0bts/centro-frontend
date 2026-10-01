@@ -16,6 +16,20 @@ export interface SyncResponse {
   };
 }
 
+export interface CatalogPreviewResponse {
+  success: boolean;
+  message: string;
+  data: {
+    catalog: string;
+    label: string;
+    page: number;
+    limit: number;
+    total: number;
+    columns: string[];
+    rows: any[];
+  };
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -182,6 +196,27 @@ export class NetsuiteSyncService {
     return this.http.post<SyncResponse>(
       `${this.apiUrl}/sale-types/sync`,
       {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Obtiene el preview tabular de un catálogo sincronizado desde NetSuite.
+   * GET /api/netsuite/catalog-preview?catalog=users&limit=25&page=1
+   */
+  getCatalogPreview(catalog: string, page = 1, limit = 25, q = ''): Observable<CatalogPreviewResponse> {
+    const params = new URLSearchParams({
+      catalog,
+      page: String(page),
+      limit: String(limit),
+    });
+
+    if (q) {
+      params.set('q', q);
+    }
+
+    return this.http.get<CatalogPreviewResponse>(
+      `${this.apiUrl}/netsuite/catalog-preview?${params.toString()}`,
       { headers: this.getHeaders() }
     );
   }
@@ -416,6 +451,71 @@ export class NetsuiteSyncService {
     return this.http.post<any>(
       `${this.apiUrl}/netsuite/sync-all`,
       { skipErrors: true },
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza catálogo de Servicios de NetSuite (item WHERE itemtype='Service')
+   * POST /api/ns-services/sync
+   * Permiso: configuracion > netsuite_sync > sync_ns_services
+   */
+  syncNsServices(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/ns-services/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza catálogo de Descuentos de NetSuite (item WHERE itemtype='Discount')
+   * POST /api/ns-discounts/sync
+   * Permiso: configuracion > netsuite_sync > sync_ns_discounts
+   */
+  syncNsDiscounts(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/ns-discounts/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza catálogo de Recargos de NetSuite (item WHERE itemtype='Markup')
+   * POST /api/ns-markups/sync
+   * Permiso: configuracion > netsuite_sync > sync_ns_markups
+   */
+  syncNsMarkups(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/ns-markups/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza catálogo de Partes No Inventariables de NetSuite (item WHERE itemtype='NonInvtPart')
+   * POST /api/ns-noninvt-parts/sync
+   * Permiso: configuracion > netsuite_sync > sync_ns_noninvt_parts
+   */
+  syncNsNoninvtParts(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/ns-noninvt-parts/sync`,
+      {},
+      { headers: this.getHeaders() }
+    );
+  }
+
+  /**
+   * Sincroniza catálogo de Códigos de Impuesto de NetSuite (salestaxitem)
+   * POST /api/ns-sales-tax-items/sync
+   * Permiso: configuracion > netsuite_sync > sync_ns_sales_tax_items
+   */
+  syncNsSalesTaxItems(): Observable<SyncResponse> {
+    return this.http.post<SyncResponse>(
+      `${this.apiUrl}/ns-sales-tax-items/sync`,
+      {},
       { headers: this.getHeaders() }
     );
   }

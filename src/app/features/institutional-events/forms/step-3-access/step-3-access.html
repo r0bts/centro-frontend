@@ -22,7 +22,7 @@
         @for (t of accessTypes; track t.id) {
           <span class="acceso-badge" [class.sel]="seleccionados.includes(t.id)" (click)="toggleAcceso(t.id)">
             <i class="bi bi-check-lg ab-check"></i>
-            <i class="bi" [class]="accessTypeMeta[t.id]?.icon ?? 'bi-check-circle'"></i>
+            <i class="bi" [class]="accessTypeMeta[t.id].icon ?? 'bi-check-circle'"></i>
             <span>{{ t.label }}</span>
             <small class="ab-desc">{{ t.description }}</small>
           </span>
@@ -74,13 +74,155 @@
 
       @if (group.get('has_cost')!.value) {
         <div class="row g-3">
-          <div class="col-sm-6">
-            <label class="form-label fw-semibold small text-uppercase text-muted">Costo</label>
-            <div class="input-group">
-              <span class="input-group-text">$</span>
-              <input type="number" class="form-control" formControlName="cost" min="0" placeholder="0.00">
-            </div>
+          <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold small text-uppercase text-muted">
+              Tipo de servicio de NetSuite <span class="text-danger">*</span>
+            </label>
+            <ng-select
+              formControlName="ns_item_id"
+              [items]="nsServices()"
+              bindLabel="item_name"
+              bindValue="id"
+              placeholder="Buscar servicio por nombre o código…"
+              notFoundText="Sin resultados"
+              loadingText="Cargando…"
+              [loading]="nsLoading()"
+              [searchable]="true"
+              [clearable]="true"
+              [searchFn]="nsSearchFn"
+              [class.is-invalid]="(submitted && !group.get('ns_item_id')?.value) || legacyItemInvalid()">
+
+              <ng-template ng-label-tmp let-item="item">
+                <span class="fw-semibold">{{ item.item_id }}</span>
+                <span class="text-muted"> · </span>
+                <span>{{ item.item_name }}</span>
+              </ng-template>
+
+              <ng-template ng-option-tmp let-item="item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="small">
+                    <span class="fw-semibold">{{ item.item_id }}</span>
+                    <span class="text-muted"> · </span>
+                    <span>{{ item.item_name }}</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    @if (item.has_incomeaccount) {
+                      <span class="badge bg-success-subtle text-success border border-success-subtle" title="Ítem apto para Sales Order">
+                        <i class="bi bi-cash-coin me-1"></i>Vendible
+                      </span>
+                    }
+                    @if (item.is_inactive) {
+                      <span class="badge bg-secondary">Inactivo</span>
+                    }
+                  </div>
+                </div>
+              </ng-template>
+            </ng-select>
+
+            @if (nsError()) {
+              <div class="alert alert-warning py-1 px-2 small mt-1 mb-0">
+                <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
+              </div>
+            }
+            <!--
+              Advertencia legacy del ns_item_id (comentada por decisión del user 2026-09-13):
+              se ocultaba el warning pero la validación `legacyItemInvalid()` sigue activa
+              a nivel del `[class.is-invalid]` del ng-select y el bloqueo de `irSiguiente()`.
+              Si en el futuro se quiere volver a mostrar el mensaje al admin, descomentar.
+
+            @if (legacyItemInvalid()) {
+              <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                El servicio NetSuite asignado a este evento (id
+                <strong>{{ group.get('ns_item_id')!.value }}</strong>)
+                no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
+                de compra. Selecciona otro servicio para poder guardar y generar la Orden de Venta.
+              </div>
+            }
+            -->
+            @if (submitted && !group.get('ns_item_id')?.value) {
+              <div class="invalid-feedback d-block">Selecciona un servicio de NetSuite.</div>
+            }
           </div>
+
+          <!-- Tipo de venta (custbody_cl_tipo_venta) — clasifica la SO en NS -->
+          <div class="col-12 col-lg-6">
+            <label class="form-label fw-semibold small text-uppercase text-muted">
+              Tipo de venta (NetSuite)
+            </label>
+            <ng-select
+              formControlName="sale_type_id"
+              [items]="state.saleTypes()"
+              bindLabel="name"
+              bindValue="id"
+              placeholder="Buscar tipo de venta…"
+              notFoundText="Sin resultados"
+              loadingText="Cargando…"
+              [loading]="state.loadingSaleTypes()"
+              [searchable]="true"
+              [clearable]="true">
+            </ng-select>
+            <!--
+              Nota de ayuda del sale_type_id (comentada por decisión del user 2026-09-13).
+              Descomentar si se decide mostrar el texto de contexto al admin.
+
+            <div class="form-text">
+              Se envía como <code>custbody_cl_tipo_venta</code> en la Orden de Venta.
+              Si se deja vacío, NetSuite tomará el default configurado en el servicio.
+            </div>
+            -->
+          </div>
+        </div>
+
+        <!-- Precios por tipo de acceso (obligatorio cuando el evento tiene costo) ─── -->
+        <div class="mt-3 pt-3 border-top">
+          <label class="form-label fw-semibold small text-uppercase text-muted mb-1">
+            <i class="bi bi-table me-1"></i>Precios por tipo de acceso <span class="text-danger">*</span>
+          </label>
+          <div class="form-text mb-2">
+            Define el precio de inscripción para cada tipo de acceso permitido. Al menos uno debe ser mayor a $0.
+          </div>
+
+          @if (seleccionados.length === 0) {
+            <div class="alert alert-warning py-2 mt-2 mb-0 small">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              Selecciona al menos un tipo de acceso arriba para configurar precios.
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0" formArrayName="matrix_prices">
+                <thead class="table-light">
+                  <tr>
+                    <th style="width: 60%;">Tipo de acceso</th>
+                    <th style="width: 40%;">Costo (MXN)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of matrixPrices.controls; track $index; let i = $index) {
+                    <tr [formGroupName]="i">
+                      <td>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                          <i class="bi bi-shield-check me-1"></i>{{ matrixRowLabel(i) }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text">$</span>
+                          <input type="number" class="form-control" formControlName="cost" min="0" step="0.01" placeholder="0.00">
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (submitted && matrixTodosEnCero()) {
+              <div class="field-error small mt-2">
+                <i class="bi bi-exclamation-circle me-1"></i>
+                Al menos un precio debe ser mayor a $0.
+              </div>
+            }
+          }
         </div>
       }
 

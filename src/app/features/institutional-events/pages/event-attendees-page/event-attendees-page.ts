@@ -10,6 +10,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ContentMenu } from '../../../../components/content-menu/content-menu';
+import { InscribirWizardComponent } from './inscribir-wizard/inscribir-wizard';
 import { InstitutionalEventsService } from '../../services/institutional-events.service';
 import {
   InstitutionalEvent,
@@ -23,7 +24,7 @@ import {
   selector: 'app-event-attendees-page',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ContentMenu],
+  imports: [CommonModule, ContentMenu, InscribirWizardComponent],
   templateUrl: './event-attendees-page.html',
   styleUrl: './event-attendees-page.scss',
 })
@@ -42,13 +43,22 @@ export class EventAttendeesPageComponent implements OnInit {
   readonly filtroTipo = signal('');
 
   readonly eventStatusMeta = EVENT_STATUS_META;
+  readonly wizardOpen = signal(false);
+  readonly selectedAttendee = signal<InstitutionalEventAttendee | null>(null);
+  readonly detalleModalOpen = signal(false);
+  
+  readonly cancelando = signal<number | null>(null);
+  readonly enviando = signal(false);
+  readonly enviandoIndividual = signal<number | null>(null);
+  readonly toastMsg = signal<string | null>(null);
+  readonly toastType = signal<'success'|'warning'|'danger'>('success');
 
   readonly attendeesFiltrados = computed(() => {
     let lista = this.attendees();
     const term = this.searchTerm().toLowerCase().trim();
     const st = this.filtroStatus();
     const tipo = this.filtroTipo();
-    if (term) lista = lista.filter(a => a.full_name.toLowerCase().includes(term) || a.email?.toLowerCase().includes(term));
+    if (term) lista = lista.filter(a => a.full_name.toLowerCase().includes(term) || a.email?.toLowerCase().includes(term) || a.socio?.entityid?.toLowerCase().includes(term));
     if (st) lista = lista.filter(a => a.status === st);
     if (tipo) lista = lista.filter(a => a.attendee_type === tipo);
     return lista;
@@ -91,6 +101,76 @@ export class EventAttendeesPageComponent implements OnInit {
   volver(): void { this.router.navigate(['/eventos']); }
   irACheckin(): void { this.router.navigate(['/eventos', this.eventId(), 'checkin']); }
   irAEditar(): void { this.router.navigate(['/eventos/editar', this.eventId()]); }
+
+  abrirWizard(): void {
+    if (!this.event()?.has_registration) return;
+    this.wizardOpen.set(true);
+  }
+
+  onInscripcionGuardada(): void {
+    this.cargar(this.eventId());
+    this.wizardOpen.set(false);
+    this.showToast('Inscripciones guardadas correctamente.', 'success');
+  }
+
+  async cancelarInscripcion(a: InstitutionalEventAttendee): Promise<void> {
+    if (a.status === 'cancelled') return;
+    if (!confirm(`¿Cancelar inscripción de ${a.full_name}?`)) return;
+    this.cancelando.set(a.id);
+    try {
+      await firstValueFrom(this.svc.cancelAttendee(this.eventId(), a.id));
+      this.attendees.update(list => list.map(x => x.id === a.id ? { ...x, status: 'cancelled' as any } : x));
+      this.showToast('Inscripción cancelada.', 'danger');
+    } catch {
+      this.showToast('Error al cancelar la inscripción.', 'danger');
+    } finally {
+      this.cancelando.set(null);
+    }
+  }
+
+  private showToast(msg: string, type: 'success'|'warning'|'danger'): void {
+    this.toastMsg.set(msg);
+    this.toastType.set(type);
+    setTimeout(() => this.toastMsg.set(null), 4000);
+  }
+
+  async enviarAccesos(): Promise<void> {
+    if (!confirm('¿Seguro que deseas enviar los boletos (correo y WhatsApp) a TODOS los inscritos?')) return;
+    
+    this.enviando.set(true);
+    try {
+      await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'all' }));
+      this.showToast('Boletos enviados correctamente a todos los asistentes.', 'success');
+    } catch {
+      this.showToast('Hubo un error al enviar los boletos.', 'danger');
+    } finally {
+      this.enviando.set(false);
+    }
+  }
+
+  verDetalle(a: InstitutionalEventAttendee): void {
+    this.selectedAttendee.set(a);
+    this.detalleModalOpen.set(true);
+  }
+
+  cerrarDetalle(): void {
+    this.detalleModalOpen.set(false);
+    this.selectedAttendee.set(null);
+  }
+
+  async enviarAccesoIndividual(a: InstitutionalEventAttendee): Promise<void> {
+    if (!confirm(`¿Seguro que deseas enviar el boleto a ${a.full_name}?`)) return;
+    
+    this.enviandoIndividual.set(a.id);
+    try {
+      await firstValueFrom(this.svc.sendTickets(this.eventId(), { target: 'selected', attendee_ids: [a.id] }));
+      this.showToast('Boleto enviado correctamente.', 'success');
+    } catch {
+      this.showToast('Hubo un error al enviar el boleto.', 'danger');
+    } finally {
+      this.enviandoIndividual.set(null);
+    }
+  }
 
   tipoLabel(tipo: string): string {
     const map: Record<string, string> = {

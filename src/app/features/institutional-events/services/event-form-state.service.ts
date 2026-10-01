@@ -14,6 +14,7 @@ import {
   EventType,
   InstitutionalEvent,
   InstitutionalEventPayload,
+  InstitutionalEventPrice,
   InstitutionalEventSpeaker,
   InstitutionalEventSubevent,
   InstitutionalEventTestimonial,
@@ -23,6 +24,7 @@ import {
   EventArea,
   EventPlace,
   EventStatus,
+  SaleType,
 } from '../models/institutional-event.model';
 
 export interface WizardStepMeta {
@@ -86,6 +88,8 @@ export class EventFormStateService {
   readonly loadingAccessTypes = signal(false);
   readonly colorThemes = signal<EventColorTheme[]>([]);
   readonly loadingColorThemes = signal(false);
+  readonly saleTypes = signal<SaleType[]>([]);
+  readonly loadingSaleTypes = signal(false);
   isPatching = false;
 
   /** Indica si hay cambios en el formulario que no han sido guardados en el backend */
@@ -123,6 +127,12 @@ export class EventFormStateService {
         max_capacity: [null as number | null],
         has_cost: [false],
         cost: [null as number | null],
+        ns_item_id: [null as number | null],
+        sale_type_id: [null as number | null],
+        has_matrix_pricing: [false],
+        // Matriz de precios del evento base: una fila por `access_type` que el evento acepta.
+        // Se sincroniza automáticamente con `access_types` (ver syncMatrixPricesWithAccessTypes).
+        matrix_prices: this.fb.array([]),
       }),
       subevents: this.fb.array([]),
       hero: this.fb.group({
@@ -162,11 +172,20 @@ export class EventFormStateService {
       }
     });
 
+    // Mantiene sincronizada la matriz de precios del evento base con los
+    // access_types seleccionados: agrega fila nueva (cost=0) cuando se activa un
+    // tipo y elimina la fila cuando se desactiva. No borra cost si el usuario
+    // reactiva un tipo previamente eliminado — se recrea vacía a propósito.
+    this.accessGroup.get('access_types')!.valueChanges.subscribe(() => {
+      this.syncMatrixPricesWithAccessTypes();
+    });
+
     this.loadLocations();
     this.loadAreas();
     this.loadPlaces();
     this.loadAccessTypes();
     this.loadColorThemes();
+    this.loadSaleTypes();
   }
 
   // ── Getters de conveniencia ──────────────────────────────────────────────────
@@ -185,6 +204,8 @@ export class EventFormStateService {
   get indicatorsArray(): FormArray { return this.faqContactGroup.get('indicators') as FormArray; }
   get postGalleryArray(): FormArray { return this.postEventGroup.get('gallery') as FormArray; }
   get postMetricsArray(): FormArray { return this.postEventGroup.get('metrics') as FormArray; }
+  /** FormArray de la matriz de precios del evento base (una fila por `access_type`). */
+  get matrixPricesArray(): FormArray { return this.accessGroup.get('matrix_prices') as FormArray; }
 
   readonly maxStepReached = signal(1);
 
@@ -279,9 +300,83 @@ export class EventFormStateService {
     }
   }
 
+  /**
+   * Catálogo de tipos de venta NetSuite (`sale_types`). Se usa en el Paso 3
+   * para poblar el selector `sale_type_id` del evento base. Solo activos.
+   */
+  async loadSaleTypes(): Promise<void> {
+    this.loadingSaleTypes.set(true);
+    try {
+      const lista = await firstValueFrom(this.svc.getSaleTypes({ active: true, limit: 500 }));
+      this.saleTypes.set(lista);
+    } catch {
+      this.saleTypes.set([]);
+    } finally {
+      this.loadingSaleTypes.set(false);
+    }
+  }
+
+  // ── Matriz de precios del evento base (FormArray) ────────────────────────────
+
+  /**
+   * Construye un FormGroup para una fila de la matriz de precios del evento base.
+   *
+   * @param p Semilla opcional (cuando cargamos un evento existente). Si viene
+   *          sin `access_type`, cae a `'public'` por defecto (nunca deber\u00eda pasar
+   *          — la matriz siempre lleva el tipo).
+   */
+  private buildMatrixPriceGroup(p?: Partial<InstitutionalEventPrice>): FormGroup {
+    return this.fb.group({
+      id: [p?.id ?? null],
+      access_type: [(p?.access_type ?? 'public') as AccessType, Validators.required],
+      cost: [Number(p?.cost ?? 0), [Validators.required, Validators.min(0)]],
+    });
+  }
+
+  /**
+   * Sincroniza el FormArray `matrix_prices` con los `access_types` actuales del
+   * evento base:
+   *   - agrega una fila con `cost=0` para cada `access_type` que no tenga fila,
+   *   - elimina filas cuyo `access_type` ya no est\u00e1 seleccionado,
+   *   - preserva las filas existentes (respetando `cost` y `id` para no perder
+   *     precios al reordenar la selecci\u00f3n).
+   *
+   * Se invoca autom\u00e1ticamente al cambiar `access_types` (ver constructor) y al
+   * cargar un evento (patchFromEvent).
+   */
+  syncMatrixPricesWithAccessTypes(): void {
+    const tipos = (this.accessGroup.get('access_types')!.value as AccessType[]) ?? [];
+    const filas: FormGroup[] = [...this.matrixPricesArray.controls] as FormGroup[];
+    // Elimina filas que ya no est\u00e1n en la selecci\u00f3n (recorre desde el final).
+    for (let i = filas.length - 1; i >= 0; i--) {
+      const at = filas[i].get('access_type')!.value as AccessType;
+      if (!tipos.includes(at)) {
+        this.matrixPricesArray.removeAt(i);
+      }
+    }
+    // Agrega filas nuevas para los tipos que a\u00fan no tienen fila.
+    const presentes = new Set(
+      (this.matrixPricesArray.controls as FormGroup[])
+        .map(g => g.get('access_type')!.value as AccessType)
+    );
+    for (const t of tipos) {
+      if (!presentes.has(t)) {
+        this.matrixPricesArray.push(this.buildMatrixPriceGroup({ access_type: t, cost: 0 }));
+      }
+    }
+  }
+
   // ── Subeventos (FormArray) ───────────────────────────────────────────────────
 
   private buildSubeventGroup(s?: Partial<InstitutionalEventSubevent>): FormGroup {
+    // Prellenado de access_types[]: el subevento puede habilitar cualquier
+    // tipo global (mapa 15 §8), NO está restringido a los del evento. Si el
+    // subevento es nuevo (sin datos) se preselecciona la lista completa; el
+    // admin quita los que no aplican en el modal.
+    const allAccessTypes: AccessType[] = ['public', 'members', 'patron', 'committee', 'registration'];
+    const seedTypes = (s?.access_types && s.access_types.length > 0)
+      ? [...s.access_types]
+      : (s?.access_type ? [s.access_type] : [...allAccessTypes]);
     return this.fb.group({
       id: [s?.id ?? null],
       name: [s?.name ?? '', Validators.required],
@@ -292,12 +387,25 @@ export class EventFormStateService {
       area_id: [s?.area_id ?? null, Validators.required],
       max_capacity: [s?.max_capacity ?? 0],
       cost: [s?.cost ?? 0],
-      access_type: [s?.access_type ?? 'public'],
+      ns_item_id: [s?.ns_item_id ?? null],
+      // sale_type_id (custbody_cl_tipo_venta): opcional; NULL = hereda del evento padre.
+      sale_type_id: [s?.sale_type_id ?? null],
+      // access_type (singular, deprecated): se conserva por retro-compat (§8.4).
+      // Al guardar en el payload se calcula como el primer elemento de access_types[].
+      access_type: [s?.access_type ?? seedTypes[0] ?? 'public'],
+      // access_types[] (múltiple, propio, no heredado): fuente de verdad del
+      // paso 4 (mapa 15 §8). Independiente de event.access_types[].
+      access_types: this.fb.control<AccessType[]>(seedTypes),
       instructor_name:  [s?.instructor_name  ?? ''],
       instructor_phone: [s?.instructor_phone ?? ''],
       instructor_email: [s?.instructor_email ?? ''],
       instructor_notes: [s?.instructor_notes ?? ''],
       status: [s?.status ?? 'confirmed'],
+      // Matriz de precios del subevento (mapa 15 §7): activada cuando el subevento
+      // tiene costo distinto por tipo de acceso. Se guarda como array plano de
+      // filas ({ access_type, cost }); el `subevent_id` lo asigna Cake en saveAssociated.
+      has_matrix_pricing: [s?.has_matrix_pricing ?? false],
+      institutional_event_prices: [(s?.institutional_event_prices ?? []) as InstitutionalEventPrice[]],
     });
   }
 
@@ -483,8 +591,36 @@ export class EventFormStateService {
       has_registration: event.has_registration,
       max_capacity: event.max_capacity ?? null,
       has_cost: event.has_cost,
-      cost: event.cost ?? null,
+      // El campo `cost` legacy ya no se usa: la matriz de precios es la única
+      // fuente de verdad. Lo forzamos a null al cargar (queda en BD históricamente
+      // pero no lo mostramos ni lo enviamos de vuelta al guardar).
+      cost: null,
+      ns_item_id: event.ns_item_id ?? null,
+      sale_type_id: event.sale_type_id ?? null,
+      // Si el evento histórico tiene has_cost=true pero has_matrix_pricing=false,
+      // lo forzamos a true para que al guardar migre automáticamente al nuevo modelo.
+      has_matrix_pricing: !!event.has_cost,
     });
+    // Cargar la matriz de precios del evento base (filas con subevent_id null).
+    this.matrixPricesArray.clear();
+    const eventPrices = (event.institutional_event_prices ?? [])
+      .filter(p => (p.subevent_id === null || p.subevent_id === undefined));
+    for (const price of eventPrices) {
+      this.matrixPricesArray.push(this.buildMatrixPriceGroup(price));
+    }
+    // Asegura que la matriz tenga una fila por cada access_type incluso si el evento
+    // histórico no las tenía (necesario para que la UI muestre los campos vacíos).
+    // Si el evento histórico tenía `cost > 0` sin matriz, sembramos ese cost en
+    // todas las filas nuevas para que el admin lo revise en lugar de partir de 0.
+    const legacyCost = Number(event.cost ?? 0);
+    this.syncMatrixPricesWithAccessTypes();
+    if (legacyCost > 0 && eventPrices.length === 0) {
+      for (const g of (this.matrixPricesArray.controls as any[])) {
+        if (Number(g.get('cost').value) === 0) {
+          g.get('cost').setValue(legacyCost);
+        }
+      }
+    }
     this.heroGroup.patchValue({
       banner_image_url: event.banner_image_url ?? '',
       banner_mobile_url: (event.extra_data as any)?.banner_mobile_url ?? '',
@@ -584,7 +720,27 @@ export class EventFormStateService {
       has_registration: !!access.has_registration,
       max_capacity: access.max_capacity || null,
       has_cost: !!access.has_cost,
-      cost: access.has_cost ? access.cost : null,
+      // `cost` legacy: siempre null en el nuevo modelo, la matriz es la única
+      // fuente de precios (mapa 15 §7.9). Se mantiene la columna en BD para no
+      // romper datos históricos, pero ya no se escribe desde la UI.
+      cost: null,
+      ns_item_id: access.has_cost ? (access.ns_item_id ?? null) : null,
+      // sale_type_id se conserva aunque el evento no tenga costo (clasifica la venta al enviar a NS).
+      sale_type_id: access.sale_type_id ?? null,
+      // has_cost implica siempre matriz.
+      has_matrix_pricing: !!access.has_cost,
+      // Matriz de precios del evento base: se envía siempre que has_cost=true.
+      // Cada fila trae `access_type` + `cost` (>= 0). El `subevent_id` viaja como null.
+      institutional_event_prices: access.has_cost
+        ? (access.matrix_prices as any[])
+            .filter(p => (access.access_types as AccessType[]).includes(p.access_type))
+            .map(p => ({
+              ...(p.id ? { id: p.id } : {}),
+              subevent_id: null,
+              access_type: p.access_type,
+              cost: Number(p.cost) || 0,
+            }))
+        : [],
       has_donations: false,
       documents: this.documentsArray.value.length ? this.documentsArray.value : null,
       speakers: this.speakersArray.value.length ? this.speakersArray.value : null,
@@ -594,23 +750,49 @@ export class EventFormStateService {
       faqs: this.faqsArray.value.length ? this.faqsArray.value : null,
       contact_email: faqContact.contact_email || null,
       contact_phone: faqContact.contact_phone || null,
-      institutional_event_subevents: this.subeventsArray.value.map((s: any) => ({
-        ...(s.id ? { id: s.id } : {}),
-        name: s.name,
-        description: s.description || null,
-        start_date: toApiDateTime(s.start_date),
-        end_date: toApiDateTime(s.end_date),
-        venue: s.venue || null,
-        area_id: s.area_id || null,
-        max_capacity: s.max_capacity || 0,
-        cost: s.cost || 0,
-        access_type: s.access_type,
-        instructor_name:  s.instructor_name  || null,
-        instructor_phone: s.instructor_phone || null,
-        instructor_email: s.instructor_email || null,
-        instructor_notes: s.instructor_notes || null,
-        status: s.status,
-      })),
+      institutional_event_subevents: this.subeventsArray.value.map((s: any) => {
+        // Deriva access_type (deprecated) del primer elemento de access_types[]
+        // para retro-compat con el backend que aún lo indexa (mapa 15 §8.4).
+        const at: AccessType[] = Array.isArray(s.access_types) && s.access_types.length > 0
+          ? s.access_types
+          : (s.access_type ? [s.access_type] : []);
+        return {
+          ...(s.id ? { id: s.id } : {}),
+          name: s.name,
+          description: s.description || null,
+          start_date: toApiDateTime(s.start_date),
+          end_date: toApiDateTime(s.end_date),
+          venue: s.venue || null,
+          area_id: s.area_id || null,
+          max_capacity: s.max_capacity || 0,
+          cost: s.cost || 0,
+          // ns_item_id se envía solo si el subevento tiene costo; si es 0 se limpia.
+          ns_item_id: (s.cost && Number(s.cost) > 0) ? (s.ns_item_id ?? null) : null,
+          // sale_type_id: override del sale_type del evento padre. Se conserva
+          // aunque el subevento no tenga costo (clasifica la SO en NS).
+          sale_type_id: s.sale_type_id ?? null,
+          // access_type (deprecated): primer elemento del array múltiple.
+          access_type: at[0] ?? null,
+          // access_types[] (fuente de verdad, mapa 15 §8).
+          access_types: at,
+          instructor_name:  s.instructor_name  || null,
+          instructor_phone: s.instructor_phone || null,
+          instructor_email: s.instructor_email || null,
+          instructor_notes: s.instructor_notes || null,
+          status: s.status,
+          // Matriz de precios del subevento: se envía cuando el subevento tiene
+          // has_matrix_pricing = true. Cada fila lleva `access_type` + `cost` y
+          // significa "el subevento está habilitado para ese tipo" (opción C).
+          has_matrix_pricing: !!s.has_matrix_pricing,
+          institutional_event_prices: (s.has_matrix_pricing && Array.isArray(s.institutional_event_prices))
+            ? (s.institutional_event_prices as any[]).map(p => ({
+                ...(p.id ? { id: p.id } : {}),
+                access_type: p.access_type,
+                cost: Number(p.cost) || 0,
+              }))
+            : [],
+        };
+      }),
     };
   }
 
@@ -669,6 +851,22 @@ export class EventFormStateService {
     if (!identity.area_id)              missing.push('Área');
     if (!datetime.start_date)           missing.push('Fecha de inicio');
     if (!access.access_types?.length)   missing.push('Tipo de acceso');
+    if (access.has_cost && !access.ns_item_id) {
+      missing.push('Servicio de NetSuite (tipo de servicio del costo)');
+    }
+    // Matriz de precios obligatoria cuando has_cost=true (mapa 15 §7.9).
+    if (access.has_cost) {
+      const tipos: AccessType[] = access.access_types ?? [];
+      const filas: any[] = access.matrix_prices ?? [];
+      const faltantes = tipos.filter(t => !filas.some(f => f.access_type === t));
+      if (faltantes.length > 0) {
+        missing.push('Precios por tipo de acceso (faltan filas)');
+      }
+      const alguna = filas.some(f => Number(f.cost) > 0);
+      if (!alguna) {
+        missing.push('Al menos un precio por tipo debe ser mayor a 0');
+      }
+    }
     const hasBanner = !!(this.heroGroup.get('banner_mobile_url')?.value || this.pendingImageUploads.has('hero_mobile'));
     if (!hasBanner)                     missing.push('Banner Mobile');
     return missing;

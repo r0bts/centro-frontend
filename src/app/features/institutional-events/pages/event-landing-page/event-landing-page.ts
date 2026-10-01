@@ -14,7 +14,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../../../services/auth.service';
 import { InstitutionalEventsService } from '../../services/institutional-events.service';
-import { InstitutionalEvent, EVENT_TYPE_META, EventColorTheme } from '../../models/institutional-event.model';
+import { InstitutionalEvent, EVENT_TYPE_META, EventColorTheme, ACCESS_TYPE_META, InstitutionalEventSubevent } from '../../models/institutional-event.model';
 
 /**
  * SCR-003 — Landing Page pública de un evento institucional.
@@ -46,7 +46,8 @@ export class EventLandingPageComponent implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);  readonly colorThemes = signal<EventColorTheme[]>([]);  readonly modalAbierto = signal(false);
   readonly esSocio = signal<boolean | null>(null);    // null=sin elegir
-  readonly modalPaso = signal<'inicio' | 'socio' | 'modo' | 'invitado' | 'externo' | 'exito'>('inicio');
+  readonly modalPaso = signal<'inicio' | 'socio' | 'modo' | 'invitado' | 'externo' | 'subeventos' | 'exito'>('inicio');
+  readonly selectedSubevents = signal<Set<number>>(new Set());
 
   // ── Estado de inscripción ─────────────────────────────────────────────────────
   readonly socioNumero = signal('');
@@ -54,6 +55,32 @@ export class EventLandingPageComponent implements OnInit {
   readonly modoInscripcion = signal<'titular' | 'invitado' | null>(null);
   readonly nombreExterno = signal('');
   readonly correoExterno = signal('');
+  readonly telefonoExterno = signal('');
+
+  readonly allowMembers = computed(() => {
+    const types = this.event()?.access_types || [];
+    if (types.includes('public')) return true;
+    return types.some(t => ['members', 'patron', 'committee'].includes(t));
+  });
+
+  readonly allowPublic = computed(() => {
+    const types = this.event()?.access_types || [];
+    return types.includes('public') || types.includes('registration');
+  });
+
+  readonly accessTypeMeta = ACCESS_TYPE_META;
+
+  canAccessSubevent(sub: InstitutionalEventSubevent): boolean {
+    if (this.esSocio()) {
+      return true; // Asumimos que el socio tiene acceso a 'members', 'patron', 'public', etc.
+    }
+    // El externo solo puede si incluye 'public' o 'registration'
+    return sub.access_types.some(t => t === 'public' || t === 'registration');
+  }
+
+  readonly canRegisterOnline = computed(() => {
+    return this.allowMembers() || this.allowPublic();
+  });
 
   readonly accessLabel = computed(() => {
     const ev = this.event();
@@ -173,6 +200,7 @@ export class EventLandingPageComponent implements OnInit {
     this.esSocio.set(null);
     this.socioNumero.set('');
     this.socioEncontrado.set(null);
+    this.selectedSubevents.set(new Set());
   }
 
   cerrarModal(): void {
@@ -186,7 +214,87 @@ export class EventLandingPageComponent implements OnInit {
 
   elegirModo(modo: 'titular' | 'invitado'): void {
     this.modoInscripcion.set(modo);
-    this.modalPaso.set(modo === 'invitado' ? 'invitado' : 'exito');
+    if (modo === 'invitado') {
+      this.modalPaso.set('invitado');
+    } else {
+      this.verificarSubvencion();
+    }
+  }
+
+  continuarDesdeExterno(): void {
+    if (!this.nombreExterno() || !this.correoExterno()) {
+      alert('Por favor completa los campos requeridos.');
+      return;
+    }
+    this.verificarSubvencion();
+  }
+
+  verificarSubvencion(): void {
+    const ev = this.event();
+    if (ev?.institutional_event_subevents?.length) {
+      this.modalPaso.set('subeventos');
+    } else {
+      this.registrar();
+    }
+  }
+
+  toggleSubevent(id: number) {
+    const sub = this.event()?.institutional_event_subevents?.find(s => s.id === id);
+    if (!sub || !this.canAccessSubevent(sub)) return; // No tiene acceso
+
+    const s = new Set(this.selectedSubevents());
+    if (s.has(id)) {
+      s.delete(id);
+    } else {
+      s.add(id);
+    }
+    this.selectedSubevents.set(s);
+  }
+
+  async registrar(): Promise<void> {
+    const ev = this.event();
+    if (!ev) return;
+
+    try {
+      this.loading.set(true);
+      const isSocio = this.esSocio();
+      
+      const subeventIds = Array.from(this.selectedSubevents());
+      
+      let attendee: any = {
+        subevent_ids: subeventIds,
+        access_type_selected: isSocio ? 'members' : 'public'
+      };
+
+      if (isSocio) {
+        attendee.attendee_type = 'socio';
+        attendee.socio_number = this.socioNumero();
+      } else {
+        attendee.attendee_type = 'externo';
+        attendee.full_name = this.nombreExterno();
+        attendee.email = this.correoExterno();
+        attendee.phone = this.telefonoExterno();
+      }
+
+      const payload = {
+        attendees: [attendee],
+        create_ns_order: true,
+        send_tickets: true
+      };
+
+      const res = await firstValueFrom(this.svc.registerPublic(ev.id, payload));
+      if ((res.data as any)?.details?.[0]?.status === 'skipped') {
+        alert('Ya estabas inscrito en este evento.');
+        this.cerrarModal();
+        return;
+      }
+      this.modalPaso.set('exito');
+    } catch (e: any) {
+      console.error(e);
+      alert(e.error?.message || 'Hubo un error al procesar tu inscripción. Por favor, verifica tus datos e intenta de nuevo.');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   // ── Navegación ────────────────────────────────────────────────────────────────

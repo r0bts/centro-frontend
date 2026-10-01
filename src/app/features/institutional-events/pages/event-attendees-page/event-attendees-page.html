@@ -39,6 +39,21 @@
           <button class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
             <i class="bi bi-download"></i>Exportar CSV
           </button>
+          @if (event()?.has_registration) {
+            <button class="btn btn-sm btn-success d-flex align-items-center gap-1"
+                    (click)="abrirWizard()">
+              <i class="bi bi-person-plus-fill"></i>Nueva inscripción
+            </button>
+          }
+          <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                  (click)="enviarAccesos()" [disabled]="enviando()">
+            @if (enviando()) {
+              <div class="spinner-border spinner-border-sm"></div>
+            } @else {
+              <i class="bi bi-send-fill"></i>
+            }
+            Enviar Accesos
+          </button>
           <button class="btn btn-sm btn-primary d-flex align-items-center gap-1"
                   (click)="irACheckin()">
             <i class="bi bi-check2-square"></i>Marcar asistencia
@@ -150,7 +165,12 @@
                           <div class="att-avatar" [style.background]="avatarBg(a.attendee_type)">
                             {{ initials(a.full_name) }}
                           </div>
-                          <span class="fw-semibold small">{{ a.full_name }}</span>
+                          <span class="fw-semibold small">
+                            @if (a.attendee_type === 'socio' && a.socio?.entityid) {
+                              <span class="text-primary me-1">{{ a.socio?.entityid }}</span> -
+                            }
+                            {{ a.full_name }}
+                          </span>
                         </div>
                       </td>
                       <td><span class="small text-muted">{{ a.email || '—' }}</span></td>
@@ -173,9 +193,22 @@
                       <td class="text-center">
                         <div class="d-flex justify-content-center gap-1">
                           <button class="btn btn-sm btn-outline-secondary"
-                                  title="Ver detalle" style="padding:2px 6px;">
+                                  title="Ver detalle" style="padding:2px 6px;"
+                                  (click)="verDetalle(a)">
                             <i class="bi bi-eye" style="font-size:.75rem;"></i>
                           </button>
+                          @if (a.status !== 'cancelled') {
+                            <button class="btn btn-sm btn-outline-danger"
+                                    title="Cancelar inscripción" style="padding:2px 6px;"
+                                    [disabled]="cancelando() === a.id"
+                                    (click)="cancelarInscripcion(a)">
+                              @if (cancelando() === a.id) {
+                                <span class="spinner-border spinner-border-sm" style="width:.75rem;height:.75rem;"></span>
+                              } @else {
+                                <i class="bi bi-x-circle" style="font-size:.75rem;"></i>
+                              }
+                            </button>
+                          }
                         </div>
                       </td>
                     </tr>
@@ -199,4 +232,120 @@
 
     }
   </div>
+
+  <!-- Wizard de inscripción -->
+  @if (wizardOpen() && event()) {
+    <app-inscribir-wizard
+      [event]="event()!"
+      [attendees]="attendees()"
+      (inscripcionGuardada)="onInscripcionGuardada()"
+      (cerrar)="wizardOpen.set(false)">
+    </app-inscribir-wizard>
+  }
+
+  <!-- Toast -->
+  @if (toastMsg()) {
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+      <div class="toast show align-items-center border-0"
+           [class]="'text-bg-' + toastType()" role="alert">
+        <div class="d-flex">
+          <div class="toast-body">
+            @if (toastType() === 'success') { <i class="bi bi-check-circle me-2"></i> }
+            @if (toastType() === 'warning') { <i class="bi bi-exclamation-triangle me-2"></i> }
+            @if (toastType() === 'danger') { <i class="bi bi-x-octagon me-2"></i> }
+            {{ toastMsg() }}
+          </div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" (click)="toastMsg.set(null)"></button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Detalle Asistente Modal -->
+  @if (detalleModalOpen() && selectedAttendee()) {
+    <div class="modal fade show" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-light border-bottom-0">
+            <h5 class="modal-title fw-bold">
+              <i class="bi bi-person-badge text-primary me-2"></i>Detalle de Inscripción
+            </h5>
+            <button type="button" class="btn-close" (click)="cerrarDetalle()"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-4">
+              <!-- Información de Inscripción -->
+              <div class="col-md-6">
+                <h6 class="text-muted fw-bold mb-3 border-bottom pb-2">Información del Asistente</h6>
+                <p class="mb-1"><strong>Nombre:</strong> {{ selectedAttendee()!.full_name }}</p>
+                <p class="mb-1"><strong>Correo:</strong> {{ selectedAttendee()!.email || 'No registrado' }}</p>
+                <p class="mb-1"><strong>Teléfono:</strong> {{ selectedAttendee()!.phone || 'No registrado' }}</p>
+                <p class="mb-1">
+                  <strong>Tipo de Asistente:</strong> 
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ tipoLabel(selectedAttendee()!.attendee_type) }}</span>
+                </p>
+                <p class="mb-1">
+                  <strong>Estado:</strong> 
+                  <span class="badge border" [class]="statusBadge(selectedAttendee()!.status)">{{ statusLabel(selectedAttendee()!.status) }}</span>
+                </p>
+                @if (selectedAttendee()!.notes) {
+                  <p class="mb-1 mt-2"><strong>Notas:</strong> <br> <span class="text-muted small">{{ selectedAttendee()!.notes }}</span></p>
+                }
+              </div>
+
+              <!-- Detalle de Venta -->
+              <div class="col-md-6">
+                <h6 class="text-muted fw-bold mb-3 border-bottom pb-2">Detalle de Venta (NetSuite)</h6>
+                <p class="mb-1">
+                  <strong>ID Orden Venta (SO):</strong> 
+                  @if (selectedAttendee()!.ns_sales_order_id) {
+                    {{ selectedAttendee()!.ns_sales_order_id }}
+                  } @else {
+                    <span class="text-muted fst-italic">Sin orden (o gratis)</span>
+                  }
+                </p>
+                <p class="mb-1">
+                  <strong>Estado Orden:</strong> 
+                  @if (selectedAttendee()!.ns_so_status) {
+                    <span class="badge bg-info-subtle text-info-emphasis">{{ selectedAttendee()!.ns_so_status }}</span>
+                  } @else {
+                    <span class="text-muted fst-italic">N/A</span>
+                  }
+                </p>
+                <p class="mb-1">
+                  <strong>Estado Pago:</strong> 
+                  <span class="badge bg-light text-dark border">{{ selectedAttendee()!.payment_status || 'pending' }}</span>
+                </p>
+                <p class="mb-1"><strong>Monto Pagado:</strong> {{ (selectedAttendee()!.amount_paid | currency) || '$0.00' }}</p>
+                @if (selectedAttendee()!.ns_so_sync_error) {
+                  <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">
+                    <i class="bi bi-exclamation-circle me-1"></i>Error SO: {{ selectedAttendee()!.ns_so_sync_error }}
+                  </div>
+                }
+              </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between align-items-center bg-light p-3 rounded">
+              <div>
+                <h6 class="mb-1 fw-bold">Accesos y Código QR</h6>
+                <p class="mb-0 text-muted small">Envía el boleto de acceso de forma individual por correo electrónico y WhatsApp.</p>
+              </div>
+              <button class="btn btn-primary d-flex align-items-center gap-2" 
+                      (click)="enviarAccesoIndividual(selectedAttendee()!)"
+                      [disabled]="enviandoIndividual() === selectedAttendee()!.id">
+                @if (enviandoIndividual() === selectedAttendee()!.id) {
+                  <span class="spinner-border spinner-border-sm"></span>
+                } @else {
+                  <i class="bi bi-qr-code"></i>
+                }
+                Enviar Boleto
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
 </div>
