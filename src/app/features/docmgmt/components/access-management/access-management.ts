@@ -61,8 +61,10 @@ export class AccessManagementComponent implements OnInit {
         if (this.procedureId) {
           this.loadProcedure(this.procedureId);
         } else {
-          this.loading = false;
-          this.cdr.detectChanges();
+          setTimeout(() => {
+            this.loading = false;
+            this.cdr.detectChanges();
+          });
         }
       },
       error: () => {
@@ -82,8 +84,10 @@ export class AccessManagementComponent implements OnInit {
         } else {
           this.error = 'Procedimiento no encontrado.';
         }
-        this.loading = false;
-        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        });
       },
       error: () => {
         this.error = 'Error de conexión.';
