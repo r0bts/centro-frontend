@@ -171,7 +171,7 @@ export class ProcedureFormComponent implements OnInit {
         this.docmgmtService.uploadDocument(this.procedureId, file).subscribe({
           next: (res: any) => {
             if (res.success) this.loadProcedure();
-            else alert('Error subiendo archivo');
+            else alert('Error subiendo archivo: ' + (res.message || "") + " " + JSON.stringify(res.errors || {}));
           },
           error: () => alert('Error en la conexión')
         });
