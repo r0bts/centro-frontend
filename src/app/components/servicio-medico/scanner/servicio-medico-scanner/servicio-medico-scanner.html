@@ -8,69 +8,79 @@
       <i class="bi bi-arrow-left me-2"></i> Volver al Dashboard
     </button>
     
-    <div class="row justify-content-center">
-      <div class="col-md-8 col-lg-6">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="fw-bold text-dark mb-1">Expedientes · Externos</h3>
+        <p class="text-muted mb-0">Visitantes, invitados y participantes de curso de verano. (Escáner QR)</p>
+      </div>
+    </div>
+
+    <div class="card border-0 shadow-sm custom-card mb-4">
+      <div class="card-body p-4">
         
-        <!-- ERROR ALERT -->
-        <div *ngIf="cameraError" class="alert alert-danger d-flex align-items-center mb-4 flex-column align-items-start" role="alert">
-          <div class="d-flex w-100 mb-2">
-             <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2 fs-4"></i>
-             <div>{{ cameraError }}</div>
+        <form (ngSubmit)="onScan()">
+          <div class="input-group input-group-lg shadow-sm">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search text-muted"></i>
+            </span>
+            <input 
+              #qrInput
+              type="text" 
+              class="form-control border-start-0 ps-0 fs-6" 
+              placeholder="Busca por número de invitado o escanea QR..." 
+              [(ngModel)]="qrToken"
+              name="qrToken"
+              autocomplete="off"
+              autofocus
+              [disabled]="isLoading">
+            <button class="btn btn-outline-secondary bg-light" type="button" (click)="toggleCamera()" title="Abrir cámara del dispositivo">
+              <i class="bi bi-qr-code-scan"></i> Cámara
+            </button>
           </div>
-          <button *ngIf="needsPermissionButton" class="btn btn-outline-danger mt-2" (click)="requestCameraPermission()">
-             <i class="bi bi-camera-video"></i> Solicitar Acceso a Cámara
-          </button>
-        </div>
-
-        <!-- Tarjeta de Escáner -->
-        <div class="card shadow-sm border-0 rounded-4 mb-4" *ngIf="isScanning">
-          <div class="card-body p-0 overflow-hidden rounded-4">
-            <div id="qr-reader-medical" class="w-100"></div>
+        </form>
+        
+        <small class="text-muted mt-2 d-block">
+          <i class="bi bi-upc-scan me-1"></i> Puedes usar tu lector físico o usar la cámara de este dispositivo. (Presiona Enter para buscar)
+        </small>
+        
+        <!-- CAMERA CONTAINER -->
+        <div *ngIf="isScanning" class="mt-4 rounded-3 border overflow-hidden position-relative bg-dark" style="max-width: 500px; margin: 0 auto;">
+          <div *ngIf="cameraError" class="alert alert-danger m-3 border-0 d-flex flex-column">
+            <div><i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2"></i> {{ cameraError }}</div>
+            <button *ngIf="needsPermissionButton" class="btn btn-outline-danger mt-2 btn-sm align-self-start" (click)="requestCameraPermission()">
+              <i class="bi bi-camera-video"></i> Solicitar Acceso
+            </button>
           </div>
-          <div class="card-footer bg-light text-center py-4">
-            <h5 class="fw-bold text-dark mb-2">Escanear Código QR</h5>
-            <p class="text-muted mb-4 small">Pasa el código QR por la lectora para buscar el expediente o ingresa el código manualmente.</p>
-            
-            <form (ngSubmit)="onScan()">
-              <div class="input-group input-group-lg shadow-sm rounded-3">
-                <span class="input-group-text bg-white border-end-0 text-muted">
-                  <i class="bi bi-upc-scan"></i>
-                </span>
-                <input 
-                  #qrInput
-                  type="text" 
-                  class="form-control border-start-0 ps-0 fs-6" 
-                  placeholder="O ingresa el código aquí..."
-                  [(ngModel)]="qrToken"
-                  name="qrToken"
-                  autocomplete="off"
-                  autofocus
-                  [disabled]="isLoading">
-                <button class="btn btn-primary px-4" type="submit" [disabled]="isLoading || !qrToken">
-                  Buscar
-                </button>
-              </div>
-            </form>
+          <div id="qr-reader-medical" class="w-100"></div>
+          <div class="p-3 bg-light text-center border-top">
+            <button class="btn btn-sm btn-danger rounded-pill px-4" (click)="stopScanner()">
+              <i class="bi bi-x-circle me-1"></i> Cerrar Cámara
+            </button>
           </div>
         </div>
-
-        <!-- LOADING OVERLAY -->
-        <div *ngIf="isLoading" class="card shadow-sm border-0 rounded-4 mb-4 py-5 text-center">
-          <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-            <span class="visually-hidden">Buscando...</span>
-          </div>
-          <p class="mt-3 text-muted fw-bold">Buscando expediente...</p>
-        </div>
-
-        <div *ngIf="errorMessage" class="alert alert-danger shadow-sm rounded-4 border-0 mb-4 d-flex align-items-center" role="alert">
-          <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
-          <div>{{ errorMessage }}</div>
-        </div>
-
-        <!-- Perfil Médico movido a nueva pantalla de expediente -->
 
       </div>
     </div>
-    
+
+    <!-- LOADING OVERLAY -->
+    <div *ngIf="isLoading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Buscando...</span>
+      </div>
+      <p class="text-muted mt-2">Buscando expediente...</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert alert-danger shadow-sm rounded-4 border-0 mb-4 d-flex align-items-center" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+      <div>{{ errorMessage }}</div>
+    </div>
+
+    <!-- PLACEHOLDER when not searching and no error -->
+    <div *ngIf="!isLoading && !errorMessage" class="text-center py-5">
+      <i class="bi bi-file-earmark-person text-muted mb-3" style="font-size: 4rem;"></i>
+      <h5 class="fw-bold">Expedientes de Externos</h5>
+      <p class="text-muted">Ingresa el código o escanea el QR de un invitado para ver su expediente.</p>
+    </div>
+
   </div>
 </div>

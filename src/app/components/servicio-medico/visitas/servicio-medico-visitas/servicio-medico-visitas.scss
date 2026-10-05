@@ -62,3 +62,42 @@
     border-left: 1px solid var(--neutral-200, #e9ecef);
   }
 }
+
+/* Paginación Moderna */
+.modern-pagination {
+  gap: 4px;
+  
+  .page-item {
+    .page-link {
+      border: none;
+      border-radius: 6px;
+      color: #6b7280;
+      font-weight: 500;
+      padding: 0.4rem 0.8rem;
+      background-color: transparent;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      
+      &:hover {
+        background-color: #f3f4f6;
+        color: #374151;
+      }
+      
+      &:focus {
+        box-shadow: none;
+      }
+    }
+    
+    &.active .page-link {
+      background-color: #3f60f6; /* Usando un azul moderno similar al tema principal */
+      color: white;
+      box-shadow: 0 4px 6px -1px rgba(63, 96, 246, 0.2), 0 2px 4px -1px rgba(63, 96, 246, 0.1);
+    }
+    
+    &.disabled .page-link {
+      color: #d1d5db;
+      background-color: transparent;
+      cursor: not-allowed;
+    }
+  }
+}

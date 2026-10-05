@@ -34,11 +34,22 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
   ) {}
 
   ngAfterViewInit() {
-    this.startScanner();
+    // Ya no iniciamos la cámara automáticamente
+    if (this.qrInput && this.qrInput.nativeElement) {
+      this.qrInput.nativeElement.focus();
+    }
   }
 
   ngOnDestroy() {
     this.stopScanner();
+  }
+
+  toggleCamera() {
+    if (this.isScanning) {
+      this.stopScanner();
+    } else {
+      this.startScanner();
+    }
   }
 
   startScanner() {
@@ -131,6 +142,7 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
     this.isLoading = true;
     this.errorMessage = '';
     this.medicalProfile = null;
+    const wasCameraOpen = this.isScanning;
     this.stopScanner(); // Detenemos la cámara al procesar
 
     this.servicioMedico.getMedicalProfileByQr(this.qrToken)
@@ -142,9 +154,9 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
           } else {
             this.errorMessage = res.message || 'No se encontró el expediente.';
             this.qrToken = '';
-            // NO llamamos a startScanner() de inmediato para que el usuario pueda ver el error
-            // o lo reactivamos pero sin borrar el errorMessage
-            this.restartScannerWithoutClearingError();
+            if (wasCameraOpen) {
+              this.restartScannerWithoutClearingError();
+            }
           }
           this.cdr.detectChanges();
         },
@@ -152,7 +164,9 @@ export class ServicioMedicoScanner implements AfterViewInit, OnDestroy {
           console.error('Error fetching medical profile:', err);
           this.errorMessage = err?.error?.message || 'No se encontró el expediente asociado a este código QR o ha caducado.';
           this.qrToken = '';
-          this.restartScannerWithoutClearingError();
+          if (wasCameraOpen) {
+            this.restartScannerWithoutClearingError();
+          }
           this.cdr.detectChanges();
         }
       });

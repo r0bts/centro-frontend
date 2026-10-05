@@ -29,11 +29,46 @@ export class ServicioMedicoVisitas implements OnInit {
     medico: '',
     medico_search: '',
     search: '',
-    patient_type: ''
+    patient_type: '',
+    numero_socio: ''
   };
 
   isMedicoDropdownOpen = false;
   medicoSearchText = '';
+
+  // Paginación
+  currentPage: number = 1;
+  itemsPerPage: number = 10;
+
+  get paginatedConsultas() {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    return this.consultas.slice(startIndex, startIndex + this.itemsPerPage);
+  }
+
+  get totalPages() {
+    return Math.ceil(this.consultas.length / this.itemsPerPage);
+  }
+
+  get pagesArray() {
+    // Para simplificar, mostramos todas las páginas (o podríamos limitar si son muchas)
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = startPage + maxVisiblePages - 1;
+
+    if (endPage > this.totalPages) {
+      endPage = this.totalPages;
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    return Array.from({ length: endPage - startPage + 1 }, (_, i) => startPage + i);
+  }
+
+  goToPage(page: number) {
+    if (page >= 1 && page <= this.totalPages) {
+      this.currentPage = page;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   get filteredMedicos() {
     if (!this.medicoSearchText) return this.medicos;
@@ -122,6 +157,7 @@ export class ServicioMedicoVisitas implements OnInit {
         next: (res: any) => {
           if (res.success) {
             this.consultas = res.data;
+            this.currentPage = 1; // Reset to page 1 on new search
             this.cdr.detectChanges();
           }
         },
@@ -149,7 +185,8 @@ export class ServicioMedicoVisitas implements OnInit {
       medico: '',
       medico_search: '',
       search: '',
-      patient_type: ''
+      patient_type: '',
+      numero_socio: ''
     };
     this.loadConsultas();
   }

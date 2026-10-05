@@ -190,4 +190,11 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
   abrirExpediente(socioId: string | number) {
     this.router.navigate(['/servicio-medico/expediente', socioId], { queryParams: { type: 'socio' } });
   }
+
+  goBack() {
+    if (this.isCameraOpen) {
+      this.stopCamera();
+    }
+    this.router.navigate(['/servicio-medico/dashboard']);
+  }
 }
