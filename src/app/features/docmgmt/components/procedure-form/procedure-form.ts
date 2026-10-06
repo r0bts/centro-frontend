@@ -133,7 +133,7 @@ export class ProcedureFormComponent implements OnInit {
     if (!this.departments.length || !this.permissions.length) return;
     this.permissions.forEach(p => {
       if (p.permission_type === 'department') {
-        const dept = this.departments.find(d => d.id === p.department_id);
+        const dept = this.departments.find(d => Number(d.id) === Number(p.department_id));
         if (dept) dept.selected = true;
       }
     });
@@ -259,8 +259,19 @@ export class ProcedureFormComponent implements OnInit {
           if (!this.isEdit && this.pendingFiles.length > 0) {
             const uploadRequests = this.pendingFiles.map(file => this.docmgmtService.uploadDocument(procId, file));
             forkJoin(uploadRequests).subscribe({
-              next: () => this.router.navigate(['/docmgmt', procId]),
-              error: () => this.router.navigate(['/docmgmt', procId])
+              next: (results: any[]) => {
+                // Comprobar si alguno falló
+                const failures = results.filter(r => !r.success);
+                if (failures.length > 0) {
+                  const errorMsgs = failures.map(f => f.message + ' ' + JSON.stringify(f.errors || {})).join('\\n');
+                  alert('El procedimiento se creó, pero hubo errores subiendo los documentos:\\n' + errorMsgs);
+                }
+                this.router.navigate(['/docmgmt', procId]);
+              },
+              error: () => {
+                alert('Error de conexión al subir documentos');
+                this.router.navigate(['/docmgmt', procId]);
+              }
             });
           } else {
             this.router.navigate(['/docmgmt', procId]);
