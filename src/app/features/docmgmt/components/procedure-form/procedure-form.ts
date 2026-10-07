@@ -166,6 +166,11 @@ export class ProcedureFormComponent implements OnInit {
   onFileSelected(event: any) {
     const file: File = event.target.files[0];
     if (file) {
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        alert('Solo se permiten archivos PDF o imágenes (JPG, PNG, WEBP).');
+        return;
+      }
       if (this.isEdit && this.procedureId) {
         // Upload immediately
         this.docmgmtService.uploadDocument(this.procedureId, file).subscribe({

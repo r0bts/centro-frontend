@@ -32,4 +32,5 @@ export interface DocmgmtPermission {
   user_id?: number;
   granted_by?: number;
   created_at?: string;
+  displayName?: string;
 }

@@ -1,7 +1,74 @@
 @import '../../styles/shared';
 
-.doc-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
-.doc-table th { background: #f8fafc; font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #6c757d; padding: .75rem 1rem; border-bottom: 1px solid #dee2e6; white-space: nowrap; }
-.doc-table td { padding: .75rem 1rem; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
-.doc-table tr:last-child td { border-bottom: none; }
-.doc-table tr:hover td { background: #f8fafc; }
+.proc-icon {
+  border-radius: 50%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Lista de Documentos Estilizada */
+.doc-list-item {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  background-color: transparent;
+
+  &:hover {
+    background-color: #f8f9fa;
+    transform: translateX(4px);
+  }
+
+  &.active-doc {
+    background-color: #eef2f7;
+    border-left: 4px solid var(--bs-primary) !important;
+  }
+}
+
+.doc-icon-wrapper {
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.doc-title {
+  color: #343a40;
+}
+
+.active-doc .doc-title {
+  color: var(--bs-primary);
+  font-weight: 700 !important;
+}
+
+/* Visor de Documentos */
+.viewer-card {
+  min-height: 600px;
+  height: calc(100vh - 200px); /* Ocupa el resto de la pantalla en pantallas grandes */
+}
+
+.viewer-body {
+  height: 100%;
+  min-height: 500px;
+  background-color: #e9ecef;
+  border-radius: 0 0 1rem 1rem;
+}
+
+.max-h-100 {
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* Mejoras a badges y botones */
+.rounded-4 {
+  border-radius: 1rem !important;
+}
+
+.rounded-top-4 {
+  border-radius: 1rem 1rem 0 0 !important;
+}
+
+.rounded-bottom-4 {
+  border-radius: 0 0 1rem 1rem !important;
+}

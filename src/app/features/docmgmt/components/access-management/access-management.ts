@@ -31,6 +31,33 @@ export class AccessManagementComponent implements OnInit {
 
   departments: any[] = [];
 
+  // Department search
+  searchDeptTerm = '';
+  deptSearchResults: any[] = [];
+
+  get selectedDepartments(): any[] {
+    return this.departments.filter(d => d.selected);
+  }
+
+  searchDept() {
+    if (!this.searchDeptTerm.trim()) {
+      this.deptSearchResults = [];
+      return;
+    }
+    const term = this.searchDeptTerm.toLowerCase();
+    this.deptSearchResults = this.departments.filter(d => !d.selected && d.name.toLowerCase().includes(term));
+  }
+
+  addDepartment(dept: any) {
+    dept.selected = true;
+    this.searchDeptTerm = '';
+    this.deptSearchResults = [];
+  }
+
+  removeDepartment(dept: any) {
+    dept.selected = false;
+  }
+
   // Dummy user search for now since there's no UsersService defined yet
   searchUserTerm = '';
   usersSearchResults: any[] = [];
@@ -107,12 +134,31 @@ export class AccessManagementComponent implements OnInit {
           dept.permId = p.id || null;
         }
       } else if (p.permission_type === 'user') {
-        this.selectedUsers.push({
+        const userObj = {
           id: p.user_id,
-          name: 'Usuario ' + p.user_id, // Placeholder since we don't have user names joined
+          name: 'Cargando...', // Placeholder until fetched
           permId: p.id,
           original: true
-        });
+        };
+        this.selectedUsers.push(userObj);
+        
+        if (p.user_id) {
+          this.userService.getUserById(p.user_id.toString()).subscribe({
+            next: (res: any) => {
+              if (res && res.user) {
+                userObj.name = `${res.user.firstName || ''} ${res.user.lastName || ''}`.trim() || res.user.username;
+                this.cdr.detectChanges();
+              } else {
+                userObj.name = 'Usuario ' + p.user_id;
+                this.cdr.detectChanges();
+              }
+            },
+            error: () => {
+              userObj.name = 'Usuario ' + p.user_id;
+              this.cdr.detectChanges();
+            }
+          });
+        }
       }
     });
   }
@@ -121,23 +167,34 @@ export class AccessManagementComponent implements OnInit {
     dept.selected = !dept.selected;
   }
 
+  searchUserTimer: any;
+
   searchUser() {
-    if (!this.searchUserTerm.trim() || this.searchUserTerm.length < 3) {
-      this.usersSearchResults = [];
-      return;
+    if (this.searchUserTimer) {
+      clearTimeout(this.searchUserTimer);
     }
     
-    this.userService.getAllUsers(20, 1, this.searchUserTerm).subscribe({
-      next: (users) => {
-        this.usersSearchResults = users.map(u => ({
-          ...u,
-          name: `${u.firstName} ${u.lastName}`.trim()
-        }));
-      },
-      error: () => {
+    this.searchUserTimer = setTimeout(() => {
+      if (!this.searchUserTerm.trim() || this.searchUserTerm.length < 2) {
         this.usersSearchResults = [];
+        this.cdr.detectChanges();
+        return;
       }
-    });
+      
+      this.userService.getAllUsers(20, 1, this.searchUserTerm).subscribe({
+        next: (users) => {
+          this.usersSearchResults = users.map(u => ({
+            ...u,
+            name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.username || u.email
+          }));
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.usersSearchResults = [];
+          this.cdr.detectChanges();
+        }
+      });
+    }, 300);
   }
 
   addUser(user: any) {

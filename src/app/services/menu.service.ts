@@ -49,6 +49,28 @@ export class MenuService {
       }
     }
 
+    // Ensure Gestión Documental is accessible even without submodule permissions (for assigned procedures)
+    const hasDocmgmt = menuItems.some(item => item.id === 'gestion_documental');
+    if (!hasDocmgmt) {
+      menuItems.push({
+        id: 'gestion_documental',
+        label: 'Gestión Documental',
+        icon: 'folder_open',
+        isParent: true,
+        isExpanded: false,
+        active: false,
+        children: [
+          {
+            id: 'procedimientos',
+            label: 'Procedimientos',
+            icon: 'description',
+            route: '/docmgmt',
+            active: false
+          }
+        ]
+      });
+    }
+
     return menuItems;
   }
 
@@ -58,12 +80,18 @@ export class MenuService {
   private buildModuleItem(module: PermissionModule): MenuItem | null {
     const submoduleItems: MenuItem[] = [];
     
-    // Rutas internas que no deben aparecer en el menú
     const excludedRoutes = [
       '/requisicion/confirmacion',
       '/reportes/historial',      // Temporalmente oculto - en desarrollo
+      '/reportes',                // Oculto por petición
       '/summer-course/activities', // Se accede desde botón en tarjeta de curso
-      //'/requisicion/frecuentes'   // Temporalmente oculto - en desarrollo
+      '/requisicion/frecuentes',   // Temporalmente oculto - en desarrollo
+      '/deportivo/finanzas',
+      '/deportivo/encuestas',
+      '/deportivo/comunicados',
+      '/deportivo/usuarios',
+      '/deportivo/torneos',
+      '/deportivo/dashboard'
     ];
 
     // Obtener submódulos y ordenarlos por sort_order
@@ -72,8 +100,9 @@ export class MenuService {
 
     for (const submodule of submodules) {
       // Verificar si el usuario tiene al menos 1 permiso granted en este submódulo
-      // Y que la ruta no esté en la lista de exclusión
-      if (this.hasAnyGrantedPermission(submodule) && !excludedRoutes.includes(submodule.route)) {
+      // Y que la ruta no esté en la lista de exclusión (exacta o como prefijo)
+      const isExcluded = excludedRoutes.some(r => submodule.route === r || submodule.route.startsWith(r + '/'));
+      if (this.hasAnyGrantedPermission(submodule) && !isExcluded) {
         const submoduleItem: MenuItem = {
           id: submodule.name,
           label: submodule.display_name,

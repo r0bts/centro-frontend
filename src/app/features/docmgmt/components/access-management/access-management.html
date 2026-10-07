@@ -27,11 +27,30 @@
             <div class="text-muted" style="font-size:.75rem;">Todo el departamento seleccionado podrá ver este procedimiento.</div>
           </div>
         </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <div class="acceso-badge" *ngFor="let dept of departments" [class.sel]="dept.selected" (click)="toggleDepartment(dept)">
-            <span class="ab-check"><i class="bi bi-check-circle-fill"></i></span>
-            <i class="bi" [class]="dept.icon"></i> {{ dept.name }}
+        <div class="input-group input-group-sm mb-2 mt-3">
+          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+          <input type="text" class="form-control" placeholder="Buscar departamento por nombre..." [(ngModel)]="searchDeptTerm" (ngModelChange)="searchDept()">
+          <button class="btn btn-outline-primary" type="button" (click)="searchDept()">Buscar</button>
+        </div>
+
+        <div class="border rounded-3 mb-3" style="max-height:120px;overflow-y:auto;" *ngIf="deptSearchResults.length > 0">
+          <div class="access-search-result" *ngFor="let dept of deptSearchResults">
+            <div class="chip-avatar" style="background:var(--bs-primary);color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;">
+              <i class="bi bi-building"></i>
+            </div>
+            <div class="flex-grow-1 ms-2">
+              <div class="fw-semibold" style="font-size:.82rem;">{{ dept.name }}</div>
+            </div>
+            <button class="btn btn-sm btn-primary" (click)="addDepartment(dept)">Agregar</button>
           </div>
+        </div>
+
+        <div class="mb-1 small text-muted" *ngIf="selectedDepartments.length > 0">Departamentos con acceso</div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="user-chip" *ngFor="let dept of selectedDepartments">
+            <span class="chip-avatar text-white" style="background:var(--bs-primary);"><i class="bi bi-building"></i></span>{{ dept.name }}
+            <span class="chip-remove" (click)="removeDepartment(dept)"><i class="bi bi-x-circle-fill"></i></span>
+          </span>
         </div>
       </div>
 
@@ -49,7 +68,7 @@
 
         <div class="input-group input-group-sm mb-2 mt-3">
           <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-          <input type="text" class="form-control" placeholder="Buscar usuario por nombre o correo..." [(ngModel)]="searchUserTerm" (keyup.enter)="searchUser()">
+          <input type="text" class="form-control" placeholder="Buscar por nombre, correo o username (mín. 2 letras)..." [(ngModel)]="searchUserTerm" (ngModelChange)="searchUser()">
           <button class="btn btn-outline-primary" type="button" (click)="searchUser()">Buscar</button>
         </div>
         
