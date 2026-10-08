@@ -1,3 +1,4 @@
+import { firstValueFrom } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { computed, 
   Component,
@@ -8,6 +9,7 @@ import { computed,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { Directive, ElementRef, Output, EventEmitter, OnDestroy, HostListener } from '@angular/core';
 
 @Directive({
@@ -51,7 +53,7 @@ import { ActividadWizardComponent } from './actividad-wizard/actividad-wizard';
   selector: 'app-deportivo-actividades',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ActividadWizardComponent, FormsModule, BsDropdownStateDirective],
+  imports: [CommonModule, NgSelectModule, ActividadWizardComponent, FormsModule, BsDropdownStateDirective],
   templateUrl: './deportivo-actividades.html',
   styleUrl: './deportivo-actividades.scss',
 })
@@ -62,9 +64,10 @@ export class DeportivoActividadesComponent implements OnInit {
   // ── State ──────────────────────────────────────────────────────────────────
   formData      = signal<ActividadFormData | null>(null);
   filterClubId  = signal<number | null>(null);
-  filterAreaId  = signal<number | null>(null);
+  filterAcceso  = signal<boolean | null>(null);
   filterNombre  = signal<string>('');
   filterHorario = signal<string>('');
+  filterProfesorId = signal<number | null>(null);
   viewMode = signal<'grid' | 'list' | 'calendar'>(
     (localStorage.getItem('centro_actividades_view_mode') as any) || 'grid'
   );
@@ -195,8 +198,9 @@ export class DeportivoActividadesComponent implements OnInit {
     let list = this.actividades();
     const qName = this.filterNombre()?.toLowerCase().trim();
     const cId = this.filterClubId();
-    const aId = this.filterAreaId();
+    const pId = this.filterProfesorId();
     const searchH = this.filterHorario()?.toLowerCase().trim();
+    const filterAcceso = this.filterAcceso();
 
     if (qName) {
       list = list.filter(a => a.nombre.toLowerCase().includes(qName));
@@ -205,21 +209,29 @@ export class DeportivoActividadesComponent implements OnInit {
     if (cId) {
       list = list.filter(a => a.club_id === cId);
     }
+
+    if (filterAcceso !== null) {
+      if (filterAcceso) {
+        list = list.filter(a => a.elegible_para_socios !== false);
+      } else {
+        list = list.filter(a => a.elegible_para_socios === false);
+      }
+    }
     
-    if (aId || searchH) {
+    if (searchH || pId) {
       list = list.filter(a => {
-        // If aId is set, does any grupo > horario match this area?
-        // Wait, Actividad has `grupos_categorias`, let's search them.
-        let matchArea = false;
         let matchHorario = false;
+        let matchProfesor = false;
 
         const grupos = a.grupos_categorias || [];
         for (const g of grupos) {
           const equipos = g.equipos || [];
           for (const eq of equipos) {
+            if (pId && eq.coach_id === pId) matchProfesor = true;
+            
             const horarios = eq.horarios || [];
             for (const h of horarios) {
-              if (aId && h.area_id === aId) matchArea = true;
+              if (pId && h.profesor_id === pId) matchProfesor = true;
               
               if (searchH) {
                 const dayMap = [null, 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
@@ -232,7 +244,7 @@ export class DeportivoActividadesComponent implements OnInit {
           }
         }
         
-        if (aId && !matchArea) return false;
+        if (pId && !matchProfesor) return false;
         if (searchH && !matchHorario) return false;
         return true;
       });
@@ -243,6 +255,17 @@ export class DeportivoActividadesComponent implements OnInit {
 
   // delete
   deleteTarget  = signal<Actividad | null>(null);
+  selectedActividadForHorarios = signal<Actividad | null>(null);
+  isOffcanvasOpen = signal(false);
+  inlineFormEquipoId = signal<number | null>(null);
+  inlineFormDia = signal<number | null>(null);
+  inlineFormProfesorId = signal<number | null>(null);
+  horarioForm = {
+    dia_semana: 1,
+    hora_inicio: '08:00',
+    hora_fin: '09:00',
+    profesor_id: null as number | null
+  };
   deleting      = signal(false);
 
   // wizard
@@ -369,6 +392,132 @@ export class DeportivoActividadesComponent implements OnInit {
     this.deleteTarget.set(null);
   }
 
+  
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey() {
+    if (this.isOffcanvasOpen()) {
+      this.closeHorariosOffcanvas();
+    }
+  }
+
+  openHorariosOffcanvas(act: Actividad) {
+
+    this.selectedActividadForHorarios.set(act);
+    this.isOffcanvasOpen.set(true);
+    // Reset form
+    this.horarioForm = { dia_semana: 1, hora_inicio: '08:00', hora_fin: '09:00', profesor_id: null };
+  }
+
+  openInlineForm(equipoId: number, dia: number, profesorId: number) {
+    this.inlineFormEquipoId.set(equipoId);
+    this.inlineFormDia.set(dia);
+    this.inlineFormProfesorId.set(profesorId);
+    this.horarioForm.dia_semana = dia;
+    this.horarioForm.hora_inicio = '09:00';
+    this.horarioForm.hora_fin = '10:00';
+  }
+
+  async saveInlineForm() {
+    const equipoId = this.inlineFormEquipoId();
+    const profId = this.inlineFormProfesorId();
+    if (!equipoId) return;
+
+    const act = this.selectedActividadForHorarios();
+    if (!act) return;
+    
+    try {
+      const payload: any = {
+        dia_semana: Number(this.horarioForm.dia_semana),
+        hora_inicio: this.horarioForm.hora_inicio + ':00',
+        hora_fin: this.horarioForm.hora_fin + ':00'
+      };
+      
+      if (profId && profId > 0) {
+        payload.profesor_id = profId;
+      }
+
+      const res = await firstValueFrom(this.svc.createHorario(equipoId, payload));
+      
+      const g = act.grupos_categorias?.find(g => g.equipos?.some(e => e.id === equipoId));
+      if (g) {
+        const e = g.equipos?.find(e => e.id === equipoId);
+        if (e) {
+          if (!e.horarios) e.horarios = [];
+          e.horarios.push(res.data);
+        }
+      }
+      this.selectedActividadForHorarios.set({...act});
+      this.showToast('Horario agregado');
+      this.inlineFormEquipoId.set(null);
+      this.loadActividades();
+    } catch (error: any) {
+      this.error.set(error.message || 'Error al agregar el horario');
+      setTimeout(() => this.error.set(null), 3000);
+    }
+  }
+
+  closeHorariosOffcanvas() {
+    this.isOffcanvasOpen.set(false);
+    setTimeout(() => this.selectedActividadForHorarios.set(null), 300);
+  }
+
+  async deleteHorarioRapido(actId: number, equipoId: number, horarioId: number) {
+    if (!confirm('¿Eliminar este horario?')) return;
+    try {
+      await firstValueFrom(this.svc.deleteHorario(equipoId, horarioId));
+      this.showToast('Horario eliminado.');
+      this.loadActividades(); // Reload to reflect changes
+      // Update local state for offcanvas directly
+      this.selectedActividadForHorarios.update(act => {
+        if (!act) return null;
+        for (const g of act.grupos_categorias ?? []) {
+          for (const e of g.equipos ?? []) {
+            if (e.id === equipoId && e.horarios) {
+              e.horarios = e.horarios.filter(h => h.id !== horarioId);
+            }
+          }
+        }
+        return { ...act };
+      });
+    } catch (e) {
+      this.showToast('Error al eliminar horario');
+    }
+  }
+
+  async addHorarioRapido(equipoId: number) {
+    const act = this.selectedActividadForHorarios();
+    if (!act) return;
+    
+    try {
+      const res = await firstValueFrom(this.svc.createHorario(equipoId, {
+        dia_semana: Number(this.horarioForm.dia_semana),
+        hora_inicio: this.horarioForm.hora_inicio + ':00',
+        hora_fin: this.horarioForm.hora_fin + ':00',
+        profesor_id: this.horarioForm.profesor_id || undefined,
+        is_active: true
+      }));
+      
+      this.showToast('Horario agregado.');
+      this.loadActividades();
+      
+      this.selectedActividadForHorarios.update(a => {
+        if (!a) return null;
+        for (const g of a.grupos_categorias ?? []) {
+          for (const e of g.equipos ?? []) {
+            if (e.id === equipoId) {
+              if (!e.horarios) e.horarios = [];
+              e.horarios.push(res.data);
+            }
+          }
+        }
+        return { ...a };
+      });
+    } catch (e) {
+      this.showToast('Error al agregar horario');
+    }
+  }
+
   executeDelete(): void {
     const target = this.deleteTarget();
     if (!target) return;
@@ -405,4 +554,55 @@ export class DeportivoActividadesComponent implements OnInit {
 
   clearError(): void { this.error.set(null); }
   clearToast(): void { this.toast.set(null); }
+
+  agruparPorDia(horarios: any[]): any[] {
+    if (!horarios) return [];
+    
+    // Group by Day
+    const mapaDia = new Map<number, any[]>();
+    for (const h of horarios) {
+      if (!mapaDia.has(h.dia_semana)) mapaDia.set(h.dia_semana, []);
+      mapaDia.get(h.dia_semana)!.push(h);
+    }
+    
+    const result = Array.from(mapaDia.entries()).map(([dia, hrs]) => {
+      // Group by Professor within the day
+      const mapaProf = new Map<number, any[]>();
+      for (const h of hrs) {
+        const pId = h.profesor_id || 0;
+        if (!mapaProf.has(pId)) mapaProf.set(pId, []);
+        mapaProf.get(pId)!.push(h);
+      }
+      
+      const profesores = Array.from(mapaProf.entries()).map(([pId, p_hrs]) => {
+        p_hrs.sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''));
+        
+        const minHora = p_hrs[0].hora_inicio ? p_hrs[0].hora_inicio.substring(0,5) : '';
+        const maxHora = p_hrs[p_hrs.length - 1].hora_fin ? p_hrs[p_hrs.length - 1].hora_fin.substring(0,5) : '';
+        const rango_horas = `${minHora} - ${maxHora}`;
+        
+        return {
+          profesor_id: pId,
+          profesor_nombre: pId ? this.getInstructorName(pId, true) : 'Sin asignar',
+          rango_horas: rango_horas,
+          horarios: p_hrs
+        };
+      });
+      
+      profesores.sort((a, b) => a.horarios[0].hora_inicio.localeCompare(b.horarios[0].hora_inicio));
+
+      return {
+        dia,
+        profesores
+      };
+    });
+    
+    result.sort((a, b) => a.dia - b.dia);
+    return result;
+  }
+
+  daysMapping: Record<number, string> = {
+    1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
+    4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
+  };
 }

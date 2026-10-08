@@ -69,8 +69,8 @@
     <!-- ── Filtros ── -->
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-body py-3">
-        <div class="row g-3">
-          <div class="col-md-3">
+        <div class="row g-3 row-cols-1 row-cols-md-3 row-cols-lg-5">
+          <div class="col">
             <label class="form-label small fw-semibold text-muted mb-1">Buscar actividad</label>
             <div class="position-relative">
               <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem; z-index: 4;"></i>
@@ -80,7 +80,7 @@
               }
             </div>
           </div>
-          <div class="col-md-3">
+          <div class="col">
             <label class="form-label small fw-semibold text-muted mb-1">Sede (Unidad)</label>
             <select class="form-select form-select-sm" [(ngModel)]="filterClubId">
               <option [ngValue]="null">Todas las sedes</option>
@@ -89,16 +89,31 @@
               }
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1">Zona (Área)</label>
-            <select class="form-select form-select-sm" [(ngModel)]="filterAreaId">
-              <option [ngValue]="null">Todas las áreas</option>
-              @for (a of formData()?.areas_mapeadas; track a.area_id) {
-                <option [ngValue]="a.area_id">{{ a.area_name }}</option>
-              }
+          <div class="col">
+            <label class="form-label small fw-semibold text-muted mb-1">Acceso</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filterAcceso">
+              <option [ngValue]="null">Cualquiera</option>
+              <option [ngValue]="true">Socios</option>
+              <option [ngValue]="false">Staff</option>
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col">
+            <label class="form-label small fw-semibold text-muted mb-1">Profesor</label>
+            <ng-select [items]="formData()?.instructores || []"
+                       bindLabel="full_name"
+                       bindValue="id"
+                       placeholder="Cualquier profesor"
+                       [(ngModel)]="filterProfesorId"
+                       class="custom-sm-select w-100">
+              <ng-template ng-label-tmp let-item="item">
+                <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
+              </ng-template>
+              <ng-template ng-option-tmp let-item="item">
+                <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
+              </ng-template>
+            </ng-select>
+          </div>
+          <div class="col">
             <label class="form-label small fw-semibold text-muted mb-1">Horario / Día</label>
             <input type="text" class="form-control form-control-sm" placeholder="Ej. Lunes, 08:00..." [(ngModel)]="filterHorario">
           </div>
@@ -124,8 +139,8 @@
     <!-- ── Filtros ── -->
     <div class="card mb-4 border-0 shadow-sm">
       <div class="card-body py-3">
-        <div class="row g-3">
-          <div class="col-md-3">
+        <div class="row g-3 row-cols-1 row-cols-md-3 row-cols-lg-5">
+          <div class="col">
             <label class="form-label small fw-semibold text-muted mb-1">Buscar actividad</label>
             <div class="position-relative">
               <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem; z-index: 4;"></i>
@@ -135,7 +150,7 @@
               }
             </div>
           </div>
-          <div class="col-md-3">
+          <div class="col">
             <label class="form-label small fw-semibold text-muted mb-1">Sede (Unidad)</label>
             <select class="form-select form-select-sm" [(ngModel)]="filterClubId">
               <option [ngValue]="null">Todas las sedes</option>
@@ -144,16 +159,31 @@
               }
             </select>
           </div>
-          <div class="col-md-3">
-            <label class="form-label small fw-semibold text-muted mb-1">Zona (Área)</label>
-            <select class="form-select form-select-sm" [(ngModel)]="filterAreaId">
-              <option [ngValue]="null">Todas las áreas</option>
-              @for (a of formData()?.areas_mapeadas; track a.area_id) {
-                <option [ngValue]="a.area_id">{{ a.area_name }}</option>
-              }
+          <div class="col">
+            <label class="form-label small fw-semibold text-muted mb-1">Acceso</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filterAcceso">
+              <option [ngValue]="null">Cualquiera</option>
+              <option [ngValue]="true">Socios</option>
+              <option [ngValue]="false">Staff</option>
             </select>
           </div>
-          <div class="col-md-3">
+          <div class="col">
+            <label class="form-label small fw-semibold text-muted mb-1">Profesor</label>
+            <ng-select [items]="formData()?.instructores || []"
+                       bindLabel="full_name"
+                       bindValue="id"
+                       placeholder="Cualquier profesor"
+                       [(ngModel)]="filterProfesorId"
+                       class="custom-sm-select w-100">
+              <ng-template ng-label-tmp let-item="item">
+                <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
+              </ng-template>
+              <ng-template ng-option-tmp let-item="item">
+                <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
+              </ng-template>
+            </ng-select>
+          </div>
+          <div class="col">
             <label class="form-label small fw-semibold text-muted mb-1">Horario / Día</label>
             <input type="text" class="form-control form-control-sm" placeholder="Ej. Lunes, 08:00..." [(ngModel)]="filterHorario">
           </div>
@@ -199,18 +229,14 @@
                 <input class="form-check-input m-0" type="checkbox" role="switch"
                        [checked]="act.elegible_para_socios !== false" 
                        (change)="toggleSocios(act)"
-                       style="cursor: pointer; width: 1.8rem; height: 0.9rem;"
-                       
-                       
-                       
-                       >
+                       style="cursor: pointer; width: 2.2rem; height: 1.1rem;">
               </div>
             </div>
           </div>
 
           <!-- Info -->
           <div class="mb-1">
-            <h6 class="mb-1 fw-bold text-uppercase" style="font-size: 1rem; color: #333;">{{ act.nombre }}</h6>
+            <h6 class="mb-1 fw-medium text-uppercase" style="font-size: 1rem; color: #333;">{{ act.nombre }}</h6>
             
           </div>
 
@@ -356,7 +382,7 @@
                         <span>{{ act.icono || '🏆' }}</span>
                       </div>
                       <div>
-                        <h6 class="mb-0 fw-semibold">{{ act.nombre }}</h6>
+                        <span class="d-block text-dark fw-medium" style="font-size: 0.95rem;">{{ act.nombre }}</span>
                         
                       </div>
                     </div>
@@ -454,7 +480,9 @@
                         {{ act.is_active ? 'Activa' : 'Inactiva' }}
                       </label>
                       @if (act.tiene_costo) {
-                        <span class="badge bg-warning-subtle text-warning ms-1" title="Tiene costo">💰</span>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill ms-2 d-inline-flex align-items-center gap-1" title="Tiene costo: {{ (act.monto || 0) | currency:'MXN':'symbol':'1.2-2' }}">
+                          💰 {{ (act.monto || 0) | currency:'MXN':'symbol':'1.2-2' }}
+                        </span>
                       }
                     </div>
                   </td>
@@ -462,7 +490,13 @@
                   <!-- Acciones -->
                   <td class="text-end pe-4">
                     <div class="btn-group border rounded-pill bg-white shadow-sm" role="group">
-                      <button type="button" class="btn btn-sm btn-light border-0 rounded-start-pill text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
+                      <button type="button" class="btn btn-sm btn-light border-0 rounded-start-pill text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Horarios" (click)="openHorariosOffcanvas(act)">
+                        <i class="bi bi-clock" style="font-size: 0.85rem;"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Duplicar" (click)="duplicateActividad(act)">
+                        <i class="bi bi-files" style="font-size: 0.85rem;"></i>
+                      </button>
+                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
                         <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
                       </button>
                       <button type="button" class="btn btn-sm btn-light border-0 border-start rounded-end-pill text-danger d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Eliminar" (click)="confirmDelete(act)">
@@ -568,6 +602,128 @@
     </div>
   }
 
+  
+  <!-- ── Offcanvas para Horarios ── -->
+  @if (isOffcanvasOpen() && selectedActividadForHorarios()) {
+    <div class="offcanvas-backdrop fade show" style="z-index: 1040; position: fixed; inset: 0; cursor: pointer;" (click)="closeHorariosOffcanvas()"></div>
+    <div class="offcanvas offcanvas-end show" tabindex="-1" style="z-index: 1045; width: 450px; visibility: visible;" aria-labelledby="offcanvasHorariosLabel">
+      <div class="offcanvas-header bg-light border-bottom">
+        <div>
+          <h5 class="offcanvas-title fw-bold" id="offcanvasHorariosLabel">
+            <i class="bi bi-clock text-primary me-2"></i>Horarios Rápidos
+          </h5>
+          <span class="text-muted small text-uppercase">{{ selectedActividadForHorarios()!.nombre }}</span>
+        </div>
+        <button type="button" class="btn-close" (click)="closeHorariosOffcanvas()" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body p-0" style="background-color: #f8f9fa;">
+        @for (g of selectedActividadForHorarios()!.grupos_categorias || []; track g.id) {
+          @for (e of g.equipos || []; track e.id) {
+            <div class="equipo-section-wrapper">
+            <!-- SEPARADOR DE EQUIPO (Nivel 1) -->
+            <div class="bg-dark text-white px-3 py-2 sticky-top shadow-sm" style="z-index: 10; line-height: 1.4;">
+              <div class="fw-medium d-flex align-items-start gap-2" style="font-size: 0.85rem; letter-spacing: 0.5px;">
+                <i class="bi bi-diagram-3 opacity-75" style="margin-top: 2px;"></i>
+                <div class="text-wrap">
+                  <span class="opacity-75">{{ g.nombre }}</span> 
+                  <i class="bi bi-chevron-right mx-1" style="font-size: 0.6rem;"></i> 
+                  <strong>{{ e.nombre }}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="pb-4">
+              @if (e.horarios && e.horarios.length > 0) {
+                <div class="d-flex flex-column pt-2">
+                  @for (grupoDia of agruparPorDia(e.horarios); track grupoDia.dia) {
+                    
+                    <!-- SEPARADOR DE DÍA (Nivel 2) -->
+                    <div class="mt-3 mb-2 px-3 d-flex align-items-center">
+                      <div class="text-primary fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">
+                        <i class="bi bi-calendar-event me-2"></i>{{ daysMapping[grupoDia.dia] || 'Día' }}
+                      </div>
+                      <div class="ms-3 flex-grow-1 border-top border-primary border-opacity-25"></div>
+                    </div>
+                    
+                    <div class="d-flex flex-column gap-3 px-3">
+                      @for (profGroup of grupoDia.profesores; track profGroup.profesor_id) {
+                        
+                        <!-- TARJETA DE PROFESOR (Nivel 3) -->
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                          <!-- Header de Profesor -->
+                          <div class="card-header bg-white border-bottom-0 py-2 d-flex justify-content-between align-items-center" style="background: linear-gradient(to right, rgba(99,102,241,0.05), transparent);">
+                            <div class="d-flex align-items-center gap-2">
+                              <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                                {{ profGroup.profesor_nombre.charAt(0).toUpperCase() }}
+                              </div>
+                              <span class="fw-semibold text-dark" style="font-size: 0.85rem; text-transform: capitalize;">
+                                {{ profGroup.profesor_nombre.toLowerCase() }}
+                              </span>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="badge bg-light text-secondary border fw-medium px-2 py-1">
+                                <i class="bi bi-clock me-1 opacity-75"></i>{{ profGroup.rango_horas }}
+                              </span>
+                              <button class="btn btn-sm btn-light border p-0 d-flex align-items-center justify-content-center text-primary rounded-circle shadow-sm" style="width: 26px; height: 26px;" title="Añadir horario a este profesor" (click)="openInlineForm(e.id, grupoDia.dia, profGroup.profesor_id)">
+                                <i class="bi bi-plus-lg"></i>
+                              </button>
+                            </div>
+                          </div>
+
+                          <!-- Lista de horarios (Inputs Nivel 4) -->
+                          <div class="card-body p-2 pt-0 bg-white">
+                            @for (h of profGroup.horarios; track h.id) {
+                              <div class="d-flex align-items-center gap-2 mt-2">
+                                <div class="input-group input-group-sm w-100 rounded-pill border overflow-hidden bg-light">
+                                  <span class="input-group-text bg-transparent text-muted border-0 ps-3 pe-1"><i class="bi bi-box-arrow-in-right opacity-50"></i></span>
+                                  <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium text-dark" [value]="h.hora_inicio.substring(0,5)" readonly title="Para cambiar este horario, elimínalo y crea uno nuevo">
+                                  <span class="input-group-text bg-transparent text-muted border-0 px-1 opacity-50">a</span>
+                                  <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium text-dark" [value]="h.hora_fin.substring(0,5)" readonly title="Para cambiar este horario, elimínalo y crea uno nuevo">
+                                </div>
+                                <button class="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center bg-white" style="width: 32px; height: 32px; border-width: 1.5px;" title="Eliminar" (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
+                                  <i class="bi bi-trash3"></i>
+                                </button>
+                              </div>
+                            }
+                            
+                            <!-- Formulario Inline -->
+                            @if (inlineFormEquipoId() === e.id && inlineFormDia() === grupoDia.dia && inlineFormProfesorId() === profGroup.profesor_id) {
+                              <div class="d-flex align-items-center gap-2 mt-3 p-2 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-pill shadow-sm">
+                                <div class="input-group input-group-sm w-100 rounded-pill overflow-hidden border border-primary border-opacity-25 bg-white">
+                                  <input type="time" class="form-control text-center border-0 px-1 text-primary fw-bold" [(ngModel)]="horarioForm.hora_inicio">
+                                  <span class="input-group-text bg-white text-primary border-0 px-1 opacity-50">a</span>
+                                  <input type="time" class="form-control text-center border-0 px-1 text-primary fw-bold" [(ngModel)]="horarioForm.hora_fin">
+                                </div>
+                                <button class="btn btn-sm btn-primary rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Guardar" (click)="saveInlineForm()" [disabled]="!horarioForm.hora_inicio || !horarioForm.hora_fin">
+                                  <i class="bi bi-check2"></i>
+                                </button>
+                                <button class="btn btn-sm btn-light border-0 bg-white rounded-circle flex-shrink-0 text-secondary d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Cancelar" (click)="inlineFormEquipoId.set(null)">
+                                  <i class="bi bi-x-lg"></i>
+                                </button>
+                              </div>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              } @else {
+                <div class="text-center text-muted small py-4 mx-3 mt-3 bg-white rounded-4 shadow-sm border">
+                  <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 48px; height: 48px;">
+                    <i class="bi bi-calendar-x fs-4 text-secondary"></i>
+                  </div>
+                  <p class="mb-0 fw-medium">No hay horarios registrados.</p>
+                  <p class="text-muted opacity-75" style="font-size: 0.75rem;">Usa el botón de editar la actividad para agregar.</p>
+                </div>
+              }
+            </div>
+            </div> <!-- CIERRA .equipo-section-wrapper -->
+          }
+        }
+      </div>
+    </div>
+  }
   <!-- ── Wizard ── -->
   @if (wizardOpen()) {
     <app-actividad-wizard

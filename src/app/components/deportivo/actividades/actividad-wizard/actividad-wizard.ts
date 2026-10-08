@@ -4,7 +4,7 @@ import {
   Input,
   Output,
   EventEmitter,
-  OnInit,
+  OnInit, DoCheck,
   signal,
   inject,
   computed,
@@ -69,9 +69,10 @@ const STEPS: Step[] = [
   templateUrl: './actividad-wizard.html',
   styleUrl: './actividad-wizard.scss',
 })
-export class ActividadWizardComponent implements OnInit {
+export class ActividadWizardComponent implements OnInit, DoCheck, DoCheck {
   @Input() editActividad: Actividad | null = null;
   @Output() saved     = new EventEmitter<string>();
+  @Output() silentlySaved = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
   private svc  = inject(ActividadService);
@@ -129,7 +130,49 @@ export class ActividadWizardComponent implements OnInit {
   progressPct = computed(() => ((this.currentStep() - 1) / (STEPS.length - 1)) * 100);
   isEditing   = computed(() => this.editActividad !== null);
 
+
+  // ── Detección de cambios sin guardar ────────────────────────────────────────
+  savedStateHash = '';
+  hasUnsavedChanges = signal(false);
+
+  getHash(): string {
+    return JSON.stringify({
+      club_id: this.club_id,
+      nombre: this.nombre,
+      descripcion: this.descripcion,
+      icono: this.icono,
+      color: this.color,
+      tipo: this.tipo,
+      modo_mensajeria: this.modo_mensajeria,
+      tiene_costo: this.tiene_costo,
+      elegible_para_socios: this.elegible_para_socios,
+      fecha_inicio: this.fecha_inicio,
+      fecha_fin: this.fecha_fin,
+      monto: this.monto,
+      grupos: this.grupos(),
+      criterios: this.criterios()
+    });
+  }
+
+  ngDoCheck(): void {
+    if (this.isEditing() && this.savedStateHash) {
+      const currentHash = this.getHash();
+      this.hasUnsavedChanges.set(currentHash !== this.savedStateHash);
+    }
+  }
+
+
+  revertChanges(): void {
+    if (this.originalActividad()) {
+      this.patchFromEdit(this.originalActividad()!);
+      this.hasUnsavedChanges.set(false);
+      this.savedStateHash = this.getHash();
+    }
+  }
+
   // ── Lifecycle ────────────────────────────────────────────────────────────────
+
+
   ngOnInit(): void {
     document.body.style.overflow = 'hidden';
     this.loadingDetail.set(true);
@@ -145,6 +188,10 @@ export class ActividadWizardComponent implements OnInit {
         if (detailRes) {
           this.originalActividad.set(detailRes.data);
           this.patchFromEdit(detailRes.data);
+          // Wait a tick for signals to propagate before hashing
+          setTimeout(() => { this.savedStateHash = this.getHash(); this.hasUnsavedChanges.set(false); }, 0);
+        } else {
+          setTimeout(() => { this.savedStateHash = this.getHash(); this.hasUnsavedChanges.set(false); }, 0);
         }
         this.loadingDetail.set(false);
       },
@@ -439,7 +486,7 @@ export class ActividadWizardComponent implements OnInit {
   }
 
   // ── Publicar ─────────────────────────────────────────────────────────────────
-  async publish(): Promise<void> {
+  async publish(closeModal = true): Promise<void> {
     if (!this.validateCurrentStep()) return;
     this.saving.set(true);
     this.error.set(null);
@@ -449,9 +496,16 @@ export class ActividadWizardComponent implements OnInit {
 
     try {
       let actividadId: number;
+      
+      let oldState: any = null;
+      if (this.isEditing() && this.savedStateHash) {
+         try { oldState = JSON.parse(this.savedStateHash); } catch(e){}
+      }
+      const gruposCriteriosChanged = !oldState || 
+          JSON.stringify(this.grupos()) !== JSON.stringify(oldState.grupos) ||
+          JSON.stringify(this.criterios()) !== JSON.stringify(oldState.criterios);
 
       if (this.isEditing()) {
-        // 1. PUT campos básicos
         const res = await firstValueFrom(this.svc.update(this.editActividad!.id, {
           nombre:          this.nombre.trim(),
           descripcion:     this.descripcion.trim() || undefined,
@@ -466,24 +520,34 @@ export class ActividadWizardComponent implements OnInit {
         }));
         actividadId = res.data.id;
 
-        // 2. Eliminar sub-recursos existentes (de abajo hacia arriba)
-        const current = this.originalActividad();
-        if (current) {
-          for (const g of current.grupos_categorias ?? []) {
-            for (const e of g.equipos ?? []) {
-              for (const h of e.horarios ?? []) {
-                await firstValueFrom(this.svc.deleteHorario(e.id, h.id));
-              }
-              await firstValueFrom(this.svc.deleteEquipo(e.id));
-            }
-            await firstValueFrom(this.svc.deleteGrupo(g.id));
-          }
-          for (const c of current.criterios_evaluacion ?? []) {
-            await firstValueFrom(this.svc.deleteCriterio(c.id));
+        if (gruposCriteriosChanged) {
+          const current = this.originalActividad();
+          if (current) {
+            const delHorarios = [];
+            for (const g of current.grupos_categorias ?? [])
+              for (const e of g.equipos ?? [])
+                for (const h of e.horarios ?? [])
+                  delHorarios.push(firstValueFrom(this.svc.deleteHorario(e.id, h.id)));
+            await Promise.all(delHorarios);
+
+            const delEquipos = [];
+            for (const g of current.grupos_categorias ?? [])
+              for (const e of g.equipos ?? [])
+                delEquipos.push(firstValueFrom(this.svc.deleteEquipo(e.id)));
+            await Promise.all(delEquipos);
+
+            const delGrupos = [];
+            for (const g of current.grupos_categorias ?? [])
+              delGrupos.push(firstValueFrom(this.svc.deleteGrupo(g.id)));
+            await Promise.all(delGrupos);
+
+            const delCriterios = [];
+            for (const c of current.criterios_evaluacion ?? [])
+              delCriterios.push(firstValueFrom(this.svc.deleteCriterio(c.id)));
+            await Promise.all(delCriterios);
           }
         }
       } else {
-        // POST actividad nueva
         const res = await firstValueFrom(this.svc.create({
           club_id:         this.club_id!,
           nombre:          this.nombre.trim(),
@@ -502,71 +566,79 @@ export class ActividadWizardComponent implements OnInit {
         actividadId = res.data.id;
       }
 
-      // POST grupos → equipos → horarios  (aplica tanto en crear como en editar)
-      for (let gi = 0; gi < this.grupos().length; gi++) {
-        const g = this.grupos()[gi];
-        const gRes = await firstValueFrom(this.svc.createGrupo({
-          actividad_id: actividadId,
-          nombre:       g.nombre,
-          descripcion:  g.descripcion || undefined,
-          edad_min:     g.edad_min ?? undefined,
-          edad_max:     g.edad_max ?? undefined,
-          tiene_cupo:   g.tiene_cupo,
-          cupo_maximo:  g.tiene_cupo ? (g.cupo_maximo ?? undefined) : undefined,
-          orden:        gi,
-          is_active:    true,
-        }));
-        const grupoId = gRes.data.id;
-
-        // Si el grupo no tiene equipos pero sí tiene horarios, crear un equipo "General"
-        const equiposACrear = g.horarios.length > 0
-          ? [{ nombre: 'General', color: this.color, coach_id: g.instructor_id }]
-          : [];
-
-        for (const eq of equiposACrear) {
-          const eRes = await firstValueFrom(this.svc.createEquipo({
-            grupo_id:  grupoId,
-            nombre:    eq.nombre,
-            color:     eq.color || undefined,
-            coach_id:  eq.coach_id ?? undefined,
-            is_active: true,
-          elegible_para_socios: this.elegible_para_socios,
+      if (gruposCriteriosChanged) {
+        const groupPromises = this.grupos().map(async (g, gi) => {
+          const gRes = await firstValueFrom(this.svc.createGrupo({
+            actividad_id: actividadId!,
+            nombre:       g.nombre,
+            descripcion:  g.descripcion || undefined,
+            edad_min:     g.edad_min ?? undefined,
+            edad_max:     g.edad_max ?? undefined,
+            tiene_cupo:   g.tiene_cupo,
+            cupo_maximo:  g.tiene_cupo ? (g.cupo_maximo ?? undefined) : undefined,
+            orden:        gi,
+            is_active:    true,
           }));
-          const equipoId = eRes.data.id;
+          const grupoId = gRes.data.id;
 
-          // Horarios del grupo asignados a este equipo
-          for (const h of g.horarios) {
-            await firstValueFrom(this.svc.createHorario(equipoId, {
-              dia_semana:  h.dia_semana,
-              hora_inicio: h.hora_inicio,
-              hora_fin:    h.hora_fin,
-              lugar:       h.lugar ?? undefined,
-              area_id:     h.area_id ?? undefined,
-              profesor_id: h.profesor_id ?? undefined,
-              costo_interno: h.costo_interno ?? undefined,
-              is_active:   true,
+          const equiposACrear = g.horarios.length > 0
+            ? [{ nombre: 'General', color: this.color, coach_id: g.instructor_id }]
+            : [];
+
+          const equipoPromises = equiposACrear.map(async (eq) => {
+            const eRes = await firstValueFrom(this.svc.createEquipo({
+              grupo_id:  grupoId,
+              nombre:    eq.nombre,
+              color:     eq.color || undefined,
+              coach_id:  eq.coach_id ?? undefined,
+              is_active: true,
+              elegible_para_socios: this.elegible_para_socios,
             }));
-          }
-        }
-      }
+            const equipoId = eRes.data.id;
 
-      // POST criterios (aplica tanto en crear como en editar)
-      for (let ci = 0; ci < this.criterios().length; ci++) {
-        const c = this.criterios()[ci];
-        await firstValueFrom(this.svc.createCriterio({
-          actividad_id: actividadId,
-          nombre:       c.nombre,
-          descripcion:  c.descripcion || undefined,
-          escala_min:   c.escala_min,
-          escala_max:   c.escala_max,
-          orden:        ci,
-          is_active:    true,
-        }));
+            const postHorarios = g.horarios.map(h => firstValueFrom(this.svc.createHorario(equipoId, {
+                dia_semana:  h.dia_semana,
+                hora_inicio: h.hora_inicio,
+                hora_fin:    h.hora_fin,
+                lugar:       h.lugar ?? undefined,
+                area_id:     h.area_id ?? undefined,
+                profesor_id: h.profesor_id ?? undefined,
+                costo_interno: h.costo_interno ?? undefined,
+                is_active:   true,
+              })));
+            await Promise.all(postHorarios);
+          });
+          
+          await Promise.all(equipoPromises);
+        });
+        
+        await Promise.all(groupPromises);
+
+        const postCriterios = this.criterios().map((c, ci) => firstValueFrom(this.svc.createCriterio({
+            actividad_id: actividadId!,
+            nombre:       c.nombre,
+            descripcion:  c.descripcion || undefined,
+            escala_min:   c.escala_min,
+            escala_max:   c.escala_max,
+            orden:        ci,
+            is_active:    true,
+          })));
+        await Promise.all(postCriterios);
       }
 
       this.saving.set(false);
-      document.body.style.overflow = '';
-      this.saved.emit(this.isEditing() ? 'Actividad actualizada' : 'Actividad creada correctamente');
+      if (closeModal) {
+        document.body.style.overflow = '';
+        this.saved.emit(this.isEditing() ? 'Actividad actualizada' : 'Actividad creada correctamente');
+      } else {
+        const detailRes = await firstValueFrom(this.svc.getById(actividadId!));
+        this.originalActividad.set(detailRes.data);
+        if (gruposCriteriosChanged) {
+           this.patchFromEdit(detailRes.data);
+        }
+        setTimeout(() => { this.savedStateHash = this.getHash(); this.hasUnsavedChanges.set(false); }, 0);
+        this.silentlySaved.emit();
+      }
 
     } catch (err: any) {
       this.saving.set(false);

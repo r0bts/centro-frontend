@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { shareReplay } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
@@ -26,8 +27,15 @@ export class ActividadService {
 
   // ── Actividades ─────────────────────────────────────────────────────────────
 
-  getFormData(): Observable<ActividadFormDataResponse> {
-    return this.http.get<ActividadFormDataResponse>(`${this.base}/actividades/form-data`);
+  private formDataCache$: Observable<ActividadFormDataResponse> | null = null;
+
+  getFormData(forceRefresh = false): Observable<ActividadFormDataResponse> {
+    if (!this.formDataCache$ || forceRefresh) {
+      this.formDataCache$ = this.http.get<ActividadFormDataResponse>(`${this.base}/actividades/form-data`).pipe(
+        shareReplay(1)
+      );
+    }
+    return this.formDataCache$;
   }
 
   getAll(filters: { club_id?: number; activa?: boolean } = {}): Observable<ActividadListResponse> {

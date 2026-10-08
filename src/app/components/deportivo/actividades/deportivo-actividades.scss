@@ -299,3 +299,32 @@
   }
 }
 
+
+::ng-deep .custom-sm-select .ng-select-container {
+  min-height: 31px !important;
+  height: 31px !important;
+  border-radius: 20px !important;
+  border-color: var(--bs-border-color) !important;
+}
+::ng-deep .custom-sm-select .ng-value-container {
+  padding-left: 0.75rem !important;
+  font-size: 0.875rem !important;
+}
+::ng-deep .custom-sm-select .ng-input > input {
+  font-size: 0.875rem !important;
+  padding-left: 0 !important; /* Fixed cursor offset issue */
+}
+::ng-deep .custom-sm-select .ng-placeholder {
+  font-size: 0.875rem !important;
+}
+::ng-deep .custom-sm-select.ng-select-opened > .ng-select-container {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+::ng-deep .custom-sm-select .ng-value {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100%;
+}
+
