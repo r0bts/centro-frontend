@@ -11,6 +11,7 @@ import {
   HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom, forkJoin, of } from 'rxjs';
 import { ActividadService } from '../../../../services/deportivo/actividad.service';
@@ -64,7 +65,7 @@ const STEPS: Step[] = [
   selector: 'app-actividad-wizard',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgSelectModule],
   templateUrl: './actividad-wizard.html',
   styleUrl: './actividad-wizard.scss',
 })

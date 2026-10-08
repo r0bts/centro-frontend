@@ -51,13 +51,14 @@
   display: flex;
   flex-direction: column;
   min-height: 100px;
-  overflow: hidden;
+  overflow: visible;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   cursor: default;
 
-  &:hover {
+  &:hover, &:has(.dropdown-menu.show) {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
+    z-index: 50;
   }
 
   &.inactive {
@@ -285,3 +286,16 @@
   right: 1.5rem;
   z-index: 1100;
 }
+
+.clear-search-icon {
+  cursor: pointer;
+  pointer-events: auto;
+  font-size: 0.85rem;
+  z-index: 10;
+  transition: color 0.15s ease-in-out;
+
+  &:hover {
+    color: var(--bs-danger) !important;
+  }
+}
+

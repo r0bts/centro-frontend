@@ -4,9 +4,44 @@ import { computed,
   ChangeDetectionStrategy,
   OnInit,
   signal,
+  effect,
   inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Directive, ElementRef, Output, EventEmitter, OnDestroy, HostListener } from '@angular/core';
+
+@Directive({
+  selector: '[bsDropdownState]',
+  standalone: true
+})
+export class BsDropdownStateDirective implements OnInit, OnDestroy {
+  @Output() bsDropdownState = new EventEmitter<boolean>();
+  private isOpen = false;
+  
+  constructor(private el: ElementRef) {}
+
+  ngOnInit() {
+    this.el.nativeElement.addEventListener('show.bs.dropdown', () => { this.isOpen = true; this.bsDropdownState.emit(true); });
+    this.el.nativeElement.addEventListener('hidden.bs.dropdown', () => { this.isOpen = false; this.bsDropdownState.emit(false); });
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape() {
+    if (this.isOpen) {
+      const toggle = this.el.nativeElement.querySelector('[data-bs-toggle="dropdown"]');
+      if (toggle) {
+        // Force click to close if Bootstrap missed it
+        toggle.click();
+      }
+    }
+  }
+
+  ngOnDestroy() {
+    this.el.nativeElement.removeEventListener('show.bs.dropdown', () => this.bsDropdownState.emit(true));
+    this.el.nativeElement.removeEventListener('hidden.bs.dropdown', () => this.bsDropdownState.emit(false));
+  }
+}
+
 import { ActividadService } from '../../../services/deportivo/actividad.service';
 import { AuthService } from '../../../services/auth.service';
 import { Actividad, ActividadFormData } from '../../../models/deportivo/actividad.model';
@@ -16,7 +51,7 @@ import { ActividadWizardComponent } from './actividad-wizard/actividad-wizard';
   selector: 'app-deportivo-actividades',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ActividadWizardComponent, FormsModule],
+  imports: [CommonModule, ActividadWizardComponent, FormsModule, BsDropdownStateDirective],
   templateUrl: './deportivo-actividades.html',
   styleUrl: './deportivo-actividades.scss',
 })
@@ -28,13 +63,63 @@ export class DeportivoActividadesComponent implements OnInit {
   formData      = signal<ActividadFormData | null>(null);
   filterClubId  = signal<number | null>(null);
   filterAreaId  = signal<number | null>(null);
+  filterNombre  = signal<string>('');
   filterHorario = signal<string>('');
-  viewMode = signal<'grid' | 'list' | 'calendar'>('grid');
+  viewMode = signal<'grid' | 'list' | 'calendar'>(
+    (localStorage.getItem('centro_actividades_view_mode') as any) || 'grid'
+  );
+
+  constructor() {
+    effect(() => {
+      localStorage.setItem('centro_actividades_view_mode', this.viewMode());
+    });
+  }
+  dropdownState = signal<Record<number, boolean>>({});
+
+  setDropdownState(id: number, state: boolean) {
+    this.dropdownState.update(s => ({ ...s, [id]: state }));
+  }
+
+  isDropdownOpen(id: number): boolean {
+    return this.dropdownState()[id] || false;
+  }
+
   actividades   = signal<Actividad[]>([]);
   loading       = signal(true);
   error         = signal<string | null>(null);
   toast         = signal<string | null>(null);
 
+
+
+  getExtraInstructoresNames(profs: number[]): string {
+    return profs.slice(2).map(id => this.getInstructorName(id)).join(', ');
+  }
+
+  getInstructorName(id: number, full: boolean = false): string {
+    const list = this.formData()?.instructores || [];
+    const found = list.find(x => x.id === id);
+    if (!found) return 'Desconocido';
+    return full ? found.full_name : found.full_name.split(' ').slice(0, 2).join(' '); // Show first 2 words for compactness
+  }
+
+  getInstructoresDeActividad(act: Actividad): number[] {
+    const ids = new Set<number>();
+    if (act.profesor_id) ids.add(act.profesor_id);
+    if (act.grupos_categorias) {
+      for (const g of act.grupos_categorias) {
+        if (g.equipos) {
+          for (const e of g.equipos) {
+            if (e.horarios) {
+              for (const h of e.horarios) {
+                if (h.profesor_id) ids.add(h.profesor_id);
+              }
+            }
+          }
+        }
+      }
+    }
+    return Array.from(ids);
+  }
 
   formatHora(hora: string): string {
     if (!hora) return '';
@@ -108,9 +193,14 @@ export class DeportivoActividadesComponent implements OnInit {
 
   filteredActividades = computed(() => {
     let list = this.actividades();
+    const qName = this.filterNombre()?.toLowerCase().trim();
     const cId = this.filterClubId();
     const aId = this.filterAreaId();
     const searchH = this.filterHorario()?.toLowerCase().trim();
+
+    if (qName) {
+      list = list.filter(a => a.nombre.toLowerCase().includes(qName));
+    }
 
     if (cId) {
       list = list.filter(a => a.club_id === cId);
@@ -248,7 +338,7 @@ export class DeportivoActividadesComponent implements OnInit {
   toggleSocios(act: Actividad) {
     const newVal = act.elegible_para_socios === false ? true : false;
     act.elegible_para_socios = newVal;
-    this.svc.update(act.id, act as any).subscribe({
+    this.svc.update(act.id, { elegible_para_socios: newVal } as any).subscribe({
       next: () => this.showToast(`Actividad cambiada a ${newVal ? 'Socios' : 'Staff'}.`),
       error: err => {
         console.error(err);

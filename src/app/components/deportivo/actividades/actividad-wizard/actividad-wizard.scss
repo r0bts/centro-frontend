@@ -548,3 +548,26 @@
     border-bottom-right-radius: 20px !important;
   }
 }
+
+::ng-deep .custom-sm-select .ng-select-container {
+  min-height: 31px !important;
+  height: 31px !important;
+  border-radius: 20px !important;
+  border-color: var(--bs-border-color) !important;
+}
+::ng-deep .custom-sm-select .ng-value-container {
+  padding-left: 0.75rem !important;
+  font-size: 0.875rem !important;
+}
+::ng-deep .custom-sm-select .ng-input > input {
+  padding-left: 0.75rem !important;
+  font-size: 0.875rem !important;
+}
+::ng-deep .custom-sm-select .ng-placeholder {
+  font-size: 0.875rem !important;
+  top: 5px !important;
+}
+::ng-deep .custom-sm-select.ng-select-opened > .ng-select-container {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}

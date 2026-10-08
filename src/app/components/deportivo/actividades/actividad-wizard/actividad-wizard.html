@@ -278,14 +278,17 @@
                   <div class="row g-2 mb-3">
                     <div class="col-12 col-md-8">
                       <label class="form-label small fw-semibold">Instructor titular</label>
-                      <select class="form-select form-select-sm"
-                              [ngModel]="grupos()[gi].instructor_id"
-                              (ngModelChange)="setGrupoInstructor(gi, $event)">
-                        <option [ngValue]="null">Sin instructor titular</option>
-                        @for (inst of formData()?.instructores; track inst.id) {
-                          <option [ngValue]="inst.id">{{ inst.full_name }}</option>
-                        }
-                      </select>
+                      <ng-select class="custom-sm-select"
+                        [items]="formData()?.instructores || []"
+                        bindLabel="full_name"
+                        bindValue="id"
+                        placeholder="Sin instructor titular"
+                        [ngModel]="grupos()[gi].instructor_id"
+                        (ngModelChange)="setGrupoInstructor(gi, $event)"
+                        [clearable]="true"
+                        [searchable]="true"
+                        >
+                      </ng-select>
                     </div>
                     <div class="col-12 col-md-4">
                       <label class="form-label small fw-semibold">Costo base</label>
