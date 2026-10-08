@@ -29,12 +29,82 @@ export class DeportivoActividadesComponent implements OnInit {
   filterClubId  = signal<number | null>(null);
   filterAreaId  = signal<number | null>(null);
   filterHorario = signal<string>('');
-  viewMode = signal<'grid' | 'list'>('grid');
+  viewMode = signal<'grid' | 'list' | 'calendar'>('grid');
   actividades   = signal<Actividad[]>([]);
   loading       = signal(true);
   error         = signal<string | null>(null);
   toast         = signal<string | null>(null);
 
+
+  formatHora(hora: string): string {
+    if (!hora) return '';
+    const parts = hora.split(':');
+    return `${parts[0]}:${parts[1]}`;
+  }
+
+  calendarDays = computed(() => {
+    const list = this.filteredActividades();
+    const days = [
+      { dia: 1, nombre: 'Lunes', acts: [] as any[], total: 0 },
+      { dia: 2, nombre: 'Martes', acts: [] as any[], total: 0 },
+      { dia: 3, nombre: 'Miércoles', acts: [] as any[], total: 0 },
+      { dia: 4, nombre: 'Jueves', acts: [] as any[], total: 0 },
+      { dia: 5, nombre: 'Viernes', acts: [] as any[], total: 0 },
+      { dia: 6, nombre: 'Sábado', acts: [] as any[], total: 0 },
+      { dia: 7, nombre: 'Domingo', acts: [] as any[], total: 0 },
+    ];
+
+    for (const act of list) {
+      if (!act.grupos_categorias) continue;
+      
+      const porDia: Record<number, any[]> = { 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[] };
+
+      for (const gc of act.grupos_categorias) {
+        if (!gc.equipos) continue;
+        for (const eq of gc.equipos) {
+          if (!eq.horarios) continue;
+          for (const h of eq.horarios) {
+            if (porDia[h.dia_semana]) {
+              porDia[h.dia_semana].push(h);
+            }
+          }
+        }
+      }
+
+      for (const diaStr in porDia) {
+        const dia = parseInt(diaStr);
+        const horarios = porDia[dia];
+        if (horarios.length > 0) {
+          const day = days.find(d => d.dia === dia);
+          if (day) {
+            day.total += horarios.length;
+            
+            // Group identical time slots
+            const slots: Record<string, any> = {};
+            for (const h of horarios) {
+               const key = `${h.hora_inicio}-${h.hora_fin}`;
+               if (!slots[key]) {
+                  slots[key] = { start: h.hora_inicio, end: h.hora_fin, count: 0 };
+               }
+               slots[key].count++;
+            }
+            
+            day.acts.push({
+               act,
+               totalSesiones: horarios.length,
+               slots: Object.values(slots).sort((a: any, b: any) => (a.start||'').localeCompare(b.start||''))
+            });
+          }
+        }
+      }
+    }
+
+    days.forEach(d => {
+      d.acts.sort((a, b) => a.act.nombre.localeCompare(b.act.nombre));
+    });
+
+    return days;
+  });
 
   filteredActividades = computed(() => {
     let list = this.actividades();
@@ -88,6 +158,12 @@ export class DeportivoActividadesComponent implements OnInit {
   // wizard
   wizardOpen        = signal(false);
   wizardEditTarget  = signal<Actividad | null>(null);
+
+  formatTipo(tipo?: string | null): string {
+    if (!tipo) return 'Desconocido';
+    const str = tipo.replace(/[_-]/g, ' ');
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
 
   getClubName(clubId?: number): string {
     if (!clubId) return 'Todas las sedes';
@@ -169,6 +245,19 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   // ── Toggle activo ──────────────────────────────────────────────────────────
+  toggleSocios(act: Actividad) {
+    const newVal = act.elegible_para_socios === false ? true : false;
+    act.elegible_para_socios = newVal;
+    this.svc.update(act.id, act as any).subscribe({
+      next: () => this.showToast(`Actividad cambiada a ${newVal ? 'Socios' : 'Staff'}.`),
+      error: err => {
+        console.error(err);
+        act.elegible_para_socios = !newVal; // revert
+        this.showToast('Error al actualizar acceso.');
+      }
+    });
+  }
+
   toggleActive(act: Actividad): void {
     this.svc.toggleActive(act.id, !act.is_active).subscribe({
       next: res => {

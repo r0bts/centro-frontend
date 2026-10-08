@@ -105,6 +105,8 @@ export class ActividadWizardComponent implements OnInit {
   fecha_inicio    = '';
   fecha_fin       = '';
   monto: number | null = null;
+  costo_interno: number | null = null;
+  profesor_id: number | null = null;
 
   // ── Paso 2: Grupos ──────────────────────────────────────────────────────────
   grupos = signal<WizardGrupo[]>([]);
@@ -174,7 +176,7 @@ export class ActividadWizardComponent implements OnInit {
       tiene_cupo:    g.tiene_cupo ?? false,
       cupo_maximo:   g.cupo_maximo ?? null,
       instructor_id: g.equipos?.[0]?.coach_id ?? null,
-      costo_interno: g.equipos?.[0]?.horarios?.[0]?.costo_interno ?? null,
+      costo_interno: act.costo_interno ?? g.equipos?.[0]?.horarios?.[0]?.costo_interno ?? null,
       equipos: [],  // no se muestran en el wizard; se reconstruyen al guardar
       // Los horarios se toman del primer equipo
       horarios: (g.equipos?.[0]?.horarios ?? []).map(h => ({
@@ -273,16 +275,18 @@ export class ActividadWizardComponent implements OnInit {
 
   setGrupoCosto(grupoIdx: number, value: number | null): void {
     this.grupos.update(list => {
-      const copy = list.map(g => ({ ...g }));
+      const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
       copy[grupoIdx].costo_interno = value;
+      copy[grupoIdx].horarios = copy[grupoIdx].horarios.map(h => ({ ...h, costo_interno: value }));
       return copy;
     });
   }
 
   setGrupoInstructor(grupoIdx: number, value: number | null): void {
     this.grupos.update(list => {
-      const copy = list.map(g => ({ ...g }));
+      const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
       copy[grupoIdx].instructor_id = value;
+      copy[grupoIdx].horarios = copy[grupoIdx].horarios.map(h => ({ ...h, profesor_id: value }));
       return copy;
     });
   }

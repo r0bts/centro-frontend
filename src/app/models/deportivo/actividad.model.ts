@@ -23,6 +23,8 @@ export interface Actividad {
   fecha_inicio?: string | null;    // DATE YYYY-MM-DD — solo si tiene_costo
   fecha_fin?: string | null;       // DATE YYYY-MM-DD — solo si tiene_costo
   monto?: number | null;           // importe a cobrar, solo si tiene_costo
+  costo_interno?: number | null;   // nomina del profesor
+  profesor_id?: number | null;
   is_active: boolean;
   elegible_para_socios?: boolean;
   created_by?: number;
@@ -153,6 +155,8 @@ export interface CreateActividadRequest {
   fecha_inicio?: string;
   fecha_fin?: string;
   monto?: number;
+  costo_interno?: number;
+  profesor_id?: number;
   is_active: boolean;
   elegible_para_socios?: boolean;
   created_by: number;

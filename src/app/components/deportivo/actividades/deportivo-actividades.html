@@ -2,16 +2,24 @@
   <!-- ── Header ── -->
   <div class="page-header d-flex align-items-center justify-content-between mb-4">
     <div>
-      <h4 class="mb-0 fw-bold">Actividades</h4>
+      <h4 class="mb-0 fw-bold d-flex align-items-center gap-2">
+        Actividades
+        @if (!loading()) {
+          <span class="badge bg-light text-secondary border fw-normal rounded-pill" style="font-size: 0.85rem; padding: 0.35em 0.65em;">{{ filteredActividades().length }}</span>
+        }
+      </h4>
       <small class="text-muted">Gestión de actividades, grupos y equipos del club</small>
     </div>
     <div class="d-flex align-items-center gap-2">
-      <div class="btn-group" role="group">
-        <button type="button" class="btn btn-outline-secondary" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Vista de cuadrícula">
-          <i class="bi bi-grid-fill"></i>
+      <div class="btn-group bg-white border rounded shadow-sm" role="group" style="padding: 2px;">
+        <button type="button" class="btn btn-sm btn-light border-0" style="border-radius: 4px;" [class.bg-light]="viewMode() !== 'grid'" [class.bg-white]="viewMode() === 'grid'" [class.shadow-sm]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Vista de cuadrícula">
+          <i class="bi bi-grid-fill" [class.text-primary]="viewMode() === 'grid'" [class.text-secondary]="viewMode() !== 'grid'"></i>
         </button>
-        <button type="button" class="btn btn-outline-secondary" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Vista de lista">
-          <i class="bi bi-list-ul"></i>
+        <button type="button" class="btn btn-sm btn-light border-0 mx-1" style="border-radius: 4px;" [class.bg-light]="viewMode() !== 'list'" [class.bg-white]="viewMode() === 'list'" [class.shadow-sm]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Vista de lista">
+          <i class="bi bi-list-ul" [class.text-primary]="viewMode() === 'list'" [class.text-secondary]="viewMode() !== 'list'"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-light border-0" style="border-radius: 4px;" [class.bg-light]="viewMode() !== 'calendar'" [class.bg-white]="viewMode() === 'calendar'" [class.shadow-sm]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')" title="Vista de calendario">
+          <i class="bi bi-calendar-week" [class.text-primary]="viewMode() === 'calendar'" [class.text-secondary]="viewMode() !== 'calendar'"></i>
         </button>
       </div>
       <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
@@ -151,15 +159,22 @@
                 <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">Inactiva</span>
               }
               
-              @if (act.elegible_para_socios !== false) {
-                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 d-flex align-items-center gap-1" style="font-size: 0.75rem; font-weight: 700;">
-                  <i class="bi bi-person-check"></i> Socios
-                </span>
-              } @else {
-                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1 d-flex align-items-center gap-1" style="font-size: 0.75rem; font-weight: 700;">
-                  <i class="bi bi-building"></i> Staff
-                </span>
-              }
+              <div class="form-check form-switch mb-0 d-flex align-items-center justify-content-end" style="padding-left: 0;">
+                <label class="form-check-label small me-1 fw-bold" style="font-size: 0.7rem; cursor: pointer;" (click)="toggleSocios(act); $event.preventDefault()"
+                       [class.text-primary]="act.elegible_para_socios !== false"
+                       [class.text-secondary]="act.elegible_para_socios === false">
+                  <i class="bi" [class.bi-person-check]="act.elegible_para_socios !== false" [class.bi-building]="act.elegible_para_socios === false"></i>
+                  {{ act.elegible_para_socios !== false ? 'Socios' : 'Staff' }}
+                </label>
+                <input class="form-check-input m-0" type="checkbox" role="switch"
+                       [checked]="act.elegible_para_socios !== false" 
+                       (change)="toggleSocios(act)"
+                       style="cursor: pointer; width: 1.8rem; height: 0.9rem;"
+                       
+                       
+                       
+                       >
+              </div>
             </div>
           </div>
 
@@ -180,7 +195,7 @@
 
           <!-- Badges below list -->
           <div class="d-flex flex-wrap gap-2 mb-auto pb-1">
-            <span class="badge border text-dark fw-normal rounded-pill px-2 py-1" style="font-size: 0.75rem; background: #fff;">{{ act.tipo || 'deporte_individual' }}</span>
+            <span class="badge border text-dark fw-normal rounded-pill px-2 py-1" style="font-size: 0.75rem; background: #fff;">{{ formatTipo(act.tipo) }}</span>
           </div>
 
           <hr class="mt-0 mb-1" style="border-color: #e9ecef;">
@@ -246,9 +261,8 @@
               <tr>
                 <th scope="col" class="ps-4">Actividad</th>
                 <th scope="col">Tipo</th>
-                <th scope="col">Grupos</th>
+                <th scope="col">Acceso</th>
                 <th scope="col">Estado</th>
-                <th scope="col">Modo Mensajería</th>
                 <th scope="col" class="text-end pe-4">Acciones</th>
               </tr>
             </thead>
@@ -262,17 +276,29 @@
                       </div>
                       <div>
                         <h6 class="mb-0 fw-semibold">{{ act.nombre }}</h6>
-                        <small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">
-                          {{ act.descripcion || 'Sin descripción' }}
-                        </small>
+                        
                       </div>
                     </div>
                   </td>
                   <td>
-                    <span class="badge bg-light text-dark border"><i class="bi bi-shield-check me-1"></i>{{ act.tipo || '—' }}</span>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-shield-check me-1"></i>{{ formatTipo(act.tipo) }}</span>
                   </td>
+                  
                   <td>
-                    <span class="badge bg-light text-dark border"><i class="bi bi-people me-1"></i>{{ (act.grupos_categorias?.length ?? 0) }}</span>
+                    <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" style="padding-left: 0;">
+                      <input class="form-check-input m-0" type="checkbox" role="switch"
+                             [checked]="act.elegible_para_socios !== false" 
+                             (change)="toggleSocios(act)"
+                             style="cursor: pointer; width: 2.2rem; height: 1.1rem;"
+                             
+                             >
+                      <label class="form-check-label small mb-0 fw-bold" style="cursor: pointer;" (click)="toggleSocios(act); $event.preventDefault()"
+                             [class.text-primary]="act.elegible_para_socios !== false"
+                             [class.text-secondary]="act.elegible_para_socios === false">
+                        <i class="bi" [class.bi-person-check]="act.elegible_para_socios !== false" [class.bi-building]="act.elegible_para_socios === false"></i> 
+                        {{ act.elegible_para_socios !== false ? 'Socios' : 'Staff' }}
+                      </label>
+                    </div>
                   </td>
                   <td>
                     @if (act.is_active) {
@@ -284,19 +310,17 @@
                       <span class="badge bg-warning-subtle text-warning ms-1">💰</span>
                     }
                   </td>
-                  <td>
-                    <span class="badge bg-primary-subtle text-primary">{{ labelMensajeria(act.modo_mensajeria) }}</span>
-                  </td>
+                  
                   <td class="text-end pe-4">
-                    <div class="btn-group">
-                      <button class="btn btn-sm btn-outline-secondary" title="Editar" (click)="editActividad(act)">
-                        <i class="bi bi-pencil"></i>
+                    <div class="btn-group border rounded-pill bg-white shadow-sm" role="group">
+                      <button type="button" class="btn btn-sm btn-light border-0 rounded-start-pill text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
+                        <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
                       </button>
-                      <button class="btn btn-sm btn-outline-secondary" [title]="act.is_active ? 'Desactivar' : 'Activar'" (click)="toggleActive(act)">
-                        <i class="bi" [class.bi-toggle-on]="act.is_active" [class.bi-toggle-off]="!act.is_active"></i>
+                      <button type="button" class="btn btn-sm btn-light border-0 border-start border-end text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" [title]="act.is_active ? 'Desactivar' : 'Activar'" (click)="toggleActive(act)">
+                        <i class="bi" style="font-size: 1.6rem;" [class.bi-toggle-on]="act.is_active" [class.bi-toggle-off]="!act.is_active" [class.text-primary]="act.is_active"></i>
                       </button>
-                      <button class="btn btn-sm btn-outline-danger" title="Eliminar" (click)="confirmDelete(act)">
-                        <i class="bi bi-trash"></i>
+                      <button type="button" class="btn btn-sm btn-light border-0 rounded-end-pill text-danger d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Eliminar" (click)="confirmDelete(act)">
+                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
                       </button>
                     </div>
                   </td>
@@ -304,7 +328,7 @@
               }
               @if (filteredActividades().length === 0) {
                 <tr>
-                  <td colspan="6" class="text-center py-5">
+                  <td colspan="5" class="text-center py-5">
                     <i class="bi bi-trophy display-4 text-muted d-block mb-1"></i>
                     <h5 class="text-muted">No hay actividades</h5>
                     <p class="text-muted small mb-0">Crea la primera actividad o ajusta los filtros.</p>
@@ -313,6 +337,64 @@
               }
             </tbody>
           </table>
+        </div>
+      </div>
+    }
+
+
+    @if (viewMode() === 'calendar') {
+      <div class="card shadow-sm border-0 mb-4" style="overflow-x: auto; border-radius: 12px; height: 75vh;">
+        <div class="d-flex h-100" style="min-width: 900px;">
+          @for (day of calendarDays(); track day.dia) {
+            <div class="flex-fill border-end d-flex flex-column" style="width: 14.28%;">
+              <!-- Day Header -->
+              <div class="bg-light border-bottom p-2 text-center flex-shrink-0" style="z-index: 10;">
+                <h6 class="mb-0 fw-bold text-dark">{{ day.nombre }}</h6>
+                <small class="text-muted">{{ day.total }} sesiones</small>
+              </div>
+              
+              <!-- Day Events -->
+              <div class="p-2 d-flex flex-column gap-2 flex-grow-1" style="background-color: #f8f9fa; overflow-y: auto;">
+                @for (item of day.acts; track item.act.id) {
+                  @defer (on viewport) {
+                    <div class="card border-0 shadow-sm" [style.border-left]="'4px solid ' + (item.act.color || '#6366f1')">
+                      <div class="card-body p-2 position-relative">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                          <strong class="small text-truncate d-inline-block" style="max-width: 80%;" [title]="item.act.nombre">{{ item.act.nombre }}</strong>
+                          <span class="badge bg-light text-dark px-1 py-0 border" style="font-size: 0.65rem;">{{ item.act.icono || '🏆' }}</span>
+                        </div>
+                        
+                        <div class="text-muted mb-2" style="font-size: 0.7rem;">
+                          <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary-subtle px-1">{{ item.totalSesiones }} sesiones</span>
+                        </div>
+                        
+                        <div class="d-flex flex-column gap-1">
+                          @for (slot of item.slots; track slot.start + '-' + slot.end) {
+                            <div class="d-flex align-items-center justify-content-between" style="font-size: 0.7rem;">
+                              <span class="text-muted"><i class="bi bi-clock me-1"></i>{{ formatHora(slot.start) }} - {{ formatHora(slot.end) }}</span>
+                              <span class="text-secondary fw-semibold">x{{ slot.count }}</span>
+                            </div>
+                          }
+                        </div>
+
+                        @if (!item.act.is_active) {
+                          <div class="position-absolute top-0 start-0 w-100 h-100 bg-white" style="opacity: 0.7; pointer-events: none;"></div>
+                        }
+                      </div>
+                    </div>
+                  } @placeholder {
+                    <div style="height: 100px; border-radius: 6px;" class="bg-white border-0 shadow-sm opacity-50 mb-2"></div>
+                  }
+                }
+                
+                @if (day.acts.length === 0) {
+                  <div class="text-center text-muted py-4 small">
+                    Sin actividades
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
       </div>
     }
