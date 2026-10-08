@@ -15,8 +15,10 @@
   background: #fff;
   border-radius: 1.25rem;
   width: 100%;
-  max-width: 640px;
-  max-height: calc(100dvh - 3rem);
+  max-width: 850px;
+  height: 80vh;
+  min-height: 600px;
+  max-height: 850px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
@@ -524,5 +526,25 @@
     border-color: #fbbf24;
     background: #fffbeb;
     color: #92400e;
+  }
+}
+
+// Homologar input-group y selects con el border-radius global (20px)
+.form-select-sm, .form-control-sm {
+  border-radius: 20px !important;
+}
+
+.input-group {
+  .input-group-text:first-child {
+    border-top-left-radius: 20px !important;
+    border-bottom-left-radius: 20px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+  }
+  .form-control:not(:first-child) {
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 20px !important;
+    border-bottom-right-radius: 20px !important;
   }
 }

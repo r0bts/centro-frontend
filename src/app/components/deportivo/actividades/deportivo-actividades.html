@@ -5,10 +5,20 @@
       <h4 class="mb-0 fw-bold">Actividades</h4>
       <small class="text-muted">Gestión de actividades, grupos y equipos del club</small>
     </div>
-    <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
-      <i class="bi bi-plus-lg"></i>
-      <span>Nueva actividad</span>
-    </button>
+    <div class="d-flex align-items-center gap-2">
+      <div class="btn-group" role="group">
+        <button type="button" class="btn btn-outline-secondary" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Vista de cuadrícula">
+          <i class="bi bi-grid-fill"></i>
+        </button>
+        <button type="button" class="btn btn-outline-secondary" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Vista de lista">
+          <i class="bi bi-list-ul"></i>
+        </button>
+      </div>
+      <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
+        <i class="bi bi-plus-lg"></i>
+        <span>Nueva actividad</span>
+      </button>
+    </div>
   </div>
 
   <!-- ── Error ── -->
@@ -37,7 +47,39 @@
 
   <!-- ── Loading skeleton ── -->
   @if (loading()) {
+
+    <!-- ── Filtros ── -->
+    <div class="card mb-4 border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Sede (Unidad)</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filterClubId">
+              <option [ngValue]="null">Todas las sedes</option>
+              @for (c of formData()?.acceso_clubes; track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Zona (Área)</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filterAreaId">
+              <option [ngValue]="null">Todas las áreas</option>
+              @for (a of formData()?.areas_mapeadas; track a.area_id) {
+                <option [ngValue]="a.area_id">{{ a.area_name }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Horario / Día</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Ej. Lunes, 08:00..." [(ngModel)]="filterHorario">
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="activities-grid">
+
       @for (sk of [1,2,3,4,5,6]; track sk) {
         <div class="activity-card skeleton">
           <div class="sk-icon"></div>
@@ -50,7 +92,40 @@
 
   <!-- ── Grid de actividades ── -->
   @if (!loading()) {
-    <div class="activities-grid">
+
+    <!-- ── Filtros ── -->
+    <div class="card mb-4 border-0 shadow-sm">
+      <div class="card-body py-3">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Sede (Unidad)</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filterClubId">
+              <option [ngValue]="null">Todas las sedes</option>
+              @for (c of formData()?.acceso_clubes; track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Zona (Área)</label>
+            <select class="form-select form-select-sm" [(ngModel)]="filterAreaId">
+              <option [ngValue]="null">Todas las áreas</option>
+              @for (a of formData()?.areas_mapeadas; track a.area_id) {
+                <option [ngValue]="a.area_id">{{ a.area_name }}</option>
+              }
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold text-muted mb-1">Horario / Día</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Ej. Lunes, 08:00..." [(ngModel)]="filterHorario">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    @if (viewMode() === 'grid') {
+      <div class="activities-grid">
+
       <!-- Tarjeta "Nueva actividad" -->
       <div class="activity-card add-card" (click)="openWizard()" role="button" tabindex="0"
            (keydown.enter)="openWizard()">
@@ -61,62 +136,88 @@
       </div>
 
       <!-- Tarjetas de actividades -->
-      @for (act of actividades(); track act.id) {
-        <div class="activity-card" [class.inactive]="!act.is_active">
-
-          <!-- Ícono / color -->
-          <div class="activity-icon-wrap" [style.background]="act.color || '#6366f1'">
-            <span class="activity-emoji">{{ act.icono || '🏆' }}</span>
+      @for (act of filteredActividades(); track act.id) {
+                <div class="activity-card" [class.inactive]="!act.is_active" style="display: flex; flex-direction: column; height: 100%; border-radius: 12px; padding: 0.75rem;">
+          
+          <!-- Top Row -->
+          <div class="d-flex justify-content-between align-items-start mb-1">
+            <div class="activity-icon-wrap" [style.background]="act.color || '#e83e8c'" style="width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; color: white; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+              <span>{{ act.icono || '💃' }}</span>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-1">
+              @if (act.is_active) {
+                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">Activa</span>
+              } @else {
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1" style="font-size: 0.75rem; font-weight: 700;">Inactiva</span>
+              }
+              
+              @if (act.elegible_para_socios !== false) {
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1 d-flex align-items-center gap-1" style="font-size: 0.75rem; font-weight: 700;">
+                  <i class="bi bi-person-check"></i> Socios
+                </span>
+              } @else {
+                <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2 py-1 d-flex align-items-center gap-1" style="font-size: 0.75rem; font-weight: 700;">
+                  <i class="bi bi-building"></i> Staff
+                </span>
+              }
+            </div>
           </div>
 
           <!-- Info -->
-          <div class="activity-info">
-            <h6 class="activity-name">{{ act.nombre }}</h6>
-            <p class="activity-desc text-muted small">{{ act.descripcion || 'Sin descripción' }}</p>
+          <div class="mb-1">
+            <h6 class="mb-1 fw-bold text-uppercase" style="font-size: 1rem; color: #333;">{{ act.nombre }}</h6>
+            
           </div>
 
-          <!-- Meta -->
-          <div class="activity-meta">
-            <span class="meta-chip">
-              <i class="bi bi-people"></i>
-              {{ (act.grupos_categorias?.length ?? 0) }} grupos
-            </span>
-            <span class="meta-chip">
-              <i class="bi bi-shield-check"></i>
-              {{ act.tipo || '—' }}
-            </span>
+          <!-- Meta list -->
+          <div class="d-flex flex-column gap-2 mb-1" style="font-size: 0.85rem; color: #6c757d;">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-geo-alt"></i>
+              <span>{{ getClubName(act.club_id) }}</span>
+            </div>
+            
           </div>
 
-          <!-- Badge activo/inactivo -->
-          <div class="activity-badges">
-            @if (act.is_active) {
-              <span class="badge bg-success-subtle text-success">Activa</span>
-            } @else {
-              <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
-            }
-            <span class="badge bg-primary-subtle text-primary">{{ labelMensajeria(act.modo_mensajeria) }}</span>
-            @if (act.tiene_costo) {
-              <span class="badge bg-warning-subtle text-warning">💰 Con costo</span>
-            }
+          <!-- Badges below list -->
+          <div class="d-flex flex-wrap gap-2 mb-auto pb-1">
+            <span class="badge border text-dark fw-normal rounded-pill px-2 py-1" style="font-size: 0.75rem; background: #fff;">{{ act.tipo || 'deporte_individual' }}</span>
           </div>
 
-          <!-- Acciones -->
-          <div class="card-actions">
-            <button class="card-action-btn card-action-btn--edit"
-                    title="Editar"
-                    (click)="editActividad(act)">
-              <span>Editar</span>
-            </button>
-            <button class="card-action-btn card-action-btn--toggle"
-                    [title]="act.is_active ? 'Desactivar' : 'Activar'"
-                    (click)="toggleActive(act)">
-              <span>{{ act.is_active ? 'Desactivar' : 'Activar' }}</span>
-            </button>
-            <button class="card-action-btn card-action-btn--delete"
-                    title="Eliminar"
-                    (click)="confirmDelete(act)">
-              <span>Eliminar</span>
-            </button>
+          <hr class="mt-0 mb-1" style="border-color: #e9ecef;">
+
+          <!-- Footer -->
+          <div class="d-flex justify-content-between align-items-center">
+            <!-- Switch -->
+            <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" style="padding-left: 0;" [title]="act.is_active ? 'Desactivar actividad' : 'Activar actividad'">
+              <input class="form-check-input m-0" type="checkbox" role="switch"
+                     [checked]="act.is_active" 
+                     (change)="toggleActive(act)"
+                     style="cursor: pointer; width: 2.2rem; height: 1.1rem;">
+              <label class="form-check-label small text-dark mb-0" style="cursor: pointer; font-size: 0.85rem;" (click)="toggleActive(act); $event.preventDefault()">
+                Activa
+              </label>
+            </div>
+            
+            <div class="d-flex align-items-center gap-2">
+              <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-muted"
+                      style="width: 32px; height: 32px; border-radius: 6px; background-color: #f8f9fa;"
+                      title="Duplicar"
+                      (click)="duplicateActividad(act)">
+                <i class="bi bi-files"></i>
+              </button>
+              <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-danger"
+                      style="width: 32px; height: 32px; border-radius: 6px; background-color: #f8f9fa;"
+                      title="Eliminar"
+                      (click)="confirmDelete(act)">
+                <i class="bi bi-trash"></i>
+              </button>
+              <button class="btn btn-sm btn-primary px-3"
+                      style="border-radius: 16px; font-weight: 600; font-size: 0.85rem; background-color: #3b71ca; border-color: #3b71ca;"
+                      title="Editar"
+                      (click)="editActividad(act)">
+                Editar
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -124,7 +225,7 @@
       <!-- Estado vacío -->
       @if (actividades().length === 0) {
         <div class="empty-state col-span-full">
-          <i class="bi bi-trophy display-4 text-muted d-block mb-3"></i>
+          <i class="bi bi-trophy display-4 text-muted d-block mb-1"></i>
           <h5 class="text-muted">No hay actividades registradas</h5>
           <p class="text-muted small">Crea la primera actividad usando el botón "Nueva actividad".</p>
           <button class="btn btn-primary" (click)="openWizard()">
@@ -134,6 +235,87 @@
       }
     </div>
   }
+
+    }
+    
+    @if (viewMode() === 'list') {
+      <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th scope="col" class="ps-4">Actividad</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Grupos</th>
+                <th scope="col">Estado</th>
+                <th scope="col">Modo Mensajería</th>
+                <th scope="col" class="text-end pe-4">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (act of filteredActividades(); track act.id) {
+                <tr [class.text-muted]="!act.is_active">
+                  <td class="ps-4">
+                    <div class="d-flex align-items-center gap-3">
+                      <div class="activity-icon-wrap" [style.background]="act.color || '#6366f1'" style="width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white;">
+                        <span>{{ act.icono || '🏆' }}</span>
+                      </div>
+                      <div>
+                        <h6 class="mb-0 fw-semibold">{{ act.nombre }}</h6>
+                        <small class="text-muted text-truncate d-inline-block" style="max-width: 250px;">
+                          {{ act.descripcion || 'Sin descripción' }}
+                        </small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-shield-check me-1"></i>{{ act.tipo || '—' }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border"><i class="bi bi-people me-1"></i>{{ (act.grupos_categorias?.length ?? 0) }}</span>
+                  </td>
+                  <td>
+                    @if (act.is_active) {
+                      <span class="badge bg-success-subtle text-success">Activa</span>
+                    } @else {
+                      <span class="badge bg-secondary-subtle text-secondary">Inactiva</span>
+                    }
+                    @if (act.tiene_costo) {
+                      <span class="badge bg-warning-subtle text-warning ms-1">💰</span>
+                    }
+                  </td>
+                  <td>
+                    <span class="badge bg-primary-subtle text-primary">{{ labelMensajeria(act.modo_mensajeria) }}</span>
+                  </td>
+                  <td class="text-end pe-4">
+                    <div class="btn-group">
+                      <button class="btn btn-sm btn-outline-secondary" title="Editar" (click)="editActividad(act)">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary" [title]="act.is_active ? 'Desactivar' : 'Activar'" (click)="toggleActive(act)">
+                        <i class="bi" [class.bi-toggle-on]="act.is_active" [class.bi-toggle-off]="!act.is_active"></i>
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" title="Eliminar" (click)="confirmDelete(act)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+              @if (filteredActividades().length === 0) {
+                <tr>
+                  <td colspan="6" class="text-center py-5">
+                    <i class="bi bi-trophy display-4 text-muted d-block mb-1"></i>
+                    <h5 class="text-muted">No hay actividades</h5>
+                    <p class="text-muted small mb-0">Crea la primera actividad o ajusta los filtros.</p>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
 
   <!-- ── Confirmación de eliminación ── -->
   @if (deleteTarget()) {

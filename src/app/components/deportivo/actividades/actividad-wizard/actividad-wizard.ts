@@ -8,6 +8,7 @@ import {
   signal,
   inject,
   computed,
+  HostListener
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -51,11 +52,12 @@ const TIPOS = ['deporte_equipo','deporte_individual','arte','otro'];
 interface Step { id: number; label: string; icon: string; }
 
 const STEPS: Step[] = [
-  { id: 1, label: 'Identidad',   icon: 'bi-person-badge' },
-  { id: 2, label: 'Grupos',      icon: 'bi-people' },
-  { id: 3, label: 'Horarios',    icon: 'bi-clock' },
-  { id: 4, label: 'Evaluación',  icon: 'bi-star' },
-  { id: 5, label: 'Resumen',     icon: 'bi-check-circle' },
+  { id: 1, label: 'General',     icon: 'bi-info-circle' },
+  { id: 2, label: 'Operación',   icon: 'bi-gear' },
+  { id: 3, label: 'Grupos',      icon: 'bi-people' },
+  { id: 4, label: 'Horarios',    icon: 'bi-clock' },
+  { id: 5, label: 'Evaluación',  icon: 'bi-star' },
+  { id: 6, label: 'Resumen',     icon: 'bi-check-circle' },
 ];
 
 @Component({
@@ -99,6 +101,7 @@ export class ActividadWizardComponent implements OnInit {
   tipo            = 'deporte_equipo';
   modo_mensajeria: 'bidireccional' | 'solo_respuesta' | 'solo_lectura' = 'bidireccional';
   tiene_costo     = false;
+  elegible_para_socios = true;
   fecha_inicio    = '';
   fecha_fin       = '';
   monto: number | null = null;
@@ -171,6 +174,7 @@ export class ActividadWizardComponent implements OnInit {
       tiene_cupo:    g.tiene_cupo ?? false,
       cupo_maximo:   g.cupo_maximo ?? null,
       instructor_id: g.equipos?.[0]?.coach_id ?? null,
+      costo_interno: g.equipos?.[0]?.horarios?.[0]?.costo_interno ?? null,
       equipos: [],  // no se muestran en el wizard; se reconstruyen al guardar
       // Los horarios se toman del primer equipo
       horarios: (g.equipos?.[0]?.horarios ?? []).map(h => ({
@@ -179,6 +183,8 @@ export class ActividadWizardComponent implements OnInit {
         hora_fin:    (h.hora_fin ?? '09:00:00').substring(0, 5),
         lugar:       h.lugar ?? null,
         area_id:     h.area_id ?? null,
+        profesor_id: h.profesor_id ?? null,
+        costo_interno: h.costo_interno ?? null,
       })),
     }));
     this.grupos.set(grupos);
@@ -235,7 +241,7 @@ export class ActividadWizardComponent implements OnInit {
     if (!nombre) return;
     this.grupos.update(list => [
       ...list,
-      { nombre, descripcion: '', edad_min: null, edad_max: null, tiene_cupo: false, cupo_maximo: null, instructor_id: null, equipos: [], horarios: [] },
+      { nombre, descripcion: '', edad_min: null, edad_max: null, tiene_cupo: false, cupo_maximo: null, instructor_id: null, costo_interno: null, equipos: [], horarios: [] },
     ]);
     this.nuevoGrupoNombre = '';
     this.activeGrupoIndex.set(this.grupos().length - 1);
@@ -265,6 +271,14 @@ export class ActividadWizardComponent implements OnInit {
     });
   }
 
+  setGrupoCosto(grupoIdx: number, value: number | null): void {
+    this.grupos.update(list => {
+      const copy = list.map(g => ({ ...g }));
+      copy[grupoIdx].costo_interno = value;
+      return copy;
+    });
+  }
+
   setGrupoInstructor(grupoIdx: number, value: number | null): void {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g }));
@@ -282,7 +296,7 @@ export class ActividadWizardComponent implements OnInit {
       if (existing) {
         copy[grupoIdx].horarios = horarios.filter(h => h.dia_semana !== dia);
       } else {
-        horarios.push({ dia_semana: dia, hora_inicio: '08:00', hora_fin: '09:00', lugar: null, area_id: null });
+        horarios.push({ dia_semana: dia, hora_inicio: '08:00', hora_fin: '09:00', lugar: null, area_id: null, profesor_id: copy[grupoIdx].instructor_id, costo_interno: copy[grupoIdx].costo_interno });
         copy[grupoIdx].horarios.sort((a,b) => a.dia_semana - b.dia_semana);
       }
       return copy;
@@ -292,23 +306,16 @@ export class ActividadWizardComponent implements OnInit {
   addHorarioOnly(grupoIdx: number, dia: number): void {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
-      copy[grupoIdx].horarios.push({
-        dia_semana: dia,
-        hora_inicio: '08:00',
-        hora_fin: '09:00',
-        lugar: null,
-        area_id: null
-      });
+      copy[grupoIdx].horarios.push({ dia_semana: dia, hora_inicio: '08:00', hora_fin: '09:00', lugar: null, area_id: null, profesor_id: copy[grupoIdx].instructor_id, costo_interno: copy[grupoIdx].costo_interno });
       copy[grupoIdx].horarios.sort((a,b) => a.dia_semana - b.dia_semana);
       return copy;
     });
   }
 
-  getHorariosByDia(grupoIdx: number, dia: number) {
-    return this.grupos()[grupoIdx]?.horarios
-      .map((item, index) => ({ item, originalIndex: index }))
-      .filter(x => x.item.dia_semana === dia) ?? [];
-  }
+  
+
+
+
 
   removeHorario(grupoIdx: number, index: number): void {
     this.grupos.update(list => {
@@ -326,7 +333,7 @@ export class ActividadWizardComponent implements OnInit {
     return this.grupos()[grupoIdx]?.horarios.find(h => h.dia_semana === dia);
   }
 
-  updateHorarioField(grupoIdx: number, index: number, field: 'hora_inicio' | 'hora_fin' | 'lugar' | 'area_id', value: string | number | null): void {
+  updateHorarioField(grupoIdx: number, index: number, field: 'hora_inicio' | 'hora_fin' | 'lugar' | 'area_id' | 'profesor_id' | 'costo_interno', value: string | number | null): void {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, horarios: g.horarios.map(h => ({ ...h })) }));
       const h = copy[grupoIdx].horarios[index];
@@ -345,6 +352,15 @@ export class ActividadWizardComponent implements OnInit {
       this.diasParaReplicar.set([]);
     }
   }
+
+  
+  getHorariosByDia(grupoIdx: number, dia: number) {
+    return this.grupos()[grupoIdx]?.horarios
+      .map((item, index) => ({ item, originalIndex: index }))
+      .filter(x => x.item.dia_semana === dia) ?? [];
+  }
+
+
 
   cerrarReplicar(): void {
     this.replicandoDia.set(null);
@@ -509,6 +525,7 @@ export class ActividadWizardComponent implements OnInit {
             color:     eq.color || undefined,
             coach_id:  eq.coach_id ?? undefined,
             is_active: true,
+          elegible_para_socios: this.elegible_para_socios,
           }));
           const equipoId = eRes.data.id;
 
@@ -520,6 +537,8 @@ export class ActividadWizardComponent implements OnInit {
               hora_fin:    h.hora_fin,
               lugar:       h.lugar ?? undefined,
               area_id:     h.area_id ?? undefined,
+              profesor_id: h.profesor_id ?? undefined,
+              costo_interno: h.costo_interno ?? undefined,
               is_active:   true,
             }));
           }
@@ -547,6 +566,17 @@ export class ActividadWizardComponent implements OnInit {
     } catch (err: any) {
       this.saving.set(false);
       this.error.set('Error al guardar la actividad. Verifica los datos e intenta de nuevo.');
+    }
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onKeydownHandler(event: Event) {
+    this.cancel();
+  }
+
+  onOverlayClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('wizard-overlay')) {
+      this.cancel();
     }
   }
 
@@ -595,4 +625,6 @@ export class ActividadWizardComponent implements OnInit {
   }
 
   trackByIdx(_i: number, _v: any): number { return _i; }
+
+  
 }

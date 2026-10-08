@@ -45,6 +45,10 @@ export class ActividadService {
     return this.http.post<ActividadResponse>(`${this.base}/actividades`, data);
   }
 
+  duplicate(id: number): Observable<ActividadResponse> {
+    return this.http.post<ActividadResponse>(`${this.base}/actividades/${id}/duplicate`, {});
+  }
+
   update(id: number, data: UpdateActividadRequest): Observable<ActividadResponse> {
     return this.http.put<ActividadResponse>(`${this.base}/actividades/${id}`, data);
   }

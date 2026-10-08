@@ -24,6 +24,7 @@ export interface Actividad {
   fecha_fin?: string | null;       // DATE YYYY-MM-DD — solo si tiene_costo
   monto?: number | null;           // importe a cobrar, solo si tiene_costo
   is_active: boolean;
+  elegible_para_socios?: boolean;
   created_by?: number;
   created_at?: string;
   updated_at?: string;
@@ -46,6 +47,7 @@ export interface GrupoCategoria {
   cupo_disponible?: number | null; // calculado en backend: cupo_maximo - cupo_ocupado
   orden: number;
   is_active: boolean;
+  elegible_para_socios?: boolean;
   created_at?: string;
   updated_at?: string;
   // Relations
@@ -60,6 +62,7 @@ export interface Equipo {
   color?: string | null;           // hex #RRGGBB, varchar(7)
   coach_id?: number | null;        // FK → users.id
   is_active: boolean;
+  elegible_para_socios?: boolean;
   created_at?: string;
   updated_at?: string;
   // Relations
@@ -85,8 +88,11 @@ export interface HorarioEntrenamiento {
   hora_inicio: string;             // HH:MM:SS
   hora_fin: string;                // HH:MM:SS
   lugar?: string | null;
+  profesor_id?: number | null;
+  costo_interno?: number | null;
   area_id?: number | null;         // FK → areas.id (área con layout mapeado)
   is_active: boolean;
+  elegible_para_socios?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -100,6 +106,7 @@ export interface CriterioEvaluacion {
   escala_max: number;              // tinyint(1), default 5
   orden: number;
   is_active: boolean;
+  elegible_para_socios?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -147,6 +154,7 @@ export interface CreateActividadRequest {
   fecha_fin?: string;
   monto?: number;
   is_active: boolean;
+  elegible_para_socios?: boolean;
   created_by: number;
 }
 
@@ -162,6 +170,7 @@ export interface UpdateActividadRequest {
   fecha_fin?: string | null;
   monto?: number | null;
   is_active?: boolean;
+  elegible_para_socios?: boolean;
 }
 
 export interface CreateGrupoRequest {
@@ -174,6 +183,7 @@ export interface CreateGrupoRequest {
   cupo_maximo?: number;
   orden?: number;
   is_active?: boolean;
+  elegible_para_socios?: boolean;
 }
 
 export interface CreateEquipoRequest {
@@ -182,6 +192,7 @@ export interface CreateEquipoRequest {
   color?: string;
   coach_id?: number;
   is_active?: boolean;
+  elegible_para_socios?: boolean;
 }
 
 export interface CreateCriterioRequest {
@@ -192,15 +203,19 @@ export interface CreateCriterioRequest {
   escala_max?: number;
   orden?: number;
   is_active?: boolean;
+  elegible_para_socios?: boolean;
 }
 
 export interface CreateHorarioRequest {
   lugar?: string | null;
+  profesor_id?: number | null;
+  costo_interno?: number | null;
   dia_semana: number;              // 1–7
   hora_inicio: string;             // HH:MM
   hora_fin: string;                // HH:MM
   area_id?: number | null;
   is_active?: boolean;
+  elegible_para_socios?: boolean;
 }
 
 // =====================================================================
@@ -278,7 +293,8 @@ export interface WizardGrupo {
   edad_max: number | null;
   tiene_cupo: boolean;
   cupo_maximo: number | null;
-  instructor_id: number | null;   // FK → users.id (is_instructor=1)
+  instructor_id: number | null;
+  costo_interno: number | null;   // FK → users.id (is_instructor=1)
   equipos: WizardEquipo[];        // interno: se crea equipo 'General' al guardar
   horarios: WizardHorario[];
 }
@@ -294,6 +310,8 @@ export interface WizardHorario {
   hora_inicio: string;
   hora_fin: string;
   lugar: string | null;            // texto libre (opcional)
+  profesor_id: number | null;
+  costo_interno: number | null;
   area_id: number | null;          // FK → areas.id (solo áreas con layout mapeado)
 }
 

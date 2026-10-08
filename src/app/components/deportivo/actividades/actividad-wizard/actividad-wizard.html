@@ -1,5 +1,5 @@
 <!-- Overlay -->
-<div class="wizard-overlay">
+<div class="wizard-overlay" (click)="onOverlayClick($event)">
   <div class="wizard-container">
 
     <!-- ── Header del wizard ──────────────────────────────────────────────── -->
@@ -58,28 +58,30 @@
           <span class="text-muted">Cargando datos…</span>
         </div>
       } @else {
-      <!-- ════ PASO 1: Identidad ════ -->
+      <!-- ════ PASO 1: General ════ -->
       @if (currentStep() === 1) {
         <div class="step-content">
           <h6 class="step-section-title">Información básica</h6>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="club_id" [disabled]="isEditing()">
-              <option [ngValue]="null" disabled>Selecciona una sede</option>
-              @for (c of formData()?.acceso_clubes; track c.id) {
-                <option [ngValue]="c.id">{{ c.name }}</option>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="club_id" [disabled]="isEditing()">
+                <option [ngValue]="null" disabled>Selecciona una sede</option>
+                @for (c of formData()?.acceso_clubes; track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+              @if (isEditing()) {
+                <small class="text-muted d-block mt-1">La sede no se puede cambiar una vez creada la actividad.</small>
               }
-            </select>
-            @if (isEditing()) {
-              <small class="text-muted d-block mt-1">La sede no se puede cambiar una vez creada la actividad.</small>
-            }
-          </div>
+            </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" placeholder="Ej: Fútbol Sub-15"
-                   [(ngModel)]="nombre" maxlength="100">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" placeholder="Ej: Fútbol Sub-15"
+                     [(ngModel)]="nombre" maxlength="100">
+            </div>
           </div>
 
           <div class="mb-3">
@@ -105,6 +107,31 @@
                 <small class="text-muted">Sin fecha fin la actividad es indefinida.</small>
               </div>
             </div>
+          </div>
+
+                    <!-- Costo al socio -->
+          <div class="mb-4 bg-light rounded p-3 border border-light-subtle">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <label class="form-label fw-semibold mb-0">Costo para el socio</label>
+                <div class="small text-muted mt-1">Habilita esta opción si la actividad tiene un costo de inscripción.</div>
+              </div>
+              <div class="form-check form-switch ms-3 m-0">
+                <input class="form-check-input" type="checkbox" role="switch" style="width: 2.5rem; height: 1.25rem; cursor: pointer;"
+                       [(ngModel)]="tiene_costo">
+              </div>
+            </div>
+
+            @if (tiene_costo) {
+              <div class="mt-3 pt-3 border-top">
+                <label class="form-label small fw-semibold">Monto a cobrar</label>
+                <div class="input-group" style="max-width: 300px;">
+                  <span class="input-group-text bg-white text-muted border-end-0" style="border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important;">$</span>
+                  <input type="number" class="form-control border-start-0 ps-0" style="border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;"
+                         [(ngModel)]="monto" min="0" step="0.01" placeholder="Ej. 150.00">
+                </div>
+              </div>
+            }
           </div>
 
           <div class="mb-3">
@@ -144,9 +171,28 @@
             </div>
           </div>
 
+                  </div>
+      }
+<!-- ════ PASO 2: Operación ════ -->
+      @if (currentStep() === 2) {
+        <div class="step-content">
+          <h6 class="step-section-title">Reglas de Operación</h6>
+          
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Elegibilidad</label>
+            <label class="mensajeria-option" [class.selected]="elegible_para_socios">
+              <div class="fw-semibold" style="flex: 0 0 220px;">¿Exclusivo para Socios?</div>
+              <small class="text-muted" style="flex: 1;">Desactiva esta opción si la actividad está abierta a invitados o externos.</small>
+              <div class="form-check form-switch ms-auto mb-0" style="padding-left: 2.5rem;">
+                <input class="form-check-input m-0" type="checkbox" role="switch"
+                       [(ngModel)]="elegible_para_socios" style="width:2.5rem;height:1.25rem;cursor:pointer; margin-left: -2.5rem !important;">
+              </div>
+            </label>
+          </div>
+
           <div class="mb-3">
             <label class="form-label fw-semibold">Modo de mensajería</label>
-            <div class="d-flex flex-column gap-2">
+<div class="d-flex flex-column gap-2">
               @for (opt of [
                 {val:'bidireccional', label:'Bidireccional', desc:'Entrenadores y alumnos pueden enviar y responder mensajes'},
                 {val:'solo_respuesta', label:'Solo respuesta', desc:'Los alumnos solo pueden responder mensajes del entrenador'},
@@ -154,48 +200,21 @@
               ]; track opt.val) {
                 <label class="mensajeria-option" [class.selected]="modo_mensajeria === opt.val">
                   <input type="radio" [(ngModel)]="modo_mensajeria" [value]="opt.val" class="visually-hidden">
-                  <div>
-                    <div class="fw-semibold">{{ opt.label }}</div>
-                    <small class="text-muted">{{ opt.desc }}</small>
-                  </div>
+                  <div class="fw-semibold" style="flex: 0 0 220px;">{{ opt.label }}</div>
+                  <small class="text-muted" style="flex: 1;">{{ opt.desc }}</small>
                   @if (modo_mensajeria === opt.val) {
-                    <i class="bi bi-check-circle-fill text-primary ms-auto"></i>
+                    <i class="bi bi-check-circle-fill text-primary fs-5 ms-auto"></i>
+                  } @else {
+                    <i class="bi bi-circle text-muted fs-5 ms-auto" style="opacity: 0.3;"></i>
                   }
                 </label>
               }
             </div>
           </div>
-
-          <!-- Cobro -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Cobro</label>
-            <label class="mensajeria-option" [class.selected]="tiene_costo">
-              <div>
-                <div class="fw-semibold">¿Esta actividad tiene costo?</div>
-                <small class="text-muted">Actívalo si la actividad requiere pago de inscripción o mensualidad</small>
-              </div>
-              <div class="form-check form-switch ms-auto mb-0">
-                <input class="form-check-input" type="checkbox" role="switch"
-                       [(ngModel)]="tiene_costo" style="width:2.5rem;height:1.25rem;cursor:pointer">
-              </div>
-            </label>
-
-            @if (tiene_costo) {
-              <div class="mt-2">
-                <label class="form-label small fw-semibold">Monto a cobrar <span class="text-danger">*</span></label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input type="number" class="form-control" placeholder="0.00"
-                         min="0" step="0.01" [(ngModel)]="monto">
-                </div>
-              </div>
-            }
-          </div>
         </div>
       }
-
-      <!-- ════ PASO 2: Grupos ════ -->
-      @if (currentStep() === 2) {
+<!-- ════ PASO 3: Grupos ════ -->
+      @if (currentStep() === 3) {
         <div class="step-content">
           <h6 class="step-section-title">Grupos y categorías</h6>
           <p class="text-muted small mb-3">Crea grupos por categoría o rango de edad. Podrás agregar equipos dentro de cada grupo.</p>
@@ -255,6 +274,34 @@
                     </div>
                   </div>
 
+                  <!-- Instructor del grupo -->
+                  <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-8">
+                      <label class="form-label small fw-semibold">Instructor titular</label>
+                      <select class="form-select form-select-sm"
+                              [ngModel]="grupos()[gi].instructor_id"
+                              (ngModelChange)="setGrupoInstructor(gi, $event)">
+                        <option [ngValue]="null">Sin instructor titular</option>
+                        @for (inst of formData()?.instructores; track inst.id) {
+                          <option [ngValue]="inst.id">{{ inst.full_name }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <label class="form-label small fw-semibold">Costo base</label>
+                      <div class="input-group input-group-sm">
+                        <span class="input-group-text">$</span>
+                        <input type="number" class="form-control form-control-sm" min="0" step="0.01"
+                               placeholder="0.00"
+                               [ngModel]="grupos()[gi].costo_interno"
+                               (ngModelChange)="setGrupoCosto(gi, $event)">
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <small class="text-muted" style="font-size: 0.75rem;">Este profesor y costo se asignarán automáticamente a todos los horarios de este grupo.</small>
+                    </div>
+                  </div>
+
                   <!-- Cupo del grupo -->
                   <div class="mb-3">
                     <label class="mensajeria-option" [class.selected]="grupos()[gi].tiene_cupo">
@@ -279,24 +326,6 @@
                       </div>
                     }
                   </div>
-
-                  <!-- Instructor del grupo -->
-                  <div class="mb-3">
-                    <label class="form-label small fw-semibold">Instructor asignado</label>
-                    <select class="form-select form-select-sm"
-                            [ngModel]="grupos()[gi].instructor_id"
-                            (ngModelChange)="setGrupoInstructor(gi, $event)">
-                      <option [ngValue]="null">Sin instructor asignado</option>
-                      @for (inst of formData()?.instructores; track inst.id) {
-                        <option [ngValue]="inst.id">
-                          {{ inst.full_name }}{{ inst.specialty ? ' — ' + inst.specialty : '' }}
-                        </option>
-                      }
-                    </select>
-                    @if (formData()?.instructores?.length === 0) {
-                      <small class="text-muted">No hay instructores registrados aún.</small>
-                    }
-                  </div>
                 </div>
               }
             </div>
@@ -304,116 +333,99 @@
         </div>
       }
 
-      <!-- ════ PASO 3: Horarios ════ -->
-      @if (currentStep() === 3) {
+      <!-- ════ PASO 4: Horarios ════ -->
+      @if (currentStep() === 4) {
         <div class="step-content">
-          <h6 class="step-section-title">Horarios de entrenamiento</h6>
-          <p class="text-muted small mb-3">Configura los días y horarios de cada grupo.</p>
+          <h6 class="step-section-title text-uppercase fw-bold text-secondary mb-3">Horarios de entrenamiento</h6>
+          <p class="text-muted small mb-4">Configura los días y horarios de cada grupo.</p>
 
           @if (grupos().length === 0) {
-            <div class="empty-hint">
+            <div class="empty-hint text-center py-5">
               <i class="bi bi-clock text-muted d-block mb-2" style="font-size:2rem"></i>
               <span>No hay grupos definidos. Vuelve al paso anterior.</span>
             </div>
-          }
-
-          <!-- Tabs por grupo -->
-          @if (grupos().length > 0) {
-            <div class="grupo-tabs mb-3">
-              @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
-                <button type="button" class="grupo-tab"
-                        [class.active]="activeGrupoIndex() === gi"
-                        (click)="activeGrupoIndex.set(gi)">
-                  {{ g.nombre }}
-                </button>
-              }
-            </div>
-
-            @let gIdx = activeGrupoIndex();
-            @let gActual = grupos()[gIdx];
-            @if (gActual) {
-              <div class="horario-panel">
-                <label class="form-label fw-semibold small">Días</label>
-                <div class="dias-chips mb-3">
-                  @for (d of dias; track d.num) {
-                    <button type="button" class="dia-chip"
-                            [class.selected]="isDiaSelected(gIdx, d.num)"
-                            (click)="toggleDia(gIdx, d.num)">
-                      {{ d.label }}
-                    </button>
-                  }
-                </div>
-
-                @if (gActual.horarios.length > 0 && gActual.equipos.length === 0) {
-                  <div class="alert alert-info alert-sm d-flex align-items-center gap-2 py-2 mb-3">
-                    <i class="bi bi-info-circle-fill"></i>
-                    <span class="small">Este grupo no tiene equipos. Se creará un equipo <strong>General</strong> automáticamente para guardar los horarios.</span>
-                  </div>
+          } @else {
+            <div class="d-flex flex-column h-100">
+              <!-- Tabs por grupo -->
+              <div class="grupo-tabs mb-4">
+                @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
+                  <button type="button" class="btn btn-sm rounded-pill px-3 fw-medium me-2 mb-2"
+                          [class.btn-primary]="activeGrupoIndex() === gi"
+                          [class.btn-outline-secondary]="activeGrupoIndex() !== gi"
+                          (click)="activeGrupoIndex.set(gi)">
+                    {{ g.nombre }}
+                  </button>
                 }
+              </div>
 
-                @if (gActual.horarios.length === 0) {
-                  <p class="text-muted small">Selecciona días para configurar horarios.</p>
-                }
+              @let gIdx = activeGrupoIndex();
+              @let gActual = grupos()[gIdx];
+              @if (gActual) {
+                <div class="horario-panel">
+                  
 
-                <div class="row g-3">
-                  @for (d of dias; track d.num) {
-                    @if (isDiaSelected(gIdx, d.num)) {
-                      <div class="col-12">
-                        <div class="dia-horario-card p-3 border rounded shadow-sm bg-white">
-                          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                            <div class="d-flex align-items-center gap-2">
-                              <span class="badge bg-primary fs-6">{{ d.label }}</span>
-                              <span class="fw-semibold text-secondary">{{ getDiaNombre(d.num) }}</span>
-                            </div>
-                            <div class="d-flex gap-2">
-                              @if (getHorariosByDia(gIdx, d.num).length > 0) {
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill d-flex align-items-center gap-1"
-                                        title="Replicar este horario en otros días"
-                                        (click)="toggleReplicar(gIdx, d.num)">
-                                  <i class="bi bi-copy"></i>
-                                  <span class="d-none d-sm-inline">Replicar</span>
-                                </button>
-                              }
-                              <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
-                                      (click)="addHorarioOnly(gIdx, d.num)">
-                                <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
-                              </button>
-                            </div>
+                  
+
+                                    <div class="d-flex flex-column gap-3">
+                    @for (d of dias; track d.num) {
+                      <div class="dia-horario-card p-3 border rounded shadow-sm bg-white">
+                        <div class="d-flex justify-content-between align-items-center pb-2" [class.border-bottom]="getHorariosByDia(gIdx, d.num).length > 0 || replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num" [class.mb-3]="getHorariosByDia(gIdx, d.num).length > 0 || replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-5">{{ getDiaNombre(d.num) }}</span>
                           </div>
-
+                          <div class="d-flex gap-2">
+                            <!-- Botón Replicar -->
+                            @if (getHorariosByDia(gIdx, d.num).length > 0) {
+                              <button class="btn btn-sm btn-outline-secondary rounded-pill d-flex align-items-center gap-1"
+                                      title="Replicar este horario en otros días"
+                                      (click)="toggleReplicar(gIdx, d.num)">
+                                <i class="bi bi-files"></i>
+                                <span class="d-none d-sm-inline">Replicar</span>
+                              </button>
+                            }
+                            <!-- Botón Añadir -->
+                            <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
+                                    (click)="addHorarioOnly(gIdx, d.num)">
+                              <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div class="dia-horario-body">
                           <!-- Panel de réplica inline -->
                           @if (replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num) {
-                            <div class="replicate-panel mb-3">
-                              <div class="replicate-panel__title">
-                                <i class="bi bi-copy me-1"></i>
-                                Replicar horarios del <strong>{{ getDiaNombre(d.num) }}</strong> en:
-                              </div>
-                              <div class="replicate-panel__dias">
+                            <div class="replicate-panel mb-3 p-3 bg-light border rounded">
+                              <label class="fw-semibold small d-block mb-2">
+                                <i class="bi bi-copy me-1"></i> Replicar horarios de <strong>{{ getDiaNombre(d.num) }}</strong> a:
+                              </label>
+                              <div class="replicate-panel__days d-flex flex-wrap gap-2 mb-3">
                                 @for (rd of dias; track rd.num) {
                                   @if (rd.num !== d.num) {
-                                    <label class="replicate-day-check"
-                                           [class.has-existing]="isDiaSelected(gIdx, rd.num)"
-                                           [class.checked]="isDiaParaReplicar(rd.num)">
-                                      <input type="checkbox"
+                                    <label class="btn btn-sm rounded-pill"
+                                           [class.btn-primary]="isDiaParaReplicar(rd.num)"
+                                           [class.btn-outline-secondary]="!isDiaParaReplicar(rd.num) && getHorariosByDia(gIdx, rd.num).length === 0"
+                                           [class.btn-outline-warning]="!isDiaParaReplicar(rd.num) && getHorariosByDia(gIdx, rd.num).length > 0"
+                                           style="cursor: pointer;">
+                                      <input type="checkbox" class="d-none"
                                              [checked]="isDiaParaReplicar(rd.num)"
                                              (change)="toggleDiaReplica(rd.num, $any($event.target).checked)">
-                                      <span>{{ rd.label }}</span>
-                                      @if (isDiaSelected(gIdx, rd.num)) {
-                                        <i class="bi bi-exclamation-triangle-fill text-warning ms-1" title="Este día ya tiene horarios, serán reemplazados"></i>
+                                      {{ rd.label }}
+                                      @if (getHorariosByDia(gIdx, rd.num).length > 0) {
+                                        <i class="bi bi-exclamation-triangle-fill ms-1" title="Se reemplazarán los horarios"></i>
                                       }
                                     </label>
                                   }
                                 }
                               </div>
                               @if (tieneDestinosConConflicto(gIdx)) {
-                                <div class="replicate-panel__warn">
-                                  <i class="bi bi-exclamation-triangle-fill"></i>
-                                  Los días marcados con ⚠ ya tienen horarios configurados y serán <strong>reemplazados</strong>.
+                                <div class="alert alert-warning py-1 px-2 small mb-3">
+                                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                  Los días con advertencia ya tienen horarios configurados y serán <strong>reemplazados</strong>.
                                 </div>
                               }
-                              <div class="replicate-panel__actions">
-                                <button class="btn btn-sm btn-outline-secondary" (click)="cerrarReplicar()">Cancelar</button>
-                                <button class="btn btn-sm btn-primary"
+                              <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="cerrarReplicar()">Cancelar</button>
+                                <button class="btn btn-sm btn-primary rounded-pill px-3"
                                         [disabled]="diasParaReplicar().length === 0"
                                         (click)="aplicarReplica(gIdx, d.num)">
                                   <i class="bi bi-check-lg me-1"></i>Aplicar
@@ -422,28 +434,36 @@
                             </div>
                           }
 
-                          <div class="d-flex flex-column gap-2">
+                                                    <div class="d-flex flex-column gap-2">
+                            @if (getHorariosByDia(gIdx, d.num).length > 0) {
+                              <div class="row g-2 d-none d-md-flex mb-1">
+                                <div class="col-md-3"><small class="text-muted fw-semibold">Inicio</small></div>
+                                <div class="col-md-3"><small class="text-muted fw-semibold">Fin</small></div>
+                                <div class="col-md-5"><small class="text-muted fw-semibold">Área</small></div>
+                                <div class="col-md-1"></div>
+                              </div>
+                            }
                             @for (h of getHorariosByDia(gIdx, d.num); track h.originalIndex) {
-                              <div class="row g-2 align-items-center p-2 rounded bg-light border border-light-subtle">
+                              <div class="row g-2 align-items-center mb-2">
                                 <div class="col-12 col-md-3">
-                                  <label class="form-label small text-muted mb-1 d-block">Inicio</label>
-                                  <input type="time" class="form-control form-control-sm"
+                                  <label class="form-label small text-muted mb-1 d-block d-md-none">Inicio</label>
+                                  <input type="time" class="form-control form-control-sm rounded-pill bg-white"
                                          [value]="h.item.hora_inicio"
                                          (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_inicio', $any($event.target).value)">
                                 </div>
                                 <div class="col-12 col-md-3">
-                                  <label class="form-label small text-muted mb-1 d-block">Fin</label>
-                                  <input type="time" class="form-control form-control-sm"
+                                  <label class="form-label small text-muted mb-1 d-block d-md-none">Fin</label>
+                                  <input type="time" class="form-control form-control-sm rounded-pill bg-white"
                                          [value]="h.item.hora_fin"
                                          (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
                                 </div>
                                 <div class="col-12 col-md-5">
-                                  <label class="form-label small text-muted mb-1 d-block">Área</label>
+                                  <label class="form-label small text-muted mb-1 d-block d-md-none">Área</label>
                                   @if (getAreasByClub().length === 0) {
-                                    <input type="text" class="form-control form-control-sm" disabled
+                                    <input type="text" class="form-control form-control-sm rounded-pill bg-white" disabled
                                            placeholder="No hay áreas mapeadas para este club">
                                   } @else {
-                                    <select class="form-select form-select-sm"
+                                    <select class="form-select form-select-sm rounded-pill bg-white"
                                             [ngModel]="h.item.area_id"
                                             (ngModelChange)="updateHorarioField(gIdx, h.originalIndex, 'area_id', $event || null)">
                                       <option [ngValue]="null">Sin área asignada</option>
@@ -453,7 +473,7 @@
                                     </select>
                                   }
                                 </div>
-                                <div class="col-12 col-md-1 d-flex justify-content-end align-items-end h-100 pb-1">
+                                <div class="col-12 col-md-1 d-flex justify-content-end align-items-center h-100">
                                   <button class="btn btn-sm text-danger border-0 p-1"
                                           title="Eliminar horario"
                                           (click)="removeHorario(gIdx, h.originalIndex)">
@@ -466,16 +486,16 @@
                         </div>
                       </div>
                     }
-                  }
+                  </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           }
         </div>
       }
 
-      <!-- ════ PASO 4: Evaluación ════ -->
-      @if (currentStep() === 4) {
+      <!-- ════ PASO 5: Evaluación ════ -->
+      @if (currentStep() === 5) {
         <div class="step-content">
           <h6 class="step-section-title">Criterios de evaluación</h6>
           <p class="text-muted small mb-3">Define los aspectos que se evaluarán en esta actividad.</p>
@@ -521,8 +541,8 @@
         </div>
       }
 
-      <!-- ════ PASO 5: Resumen ════ -->
-      @if (currentStep() === 5) {
+      <!-- ════ PASO 6: Resumen ════ -->
+      @if (currentStep() === 6) {
         <div class="step-content">
           <h6 class="step-section-title">Resumen</h6>
           <p class="text-muted small mb-3">Revisa los datos antes de {{ isEditing() ? 'guardar los cambios' : 'publicar la actividad' }}.</p>

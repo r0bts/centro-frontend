@@ -1,4 +1,5 @@
-import {
+import { FormsModule } from '@angular/forms';
+import { computed, 
   Component,
   ChangeDetectionStrategy,
   OnInit,
@@ -8,14 +9,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { ActividadService } from '../../../services/deportivo/actividad.service';
 import { AuthService } from '../../../services/auth.service';
-import { Actividad } from '../../../models/deportivo/actividad.model';
+import { Actividad, ActividadFormData } from '../../../models/deportivo/actividad.model';
 import { ActividadWizardComponent } from './actividad-wizard/actividad-wizard';
 
 @Component({
   selector: 'app-deportivo-actividades',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, ActividadWizardComponent],
+  imports: [CommonModule, ActividadWizardComponent, FormsModule],
   templateUrl: './deportivo-actividades.html',
   styleUrl: './deportivo-actividades.scss',
 })
@@ -24,10 +25,61 @@ export class DeportivoActividadesComponent implements OnInit {
   private auth   = inject(AuthService);
 
   // ── State ──────────────────────────────────────────────────────────────────
+  formData      = signal<ActividadFormData | null>(null);
+  filterClubId  = signal<number | null>(null);
+  filterAreaId  = signal<number | null>(null);
+  filterHorario = signal<string>('');
+  viewMode = signal<'grid' | 'list'>('grid');
   actividades   = signal<Actividad[]>([]);
   loading       = signal(true);
   error         = signal<string | null>(null);
   toast         = signal<string | null>(null);
+
+
+  filteredActividades = computed(() => {
+    let list = this.actividades();
+    const cId = this.filterClubId();
+    const aId = this.filterAreaId();
+    const searchH = this.filterHorario()?.toLowerCase().trim();
+
+    if (cId) {
+      list = list.filter(a => a.club_id === cId);
+    }
+    
+    if (aId || searchH) {
+      list = list.filter(a => {
+        // If aId is set, does any grupo > horario match this area?
+        // Wait, Actividad has `grupos_categorias`, let's search them.
+        let matchArea = false;
+        let matchHorario = false;
+
+        const grupos = a.grupos_categorias || [];
+        for (const g of grupos) {
+          const equipos = g.equipos || [];
+          for (const eq of equipos) {
+            const horarios = eq.horarios || [];
+            for (const h of horarios) {
+              if (aId && h.area_id === aId) matchArea = true;
+              
+              if (searchH) {
+                const dayMap = [null, 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+                const dayName = dayMap[h.dia_semana]?.toLowerCase() || '';
+                if (dayName.includes(searchH) || h.hora_inicio?.includes(searchH) || h.hora_fin?.includes(searchH)) {
+                  matchHorario = true;
+                }
+              }
+            }
+          }
+        }
+        
+        if (aId && !matchArea) return false;
+        if (searchH && !matchHorario) return false;
+        return true;
+      });
+    }
+
+    return list;
+  });
 
   // delete
   deleteTarget  = signal<Actividad | null>(null);
@@ -37,8 +89,18 @@ export class DeportivoActividadesComponent implements OnInit {
   wizardOpen        = signal(false);
   wizardEditTarget  = signal<Actividad | null>(null);
 
+  getClubName(clubId?: number): string {
+    if (!clubId) return 'Todas las sedes';
+    const clubes = this.formData()?.acceso_clubes || [];
+    const club = clubes.find(c => c.id === clubId);
+    return club ? club.name : 'Todas las sedes';
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
+    this.svc.getFormData().subscribe(res => {
+      this.formData.set(res.data);
+    });
     this.loadActividades();
   }
 
@@ -67,6 +129,10 @@ export class DeportivoActividadesComponent implements OnInit {
     });
   }
 
+  toggleViewMode(): void {
+    this.viewMode.set(this.viewMode() === 'grid' ? 'list' : 'grid');
+  }
+
   // ── Wizard ─────────────────────────────────────────────────────────────────
   openWizard(): void {
     this.wizardEditTarget.set(null);
@@ -76,6 +142,18 @@ export class DeportivoActividadesComponent implements OnInit {
   editActividad(act: Actividad): void {
     this.wizardEditTarget.set(act);
     this.wizardOpen.set(true);
+  }
+
+  duplicateActividad(act: Actividad): void {
+    if (confirm(`¿Estás seguro de duplicar "${act.nombre}"?`)) {
+      this.svc.duplicate(act.id).subscribe({
+        next: () => {
+          this.showToast('Actividad duplicada exitosamente');
+          this.refreshActividades();
+        },
+        error: () => this.error.set('Error al duplicar')
+      });
+    }
   }
 
   onWizardSaved(msg: string): void {
