@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard, loginGuard } from './guards/auth.guard';
+import { permissionGuard } from './guards/permission.guard';
 import { ConfiguracionComponent } from './components/configuracion/configuracion';
 
 export const routes: Routes = [
@@ -202,26 +203,36 @@ export const routes: Routes = [
       },
       {
         path: 'escaner',
+        canActivate: [permissionGuard],
+        data: { submodule: 'expediente_externo', permissions: ['view', 'create'] },
         loadComponent: () =>
           import('./components/servicio-medico/scanner/servicio-medico-scanner/servicio-medico-scanner').then(m => m.ServicioMedicoScanner)
       },
       {
         path: 'expediente/:token',
+        canActivate: [permissionGuard],
+        data: { submodule: 'expediente_externo', permissions: ['view', 'create'] },
         loadComponent: () =>
           import('./components/servicio-medico/expediente/servicio-medico-expediente/servicio-medico-expediente').then(m => m.ServicioMedicoExpediente)
       },
       {
         path: 'socios',
+        canActivate: [permissionGuard],
+        data: { submodule: 'expediente_socio', permissions: ['view', 'create'] },
         loadComponent: () =>
           import('./components/servicio-medico/socios/servicio-medico-socios/servicio-medico-socios').then(m => m.ServicioMedicoSocios)
       },
       {
         path: 'visitas',
+        canActivate: [permissionGuard],
+        data: { submodule: 'visitas_medicas', permissions: ['view', 'create'] },
         loadComponent: () =>
           import('./components/servicio-medico/visitas/servicio-medico-visitas/servicio-medico-visitas').then(m => m.ServicioMedicoVisitas)
       },
       {
         path: 'preregistros',
+        canActivate: [permissionGuard],
+        data: { submodule: 'preregistros_medicos', permissions: ['view', 'create'] },
         loadComponent: () =>
           import('./components/servicio-medico/preregistros/servicio-medico-preregistros/servicio-medico-preregistros').then(m => m.ServicioMedicoPreregistros)
       },

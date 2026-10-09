@@ -148,9 +148,9 @@ export class AuthService {
       refresh_token: refreshToken
     }).pipe(
       tap(response => {
-        if (response.success) {
-          // Solo actualizar el access token, mantener el refresh token
-          this.storage.setItem(this.TOKEN_KEY, response.data.access_token);
+        if (response.success && response.data) {
+          // Actualizar la sesión completa incluyendo nuevos permisos, roles y módulos
+          this.setSession(response.data);
         }
       }),
       catchError(error => {
@@ -158,6 +158,13 @@ export class AuthService {
         return throwError(() => error);
       })
     );
+  }
+
+  /**
+   * Recarga los permisos del usuario actualizando el token
+   */
+  reloadPermissions(): Observable<any> {
+    return this.refreshToken();
   }
 
   /**

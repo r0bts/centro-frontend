@@ -139,7 +139,7 @@
                     <i class="bi me-1" [ngClass]="c.status === 'abierta' ? 'bi-circle-fill' : 'bi-check-circle-fill'"></i>
                     {{ c.status === 'cerrada' ? 'ENVIADA A NS' : (c.status | uppercase) }}
                   </span>
-                  <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id, source: 'visitas', type: c.is_socio ? 'socio' : null }" class="btn btn-primary btn-sm text-nowrap px-3 py-1 fw-medium shadow-sm">
+                  <a [routerLink]="['/servicio-medico/expediente', c.patient_token]" [queryParams]="{ consulta_id: c.id, source: 'visitas', type: c.patient_type === 'socio' ? 'socio' : null }" class="btn btn-primary btn-sm text-nowrap px-3 py-1 fw-medium shadow-sm">
                     Ver <i class="bi bi-arrow-right"></i>
                   </a>
                 </div>
