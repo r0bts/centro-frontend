@@ -545,6 +545,9 @@ export class ConfiguracionComponent implements OnInit {
           if (this.usersListComponent) {
             this.usersListComponent.loadUsers();
           }
+          
+          // 🔥 Recargar permisos en caso de que el usuario haya editado sus propios permisos o rol
+          this.authService.reloadPermissions().subscribe();
         });
       },
       error: (error) => {
@@ -611,6 +614,9 @@ export class ConfiguracionComponent implements OnInit {
           if (this.rolesListComponent) {
             this.rolesListComponent.loadRoles();
           }
+          
+          // 🔥 Recargar permisos en caso de que este rol pertenezca al usuario actual
+          this.authService.reloadPermissions().subscribe();
         });
       },
       error: (error) => {

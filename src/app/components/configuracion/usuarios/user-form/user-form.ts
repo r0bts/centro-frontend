@@ -150,6 +150,23 @@ export class UserFormComponent implements OnInit, OnChanges {
   submodules: Submodule[] = [];
   dbPermissions: DbPermission[] = [];
   private submodulePermissionsConfig: { [key: number]: number[] } = {};
+
+  // Buscador de módulos
+  moduleSearchTerm: string = '';
+
+  get filteredModules(): Module[] {
+    if (!this.moduleSearchTerm || !this.moduleSearchTerm.trim()) {
+      return this.modules;
+    }
+    const term = this.moduleSearchTerm.toLowerCase().trim();
+    return this.modules.filter(module => {
+      if (module.display_name.toLowerCase().includes(term) || module.name.toLowerCase().includes(term)) {
+        return true;
+      }
+      const submodules = this.getSubmodulesByModule(module.id);
+      return submodules.some(sub => sub.display_name.toLowerCase().includes(term) || sub.name.toLowerCase().includes(term));
+    });
+  }
   private permissionsStructureLoaded = false;
 
   /* ========================================

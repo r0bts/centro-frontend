@@ -109,9 +109,14 @@
                aria-labelledby="permissions-tab">
 
         <!-- Permisos por módulo -->
-        <h5 class="mb-3">Asignación de Permisos</h5>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+          <h5 class="mb-2 mb-md-0">Asignación de Permisos</h5>
+          <div class="search-box" style="min-width: 300px;">
+            <input type="text" class="form-control" placeholder="Buscar módulo o submódulo..." [(ngModel)]="moduleSearchTerm" name="moduleSearchTerm">
+          </div>
+        </div>
         <div class="permissions-section">
-          <div *ngFor="let module of modules" class="module-section mb-4">
+          <div *ngFor="let module of filteredModules" class="module-section mb-4">
             <div class="card">
               <div class="card-header bg-light">
                 <h6 class="card-title mb-0">{{ module.display_name }}</h6>
@@ -130,7 +135,13 @@
                     </span>
                   </div>
                   <div class="row">
-                    <div class="col-md-2" *ngFor="let permission of getAvailablePermissions(submodule.id)">
+                    <div [ngClass]="{
+                           'col-md-12': getAvailablePermissions(submodule.id).length === 1,
+                           'col-md-6': getAvailablePermissions(submodule.id).length === 2,
+                           'col-md-4': getAvailablePermissions(submodule.id).length === 3,
+                           'col-md-3': getAvailablePermissions(submodule.id).length >= 4
+                         }" 
+                         *ngFor="let permission of getAvailablePermissions(submodule.id)">
                       <div class="form-check">
                         <input class="form-check-input" 
                                type="checkbox" 

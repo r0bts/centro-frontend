@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RolesListComponent } from './roles-list/roles-list';
 import { RoleFormComponent } from './role-form/role-form';
 import { RoleService, Role } from '../../../services/role.service';
+import { AuthService } from '../../../services/auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -21,6 +22,7 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
 
   constructor(
     private roleService: RoleService,
+    private authService: AuthService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -94,6 +96,8 @@ export class RolesPermisosComponent implements OnInit, OnDestroy {
             this.isEditMode = false;
             this.selectedRoleId = null;
             console.log('✅ [ROLES-PERMISOS] Vista cambiada a:', this.currentView);
+            // Recargar permisos para aplicar los cambios a la sesión actual si afectaron a este usuario
+            this.authService.reloadPermissions().subscribe();
             // roles-list se recargará automáticamente cuando se muestre
           });
         } else {
