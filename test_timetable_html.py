@@ -4,57 +4,9 @@ with open(path, 'r') as f:
 
 import re
 
-# 1. Switch
-old_switch = """                <input class="form-check-input m-0" type="checkbox" role="switch"
-                       [checked]="act.elegible_para_socios !== false" 
-                       (change)="toggleSocios(act)"
-                       style="cursor: pointer; width: 1.8rem; height: 0.9rem;"
-                       
-                       
-                       
-                       >"""
-new_switch = """                <input class="form-check-input m-0" type="checkbox" role="switch"
-                       [checked]="act.elegible_para_socios !== false" 
-                       (change)="toggleSocios(act)"
-                       style="cursor: pointer; width: 2.2rem; height: 1.1rem;">"""
-html = html.replace(old_switch, new_switch)
+pattern = r"    @if \(viewMode\(\) === 'calendar'\) \{.*?    \}"
 
-# 2. Duplicate button
-old_actions = """                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
-                        <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
-                      </button>"""
-new_actions = """                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Duplicar" (click)="duplicateActividad(act)">
-                        <i class="bi bi-files" style="font-size: 0.85rem;"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
-                        <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
-                      </button>"""
-html = html.replace(old_actions, new_actions)
-
-# 3. Filter Acceso
-old_filter = """          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Zona (Área)</label>
-            <select class="form-select form-select-sm" [(ngModel)]="filterAreaId">
-              <option [ngValue]="null">Todas las áreas</option>
-              @for (a of formData()?.areas_mapeadas; track a.area_id) {
-                <option [ngValue]="a.area_id">{{ a.area_name }}</option>
-              }
-            </select>
-          </div>"""
-new_filter = """          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Acceso</label>
-            <select class="form-select form-select-sm" [(ngModel)]="filterAcceso">
-              <option [ngValue]="null">Cualquiera</option>
-              <option [ngValue]="true">Socios</option>
-              <option [ngValue]="false">Staff</option>
-            </select>
-          </div>"""
-html = html.replace(old_filter, new_filter)
-
-# 4. Replace entire Calendar block using regex
-pattern = r"    @if \(viewMode\(\) === 'calendar'\) \{.*?    \}(?=\s*<!-- ── Offcanvas para Horarios Rápidos ── -->)"
-
-new_cal = """    @if (viewMode() === 'calendar') {
+new_html = """    @if (viewMode() === 'calendar') {
       <div class="card shadow-sm border-0 mb-4 overflow-hidden" style="border-radius: 12px; height: 75vh; display: flex; flex-direction: column;">
         <div class="table-responsive flex-grow-1" style="background-color: #f8f9fa;">
           <table class="table table-bordered mb-0" style="min-width: 1200px; table-layout: fixed;">
@@ -138,8 +90,8 @@ new_cal = """    @if (viewMode() === 'calendar') {
       </div>
     }"""
 
-html = re.sub(pattern, new_cal, html, flags=re.DOTALL)
+html = re.sub(pattern, new_html, html, flags=re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(html)
-print("Updated HTML carefully")
+print("Updated HTML to Timetable View")

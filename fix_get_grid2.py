@@ -1,28 +1,27 @@
+import re
+
 path = 'src/app/components/deportivo/actividades/deportivo-actividades.ts'
 with open(path, 'r') as f:
     ts = f.read()
 
-import re
+old_func_pattern = r"  getGridColumn\(start: string, end: string\): string \{.*?\n  \}"
 
-helper_fn = """  formatHora(hora: string): string {
-    if (!hora) return '';
-    const parts = hora.split(':');
-    return `${parts[0]}:${parts[1]}`;
-  }
-
-  getGridColumn(start: string, end: string): string {
+new_func = """  getGridColumn(start: string, end: string): string {
     if (!start || !end) return '1 / span 2';
+    
+    const minH = this.ganttBounds().minHour;
     
     const parseTime = (time: string) => {
       const parts = time.split(':');
       return parseInt(parts[0], 10) * 2 + (parseInt(parts[1], 10) >= 30 ? 1 : 0);
     };
 
-    let startIdx = parseTime(start);
-    let endIdx = parseTime(end);
+    let startIdx = parseTime(start) - (minH * 2);
+    let endIdx = parseTime(end) - (minH * 2);
 
+    if (startIdx < 0) startIdx = 0;
     if (endIdx <= startIdx) {
-      if (endIdx === 0) endIdx = 48; // Midnight of next day
+      if (endIdx === -(minH * 2)) endIdx = (24 - minH) * 2; // Midnight fallback
       else endIdx = startIdx + 2; // Default 1 hour fallback
     }
 
@@ -30,8 +29,7 @@ helper_fn = """  formatHora(hora: string): string {
     return `${startIdx + 1} / span ${span}`;
   }"""
 
-ts = ts.replace("  formatHora(hora: string): string {\n    if (!hora) return '';\n    const parts = hora.split(':');\n    return `${parts[0]}:${parts[1]}`;\n  }", helper_fn)
+ts = re.sub(old_func_pattern, new_func, ts, flags=re.DOTALL)
 
 with open(path, 'w') as f:
     f.write(ts)
-print("Added getGridColumn helper")

@@ -68,7 +68,8 @@ export class DeportivoActividadesComponent implements OnInit {
   filterNombre  = signal<string>('');
   filterHorario = signal<string>('');
   filterProfesorId = signal<number | null>(null);
-  viewMode = signal<'grid' | 'list' | 'calendar'>(
+  filterArea = signal<string | null>(null);
+  viewMode = signal<'grid' | 'list' | 'calendar' | 'classic' | 'heatmap'>(
     (localStorage.getItem('centro_actividades_view_mode') as any) || 'grid'
   );
 
@@ -130,68 +131,224 @@ export class DeportivoActividadesComponent implements OnInit {
     return `${parts[0]}:${parts[1]}`;
   }
 
+
+  ganttBounds = computed(() => {
+    let minH = 24;
+    let maxH = 0;
+    let hasClasses = false;
+    
+    const days = this.calendarDays();
+    for (const day of days) {
+      for (const session of day.sessions) {
+        if (session.start && session.end) {
+          const sh = parseInt(session.start.split(':')[0], 10);
+          const eh = parseInt(session.end.split(':')[0], 10);
+          if (!isNaN(sh)) {
+            if (sh < minH) minH = sh;
+          }
+          if (!isNaN(eh)) {
+            const em = parseInt(session.end.split(':')[1], 10) || 0;
+            const effectiveEh = (em === 0 && eh > 0) ? eh - 1 : eh;
+            if (effectiveEh > maxH) maxH = effectiveEh;
+          }
+          hasClasses = true;
+        }
+      }
+    }
+    
+    if (!hasClasses) {
+      minH = 6; maxH = 21;
+    } else {
+      minH = Math.max(0, minH - 1);
+      maxH = Math.min(23, maxH + 1);
+    }
+    
+    const hours = [];
+    for (let i = minH; i <= maxH; i++) {
+      hours.push(i);
+    }
+    
+    return {
+      minHour: minH,
+      maxHour: maxH,
+      hours: hours
+    };
+  });
+
+  getGridColumn(start: string, end: string): string {
+    if (!start || !end) return '1 / span 2';
+    
+    const minH = this.ganttBounds().minHour;
+    
+    const parseTime = (time: string) => {
+      const parts = time.split(':');
+      return parseInt(parts[0], 10) * 2 + (parseInt(parts[1], 10) >= 30 ? 1 : 0);
+    };
+
+    let startIdx = parseTime(start) - (minH * 2);
+    let endIdx = parseTime(end) - (minH * 2);
+
+    if (startIdx < 0) startIdx = 0;
+    if (endIdx <= startIdx) {
+      if (endIdx === -(minH * 2)) endIdx = (24 - minH) * 2; // Midnight fallback
+      else endIdx = startIdx + 2; // Default 1 hour fallback
+    }
+
+    const span = Math.max(1, endIdx - startIdx);
+    return `${startIdx + 1} / span ${span}`;
+  }
+
   calendarDays = computed(() => {
     const list = this.filteredActividades();
+    const instructores = this.formData()?.instructores || [];
+    const areas = this.formData()?.areas_mapeadas || [];
+    const clubes = this.formData()?.acceso_clubes || [];
+
     const days = [
-      { dia: 1, nombre: 'Lunes', acts: [] as any[], total: 0 },
-      { dia: 2, nombre: 'Martes', acts: [] as any[], total: 0 },
-      { dia: 3, nombre: 'Miércoles', acts: [] as any[], total: 0 },
-      { dia: 4, nombre: 'Jueves', acts: [] as any[], total: 0 },
-      { dia: 5, nombre: 'Viernes', acts: [] as any[], total: 0 },
-      { dia: 6, nombre: 'Sábado', acts: [] as any[], total: 0 },
-      { dia: 7, nombre: 'Domingo', acts: [] as any[], total: 0 },
+      { dia: 1, nombre: 'Lunes', sessions: [] as any[], total: 0 },
+      { dia: 2, nombre: 'Martes', sessions: [] as any[], total: 0 },
+      { dia: 3, nombre: 'Miércoles', sessions: [] as any[], total: 0 },
+      { dia: 4, nombre: 'Jueves', sessions: [] as any[], total: 0 },
+      { dia: 5, nombre: 'Viernes', sessions: [] as any[], total: 0 },
+      { dia: 6, nombre: 'Sábado', sessions: [] as any[], total: 0 },
+      { dia: 7, nombre: 'Domingo', sessions: [] as any[], total: 0 },
     ];
 
     for (const act of list) {
       if (!act.grupos_categorias) continue;
       
-      const porDia: Record<number, any[]> = { 1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[] };
+      const clubName = clubes.find(c => c.id === act.club_id)?.name || null;
 
       for (const gc of act.grupos_categorias) {
         if (!gc.equipos) continue;
         for (const eq of gc.equipos) {
           if (!eq.horarios) continue;
           for (const h of eq.horarios) {
-            if (porDia[h.dia_semana]) {
-              porDia[h.dia_semana].push(h);
-            }
-          }
-        }
-      }
+            const day = days.find(d => d.dia === h.dia_semana);
+            if (!day) continue;
 
-      for (const diaStr in porDia) {
-        const dia = parseInt(diaStr);
-        const horarios = porDia[dia];
-        if (horarios.length > 0) {
-          const day = days.find(d => d.dia === dia);
-          if (day) {
-            day.total += horarios.length;
-            
-            // Group identical time slots
-            const slots: Record<string, any> = {};
-            for (const h of horarios) {
-               const key = `${h.hora_inicio}-${h.hora_fin}`;
-               if (!slots[key]) {
-                  slots[key] = { start: h.hora_inicio, end: h.hora_fin, count: 0 };
-               }
-               slots[key].count++;
+            const profId = h.profesor_id || eq.coach_id || act.profesor_id;
+            const profName = instructores.find(i => i.id === profId)?.full_name || 'Sin asignar';
+
+            let locName = 'Sin ubicación';
+            if (h.area_id) {
+              locName = areas.find(a => a.area_id === h.area_id)?.area_name || locName;
+            } else if (h.lugar) {
+              locName = h.lugar;
+            } else if (clubName) {
+              locName = clubName;
             }
-            
-            day.acts.push({
-               act,
-               totalSesiones: horarios.length,
-               slots: Object.values(slots).sort((a: any, b: any) => (a.start||'').localeCompare(b.start||''))
+
+            const areaF = this.filterArea();
+            if (areaF && locName !== areaF) continue;
+
+            const pId = this.filterProfesorId();
+            if (pId && profId !== pId) continue;
+
+            day.sessions.push({
+              id: `${act.id}-${gc.id}-${eq.id}-${h.id}`,
+              actId: act.id,
+              actNombre: act.nombre,
+              actIcono: act.icono || '🏆',
+              actColor: eq.color || act.color || '#6366f1',
+              grupoNombre: gc.nombre + (eq.nombre !== 'General' ? ` - ${eq.nombre}` : ''),
+              start: h.hora_inicio,
+              end: h.hora_fin,
+              profesor: profName,
+              ubicacion: locName,
+              actRef: act // para poder abrir offcanvas/editar
             });
+            day.total++;
           }
         }
       }
     }
 
     days.forEach(d => {
-      d.acts.sort((a, b) => a.act.nombre.localeCompare(b.act.nombre));
+      d.sessions.sort((a, b) => {
+        const timeDiff = (a.start || '').localeCompare(b.start || '');
+        if (timeDiff !== 0) return timeDiff;
+        return a.actNombre.localeCompare(b.actNombre);
+      });
     });
 
     return days;
+  });
+
+  heatmapMax = computed(() => {
+    const hours = this.timeTableHours();
+    let max = 0;
+    hours.forEach(row => {
+      Object.values(row.days).forEach((sessions: any) => {
+        if (sessions.length > max) max = sessions.length;
+      });
+    });
+    return max || 1;
+  });
+
+  timeTableHours = computed(() => {
+    const days = this.calendarDays();
+    const bounds = this.ganttBounds();
+    const hoursMap = new Map<number, any>();
+
+    // Initialize hours dynamically based on bounds
+    for (const i of bounds.hours) {
+      hoursMap.set(i, {
+        hour: i,
+        label: `${i.toString().padStart(2, '0')}:00`,
+        days: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] } as Record<number, any[]>
+      });
+    }
+
+    // Assign sessions to the correct hour based on start time
+    days.forEach(day => {
+      day.sessions.forEach(session => {
+        if (!session.start) return;
+        const hour = parseInt(session.start.split(':')[0], 10);
+        if (hoursMap.has(hour)) {
+          hoursMap.get(hour)!.days[day.dia].push(session);
+        } else {
+          // If a class starts before 6 or after 22, add the row dynamically!
+          hoursMap.set(hour, {
+            hour,
+            label: `${hour.toString().padStart(2, '0')}:00`,
+            days: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] }
+          });
+          hoursMap.get(hour)!.days[day.dia].push(session);
+        }
+      });
+    });
+
+    const sortedHours = Array.from(hoursMap.values()).sort((a, b) => a.hour - b.hour);
+    
+    // Sort sessions inside each cell by exact minute
+    sortedHours.forEach(hRow => {
+      for (let i = 1; i <= 7; i++) {
+        hRow.days[i].sort((a: any, b: any) => (a.start || '').localeCompare(b.start || ''));
+      }
+    });
+
+    return sortedHours;
+  });
+
+  uniqueAreas = computed(() => {
+    const list = this.actividades();
+    const areasSet = new Set<string>();
+    list.forEach(a => {
+      a.grupos_categorias?.forEach(g => {
+        g.equipos?.forEach(eq => {
+          eq.horarios?.forEach(h => {
+            if (h.area_id) {
+              const aName = this.formData()?.areas_mapeadas?.find(ma => ma.area_id === h.area_id)?.area_name;
+              if (aName) areasSet.add(aName);
+            } else if (h.lugar) {
+              areasSet.add(h.lugar);
+            }
+          });
+        });
+      });
+    });
+    return Array.from(areasSet).sort();
   });
 
   filteredActividades = computed(() => {
@@ -201,6 +358,7 @@ export class DeportivoActividadesComponent implements OnInit {
     const pId = this.filterProfesorId();
     const searchH = this.filterHorario()?.toLowerCase().trim();
     const filterAcceso = this.filterAcceso();
+    const areaF = this.filterArea();
 
     if (qName) {
       list = list.filter(a => a.nombre.toLowerCase().includes(qName));
@@ -218,6 +376,27 @@ export class DeportivoActividadesComponent implements OnInit {
       }
     }
     
+    if (areaF) {
+      list = list.filter(a => {
+        const grupos = a.grupos_categorias || [];
+        for (const g of grupos) {
+          const equipos = g.equipos || [];
+          for (const eq of equipos) {
+            const horarios = eq.horarios || [];
+            for (const h of horarios) {
+              let locName = h.lugar || '';
+              if (h.area_id) {
+                const mapA = this.formData()?.areas_mapeadas?.find(ma => ma.area_id === h.area_id);
+                if (mapA) locName = mapA.area_name;
+              }
+              if (locName === areaF) return true;
+            }
+          }
+        }
+        return false;
+      });
+    }
+
     if (searchH || pId) {
       list = list.filter(a => {
         let matchHorario = false;

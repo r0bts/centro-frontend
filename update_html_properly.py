@@ -4,62 +4,62 @@ path = 'src/app/components/deportivo/actividades/deportivo-actividades.html'
 with open(path, 'r') as f:
     html = f.read()
 
-# 1. Add Area filter next to Profesor filter
-area_filter = """            <div class="col-md-2">
-              <label class="form-label text-secondary fw-semibold mb-1" style="font-size: 0.8rem;">Área / Salón</label>
-              <ng-select [items]="uniqueAreas()" 
-                         [ngModel]="filterArea()" 
-                         (ngModelChange)="filterArea.set($event)"
-                         bindLabel="" bindValue=""
-                         placeholder="Cualquier área"
-                         [clearable]="true"
-                         class="custom-select-sm">
-              </ng-select>
-            </div>
-            <div class="col-md-2">"""
+# 1. View selector
+view_selector_regex = r'<div class="d-flex align-items-center bg-white border rounded-pill p-1 shadow-sm position-relative">.*?</div>\s*</div>\s*<button routerLink="crear"'
+new_view_selector = """<div class="d-flex align-items-center bg-white border rounded-pill p-1 shadow-sm position-relative">
+          <div class="position-absolute bg-primary rounded-pill shadow-sm"
+               style="width: 36px; height: 32px; top: 4px; left: 4px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 0;"
+               [ngStyle]="{'transform': viewMode() === 'grid' ? 'translateX(0px)' : (viewMode() === 'list' ? 'translateX(40px)' : (viewMode() === 'calendar' ? 'translateX(80px)' : (viewMode() === 'classic' ? 'translateX(120px)' : 'translateX(160px)')))}">
+          </div>
+          <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
+                  [class.text-white]="viewMode() === 'grid'" [class.text-secondary]="viewMode() !== 'grid'"
+                  (click)="viewMode.set('grid')" title="Vista de tarjetas">
+            <i class="bi bi-grid-fill"></i>
+          </button>
+          <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s; margin-left: 4px;"
+                  [class.text-white]="viewMode() === 'list'" [class.text-secondary]="viewMode() !== 'list'"
+                  (click)="viewMode.set('list')" title="Vista de lista">
+            <i class="bi bi-list-ul" style="font-size: 1.1rem;"></i>
+          </button>
+          <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s; margin-left: 4px;"
+                  [class.text-white]="viewMode() === 'calendar'" [class.text-secondary]="viewMode() !== 'calendar'"
+                  (click)="viewMode.set('calendar')" title="Línea de tiempo">
+            <i class="bi bi-distribute-horizontal"></i>
+          </button>
+          <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s; margin-left: 4px;"
+                  [class.text-white]="viewMode() === 'classic'" [class.text-secondary]="viewMode() !== 'classic'"
+                  (click)="viewMode.set('classic')" title="Agenda Clásica">
+            <i class="bi bi-calendar-week"></i>
+          </button>
+          <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s; margin-left: 4px;"
+                  [class.text-white]="viewMode() === 'heatmap'" [class.text-secondary]="viewMode() !== 'heatmap'"
+                  (click)="viewMode.set('heatmap')" title="Mapa de Calor">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+          </button>
+        </div>
+      </div>
+      <button routerLink="crear" """
+html = re.sub(view_selector_regex, new_view_selector, html, flags=re.DOTALL)
 
-html = html.replace('            <div class="col-md-3">\n              <label class="form-label text-secondary fw-semibold mb-1" style="font-size: 0.8rem;">Profesor</label>', area_filter.replace('col-md-2', 'col-md-3', 1) + '\n              <label class="form-label text-secondary fw-semibold mb-1" style="font-size: 0.8rem;">Profesor</label>')
 
-# Adjust col-md sizes for filters to fit 5 items
-html = html.replace('col-md-2', 'col-md-2', 1) # Keep "Buscar" as col-md-2 or adjust
-html = html.replace('<div class="col-md-2">', '<div class="col-md-2">', 1)
-# Actually let's just make them all col-md-2, there are 6 of them now. (Buscar, Sede, Acceso, Area, Profesor, Horario). 6 * 2 = 12! Perfect.
-html = re.sub(r'class="col-md-3"', 'class="col-md-2"', html)
+# 2. Filters section (Adding 'Area' filter)
+filters_regex = r'<div class="col">\s*<label class="form-label small fw-semibold text-muted mb-1">Profesor</label>'
+area_filter = """<div class="col">
+            <label class="form-label small fw-semibold text-muted mb-1">Área / Salón</label>
+            <ng-select [items]="uniqueAreas()" 
+                       [ngModel]="filterArea()" 
+                       (ngModelChange)="filterArea.set($event)"
+                       bindLabel="" bindValue=""
+                       placeholder="Cualquier área"
+                       [clearable]="true"
+                       class="custom-sm-select w-100">
+            </ng-select>
+          </div>
+          <div class="col">
+            <label class="form-label small fw-semibold text-muted mb-1">Profesor</label>"""
+html = re.sub(filters_regex, area_filter, html)
 
-# 2. Update View Selector Buttons
-view_selector_old = """          <div class="btn-group shadow-sm">
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Vista de Cuadrícula">
-              <i class="bi bi-grid"></i>
-            </button>
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Vista de Lista">
-              <i class="bi bi-list-ul"></i>
-            </button>
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')" title="Vista de Calendario">
-              <i class="bi bi-calendar3"></i>
-            </button>
-          </div>"""
-
-view_selector_new = """          <div class="btn-group shadow-sm">
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'grid'" (click)="viewMode.set('grid')" title="Cuadrícula">
-              <i class="bi bi-grid"></i>
-            </button>
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'list'" (click)="viewMode.set('list')" title="Tabla (Slicers)">
-              <i class="bi bi-table"></i>
-            </button>
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'calendar'" (click)="viewMode.set('calendar')" title="Línea de Tiempo (Gantt)">
-              <i class="bi bi-distribute-horizontal"></i>
-            </button>
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'classic'" (click)="viewMode.set('classic')" title="Matriz / Agenda">
-              <i class="bi bi-calendar-week"></i>
-            </button>
-            <button class="btn btn-outline-secondary bg-white" [class.active]="viewMode() === 'heatmap'" (click)="viewMode.set('heatmap')" title="Mapa de Calor">
-              <i class="bi bi-grid-3x3-gap-fill"></i>
-            </button>
-          </div>"""
-
-html = html.replace(view_selector_old, view_selector_new)
-
-# 3. Add Classic Calendar and Heatmap HTML right after the Gantt calendar
+# 3. Add Classic Calendar and Heatmap HTML
 classic_and_heatmap = """
     <!-- ── VISTA DE MATRIZ CLÁSICA (AGENDA POR ESPACIO / PROFESOR) ── -->
     @if (viewMode() === 'classic') {
@@ -68,7 +68,7 @@ classic_and_heatmap = """
           <div class="d-flex flex-column align-items-center justify-content-center h-100 bg-light p-5 text-center">
             <div class="display-1 text-muted opacity-25 mb-3"><i class="bi bi-calendar2-x"></i></div>
             <h4 class="text-secondary fw-bold">Vista de Matriz Bloqueada</h4>
-            <p class="text-muted max-w-md mx-auto">Para evitar sobrecargar la pantalla con miles de tarjetas, utiliza los filtros superiores (<b>Área / Salón</b> o <b>Profesor</b>) para generar la agenda semanal específica.</p>
+            <p class="text-muted" style="max-width: 500px; margin: 0 auto;">Para evitar sobrecargar la pantalla con miles de tarjetas, utiliza los filtros superiores (<b>Área / Salón</b> o <b>Profesor</b>) para generar la agenda semanal específica.</p>
           </div>
         } @else {
           <div class="table-responsive flex-grow-1" style="background-color: #f8f9fa;">
@@ -135,7 +135,7 @@ classic_and_heatmap = """
           <table class="table table-bordered mb-0 text-center" style="table-layout: fixed;">
             <thead>
               <tr>
-                <th class="bg-light" style="width: 100px;">Hora \ Día</th>
+                <th class="bg-light" style="width: 100px;">Hora \\ Día</th>
                 @for (day of calendarDays(); track day.dia) {
                   <th class="bg-light">{{ day.nombre }}</th>
                 }
@@ -168,8 +168,9 @@ classic_and_heatmap = """
     }
 """
 
-html = html.replace('    <!-- ── Confirmación de eliminación ── -->', classic_and_heatmap + '\n    <!-- ── Confirmación de eliminación ── -->')
+if 'viewMode() === \'classic\'' not in html:
+    html = html.replace('    <!-- ── Confirmación de eliminación ── -->', classic_and_heatmap + '\n    <!-- ── Confirmación de eliminación ── -->')
 
 with open(path, 'w') as f:
     f.write(html)
-print("Added HTML for Classic Calendar and Heatmap!")
+print("Updated HTML successfully!")
