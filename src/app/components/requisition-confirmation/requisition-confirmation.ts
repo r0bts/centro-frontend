@@ -675,14 +675,6 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
         }
         
         htmlContent += `
-            <hr>
-            <div class="alert alert-warning mb-0">
-              <h5 class="alert-heading">
-                PIN de Seguridad
-              </h5>
-              <p class="mb-2">Guarda este PIN para recoger tu requisición:</p>
-              <h2 class="text-center mb-0 fw-bold" style="font-size: 3rem; letter-spacing: 0.5rem;">${response.data.pin}</h2>
-            </div>
           </div>
         `;
         
@@ -748,18 +740,6 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
                     <p><strong>Autorizado por:</strong> ${data.authorized_by.full_name}</p>
                     <p><strong>Fecha de autorización:</strong> ${new Date(data.authorization_date).toLocaleString('es-MX')}</p>
                     ${data.electronic_signature ? `<p><strong>Firma digital:</strong> <code class="text-primary">${data.signature_hash}</code></p>` : ''}
-                    <hr>
-                    <div class="alert alert-info mb-0 mt-3">
-                      <h5 class="mb-2"><i class="bi bi-key-fill me-2"></i>PIN de Recolección</h5>
-                      <p class="mb-2">El usuario necesitará este PIN para recoger su requisición:</p>
-                      <div class="text-center">
-                        <h1 class="display-3 fw-bold text-primary mb-0" style="letter-spacing: 0.5rem;">${data.pin || '****'}</h1>
-                      </div>
-                      <small class="text-muted d-block mt-2">
-                        <i class="bi bi-info-circle me-1"></i>
-                        Por favor, comparte este PIN con la persona que recogerá la requisición.
-                      </small>
-                    </div>
                   </div>
                 `,
                 confirmButtonText: 'Continuar',
@@ -894,9 +874,18 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
     Swal.fire({
       title: 'Solicitar cancelación',
       html: `
-        <p class="mb-3 text-muted">Esta requisición ya fue <strong>autorizada</strong>. La cancelación requiere aprobación de un autorizador.</p>
-        <label class="form-label fw-semibold">Motivo de cancelación <span class="text-danger">*</span></label>
-        <textarea id="swal-cancel-reason" class="swal2-textarea" placeholder="Describe el motivo de cancelación..." rows="3" style="width:100%"></textarea>
+        <div class="text-start px-2">
+          <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Esta requisición ya fue <strong>autorizada</strong>. La cancelación requiere aprobación de un autorizador.
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold" for="swal-cancel-reason">
+              Motivo de cancelación <span class="text-danger">*</span>
+            </label>
+            <textarea id="swal-cancel-reason" class="form-control shadow-sm" placeholder="Describe detalladamente el motivo de cancelación..." rows="4" style="resize: none;"></textarea>
+          </div>
+        </div>
       `,
       icon: 'warning',
       showCancelButton: true,
@@ -913,6 +902,16 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       }
     }).then(result => {
       if (!result.isConfirmed) return;
+      
+      Swal.fire({
+        title: 'Enviando solicitud...',
+        text: 'Por favor espera mientras se procesa la solicitud y se envían las notificaciones.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       this.requisitionService.requestCancelAuth(numericId, result.value).subscribe({
         next: (r) => Swal.fire('Solicitud enviada', r.message, 'success').then(() => {
           this.requisitionStatus = 'Pendiente Cancelación';
@@ -934,6 +933,16 @@ export class RequisitionConfirmationComponent implements OnInit, OnDestroy {
       confirmButtonColor: '#dc3545'
     }).then(result => {
       if (!result.isConfirmed) return;
+      
+      Swal.fire({
+        title: 'Procesando...',
+        text: 'Por favor espera mientras se autoriza la cancelación.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       this.requisitionService.authorizeCancellation(numericId).subscribe({
         next: (r) => Swal.fire('Cancelada', r.message, 'success').then(() => {
           this.requisitionStatus = 'Cancelado';

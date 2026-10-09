@@ -1419,9 +1419,18 @@ export class WarehouseSupplyComponent implements OnInit {
     Swal.fire({
       title: 'Solicitar cancelación',
       html: `
-        <p class="mb-3 text-muted">Esta requisición ya fue <strong>autorizada</strong>. La cancelación requiere aprobación de un autorizador.</p>
-        <label class="form-label fw-semibold">Motivo de cancelación <span class="text-danger">*</span></label>
-        <textarea id="swal-cancel-reason-ws" class="swal2-textarea" placeholder="Describe el motivo de cancelación..." rows="3" style="width:100%"></textarea>
+        <div class="text-start px-2">
+          <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Esta requisición ya fue <strong>autorizada</strong>. La cancelación requiere aprobación de un autorizador.
+          </div>
+          <div class="mb-2">
+            <label class="form-label fw-semibold" for="swal-cancel-reason-ws">
+              Motivo de cancelación <span class="text-danger">*</span>
+            </label>
+            <textarea id="swal-cancel-reason-ws" class="form-control shadow-sm" placeholder="Describe detalladamente el motivo de cancelación..." rows="4" style="resize: none;"></textarea>
+          </div>
+        </div>
       `,
       icon: 'warning',
       showCancelButton: true,
@@ -1438,6 +1447,16 @@ export class WarehouseSupplyComponent implements OnInit {
       }
     }).then(result => {
       if (!result.isConfirmed) return;
+      
+      Swal.fire({
+        title: 'Enviando solicitud...',
+        text: 'Por favor espera mientras se procesa la solicitud y se envían las notificaciones.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       this.requisitionService.requestCancelAuth(numericId, result.value).subscribe({
         next: (r) => Swal.fire('Solicitud enviada', r.message, 'success').then(() => this.goBackToList()),
         error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo enviar la solicitud', 'error')
@@ -1459,6 +1478,16 @@ export class WarehouseSupplyComponent implements OnInit {
       confirmButtonColor: '#dc3545'
     }).then(result => {
       if (!result.isConfirmed) return;
+      
+      Swal.fire({
+        title: 'Procesando...',
+        text: 'Por favor espera mientras se autoriza la cancelación.',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       this.requisitionService.authorizeCancellation(numericId).subscribe({
         next: (r) => Swal.fire('Cancelada', r.message, 'success').then(() => this.goBackToList()),
         error: (e) => Swal.fire('Error', e.error?.message || 'No se pudo autorizar la cancelación', 'error')

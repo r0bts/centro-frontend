@@ -67,7 +67,7 @@
 
               <!-- Indicador de PIN de Recolección -->
               <div class="alert alert-warning border-warning mb-3"
-                   *ngIf="isFromList && requisitionPin && requisitionStatus !== 'Cancelado' && requisitionStatus !== 'Pendiente Cancelación'">
+                   *ngIf="isFromList && requisitionPin && (requisitionStatus === 'Listo para Recoger' || requisitionStatus === 'Parcialmente Entregado')">
                 <div class="row align-items-center">
                   <div class="col-auto">
                     <i class="bi bi-key-fill fs-2 text-warning"></i>

@@ -195,8 +195,8 @@
                         <span [class]="getStatusClass(requisition.status)">
                           {{ requisition.status }}
                         </span>
-                        <div *ngIf="requisition.cancellationReason" class="small text-muted mt-1" style="max-width: 220px;" [title]="requisition.cancellationReason">
-                          <i class="bi bi-chat-left-text me-1"></i>{{ requisition.cancellationReason }}
+                        <div *ngIf="requisition.status === 'Cancelado' || requisition.cancellationReason" class="small text-muted mt-1" style="max-width: 220px;" [title]="requisition.cancellationReason || 'Cancelación automática'">
+                          <i class="bi bi-chat-left-text me-1"></i>{{ requisition.cancellationReason || 'Cancelación automática' }}
                         </div>
                       </td>
                       
