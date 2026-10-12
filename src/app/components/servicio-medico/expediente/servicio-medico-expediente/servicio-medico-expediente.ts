@@ -1,5 +1,37 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
+import { Directive, ElementRef, HostListener, AfterViewInit } from '@angular/core';
+
+@Directive({
+  selector: '[appAutosize]',
+  standalone: true
+})
+export class AutosizeDirective implements AfterViewInit {
+  constructor(private el: ElementRef) {}
+
+  ngAfterViewInit() {
+    this.adjust();
+    // Re-adjust after a slight delay for accordions/modals
+    setTimeout(() => this.adjust(), 200);
+  }
+
+  @HostListener('input')
+  onInput() {
+    this.adjust();
+  }
+
+  private adjust() {
+    const textarea = this.el.nativeElement;
+    if (textarea) {
+      textarea.style.overflow = 'hidden';
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  }
+}
+
+import { TextFieldModule } from '@angular/cdk/text-field';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ServicioMedicoService } from '../../../../services/servicio-medico';
@@ -11,7 +43,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-servicio-medico-expediente',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu],
+  imports: [CommonModule, FormsModule, ContentMenu, TextFieldModule, AutosizeDirective],
   templateUrl: './servicio-medico-expediente.html',
   styleUrl: './servicio-medico-expediente.scss'
 })
@@ -382,14 +414,20 @@ export class ServicioMedicoExpediente implements OnInit {
     this.isSavingProfile = true;
     const type = this.route.snapshot.queryParamMap.get('type');
     
-    let payload: any = {
+            let payload: any = {
       blood_type: this.medicalProfile.blood_type,
       allergies: this.medicalProfile.allergies,
-      chronic_conditions: this.medicalProfile.chronic_conditions,
-      active_medications: this.medicalProfile.active_medications,
-      family_history: this.medicalProfile.family_history,
-      surgical_history: this.medicalProfile.surgical_history,
-      general_notes: this.medicalProfile.general_notes
+      antecedentes_enfermedades: this.medicalProfile.antecedentes_enfermedades,
+      antecedentes_hospitalizaciones: this.medicalProfile.antecedentes_hospitalizaciones,
+      antecedentes_cirugias: this.medicalProfile.antecedentes_cirugias,
+      antecedentes_traumatismos: this.medicalProfile.antecedentes_traumatismos,
+      antecedentes_transfusiones: this.medicalProfile.antecedentes_transfusiones,
+      antecedentes_inmunizaciones: this.medicalProfile.antecedentes_inmunizaciones,
+      nopat_estilo_vida: this.medicalProfile.nopat_estilo_vida,
+      nopat_dieta: this.medicalProfile.nopat_dieta,
+      nopat_actividades: this.medicalProfile.nopat_actividades,
+      nopat_higiene: this.medicalProfile.nopat_higiene,
+      medical_notes: this.medicalProfile.medical_notes
     };
 
     if (type === 'socio') {

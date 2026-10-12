@@ -87,13 +87,27 @@
 
             <div class="d-flex align-items-center text-muted">
               <i class="bi bi-person-bounding-box me-3 fs-5" [ngStyle]="{'color': medicalProfile.is_socio ? 'var(--primary-color)' : '#d97706'}"></i>
-              <div>
+                            <div>
                 <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Identificación</small>
                 <span class="rounded"
                       [ngClass]="medicalProfile.is_socio ? 'badge-socio' : 'badge-invitado'">
                   {{ medicalProfile.is_socio ? 'Socio' : 'Invitado' }}
                 </span>
               </div>
+            </div>
+            
+            <hr class="text-muted opacity-25">
+            
+            <div class="mb-3">
+              <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-droplet-half text-danger me-1"></i> Tipo de sangre</label>
+              <input type="text" class="form-control premium-input py-2"
+                     [(ngModel)]="medicalProfile.blood_type" placeholder="ej. O+">
+            </div>
+
+            <div>
+              <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-shield-exclamation text-warning me-1"></i> Alergias</label>
+              <textarea class="form-control premium-textarea py-2" appAutosize rows="1"
+                        [(ngModel)]="medicalProfile.allergies" placeholder="ej. Penicilina, nueces..."></textarea>
             </div>
           </div>
         </div>
@@ -152,49 +166,171 @@
             <div class="card-body p-4">
               
               <div class="row g-3">
-                <div class="col-md-3">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-droplet-half text-danger me-1"></i> Tipo de sangre</label>
-                  <input type="text" class="form-control premium-input py-2"
-                         [(ngModel)]="medicalProfile.blood_type" placeholder="ej. O+">
-                </div>
-                
-                <div class="col-md-9">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-shield-exclamation text-warning me-1"></i> Alergias</label>
-                  <input type="text" class="form-control premium-input py-2"
-                         [(ngModel)]="medicalProfile.allergies" placeholder="ej. Penicilina, nueces...">
+                                                <!-- ACORDEON DE ANTECEDENTES -->
+                <div class="accordion" id="accordionFichaClinica">
+                  
+                  <!-- Patológicos -->
+                  <div class="accordion-item border-0 bg-light mb-3 rounded-3 shadow-sm">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePatologicos">
+                        <i class="bi bi-heart-pulse text-danger me-2"></i> Antecedentes Patológicos
+                      </button>
+                    </h2>
+                    <div id="collapsePatologicos" class="accordion-collapse collapse show" data-bs-parent="#accordionFichaClinica">
+                      <div class="accordion-body pt-2 pb-0">
+                        <div class="d-flex flex-column gap-3 ms-2 ps-4 ">
+                          
+                          <!-- Enfermedades -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-activity text-danger me-2"></i> Enfermedades</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.antecedentes_enfermedades"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Hospitalizaciones -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-hospital text-primary me-2"></i> Hospitalizaciones</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.antecedentes_hospitalizaciones"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Cirugías -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-bandaid text-success me-2"></i> Cirugías</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.antecedentes_cirugias"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Traumatismos/Heridas -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-person-bounding-box text-warning me-2"></i> Traumatismos/Heridas</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.antecedentes_traumatismos"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Transfusiones sanguíneas -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-droplet-fill text-danger me-2"></i> Transfusiones sanguíneas</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.antecedentes_transfusiones"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Inmunizaciones & Vacunas -->
+                          <div class="row align-items-center pb-1">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-shield-plus text-info me-2"></i> Inmunizaciones & Vacunas</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.antecedentes_inmunizaciones"></textarea>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- No Patológicos -->
+                  <div class="accordion-item border-0 bg-light mb-3 rounded-3 shadow-sm">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNoPatologicos">
+                        <i class="bi bi-person-walking text-success me-2"></i> Antecedentes No Patológicos
+                      </button>
+                    </h2>
+                    <div id="collapseNoPatologicos" class="accordion-collapse collapse" data-bs-parent="#accordionFichaClinica">
+                      <div class="accordion-body pt-2 pb-0">
+                        <div class="d-flex flex-column gap-3 ms-2 ps-4 ">
+                          
+                          <!-- Estilo de Vida -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-cup-hot text-primary me-2"></i> Estilo de Vida</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.nopat_estilo_vida"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Dieta -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-apple text-success me-2"></i> Dieta</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.nopat_dieta"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Actividades -->
+                          <div class="row align-items-center border-bottom pb-2">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-bicycle text-warning me-2"></i> Actividades</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.nopat_actividades"></textarea>
+                            </div>
+                          </div>
+
+                          <!-- Higiene Personal -->
+                          <div class="row align-items-center pb-1">
+                            <div class="col-md-3">
+                              <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-stars text-info me-2"></i> Higiene Personal</label>
+                            </div>
+                            <div class="col-md-9">
+                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                                        [(ngModel)]="medicalProfile.nopat_higiene"></textarea>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Laboratorio -->
+                  <div class="accordion-item border-0 bg-light mb-2 rounded-3 shadow-sm">
+                    <h2 class="accordion-header">
+                      <button class="accordion-button bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLab">
+                        <i class="bi bi-file-earmark-medical text-secondary me-2"></i> Estudios de laboratorio
+                      </button>
+                    </h2>
+                    <div id="collapseLab" class="accordion-collapse collapse" data-bs-parent="#accordionFichaClinica">
+                      <div class="accordion-body pt-2">
+                        <div class="ms-2 ps-4 ">
+                          <textarea class="form-control premium-textarea py-2 w-100" appAutosize rows="1" style="white-space: pre-wrap;"
+                                    [(ngModel)]="medicalProfile.medical_notes" placeholder="Describa los estudios recientes..."></textarea>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
 
-                <div class="col-md-6">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-activity text-danger me-1"></i> Padecimientos crónicos</label>
-                  <textarea class="form-control premium-textarea py-2" rows="2"
-                            [(ngModel)]="medicalProfile.chronic_conditions" placeholder="ej. Asma, Diabetes..."></textarea>
-                </div>
-                
-                <div class="col-md-6">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-capsule text-primary me-1"></i> Medicamentos actuales</label>
-                  <textarea class="form-control premium-textarea py-2" rows="2"
-                            [(ngModel)]="medicalProfile.active_medications" placeholder="ej. Paracetamol (en caso de dolor)"></textarea>
-                </div>
-
-                <div class="col-md-6">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-people text-info me-1"></i> Antecedentes familiares</label>
-                  <textarea class="form-control premium-textarea py-2" rows="2"
-                            [(ngModel)]="medicalProfile.family_history" placeholder="ej. Abuelos paternos con..."></textarea>
-                </div>
-                
-                <div class="col-md-6">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-bandaid text-success me-1"></i> Antecedentes quirúrgicos</label>
-                  <textarea class="form-control premium-textarea py-2" rows="2"
-                            [(ngModel)]="medicalProfile.surgical_history" placeholder="ej. Apendicectomía (2020)"></textarea>
-                </div>
-
-                <div class="col-12">
-                  <label class="form-label fw-bold text-dark small mb-1"><i class="bi bi-file-earmark-text text-secondary me-1"></i> Notas generales</label>
-                  <textarea class="form-control premium-textarea py-2" rows="2"
-                            [(ngModel)]="medicalProfile.general_notes" placeholder="Observaciones generales relevantes..."></textarea>
-                </div>
               </div>
-
               <div class="d-flex justify-content-end mt-4 pt-3 border-top">
                 <button class="btn custom-btn-primary px-5 py-2" 
                         (click)="guardarDatosGenerales()" [disabled]="isSavingProfile">
@@ -497,7 +633,7 @@
 
               <div class="mt-2">
                 <label class="form-label text-muted small fw-semibold mb-1"><i class="bi bi-journal-medical me-1"></i> Notas de enfermería / Triage</label>
-                <textarea class="form-control premium-textarea py-2" rows="2"
+                <textarea class="form-control premium-textarea py-2" appAutosize rows="1"
                           [(ngModel)]="nuevaConsultaData.notas_enfermeria" placeholder="Observaciones adicionales..."></textarea>
               </div>
             </div>
@@ -523,7 +659,7 @@
                     </div>
                     
                     <label class="form-label fw-bold text-dark small mb-1 mt-2">Padecimiento actual</label>
-                    <textarea class="form-control premium-textarea py-2" rows="3" [(ngModel)]="nuevaConsultaData.padecimiento_actual" placeholder="Evolución y sintomatología..."></textarea>
+                    <textarea class="form-control premium-textarea py-2" appAutosize rows="1" [(ngModel)]="nuevaConsultaData.padecimiento_actual" placeholder="Evolución y sintomatología..."></textarea>
                   </div>
                 </div>
 
@@ -539,7 +675,7 @@
                   <div class="soap-section border rounded-3 p-3 pt-4 position-relative bg-white">
                     <span class="soap-badge bg-warning text-dark">A - ANÁLISIS</span>
                     <label class="form-label fw-bold text-dark small mb-1">Diagnóstico(s)</label>
-                    <textarea class="form-control premium-textarea py-2" rows="2" [(ngModel)]="nuevaConsultaData.diagnostico" placeholder="Impresión diagnóstica, CIE-10..."></textarea>
+                    <textarea class="form-control premium-textarea py-2" appAutosize rows="1" [(ngModel)]="nuevaConsultaData.diagnostico" placeholder="Impresión diagnóstica, CIE-10..."></textarea>
                   </div>
                 </div>
 
@@ -547,7 +683,7 @@
                   <div class="soap-section border rounded-3 p-3 pt-4 position-relative bg-white">
                     <span class="soap-badge bg-danger">P - PLAN</span>
                     <label class="form-label fw-bold text-dark small mb-1">Plan / Tratamiento</label>
-                    <textarea class="form-control premium-textarea py-2" rows="3" [(ngModel)]="nuevaConsultaData.plan_tratamiento" placeholder="Medicamentos, indicaciones, estudios..."></textarea>
+                    <textarea class="form-control premium-textarea py-2" appAutosize rows="1" [(ngModel)]="nuevaConsultaData.plan_tratamiento" placeholder="Medicamentos, indicaciones, estudios..."></textarea>
                   </div>
                 </div>
               </div>
