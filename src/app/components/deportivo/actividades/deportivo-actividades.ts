@@ -11,6 +11,7 @@ import { computed,
 import { CommonModule } from '@angular/common';
 import { NgSelectModule } from '@ng-select/ng-select';
 import { Directive, ElementRef, Output, EventEmitter, OnDestroy, HostListener } from '@angular/core';
+import Swal from 'sweetalert2';
 
 @Directive({
   selector: '[bsDropdownState]',
@@ -513,15 +514,54 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   duplicateActividad(act: Actividad): void {
-    if (confirm(`¿Estás seguro de duplicar "${act.nombre}"?`)) {
-      this.svc.duplicate(act.id).subscribe({
-        next: () => {
-          this.showToast('Actividad duplicada exitosamente');
-          this.refreshActividades();
-        },
-        error: () => this.error.set('Error al duplicar')
-      });
-    }
+    Swal.fire({
+      title: '¿Duplicar actividad?',
+      text: `¿Estás seguro de duplicar "${act.nombre}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, duplicar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#3b71ca',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true
+    }).then((result) => {
+      if (result.isConfirmed) {
+        Swal.fire({
+          title: 'Duplicando...',
+          text: 'Por favor espera un momento',
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+          showConfirmButton: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        this.svc.duplicate(act.id).subscribe({
+          next: () => {
+            Swal.fire({
+              icon: 'success',
+              title: '¡Duplicada!',
+              text: 'La actividad ha sido duplicada exitosamente.',
+              timer: 2000,
+              showConfirmButton: false
+            });
+            this.showToast('Actividad duplicada exitosamente');
+            this.refreshActividades();
+          },
+          error: (err) => {
+            const msg = err?.error?.message || 'Error al duplicar la actividad.';
+            this.error.set(msg);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al duplicar',
+              text: msg,
+              confirmButtonText: 'Entendido'
+            });
+          }
+        });
+      }
+    });
   }
 
   onWizardSaved(msg: string): void {
@@ -642,7 +682,18 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async deleteHorarioRapido(actId: number, equipoId: number, horarioId: number) {
-    if (!confirm('¿Eliminar este horario?')) return;
+    const result = await Swal.fire({
+      title: '¿Eliminar horario?',
+      text: '¿Estás seguro de que deseas eliminar este horario?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#dc3545',
+      cancelButtonColor: '#6c757d',
+      reverseButtons: true
+    });
+    if (!result.isConfirmed) return;
     try {
       await firstValueFrom(this.svc.deleteHorario(equipoId, horarioId));
       this.showToast('Horario eliminado.');
