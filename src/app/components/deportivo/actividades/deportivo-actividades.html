@@ -8,7 +8,7 @@
           <span class="badge bg-light text-secondary border fw-normal rounded-pill" style="font-size: 0.85rem; padding: 0.35em 0.65em;">{{ filteredActividades().length }}</span>
         }
       </h4>
-      <small class="text-muted">Gestión de actividades, grupos y equipos del club</small>
+      <small class="text-muted">Gestión de actividades, clases y horarios del club</small>
     </div>
     <div class="d-flex align-items-center gap-2">
       <div class="d-flex align-items-center bg-white border rounded-pill p-1 shadow-sm" style="position: relative; isolation: isolate;">
@@ -397,21 +397,27 @@
               </label>
             </div>
             
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-1">
+              <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-primary"
+                      style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
+                      title="Horarios"
+                      (click)="openHorariosOffcanvas(act)">
+                <i class="bi bi-clock"></i>
+              </button>
               <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-muted"
-                      style="width: 32px; height: 32px; border-radius: 6px; background-color: #f8f9fa;"
+                      style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
                       title="Duplicar"
                       (click)="duplicateActividad(act)">
                 <i class="bi bi-files"></i>
               </button>
               <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-danger"
-                      style="width: 32px; height: 32px; border-radius: 6px; background-color: #f8f9fa;"
+                      style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
                       title="Eliminar"
                       (click)="confirmDelete(act)">
                 <i class="bi bi-trash"></i>
               </button>
               <button class="btn btn-sm btn-primary px-3"
-                      style="border-radius: 16px; font-weight: 600; font-size: 0.85rem; background-color: #3b71ca; border-color: #3b71ca;"
+                      style="border-radius: 16px; font-weight: 600; font-size: 0.82rem; background-color: #3b71ca; border-color: #3b71ca;"
                       title="Editar"
                       (click)="editActividad(act)">
                 Editar
@@ -624,8 +630,8 @@
                   <div [style.display]="'grid'" [style.grid-template-columns]="'repeat(' + ganttBounds().hours.length + ', 120px)'">
                     @for (h of ganttBounds().hours; track h) {
                       <div class="border-end border-bottom text-center text-muted py-1 bg-light d-flex flex-column align-items-center justify-content-center" style="font-size: 0.85rem;">
-                         <span class="fw-bold text-dark">{{ h.toString().padStart(2, '0') }}:00</span>
-                         <span class="fw-normal" style="font-size: 0.65rem;">a {{ (h+1).toString().padStart(2, '0') }}:00</span>
+                         <span class="fw-bold text-dark">{{ formatHora(h) }}</span>
+                         <span class="fw-normal" style="font-size: 0.65rem;">a {{ formatHora(h + 1) }}</span>
                       </div>
                     }
                   </div>
@@ -833,7 +839,7 @@
         </div>
         <h5>¿Eliminar actividad?</h5>
         <p class="text-muted small">
-          Se eliminará <strong>{{ deleteTarget()!.nombre }}</strong> y todos sus grupos, equipos y criterios.
+          Se eliminará <strong>{{ deleteTarget()!.nombre }}</strong> y todas sus clases, horarios y criterios.
           Esta acción no se puede deshacer.
         </p>
         <div class="d-flex gap-2 justify-content-center">
@@ -851,7 +857,7 @@
   <!-- ── Offcanvas para Horarios ── -->
   @if (isOffcanvasOpen() && selectedActividadForHorarios()) {
     <div class="offcanvas-backdrop fade show" style="z-index: 1040; position: fixed; inset: 0; cursor: pointer;" (click)="closeHorariosOffcanvas()"></div>
-    <div class="offcanvas offcanvas-end show" tabindex="-1" style="z-index: 1045; width: 450px; visibility: visible;" aria-labelledby="offcanvasHorariosLabel">
+    <div class="offcanvas offcanvas-end show" tabindex="-1" style="z-index: 1045; width: 480px; visibility: visible;" aria-labelledby="offcanvasHorariosLabel">
       <div class="offcanvas-header bg-light border-bottom">
         <div>
           <h5 class="offcanvas-title fw-bold" id="offcanvasHorariosLabel">
@@ -872,153 +878,293 @@
         </div>
         <button type="button" class="btn-close" (click)="closeHorariosOffcanvas()" aria-label="Close"></button>
       </div>
-      <div class="offcanvas-body p-0" style="background-color: #f8f9fa;">
-        @for (g of selectedActividadForHorarios()!.grupos_categorias || []; track g.id) {
-          @for (e of g.equipos || []; track e.id) {
-            <div class="equipo-section-wrapper">
-            <!-- SEPARADOR DE EQUIPO (Nivel 1) -->
-            <div class="bg-dark text-white px-3 py-2 sticky-top shadow-sm" style="z-index: 10; line-height: 1.4;">
-              <div class="fw-medium d-flex align-items-start gap-2" style="font-size: 0.85rem; letter-spacing: 0.5px;">
-                <i class="bi bi-diagram-3 opacity-75" style="margin-top: 2px;"></i>
-                <div class="text-wrap">
-                  <span class="opacity-75">{{ g.nombre }}</span> 
-                  <i class="bi bi-chevron-right mx-1" style="font-size: 0.6rem;"></i> 
-                  <strong>{{ e.nombre }}</strong>
-                </div>
-              </div>
-            </div>
+      <div class="offcanvas-body p-3" style="background-color: #f8f9fa;">
+        <div class="d-flex flex-column gap-3">
+          @for (g of selectedActividadForHorarios()!.grupos_categorias || []; track g.id) {
+            @for (e of g.equipos || []; track e.id) {
+              @let eqExpanded = isEquipoExpanded(e.id);
+              @let eqConflicts = getEquipoConflictsCount(e, g, selectedActividadForHorarios()!);
+              @let totalHorariosEq = (e.horarios || []).length;
 
-            <div class="pb-4">
-              @if (e.horarios && e.horarios.length > 0) {
-                <div class="d-flex flex-column pt-2">
-                  @for (grupoDia of agruparPorDia(e.horarios); track grupoDia.dia) {
-                    
-                    <!-- SEPARADOR DE DÍA (Nivel 2) -->
-                    <div class="mt-3 mb-2 px-3 d-flex align-items-center">
-                      <div class="text-primary fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 1px;">
-                        <i class="bi bi-calendar-event me-2"></i>{{ daysMapping[grupoDia.dia] || 'Día' }}
+              <div class="equipo-accordion-card bg-white rounded-4 shadow-sm border overflow-hidden transition-all"
+                   [class.border-danger]="eqConflicts > 0"
+                   [class.border-opacity-50]="eqConflicts > 0">
+                <!-- HEADER COLAPSABLE DE CLASE (Nivel 1) -->
+                <div class="d-flex align-items-start justify-content-between gap-3 user-select-none"
+                     style="cursor: pointer; padding: 0.85rem 1rem; transition: background 0.18s ease;"
+                     [style.background]="eqExpanded ? '#1e293b' : (eqConflicts > 0 ? '#fff5f5' : '#ffffff')"
+                     [class.text-white]="eqExpanded"
+                     [class.text-dark]="!eqExpanded"
+                     (click)="toggleEquipoAccordion(e.id)">
+                  <div class="d-flex align-items-start gap-2.5 flex-grow-1" style="min-width: 0; gap: 0.75rem;">
+                    <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5"
+                         style="width: 34px; height: 34px; font-size: 0.9rem;"
+                         [style.background]="eqExpanded ? 'rgba(255,255,255,0.12)' : (eqConflicts > 0 ? '#fee2e2' : '#f1f5f9')"
+                         [style.color]="eqExpanded ? '#ffffff' : (eqConflicts > 0 ? '#dc2626' : '#475569')">
+                      <i class="bi bi-diagram-3-fill"></i>
+                    </div>
+
+                    <div class="d-flex flex-column flex-grow-1" style="min-width: 0;">
+                      <!-- Título completo de la clase sin truncar -->
+                      <div class="fw-semibold" style="font-size: 0.88rem; line-height: 1.35; word-break: break-word;">
+                        {{ g.nombre }}
+                        @if (e.nombre && e.nombre !== 'General') {
+                          <span class="fw-normal opacity-75"> · {{ e.nombre }}</span>
+                        }
                       </div>
-                      <div class="ms-3 flex-grow-1 border-top border-primary border-opacity-25"></div>
+
+                      <!-- Sub-fila de badges con aire -->
+                      <div class="d-flex align-items-center flex-wrap gap-2 mt-1.5" style="margin-top: 0.4rem;">
+                        <span class="badge rounded-pill fw-medium d-inline-flex align-items-center gap-1"
+                              style="font-size: 0.7rem; padding: 0.25rem 0.6rem;"
+                              [style.background]="eqExpanded ? 'rgba(255,255,255,0.14)' : '#f1f5f9'"
+                              [style.color]="eqExpanded ? '#e2e8f0' : '#64748b'">
+                          <i class="bi bi-clock" style="font-size: 0.65rem;"></i>
+                          <span>{{ totalHorariosEq }} {{ totalHorariosEq === 1 ? 'horario' : 'horarios' }}</span>
+                        </span>
+
+                        @if (eqConflicts > 0) {
+                          <span class="badge rounded-pill bg-danger text-white d-inline-flex align-items-center gap-1 shadow-xs"
+                                style="font-size: 0.7rem; padding: 0.25rem 0.6rem;"
+                                [title]="eqConflicts + (eqConflicts === 1 ? ' horario con empalme en esta clase' : ' horarios con empalme en esta clase')">
+                            <i class="bi bi-exclamation-triangle-fill" style="font-size: 0.65rem;"></i>
+                            <span>{{ eqConflicts }} {{ eqConflicts === 1 ? 'empalme' : 'empalmes' }}</span>
+                          </span>
+                        }
+                      </div>
                     </div>
-                    
-                    <div class="d-flex flex-column gap-3 px-3">
-                      @for (profGroup of grupoDia.profesores; track profGroup.profesor_id) {
-                        
-                        <!-- TARJETA DE PROFESOR (Nivel 3) -->
-                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                          <!-- Header de Profesor -->
-                          <div class="card-header bg-white border-bottom-0 py-2 d-flex justify-content-between align-items-center" style="background: linear-gradient(to right, rgba(99,102,241,0.05), transparent);">
-                            <div class="d-flex align-items-center gap-2">
-                              <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold" style="width: 28px; height: 28px; font-size: 0.75rem;">
-                                {{ profGroup.profesor_nombre.charAt(0).toUpperCase() }}
+                  </div>
+
+                  <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5"
+                       style="width: 28px; height: 28px;"
+                       [style.background]="eqExpanded ? 'rgba(255,255,255,0.1)' : '#f8fafc'"
+                       [style.color]="eqExpanded ? '#cbd5e1' : '#64748b'">
+                    <i class="bi transition-all"
+                       [class.bi-chevron-up]="eqExpanded"
+                       [class.bi-chevron-down]="!eqExpanded"
+                       style="font-size: 0.78rem;"></i>
+                  </div>
+                </div>
+
+                <!-- CUERPO COLAPSABLE DE LA CLASE -->
+                @if (eqExpanded) {
+                  <div class="p-3 pt-2 border-top" style="background-color: #f8fafc;">
+                    @if (e.horarios && e.horarios.length > 0) {
+                      <!-- BARRA DE COSTO POR CLASE DEL PROFESOR -->
+                      <div class="d-flex flex-column gap-1.5 mb-2 mt-1">
+                        @for (profCosto of getEquipoProfesoresCosto(e); track profCosto.profesor_id) {
+                          <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-3 bg-white border shadow-xs"
+                               style="border-color: #e2e8f0 !important;">
+                            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                              <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                   style="width: 26px; height: 26px; background: #ecfdf5; color: #059669; font-size: 0.85rem;">
+                                <i class="bi bi-cash-coin"></i>
                               </div>
-                              <span class="fw-semibold text-dark" style="font-size: 0.85rem; text-transform: capitalize;">
-                                {{ profGroup.profesor_nombre.toLowerCase() }}
-                              </span>
+                              <div class="d-flex flex-column overflow-hidden">
+                                <span class="text-secondary fw-medium" style="font-size: 0.68rem; line-height: 1.1;">
+                                  Costo por clase
+                                </span>
+                                <span class="text-dark fw-semibold text-truncate" style="font-size: 0.78rem; text-transform: capitalize; line-height: 1.25;">
+                                  {{ profCosto.profesor_nombre.toLowerCase() }}
+                                </span>
+                              </div>
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                              <span class="badge bg-light text-secondary border fw-medium px-2 py-1">
-                                <i class="bi bi-clock me-1 opacity-75"></i>{{ profGroup.rango_horas }}
-                              </span>
-                              <button class="btn btn-sm btn-light border p-0 d-flex align-items-center justify-content-center text-primary rounded-circle shadow-sm" style="width: 26px; height: 26px;" title="Añadir horario a este profesor" (click)="openInlineForm(e.id, grupoDia.dia, profGroup.profesor_id)">
-                                <i class="bi bi-plus-lg"></i>
-                              </button>
+
+                            <button type="button"
+                                    class="btn btn-sm rounded-pill d-inline-flex align-items-center fw-bold flex-shrink-0 transition-all"
+                                    style="font-size: 0.78rem; padding: 0.28rem 0.75rem; gap: 0.35rem;"
+                                    [style.background]="profCosto.costo_interno !== null ? '#ecfdf5' : '#f1f5f9'"
+                                    [style.color]="profCosto.costo_interno !== null ? '#047857' : '#475569'"
+                                    [style.border]="profCosto.costo_interno !== null ? '1px solid #6ee7b7' : '1px solid #cbd5e1'"
+                                    title="Cambiar costo por clase de este profesor"
+                                    (click)="promptCostoProfesor(selectedActividadForHorarios()!.id, e, profCosto)">
+                              @if (profCosto.costo_interno !== null) {
+                                <span>{{ profCosto.costo_interno | currency:'MXN':'symbol-narrow':'1.0-2' }}</span>
+                              } @else {
+                                <span>Asignar costo</span>
+                              }
+                              <i class="bi bi-pencil-fill opacity-75" style="font-size: 0.62rem;"></i>
+                            </button>
+                          </div>
+                        }
+                      </div>
+
+                      <div class="d-flex flex-column">
+                        @for (grupoDia of agruparPorDia(e.horarios); track grupoDia.dia) {
+                          <!-- SEPARADOR DE DÍA (Nivel 2) -->
+                          <div class="mt-2 mb-2 d-flex align-items-center">
+                            <div class="text-primary fw-bold text-uppercase d-flex align-items-center" style="font-size: 0.72rem; letter-spacing: 0.8px;">
+                              <i class="bi bi-calendar-event me-1"></i>{{ daysMapping[grupoDia.dia] || 'Día' }}
                             </div>
+                            <div class="ms-2 flex-grow-1 border-top border-primary border-opacity-25"></div>
                           </div>
 
-                          <!-- Lista de horarios (Inputs Nivel 4) -->
-                          <div class="card-body p-2 pt-0 bg-white">
-                            @for (h of profGroup.horarios; track h.id) {
-                              @let isHorarioActive = h.is_active !== false;
-                              @let hConflict = isHorarioActive ? checkProfesorScheduleConflict(profGroup.profesor_id, grupoDia.dia, h.hora_inicio, h.hora_fin, h.id) : null;
-                              <div class="mb-1">
-                                <div class="d-flex align-items-center gap-2 mt-2">
-                                  <div class="input-group input-group-sm w-100 rounded-pill border overflow-hidden transition-all"
-                                       [class.bg-light]="!hConflict"
-                                       [class.bg-danger-subtle]="hConflict"
-                                       [class.border-danger]="hConflict"
-                                       [class.opacity-50]="!isHorarioActive"
-                                       [title]="!isHorarioActive ? 'Horario inhabilitado' : (hConflict || '')">
-                                    <span class="input-group-text bg-transparent border-0 ps-3 pe-1" [class.text-muted]="!hConflict" [class.text-danger]="hConflict">
-                                      <i class="bi opacity-50" [class.bi-box-arrow-in-right]="isHorarioActive" [class.bi-slash-circle]="!isHorarioActive"></i>
-                                    </span>
-                                    <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium"
-                                           [class.text-dark]="!hConflict && isHorarioActive"
-                                           [class.text-muted]="!isHorarioActive"
-                                           [class.text-decoration-line-through]="!isHorarioActive"
-                                           [class.text-danger]="hConflict"
-                                           [value]="h.hora_inicio.substring(0,5)" readonly
-                                           title="Para cambiar este horario, elimínalo y crea uno nuevo">
-                                    <span class="input-group-text bg-transparent border-0 px-1 opacity-50" [class.text-muted]="!hConflict" [class.text-danger]="hConflict">a</span>
-                                    <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium"
-                                           [class.text-dark]="!hConflict && isHorarioActive"
-                                           [class.text-muted]="!isHorarioActive"
-                                           [class.text-decoration-line-through]="!isHorarioActive"
-                                           [class.text-danger]="hConflict"
-                                           [value]="h.hora_fin.substring(0,5)" readonly
-                                           title="Para cambiar este horario, elimínalo y crea uno nuevo">
+                          <div class="d-flex flex-column gap-2">
+                            @for (profGroup of grupoDia.profesores; track profGroup.profesor_id) {
+                              @let profConflicts = getProfGroupConflictsCount(profGroup, grupoDia.dia);
+                              @let profExpanded = isProfGroupExpanded(e.id, grupoDia.dia, profGroup.profesor_id);
+                              <!-- TARJETA DE PROFESOR COLAPSABLE (Nivel 3) -->
+                              <div class="card border shadow-sm rounded-3 overflow-hidden transition-all"
+                                   [class.border-danger]="profConflicts > 0"
+                                   [class.border-opacity-50]="profConflicts > 0"
+                                   [class.border-light-subtle]="profConflicts === 0">
+                                <!-- Header Colapsable de Profesor -->
+                                <div class="card-header bg-white border-bottom-0 px-3 py-2 d-flex justify-content-between align-items-center gap-3 user-select-none"
+                                     style="cursor: pointer;"
+                                     [style.background]="profConflicts > 0 ? 'linear-gradient(to right, rgba(220,38,38,0.06), transparent)' : 'linear-gradient(to right, rgba(99,102,241,0.05), transparent)'"
+                                     (click)="toggleProfGroupAccordion(e.id, grupoDia.dia, profGroup.profesor_id)">
+                                  <div class="d-flex align-items-center gap-2.5 overflow-hidden" style="gap: 0.65rem;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                                         style="width: 32px; height: 32px; font-size: 0.78rem;"
+                                         [class.bg-danger]="profConflicts > 0"
+                                         [class.bg-opacity-10]="true"
+                                         [class.text-danger]="profConflicts > 0"
+                                         [class.bg-primary]="profConflicts === 0"
+                                         [class.text-primary]="profConflicts === 0">
+                                      {{ profGroup.profesor_nombre.charAt(0).toUpperCase() }}
+                                    </div>
+                                    <div class="d-flex flex-column overflow-hidden">
+                                      <div class="d-flex align-items-center gap-1.5" style="gap: 0.4rem;">
+                                        <span class="fw-semibold text-dark text-truncate" style="font-size: 0.84rem; text-transform: capitalize; line-height: 1.25;">
+                                          {{ profGroup.profesor_nombre.toLowerCase() }}
+                                        </span>
+                                        @if (profConflicts > 0) {
+                                          <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-1.5 py-0 fw-bold flex-shrink-0"
+                                                style="font-size: 0.65rem; padding: 0.15rem 0.45rem;"
+                                                title="Este profesor tiene horarios con empalme en este día">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                          </span>
+                                        }
+                                      </div>
+                                      <span class="text-secondary d-flex align-items-center gap-1" style="font-size: 0.72rem; margin-top: 2px;">
+                                        <i class="bi bi-clock opacity-75"></i>{{ profGroup.rango_horas }}
+                                      </span>
+                                    </div>
                                   </div>
-                                  <div class="form-check form-switch mb-0 d-flex align-items-center flex-shrink-0" style="padding-left: 0;"
-                                       [title]="isHorarioActive ? 'Inhabilitar horario' : 'Habilitar horario'">
-                                    <input class="form-check-input m-0" type="checkbox" role="switch"
-                                           [checked]="isHorarioActive"
-                                           (change)="toggleHorarioRapido(selectedActividadForHorarios()!.id, e.id, h, profGroup.profesor_id, $event)"
-                                           style="cursor: pointer; width: 2.1rem; height: 1.1rem;">
+                                  <div class="d-flex align-items-center flex-shrink-0" style="gap: 0.6rem;">
+                                    <button class="btn btn-sm btn-light border p-0 d-flex align-items-center justify-content-center text-primary rounded-circle shadow-sm"
+                                            style="width: 28px; height: 28px;"
+                                            title="Añadir horario a este profesor"
+                                            (click)="openInlineForm(e.id, grupoDia.dia, profGroup.profesor_id); $event.stopPropagation()">
+                                      <i class="bi bi-plus-lg" style="font-size: 0.78rem;"></i>
+                                    </button>
+                                    <i class="bi text-secondary transition-all"
+                                       [class.bi-chevron-up]="profExpanded"
+                                       [class.bi-chevron-down]="!profExpanded"
+                                       style="font-size: 0.8rem;"></i>
                                   </div>
-                                  <button class="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center bg-white" style="width: 32px; height: 32px; border-width: 1.5px;" title="Eliminar" (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
-                                    <i class="bi bi-trash3"></i>
-                                  </button>
                                 </div>
-                                @if (!isHorarioActive && h.motivo_cancelacion) {
-                                  <div class="text-secondary small mt-1 d-flex align-items-center gap-1 ps-2" style="font-size: 0.74rem;">
-                                    <i class="bi bi-info-circle-fill text-secondary opacity-75 flex-shrink-0"></i>
-                                    <span>Motivo: <strong class="text-dark">{{ h.motivo_cancelacion }}</strong></span>
+
+                                <!-- Lista de horarios colapsable (Nivel 4) -->
+                                @if (profExpanded) {
+                                  <div class="card-body p-2.5 bg-white border-top border-light d-flex flex-column gap-2" style="padding: 0.65rem 0.75rem;">
+                                    @for (h of profGroup.horarios; track h.id) {
+                                      @let isHorarioActive = h.is_active !== false;
+                                      @let cDetail = isHorarioActive ? getProfesorScheduleConflictDetail(profGroup.profesor_id, grupoDia.dia, h.hora_inicio, h.hora_fin, h.id) : null;
+                                      <div class="rounded-3 border transition-all overflow-hidden"
+                                           [style.background]="cDetail ? '#fff5f5' : (!isHorarioActive ? '#f8fafc' : '#ffffff')"
+                                           [style.border-color]="cDetail ? '#fecaca' : '#e2e8f0'">
+                                        <!-- Fila principal del horario -->
+                                        <div class="d-flex align-items-center justify-content-between px-2.5 py-2 gap-2" style="padding: 0.45rem 0.65rem;">
+                                          <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                            <span class="rounded-circle d-inline-flex align-items-center justify-content-center flex-shrink-0"
+                                                  style="width: 24px; height: 24px; font-size: 0.72rem;"
+                                                  [style.background]="cDetail ? '#fee2e2' : (!isHorarioActive ? '#e2e8f0' : '#eff6ff')"
+                                                  [style.color]="cDetail ? '#dc2626' : (!isHorarioActive ? '#64748b' : '#2563eb')">
+                                              <i class="bi"
+                                                 [class.bi-clock-fill]="isHorarioActive && !cDetail"
+                                                 [class.bi-exclamation-triangle-fill]="isHorarioActive && cDetail"
+                                                 [class.bi-slash-circle]="!isHorarioActive"></i>
+                                            </span>
+                                            <span class="fw-semibold text-nowrap"
+                                                  style="font-size: 0.82rem; letter-spacing: 0.1px;"
+                                                  [class.text-dark]="isHorarioActive && !cDetail"
+                                                  [class.text-danger]="cDetail"
+                                                  [class.text-muted]="!isHorarioActive"
+                                                  [class.text-decoration-line-through]="!isHorarioActive">
+                                              {{ formatHora(h.hora_inicio) }} <span class="fw-normal opacity-50 mx-0.5">–</span> {{ formatHora(h.hora_fin) }}
+                                            </span>
+                                          </div>
+
+                                          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                            <div class="form-check form-switch mb-0 d-flex align-items-center" style="padding-left: 0;"
+                                                 [title]="isHorarioActive ? 'Inhabilitar o modificar horario' : 'Habilitar horario'">
+                                              <input class="form-check-input m-0" type="checkbox" role="switch"
+                                                     [checked]="isHorarioActive"
+                                                     (change)="toggleHorarioRapido(selectedActividadForHorarios()!.id, e.id, h, profGroup.profesor_id, $event)"
+                                                     style="cursor: pointer; width: 2rem; height: 1.05rem;">
+                                            </div>
+                                            <button class="btn btn-sm btn-link text-danger p-0 d-flex align-items-center justify-content-center opacity-75 hover-opacity-100"
+                                                    style="width: 24px; height: 24px;"
+                                                    title="Eliminar horario"
+                                                    (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
+                                              <i class="bi bi-trash3" style="font-size: 0.82rem;"></i>
+                                            </button>
+                                          </div>
+                                        </div>
+
+                                        <!-- Sub-fila compacta de motivo de inhabilitación -->
+                                        @if (!isHorarioActive && h.motivo_cancelacion) {
+                                          <div class="px-2.5 py-1.5 border-top d-flex align-items-center gap-1.5 text-secondary"
+                                               style="padding: 0.3rem 0.65rem; font-size: 0.72rem; background: #f1f5f9; border-color: #e2e8f0 !important; gap: 0.35rem;">
+                                            <i class="bi bi-info-circle-fill opacity-75 flex-shrink-0"></i>
+                                            <span class="text-truncate" [title]="h.motivo_cancelacion">{{ h.motivo_cancelacion }}</span>
+                                          </div>
+                                        }
+
+                                        <!-- Sub-fila compacta de empalme -->
+                                        @if (cDetail) {
+                                          <div class="px-2.5 py-1.5 border-top d-flex align-items-center justify-content-between gap-2 text-danger"
+                                               style="padding: 0.3rem 0.65rem; font-size: 0.72rem; background: rgba(254, 226, 226, 0.55); border-color: #fecaca !important;">
+                                            <div class="d-flex align-items-center gap-1.5 overflow-hidden" style="gap: 0.35rem;">
+                                              <i class="bi bi-arrow-left-right flex-shrink-0"></i>
+                                              <span class="text-truncate" [title]="cDetail.actividad + (cDetail.clase ? ' · ' + cDetail.clase : '')">
+                                                Empalme con <strong>{{ cDetail.actividad }}</strong>
+                                              </span>
+                                            </div>
+                                            <span class="badge bg-white text-danger border border-danger-subtle rounded-pill fw-medium flex-shrink-0" style="font-size: 0.65rem;">
+                                              {{ cDetail.rango }}
+                                            </span>
+                                          </div>
+                                        }
+                                      </div>
+                                    }
+
+                                    <!-- Formulario Inline -->
+                                    @if (inlineFormEquipoId() === e.id && inlineFormDia() === grupoDia.dia && inlineFormProfesorId() === profGroup.profesor_id) {
+                                      <div class="d-flex align-items-center gap-2 mt-1 p-2 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 shadow-sm">
+                                        <div class="input-group input-group-sm w-100 rounded-pill overflow-hidden border border-primary border-opacity-25 bg-white">
+                                          <input type="time" class="form-control text-center border-0 px-1 text-primary fw-bold" [(ngModel)]="horarioForm.hora_inicio">
+                                          <span class="input-group-text bg-white text-primary border-0 px-1 opacity-50">a</span>
+                                          <input type="time" class="form-control text-center border-0 px-1 text-primary fw-bold" [(ngModel)]="horarioForm.hora_fin">
+                                        </div>
+                                        <button class="btn btn-sm btn-primary rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 30px; height: 30px;" title="Guardar" (click)="saveInlineForm()" [disabled]="!horarioForm.hora_inicio || !horarioForm.hora_fin">
+                                          <i class="bi bi-check2"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-light border-0 bg-white rounded-circle flex-shrink-0 text-secondary d-flex align-items-center justify-content-center shadow-sm" style="width: 30px; height: 30px;" title="Cancelar" (click)="inlineFormEquipoId.set(null)">
+                                          <i class="bi bi-x-lg"></i>
+                                        </button>
+                                      </div>
+                                    }
                                   </div>
                                 }
-                                @if (hConflict) {
-                                  <div class="text-danger small mt-1 d-flex align-items-center gap-1 ps-2 fw-medium" style="font-size: 0.75rem;">
-                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
-                                    <span>{{ hConflict }}</span>
-                                  </div>
-                                }
-                              </div>
-                            }
-                            
-                            <!-- Formulario Inline -->
-                            @if (inlineFormEquipoId() === e.id && inlineFormDia() === grupoDia.dia && inlineFormProfesorId() === profGroup.profesor_id) {
-                              <div class="d-flex align-items-center gap-2 mt-3 p-2 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-pill shadow-sm">
-                                <div class="input-group input-group-sm w-100 rounded-pill overflow-hidden border border-primary border-opacity-25 bg-white">
-                                  <input type="time" class="form-control text-center border-0 px-1 text-primary fw-bold" [(ngModel)]="horarioForm.hora_inicio">
-                                  <span class="input-group-text bg-white text-primary border-0 px-1 opacity-50">a</span>
-                                  <input type="time" class="form-control text-center border-0 px-1 text-primary fw-bold" [(ngModel)]="horarioForm.hora_fin">
-                                </div>
-                                <button class="btn btn-sm btn-primary rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Guardar" (click)="saveInlineForm()" [disabled]="!horarioForm.hora_inicio || !horarioForm.hora_fin">
-                                  <i class="bi bi-check2"></i>
-                                </button>
-                                <button class="btn btn-sm btn-light border-0 bg-white rounded-circle flex-shrink-0 text-secondary d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;" title="Cancelar" (click)="inlineFormEquipoId.set(null)">
-                                  <i class="bi bi-x-lg"></i>
-                                </button>
                               </div>
                             }
                           </div>
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              } @else {
-                <div class="text-center text-muted small py-4 mx-3 mt-3 bg-white rounded-4 shadow-sm border">
-                  <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-2" style="width: 48px; height: 48px;">
-                    <i class="bi bi-calendar-x fs-4 text-secondary"></i>
+                        }
+                      </div>
+                    } @else {
+                      <div class="text-center text-muted small py-3 bg-white rounded-3 border">
+                        <i class="bi bi-calendar-x fs-5 text-secondary d-block mb-1"></i>
+                        <p class="mb-0 fw-medium">No hay horarios registrados en esta clase.</p>
+                      </div>
+                    }
                   </div>
-                  <p class="mb-0 fw-medium">No hay horarios registrados.</p>
-                  <p class="text-muted opacity-75" style="font-size: 0.75rem;">Usa el botón de editar la actividad para agregar.</p>
-                </div>
-              }
-            </div>
-            </div> <!-- CIERRA .equipo-section-wrapper -->
+                }
+              </div>
+            }
           }
-        }
+        </div>
       </div>
     </div>
   }
@@ -1056,7 +1202,7 @@
                     <span>Ya asignado en <strong class="text-dark">{{ cg.actividad }}</strong></span>
                   }
                   @if (cg.grupo) {
-                    <span class="text-secondary d-block" style="font-size: 0.7rem;">Grupo: {{ cg.grupo }}</span>
+                    <span class="text-secondary d-block" style="font-size: 0.7rem;">Clase: {{ cg.grupo }}</span>
                   }
                 </div>
               </div>

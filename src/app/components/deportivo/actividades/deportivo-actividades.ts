@@ -289,14 +289,18 @@ export class DeportivoActividadesComponent implements OnInit {
 
         if (a.startMin < b.endMin && b.startMin < a.endMin) {
           const diaNombre = this.daysMapping[a.diaSemana] || `Día ${a.diaSemana}`;
+          const aIni12 = this.formatHora(a.horaInicio);
+          const aFin12 = this.formatHora(a.horaFin);
+          const bIni12 = this.formatHora(b.horaInicio);
+          const bFin12 = this.formatHora(b.horaFin);
 
           if (a.actId !== b.actId) {
-            addConflict(a.actId, a.profesorNombre, b.actNombre, b.grupoNombre, false, diaNombre, `${b.horaInicio} - ${b.horaFin}`);
-            addConflict(b.actId, b.profesorNombre, a.actNombre, a.grupoNombre, false, diaNombre, `${a.horaInicio} - ${a.horaFin}`);
+            addConflict(a.actId, a.profesorNombre, b.actNombre, b.grupoNombre, false, diaNombre, `${bIni12} - ${bFin12}`);
+            addConflict(b.actId, b.profesorNombre, a.actNombre, a.grupoNombre, false, diaNombre, `${aIni12} - ${aFin12}`);
           } else {
             const rangoInterno = (a.horaInicio === b.horaInicio && a.horaFin === b.horaFin)
-              ? `${a.horaInicio} - ${a.horaFin}`
-              : `${a.horaInicio}-${a.horaFin} / ${b.horaInicio}-${b.horaFin}`;
+              ? `${aIni12} - ${aFin12}`
+              : `${aIni12}-${aFin12} / ${bIni12}-${bFin12}`;
             addConflict(a.actId, a.profesorNombre, a.actNombre, b.grupoNombre, true, diaNombre, rangoInterno);
           }
         }
@@ -340,10 +344,21 @@ export class DeportivoActividadesComponent implements OnInit {
     return resultMap;
   });
 
-  formatHora(hora: string): string {
-    if (!hora) return '';
-    const parts = hora.split(':');
-    return `${parts[0]}:${parts[1]}`;
+  formatHora(hora: string | number): string {
+    if (hora === null || hora === undefined || hora === '') return '';
+    let h = 0;
+    let m = '00';
+    if (typeof hora === 'number') {
+      h = hora % 24;
+    } else {
+      const parts = hora.split(':');
+      h = parseInt(parts[0], 10);
+      m = (parts[1] || '00').substring(0, 2).padStart(2, '0');
+    }
+    if (isNaN(h)) return String(hora);
+    const period = h >= 12 ? 'p.m.' : 'a.m.';
+    const h12 = (h % 12 || 12).toString().padStart(2, '0');
+    return `${h12}:${m} ${period}`;
   }
 
 
@@ -511,7 +526,7 @@ export class DeportivoActividadesComponent implements OnInit {
     for (const i of bounds.hours) {
       hoursMap.set(i, {
         hour: i,
-        label: `${i.toString().padStart(2, '0')}:00`,
+        label: this.formatHora(i),
         days: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] } as Record<number, any[]>
       });
     }
@@ -527,7 +542,7 @@ export class DeportivoActividadesComponent implements OnInit {
           // If a class starts before 6 or after 22, add the row dynamically!
           hoursMap.set(hour, {
             hour,
-            label: `${hour.toString().padStart(2, '0')}:00`,
+            label: this.formatHora(hour),
             days: { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [] }
           });
           hoursMap.get(hour)!.days[day.dia].push(session);
@@ -840,10 +855,90 @@ export class DeportivoActividadesComponent implements OnInit {
     }
   }
 
-  openHorariosOffcanvas(act: Actividad) {
+  expandedEquiposSet = signal<Set<number>>(new Set());
+  expandedProfGroupsSet = signal<Set<string>>(new Set());
 
+  toggleEquipoAccordion(equipoId: number): void {
+    this.expandedEquiposSet.update(prev => {
+      const next = new Set(prev);
+      if (next.has(equipoId)) {
+        next.delete(equipoId);
+      } else {
+        next.add(equipoId);
+      }
+      return next;
+    });
+  }
+
+  isEquipoExpanded(equipoId: number): boolean {
+    return this.expandedEquiposSet().has(equipoId);
+  }
+
+  getProfGroupKey(equipoId: number, dia: number, profesorId: number): string {
+    return `${equipoId}-${dia}-${profesorId}`;
+  }
+
+  toggleProfGroupAccordion(equipoId: number, dia: number, profesorId: number): void {
+    const key = this.getProfGroupKey(equipoId, dia, profesorId);
+    this.expandedProfGroupsSet.update(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  }
+
+  isProfGroupExpanded(equipoId: number, dia: number, profesorId: number): boolean {
+    return this.expandedProfGroupsSet().has(this.getProfGroupKey(equipoId, dia, profesorId));
+  }
+
+  getEquipoConflictsCount(equipo: any, grupo?: any, act?: Actividad): number {
+    if (!equipo?.horarios || equipo.horarios.length === 0) return 0;
+    let count = 0;
+    for (const h of equipo.horarios) {
+      if (h.is_active === false) continue;
+      const pId = h.profesor_id || equipo.coach_id || grupo?.instructor_id || act?.profesor_id || 0;
+      if (pId > 0) {
+        const c = this.checkProfesorScheduleConflict(pId, Number(h.dia_semana), h.hora_inicio, h.hora_fin, h.id);
+        if (c) count++;
+      }
+    }
+    return count;
+  }
+
+  getProfGroupConflictsCount(profGroup: any, dia: number): number {
+    if (!profGroup?.horarios || profGroup.horarios.length === 0 || !profGroup.profesor_id) return 0;
+    let count = 0;
+    for (const h of profGroup.horarios) {
+      if (h.is_active === false) continue;
+      const c = this.checkProfesorScheduleConflict(profGroup.profesor_id, dia, h.hora_inicio, h.hora_fin, h.id);
+      if (c) count++;
+    }
+    return count;
+  }
+
+  openHorariosOffcanvas(act: Actividad) {
     this.selectedActividadForHorarios.set(act);
     this.isOffcanvasOpen.set(true);
+
+    // Por defecto abrir el primer grupo si solo hay uno, y dejar colapsados cuando hay varios para vista limpia
+    const initialExpanded = new Set<number>();
+    const initialProfExpanded = new Set<string>();
+    const allEquipos: { eq: any; g: any }[] = [];
+    for (const g of act.grupos_categorias ?? []) {
+      for (const e of g.equipos ?? []) {
+        allEquipos.push({ eq: e, g });
+      }
+    }
+    if (allEquipos.length === 1) {
+      initialExpanded.add(allEquipos[0].eq.id);
+    }
+    this.expandedEquiposSet.set(initialExpanded);
+    this.expandedProfGroupsSet.set(initialProfExpanded);
+
     // Reset form
     this.horarioForm = { dia_semana: 1, hora_inicio: '08:00', hora_fin: '09:00', profesor_id: null };
   }
@@ -888,11 +983,58 @@ export class DeportivoActividadesComponent implements OnInit {
             const eB = this.timeToMinutes(h.hora_fin);
 
             if (sA < eB && sB < eA) {
-              const hIni = h.hora_inicio.substring(0, 5);
-              const hFin = h.hora_fin.substring(0, 5);
+              const hIni = this.formatHora(h.hora_inicio);
+              const hFin = this.formatHora(h.hora_fin);
               const diaNombre = this.daysMapping[diaSemana] || 'el día seleccionado';
               const grupo = gc.nombre && gc.nombre !== 'General' ? ` (${gc.nombre})` : '';
-              return `El profesor ${profName} ya tiene la clase "${act.nombre}"${grupo} asignada los ${diaNombre} de ${hIni} a ${hFin}.`;
+              return `El profesor ${profName} ya tiene la actividad "${act.nombre}"${grupo} asignada los ${diaNombre} de ${hIni} a ${hFin}`;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  getProfesorScheduleConflictDetail(
+    profesorId: number,
+    diaSemana: number,
+    horaInicio: string,
+    horaFin: string,
+    excludeHorarioId?: number
+  ): { actividad: string; clase: string; rango: string } | null {
+    if (!profesorId || !diaSemana || !horaInicio || !horaFin) return null;
+
+    const sA = this.timeToMinutes(horaInicio);
+    const eA = this.timeToMinutes(horaFin);
+    if (eA <= sA) return null;
+
+    for (const act of this.actividades()) {
+      if (act.is_active === false || !act.grupos_categorias) continue;
+      for (const gc of act.grupos_categorias) {
+        if (gc.is_active === false || !gc.equipos) continue;
+        for (const eq of gc.equipos) {
+          if (eq.is_active === false || !eq.horarios) continue;
+          for (const h of eq.horarios) {
+            if (h.is_active === false || Number(h.dia_semana) !== Number(diaSemana)) continue;
+            if (excludeHorarioId && Number(h.id) === Number(excludeHorarioId)) continue;
+
+            const existingProfId = h.profesor_id || eq.coach_id || (gc as any).instructor_id || act.profesor_id;
+            if (!existingProfId || Number(existingProfId) !== Number(profesorId)) continue;
+
+            const sB = this.timeToMinutes(h.hora_inicio);
+            const eB = this.timeToMinutes(h.hora_fin);
+
+            if (sA < eB && sB < eA) {
+              const hIni = this.formatHora(h.hora_inicio);
+              const hFin = this.formatHora(h.hora_fin);
+              const clase = gc.nombre && gc.nombre !== 'General' ? gc.nombre : '';
+              return {
+                actividad: act.nombre,
+                clase,
+                rango: `${hIni} – ${hFin}`,
+              };
             }
           }
         }
@@ -903,6 +1045,12 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   openInlineForm(equipoId: number, dia: number, profesorId: number) {
+    const key = this.getProfGroupKey(equipoId, dia, profesorId);
+    this.expandedProfGroupsSet.update(prev => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
     this.inlineFormEquipoId.set(equipoId);
     this.inlineFormDia.set(dia);
     this.inlineFormProfesorId.set(profesorId);
@@ -1470,7 +1618,7 @@ export class DeportivoActividadesComponent implements OnInit {
           newSchedule.hora_inicio = newIni;
           newSchedule.hora_fin = newFin;
           const diaLabel = this.daysMapping[newDia] || '';
-          finalMotivo = `${selectedValue} (${diaLabel} ${newIni} - ${newFin})`;
+          finalMotivo = `${selectedValue} (${diaLabel} ${this.formatHora(newIni)} - ${this.formatHora(newFin)})`;
         }
 
         return {
@@ -1752,14 +1900,18 @@ export class DeportivoActividadesComponent implements OnInit {
       const profesores = Array.from(mapaProf.entries()).map(([pId, p_hrs]) => {
         p_hrs.sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''));
         
-        const minHora = p_hrs[0].hora_inicio ? p_hrs[0].hora_inicio.substring(0,5) : '';
-        const maxHora = p_hrs[p_hrs.length - 1].hora_fin ? p_hrs[p_hrs.length - 1].hora_fin.substring(0,5) : '';
+        const minHora = p_hrs[0].hora_inicio ? this.formatHora(p_hrs[0].hora_inicio) : '';
+        const maxHora = p_hrs[p_hrs.length - 1].hora_fin ? this.formatHora(p_hrs[p_hrs.length - 1].hora_fin) : '';
         const rango_horas = `${minHora} - ${maxHora}`;
+        const firstPositiveCosto = p_hrs.find(x => x.costo_interno !== null && x.costo_interno !== undefined && Number(x.costo_interno) > 0);
+        const firstWithCosto = firstPositiveCosto ?? p_hrs.find(x => x.costo_interno !== null && x.costo_interno !== undefined);
+        const costo_interno = firstWithCosto ? Number(firstWithCosto.costo_interno) : null;
         
         return {
           profesor_id: pId,
           profesor_nombre: pId ? this.getInstructorName(pId, true) : 'Sin asignar',
           rango_horas: rango_horas,
+          costo_interno: costo_interno,
           horarios: p_hrs
         };
       });
@@ -1774,6 +1926,239 @@ export class DeportivoActividadesComponent implements OnInit {
     
     result.sort((a, b) => a.dia - b.dia);
     return result;
+  }
+
+  getEquipoProfesoresCosto(equipo: any): Array<{
+    profesor_id: number;
+    profesor_nombre: string;
+    costo_interno: number | null;
+  }> {
+    const horarios = equipo?.horarios || [];
+    if (!horarios.length) return [];
+
+    const map = new Map<number, {
+      profesor_id: number;
+      profesor_nombre: string;
+      costo_interno: number | null;
+    }>();
+
+    for (const h of horarios) {
+      const pId = Number(h.profesor_id || equipo?.coach_id || 0);
+      const hCosto = h.costo_interno !== null && h.costo_interno !== undefined ? Number(h.costo_interno) : null;
+      if (!map.has(pId)) {
+        map.set(pId, {
+          profesor_id: pId,
+          profesor_nombre: pId ? this.getInstructorName(pId, true) : 'Sin asignar',
+          costo_interno: hCosto,
+        });
+      } else {
+        const current = map.get(pId)!.costo_interno;
+        if ((current === null || current === 0) && hCosto !== null && hCosto > 0) {
+          map.get(pId)!.costo_interno = hCosto;
+        } else if (current === null && hCosto !== null) {
+          map.get(pId)!.costo_interno = hCosto;
+        }
+      }
+    }
+
+    // Si en esta clase el profesor tiene costo 0 o null, pero en otra clase de la misma actividad ya tiene un costo > 0 asignado, mostrarlo homologado
+    const act = this.selectedActividadForHorarios();
+    if (act?.grupos_categorias) {
+      for (const entry of map.values()) {
+        if (entry.profesor_id > 0 && (entry.costo_interno === null || entry.costo_interno === 0)) {
+          for (const g of act.grupos_categorias) {
+            for (const e of g.equipos ?? []) {
+              for (const h of e.horarios ?? []) {
+                const hProfId = Number(h.profesor_id || e?.coach_id || 0);
+                const hCosto = h.costo_interno !== null && h.costo_interno !== undefined ? Number(h.costo_interno) : null;
+                if (hProfId === entry.profesor_id && hCosto !== null && hCosto > 0) {
+                  entry.costo_interno = hCosto;
+                  break;
+                }
+              }
+              if (entry.costo_interno && entry.costo_interno > 0) break;
+            }
+            if (entry.costo_interno && entry.costo_interno > 0) break;
+          }
+        }
+      }
+    }
+
+    return Array.from(map.values());
+  }
+
+  async promptCostoProfesor(actId: number, equipo: any, profGroup: any): Promise<void> {
+    const profId = Number(profGroup.profesor_id || 0);
+    const profName = profGroup.profesor_nombre || 'Sin asignar';
+    const currentCosto = profGroup.costo_interno !== null && profGroup.costo_interno !== undefined
+      ? Number(profGroup.costo_interno)
+      : null;
+
+    // Recolectar todos los horarios de este profesor en todas las clases de la actividad
+    const act = this.selectedActividadForHorarios();
+    const horariosTarget: Array<{ equipoId: number; horarioId: number }> = [];
+
+    if (act?.grupos_categorias && profId > 0) {
+      for (const g of act.grupos_categorias) {
+        for (const e of g.equipos ?? []) {
+          for (const h of e.horarios ?? []) {
+            const hProfId = Number(h.profesor_id || e?.coach_id || 0);
+            if (hProfId === profId) {
+              horariosTarget.push({ equipoId: e.id, horarioId: h.id });
+            }
+          }
+        }
+      }
+    } else {
+      for (const h of equipo?.horarios || []) {
+        if (Number(h.profesor_id || equipo?.coach_id || 0) === profId) {
+          horariosTarget.push({ equipoId: equipo.id, horarioId: h.id });
+        }
+      }
+    }
+
+    const { isConfirmed, value } = await Swal.fire({
+      title: '',
+      width: 440,
+      padding: '0.85rem 1rem 0.7rem',
+      html: `
+        <div style="text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <div style="width: 36px; height: 36px; border-radius: 9px; background: linear-gradient(135deg, #ecfdf5, #d1fae5); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0;">
+              <i class="bi bi-cash-coin"></i>
+            </div>
+            <div style="overflow: hidden;">
+              <h5 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 1rem;">Costo por clase del profesor</h5>
+              <p style="margin: 1px 0 0; font-size: 0.76rem; color: #64748b; text-transform: capitalize; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${profName.toLowerCase()}
+              </p>
+            </div>
+          </div>
+
+          <div style="background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 10px 12px;">
+            <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
+              Monto a pagar por clase (nómina)
+            </label>
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white text-muted border-end-0 fw-semibold"
+                    style="border-top-left-radius: 20px !important; border-bottom-left-radius: 20px !important; border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important; padding-left: 0.75rem; padding-right: 0.35rem;">$</span>
+              <input id="swal-costo-prof" type="number" min="0" step="0.01"
+                     class="form-control form-control-sm bg-white border-start-0 ps-1 fw-semibold"
+                     style="border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important; border-top-right-radius: 20px !important; border-bottom-right-radius: 20px !important; font-size: 0.85rem; box-shadow: none;"
+                     placeholder="0.00"
+                     value="${currentCosto !== null ? currentCosto : ''}">
+            </div>
+            <small style="display: block; margin-top: 6px; font-size: 0.7rem; color: #64748b;">
+              Se aplicará a los <strong>${horariosTarget.length}</strong> horario(s) de este profesor en esta actividad.
+            </small>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-check2 me-1"></i>Guardar costo',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#94a3b8',
+      reverseButtons: true,
+      focusConfirm: false,
+      didOpen: (popup) => {
+        const htmlContainer = popup.querySelector<HTMLElement>('.swal2-html-container');
+        if (htmlContainer) {
+          htmlContainer.style.margin = '0';
+          htmlContainer.style.padding = '0';
+        }
+        const actionsEl = popup.querySelector<HTMLElement>('.swal2-actions');
+        if (actionsEl) {
+          actionsEl.style.width = '100%';
+          actionsEl.style.display = 'flex';
+          actionsEl.style.justifyContent = 'space-between';
+          actionsEl.style.margin = '0.5rem 0 0 0';
+          actionsEl.style.padding = '0';
+        }
+        const confirmBtn = popup.querySelector<HTMLElement>('.swal2-confirm');
+        const cancelBtn = popup.querySelector<HTMLElement>('.swal2-cancel');
+        [confirmBtn, cancelBtn].forEach(btn => {
+          if (btn) {
+            btn.style.fontSize = '0.75rem';
+            btn.style.padding = '0.25rem 0.65rem';
+            btn.style.borderRadius = '6px';
+            btn.style.margin = '0';
+            btn.style.fontWeight = '600';
+            btn.style.lineHeight = '1.2';
+          }
+        });
+        const inputEl = popup.querySelector<HTMLInputElement>('#swal-costo-prof');
+        if (inputEl) {
+          setTimeout(() => { inputEl.focus(); inputEl.select(); }, 50);
+        }
+      },
+      preConfirm: () => {
+        const inputEl = Swal.getPopup()?.querySelector<HTMLInputElement>('#swal-costo-prof');
+        const raw = inputEl?.value?.trim() ?? '';
+        if (raw === '') return null;
+        const num = Number(raw);
+        if (isNaN(num) || num < 0) {
+          Swal.showValidationMessage('Ingresa un monto válido mayor o igual a 0');
+          return false;
+        }
+        return num;
+      }
+    });
+
+    if (!isConfirmed) return;
+    const newCosto: number | null = value === null || value === undefined ? null : Number(value);
+
+    try {
+      await Promise.all(
+        horariosTarget.map(t =>
+          firstValueFrom(this.svc.updateHorario(t.equipoId, t.horarioId, { costo_interno: newCosto }))
+        )
+      );
+
+      this.showToast('Costo por clase actualizado');
+
+      const targetHorarioIds = new Set(horariosTarget.map(t => t.horarioId));
+
+      this.selectedActividadForHorarios.update(curAct => {
+        if (!curAct) return null;
+        for (const g of curAct.grupos_categorias ?? []) {
+          for (const e of g.equipos ?? []) {
+            if (e.horarios) {
+              e.horarios = e.horarios.map(item =>
+                targetHorarioIds.has(item.id) ? { ...item, costo_interno: newCosto } : item
+              );
+            }
+          }
+        }
+        return { ...curAct };
+      });
+
+      this.actividades.update(list =>
+        list.map(a => {
+          if (a.id !== actId) return a;
+          return {
+            ...a,
+            grupos_categorias: (a.grupos_categorias ?? []).map(g => ({
+              ...g,
+              equipos: (g.equipos ?? []).map(e => ({
+                ...e,
+                horarios: (e.horarios ?? []).map(item =>
+                  targetHorarioIds.has(item.id) ? { ...item, costo_interno: newCosto } : item
+                ),
+              })),
+            })),
+          };
+        })
+      );
+    } catch (err: any) {
+      const msg = err?.error?.message || 'No se pudo actualizar el costo por clase.';
+      Swal.fire({
+        icon: 'warning',
+        title: 'Error al guardar',
+        text: msg,
+        confirmButtonText: 'Entendido'
+      });
+    }
   }
 
   daysMapping: Record<number, string> = {

@@ -56,7 +56,7 @@ interface Step { id: number; label: string; icon: string; }
 const STEPS: Step[] = [
   { id: 1, label: 'General',     icon: 'bi-info-circle' },
   { id: 2, label: 'Operación',   icon: 'bi-gear' },
-  { id: 3, label: 'Grupos',      icon: 'bi-people' },
+  { id: 3, label: 'Clases',      icon: 'bi-people' },
   { id: 4, label: 'Horarios',    icon: 'bi-clock' },
   { id: 5, label: 'Evaluación',  icon: 'bi-star' },
   { id: 6, label: 'Resumen',     icon: 'bi-check-circle' },
@@ -282,6 +282,24 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
     return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
   }
 
+  formatHora(hora: string | number): string {
+    if (hora === null || hora === undefined || hora === '') return '';
+    let h = 0;
+    let m = '00';
+    if (typeof hora === 'number') {
+      h = hora;
+    } else {
+      const parts = String(hora).split(':');
+      h = parseInt(parts[0], 10);
+      m = (parts[1] || '00').substring(0, 2);
+    }
+    if (isNaN(h)) return String(hora);
+    const period = h >= 12 ? 'p.m.' : 'a.m.';
+    const h12 = h % 12 || 12;
+    const hPad = h12 < 10 ? `0${h12}` : `${h12}`;
+    return `${hPad}:${m} ${period}`;
+  }
+
   getHorarioConflict(grupoIdx: number, horarioIdx: number): string | null {
     const g = this.grupos()[grupoIdx];
     if (!g) return null;
@@ -315,8 +333,8 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
         const eB = this.timeToMinutes(otherH.hora_fin);
 
         if (sA < eB && sB < eA) {
-          const targetGrp = otherG.nombre ? `grupo "${otherG.nombre}"` : 'otro horario';
-          return `Empalme: ${profName} ya tiene horario en ${targetGrp} (${diaNombre} ${otherH.hora_inicio.substring(0, 5)} - ${otherH.hora_fin.substring(0, 5)}).`;
+          const targetGrp = otherG.nombre ? `la clase "${otherG.nombre}"` : 'otro horario';
+          return `Empalme: ${profName} ya tiene horario en ${targetGrp} (${diaNombre} ${this.formatHora(otherH.hora_inicio)} - ${this.formatHora(otherH.hora_fin)}).`;
         }
       }
     }
@@ -341,8 +359,8 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
               const eB = this.timeToMinutes(extH.hora_fin);
 
               if (sA < eB && sB < eA) {
-                const hIni = extH.hora_inicio.substring(0, 5);
-                const hFin = extH.hora_fin.substring(0, 5);
+                const hIni = this.formatHora(extH.hora_inicio);
+                const hFin = this.formatHora(extH.hora_fin);
                 const grp = gc.nombre && gc.nombre !== 'General' ? ` (${gc.nombre})` : '';
                 return `Empalme: ${profName} ya tiene la clase "${act.nombre}"${grp} los ${diaNombre} de ${hIni} a ${hFin}.`;
               }
@@ -386,6 +404,13 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
       }
       if (this.tiene_costo && !this.monto) {
         this.error.set('Debes ingresar el monto a cobrar.');
+        return false;
+      }
+    }
+
+    if (this.currentStep() === 3) {
+      if (this.grupos().some(g => !g.nombre || !g.nombre.trim())) {
+        this.error.set('Todas las clases deben tener un nombre.');
         return false;
       }
     }
@@ -445,9 +470,22 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
 
   setGrupoCosto(grupoIdx: number, value: number | null): void {
     this.grupos.update(list => {
-      const copy = list.map(g => ({ ...g, horarios: [...g.horarios] }));
+      const copy = list.map(g => ({ ...g, horarios: g.horarios.map(h => ({ ...h })) }));
+      const profId = Number(copy[grupoIdx].instructor_id || 0);
       copy[grupoIdx].costo_interno = value;
       copy[grupoIdx].horarios = copy[grupoIdx].horarios.map(h => ({ ...h, costo_interno: value }));
+      if (profId > 0) {
+        for (const grp of copy) {
+          if (Number(grp.instructor_id || 0) === profId) {
+            grp.costo_interno = value;
+          }
+          for (const item of grp.horarios) {
+            if (Number(item.profesor_id || grp.instructor_id || 0) === profId) {
+              item.costo_interno = value;
+            }
+          }
+        }
+      }
       return copy;
     });
   }
@@ -921,7 +959,7 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
           newSchedule.hora_inicio = newIni;
           newSchedule.hora_fin = newFin;
           const diaLabel = this.getDiaNombre(newDia);
-          finalMotivo = `${selectedValue} (${diaLabel} ${newIni} - ${newFin})`;
+          finalMotivo = `${selectedValue} (${diaLabel} ${this.formatHora(newIni)} - ${this.formatHora(newFin)})`;
         }
 
         return {
@@ -939,7 +977,40 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
     this.grupos.update(list => {
       const copy = list.map(g => ({ ...g, horarios: g.horarios.map(h => ({ ...h })) }));
       const h = copy[grupoIdx].horarios[index];
-      if (h) (h as any)[field] = value;
+      if (!h) return copy;
+      (h as any)[field] = value;
+
+      if (field === 'costo_interno') {
+        const profId = Number(h.profesor_id || copy[grupoIdx].instructor_id || 0);
+        if (profId > 0) {
+          for (const grp of copy) {
+            if (Number(grp.instructor_id || 0) === profId) {
+              grp.costo_interno = value as number | null;
+            }
+            for (const item of grp.horarios) {
+              if (Number(item.profesor_id || grp.instructor_id || 0) === profId) {
+                item.costo_interno = value as number | null;
+              }
+            }
+          }
+        }
+      } else if (field === 'profesor_id' && value) {
+        const profId = Number(value);
+        let existingCosto: number | null = null;
+        for (const grp of copy) {
+          for (const item of grp.horarios) {
+            if (Number(item.profesor_id || grp.instructor_id || 0) === profId && item.costo_interno !== null && item.costo_interno !== undefined && Number(item.costo_interno) > 0) {
+              existingCosto = Number(item.costo_interno);
+              break;
+            }
+          }
+          if (existingCosto !== null) break;
+        }
+        if (existingCosto !== null) {
+          h.costo_interno = existingCosto;
+        }
+      }
+
       return copy;
     });
   }

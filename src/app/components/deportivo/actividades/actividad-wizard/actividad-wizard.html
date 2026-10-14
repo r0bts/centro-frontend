@@ -213,15 +213,15 @@
           </div>
         </div>
       }
-<!-- ════ PASO 3: Grupos ════ -->
+<!-- ════ PASO 3: Clases ════ -->
       @if (currentStep() === 3) {
         <div class="step-content">
-          <h6 class="step-section-title">Grupos y categorías</h6>
-          <p class="text-muted small mb-3">Crea grupos por categoría o rango de edad. Podrás agregar equipos dentro de cada grupo.</p>
+          <h6 class="step-section-title">Clases y categorías</h6>
+          <p class="text-muted small mb-3">Crea clases por categoría o rango de edad. Podrás configurar los horarios dentro de cada clase.</p>
 
-          <!-- Agregar grupo -->
+          <!-- Agregar clase -->
           <div class="input-add-row mb-3">
-            <input type="text" class="form-control" placeholder="Nombre del grupo (Ej: Sub-12)"
+            <input type="text" class="form-control" placeholder="Nombre de la clase (Ej: Sub-12)"
                    [(ngModel)]="nuevoGrupoNombre"
                    (keydown.enter)="addGrupo()">
             <button class="btn btn-primary" (click)="addGrupo()">
@@ -232,11 +232,11 @@
           @if (grupos().length === 0) {
             <div class="empty-hint">
               <i class="bi bi-people text-muted d-block mb-2" style="font-size:2rem"></i>
-              <span>Agrega al menos un grupo para continuar</span>
+              <span>Agrega al menos una clase para continuar</span>
             </div>
           }
 
-          <!-- Lista de grupos -->
+          <!-- Lista de clases -->
           @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
             <div class="grupo-card" [class.active]="activeGrupoIndex() === gi">
               <div class="grupo-header" (click)="activeGrupoIndex.set(gi)">
@@ -256,6 +256,12 @@
 
               @if (activeGrupoIndex() === gi) {
                 <div class="grupo-body">
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">Nombre de la clase <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm"
+                           placeholder="Ej: Sub-12, Principiantes, Matutino..."
+                           [(ngModel)]="grupos()[gi].nombre" maxlength="100">
+                  </div>
                   <div class="row g-2 mb-3">
                     <div class="col-6">
                       <label class="form-label small">Descripción</label>
@@ -274,7 +280,7 @@
                     </div>
                   </div>
 
-                  <!-- Instructor del grupo -->
+                  <!-- Instructor de la clase -->
                   <div class="row g-2 mb-3">
                     <div class="col-12 col-md-8">
                       <label class="form-label small fw-semibold">Instructor titular</label>
@@ -301,15 +307,15 @@
                       </div>
                     </div>
                     <div class="col-12">
-                      <small class="text-muted" style="font-size: 0.75rem;">Este profesor y costo se asignarán automáticamente a todos los horarios de este grupo.</small>
+                      <small class="text-muted" style="font-size: 0.75rem;">Este profesor y costo se asignarán automáticamente a todos los horarios de esta clase.</small>
                     </div>
                   </div>
 
-                  <!-- Cupo del grupo -->
+                  <!-- Cupo de la clase -->
                   <div class="mb-3">
                     <label class="mensajeria-option" [class.selected]="grupos()[gi].tiene_cupo">
                       <div>
-                        <div class="fw-semibold small">Limitar cupo del grupo</div>
+                        <div class="fw-semibold small">Limitar cupo de la clase</div>
                         <small class="text-muted">Establece un máximo de lugares disponibles</small>
                       </div>
                       <div class="form-check form-switch ms-auto mb-0">
@@ -340,16 +346,16 @@
       @if (currentStep() === 4) {
         <div class="step-content">
           <h6 class="step-section-title text-uppercase fw-bold text-secondary mb-3">Horarios de entrenamiento</h6>
-          <p class="text-muted small mb-4">Configura los días y horarios de cada grupo.</p>
+          <p class="text-muted small mb-4">Configura los días y horarios de cada clase.</p>
 
           @if (grupos().length === 0) {
             <div class="empty-hint text-center py-5">
               <i class="bi bi-clock text-muted d-block mb-2" style="font-size:2rem"></i>
-              <span>No hay grupos definidos. Vuelve al paso anterior.</span>
+              <span>No hay clases definidas. Vuelve al paso anterior.</span>
             </div>
           } @else {
             <div class="d-flex flex-column h-100">
-              <!-- Tabs por grupo -->
+              <!-- Tabs por clase -->
               <div class="grupo-tabs mb-4">
                 @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
                   <button type="button" class="btn btn-sm rounded-pill px-3 fw-medium me-2 mb-2"
@@ -627,7 +633,7 @@
               </div>
             }
             <div class="summary-row">
-              <span class="summary-label"><i class="bi bi-people me-2"></i>Grupos</span>
+              <span class="summary-label"><i class="bi bi-people me-2"></i>Clases</span>
               <span>{{ grupos().length }}</span>
             </div>
             <div class="summary-row">
@@ -642,7 +648,7 @@
 
           @if (grupos().length > 0) {
             <div class="mt-3">
-              <h6 class="small fw-semibold text-muted mb-2">GRUPOS</h6>
+              <h6 class="small fw-semibold text-muted mb-2">CLASES</h6>
               @for (g of grupos(); track trackByIdx($index, g)) {
                 <div class="summary-grupo">
                   <i class="bi bi-people-fill text-primary me-2"></i>
