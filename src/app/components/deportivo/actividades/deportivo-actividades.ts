@@ -2165,4 +2165,160 @@ export class DeportivoActividadesComponent implements OnInit {
     1: 'Lunes', 2: 'Martes', 3: 'Miércoles',
     4: 'Jueves', 5: 'Viernes', 6: 'Sábado', 7: 'Domingo'
   };
+
+  // ── Semanas Tipo Inline en Offcanvas (Sin modales extra) ────────────────────
+  semanaTipoPanelEquipoId = signal<number | null>(null);
+  guardandoSemanaEquipoId = signal<number | null>(null);
+  nuevaSemanaOffcanvasNombre = '';
+  nuevaSemanaOffcanvasTemporada: 'otono' | 'verano' | 'invierno' | 'primavera' | 'general' = 'otono';
+
+  toggleSemanaTipoPanelOffcanvas(equipoId: number): void {
+    this.semanaTipoPanelEquipoId.update(cur => (cur === equipoId ? null : equipoId));
+    this.guardandoSemanaEquipoId.set(null);
+  }
+
+  getSemanasTipoCatalog() {
+    return this.svc.getSemanasTipoList(this.formData()?.semanas_tipo);
+  }
+
+  getShortSemanaLabel(nombre: string): string {
+    return nombre
+      .replace(/^Semana\s+/i, '')
+      .replace(/\s*\/.*?\(/, ' (')
+      .replace(/\s+Vespertino\)/i, ')')
+      .replace(/\s+Matutino\)/i, ')')
+      .replace(/\s+Compacto\)/i, ')')
+      .replace(/\s+Tarde Extendida\)/i, ')');
+  }
+
+  getTemporadaEmoji(temporada: string): string {
+    switch ((temporada || '').toLowerCase()) {
+      case 'otono': return '🍂';
+      case 'verano': return '☀️';
+      case 'invierno': return '❄️';
+      case 'primavera': return '🌸';
+      default: return '📅';
+    }
+  }
+
+  async aplicarSemanaTipoInlineOffcanvas(act: Actividad, equipo: any, st: any): Promise<void> {
+    const existingHorarios: any[] = equipo.horarios || [];
+    const defaultProfId =
+      existingHorarios.find(h => h.profesor_id)?.profesor_id ||
+      equipo.coach_id ||
+      act.profesor_id ||
+      null;
+    const defaultCosto =
+      existingHorarios.find(h => h.costo_interno !== null && h.costo_interno !== undefined && Number(h.costo_interno) > 0)?.costo_interno ??
+      existingHorarios.find(h => h.costo_interno !== null && h.costo_interno !== undefined)?.costo_interno ??
+      null;
+
+    try {
+      const creados: any[] = [];
+      for (const dia of (st.dias || [])) {
+        for (const f of (st.franjas || [])) {
+          const hIni = (f.hora_inicio || '16:00').substring(0, 5);
+          const hFin = (f.hora_fin || '17:00').substring(0, 5);
+          const yaExiste = existingHorarios.some(
+            h =>
+              Number(h.dia_semana) === Number(dia) &&
+              (h.hora_inicio || '').substring(0, 5) === hIni &&
+              (h.hora_fin || '').substring(0, 5) === hFin
+          );
+          if (yaExiste) continue;
+
+          const res = await firstValueFrom(
+            this.svc.createHorario(equipo.id, {
+              dia_semana: Number(dia),
+              hora_inicio: hIni + ':00',
+              hora_fin: hFin + ':00',
+              profesor_id: defaultProfId ? Number(defaultProfId) : undefined,
+              costo_interno: defaultCosto !== null ? Number(defaultCosto) : undefined,
+              is_active: true,
+            })
+          );
+          if (res?.data) {
+            creados.push(res.data);
+          }
+        }
+      }
+
+      const nuevosHorarios = [...existingHorarios, ...creados];
+      this.selectedActividadForHorarios.update(curAct => {
+        if (!curAct) return null;
+        for (const g of curAct.grupos_categorias ?? []) {
+          for (const eq of g.equipos ?? []) {
+            if (eq.id === equipo.id) {
+              eq.horarios = nuevosHorarios;
+            }
+          }
+        }
+        return { ...curAct };
+      });
+
+      this.actividades.update(list =>
+        list.map(a => {
+          if (a.id !== act.id) return a;
+          return {
+            ...a,
+            grupos_categorias: (a.grupos_categorias ?? []).map(g => ({
+              ...g,
+              equipos: (g.equipos ?? []).map(eq =>
+                eq.id === equipo.id ? { ...eq, horarios: nuevosHorarios } : eq
+              ),
+            })),
+          };
+        })
+      );
+
+      this.semanaTipoPanelEquipoId.set(null);
+      this.showToast(`Semana Tipo aplicada (${creados.length} horario(s) agregado(s))`);
+    } catch (err: any) {
+      this.showToast(err?.error?.message || 'Algunos horarios ya existían o tienen empalme');
+      this.loadActividades();
+    }
+  }
+
+  abrirGuardarSemanaOffcanvasInline(grupo: any, equipo: any): void {
+    this.nuevaSemanaOffcanvasNombre = grupo?.nombre || '';
+    this.nuevaSemanaOffcanvasTemporada = 'general';
+    this.guardandoSemanaEquipoId.set(equipo.id);
+  }
+
+  async confirmarGuardarSemanaOffcanvasInline(equipo: any): Promise<void> {
+    const horarios = (equipo?.horarios || []).filter((h: any) => h.is_active !== false);
+    const nom = this.nuevaSemanaOffcanvasNombre.trim();
+    if (!horarios.length || !nom) return;
+
+    const dias = Array.from(new Set<number>(horarios.map((h: any) => Number(h.dia_semana)))).sort((a, b) => a - b);
+    const fMap = new Map<string, { hora_inicio: string; hora_fin: string }>();
+    for (const h of horarios) {
+      const hi = (h.hora_inicio || '16:00').substring(0, 5);
+      const hf = (h.hora_fin || '17:00').substring(0, 5);
+      fMap.set(`${hi}-${hf}`, { hora_inicio: hi, hora_fin: hf });
+    }
+    const franjas = Array.from(fMap.values()).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+    const updated = await this.svc.persistSemanaTipo(
+      {
+        nombre: nom,
+        temporada: this.nuevaSemanaOffcanvasTemporada,
+        dias,
+        franjas,
+      },
+      null,
+      this.formData()?.semanas_tipo
+    );
+    this.formData.update(fd => fd ? { ...fd, semanas_tipo: updated } : fd);
+    this.guardandoSemanaEquipoId.set(null);
+    this.nuevaSemanaOffcanvasNombre = '';
+    this.showToast('Semana Tipo guardada en el catálogo');
+  }
+
+  async eliminarSemanaTipoOffcanvasInline(stOrId: number | { id: number }, event: Event): Promise<void> {
+    event.stopPropagation();
+    const id = typeof stOrId === 'number' ? stOrId : stOrId.id;
+    const updated = await this.svc.removeSemanaTipo(id, this.formData()?.semanas_tipo);
+    this.formData.update(fd => fd ? { ...fd, semanas_tipo: updated } : fd);
+  }
 }

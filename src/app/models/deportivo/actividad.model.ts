@@ -125,12 +125,29 @@ export interface MotivoCancelacionHorario {
   orden?: number;
 }
 
+export interface SemanaTipoFranja {
+  hora_inicio: string;
+  hora_fin: string;
+}
+
+export interface SemanaTipoPlantilla {
+  id: number;
+  nombre: string;
+  temporada: 'verano' | 'otono' | 'invierno' | 'primavera' | 'general' | string;
+  descripcion?: string;
+  dias: number[];
+  franjas: SemanaTipoFranja[];
+  es_sistema?: boolean | number;
+  orden?: number;
+}
+
 export interface ActividadFormData {
   acceso_clubes: { id: number; name: string }[];
   tipos: string[];
   instructores: Instructor[];
   areas_mapeadas: AreaMapeada[];
   motivos_cancelacion?: MotivoCancelacionHorario[];
+  semanas_tipo?: SemanaTipoPlantilla[];
 }
 
 export interface Instructor {

@@ -95,7 +95,17 @@
             <label class="form-label fw-semibold">Vigencia de la actividad</label>
             <div class="row g-2">
               <div class="col-12 col-md-6">
-                <label class="form-label small fw-semibold">Fecha inicio <span class="text-danger">*</span></label>
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <label class="form-label small fw-semibold mb-0">Fecha inicio <span class="text-danger">*</span></label>
+                  <button type="button"
+                          class="btn btn-sm rounded-pill d-inline-flex align-items-center fw-semibold transition-all"
+                          style="font-size: 0.7rem; padding: 0.1rem 0.55rem; gap: 0.25rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;"
+                          title="Asignar la fecha de hoy"
+                          (click)="setFechaInicioHoy()">
+                    <i class="bi bi-calendar-check" style="font-size: 0.68rem;"></i>
+                    <span>Hoy</span>
+                  </button>
+                </div>
                 <input type="date" class="form-control" [(ngModel)]="fecha_inicio">
               </div>
               <div class="col-12 col-md-6">
@@ -371,11 +381,30 @@
               @let gActual = grupos()[gIdx];
               @if (gActual) {
                 <div class="horario-panel">
-                  
+                  <!-- Píldoras Inline de Semanas Tipo (1 clic para cargar y personalizar abajo) -->
+                  <div class="mb-3 px-3 py-2 rounded-4 border bg-white" style="border-color: #e2e8f0 !important;">
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 0.4rem;">
+                      <span class="text-secondary fw-semibold me-1" style="font-size: 0.74rem;">
+                        <i class="bi bi-calendar-week text-primary me-1"></i>Semanas tipo:
+                      </span>
+                      @for (st of getSemanasTipoCatalog(); track st.id) {
+                        <button type="button"
+                                class="btn btn-sm rounded-pill d-inline-flex align-items-center transition-all"
+                                style="font-size: 0.73rem; padding: 0.2rem 0.65rem; gap: 0.3rem;"
+                                [style.background]="appliedSemanaId() === st.id ? '#eff6ff' : '#f8fafc'"
+                                [style.color]="appliedSemanaId() === st.id ? '#1d4ed8' : '#334155'"
+                                [style.border]="appliedSemanaId() === st.id ? '1px solid #93c5fd' : '1px solid #e2e8f0'"
+                                [style.font-weight]="appliedSemanaId() === st.id ? '600' : '500'"
+                                [title]="st.descripcion || st.nombre"
+                                (click)="aplicarSemanaTipoInline(gIdx, st)">
+                          <span>{{ getTemporadaEmoji(st.temporada) }}</span>
+                          <span>{{ getShortSemanaLabel(st.nombre) }}</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
 
-                  
-
-                                    <div class="d-flex flex-column gap-3">
+                  <div class="d-flex flex-column gap-3">
                     @for (d of dias; track d.num) {
                       <div class="dia-horario-card p-3 border rounded shadow-sm bg-white">
                         <div class="d-flex justify-content-between align-items-center pb-2" [class.border-bottom]="getHorariosByDia(gIdx, d.num).length > 0 || replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num" [class.mb-3]="getHorariosByDia(gIdx, d.num).length > 0 || replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num">

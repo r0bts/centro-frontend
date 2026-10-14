@@ -112,6 +112,14 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
   costo_interno: number | null = null;
   profesor_id: number | null = null;
 
+  setFechaInicioHoy(): void {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    this.fecha_inicio = `${yyyy}-${mm}-${dd}`;
+  }
+
   // ── Paso 2: Grupos ──────────────────────────────────────────────────────────
   grupos = signal<WizardGrupo[]>([]);
   nuevoGrupoNombre   = '';
@@ -1146,6 +1154,111 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
   getAreaName(areaId: number | null): string {
     if (!areaId) return '—';
     return this.formData()?.areas_mapeadas?.find(a => Number(a.area_id) === Number(areaId))?.area_name ?? `Área ${areaId}`;
+  }
+
+  // ── Semanas Tipo Inline (Sin modales extra) ──────────────────────────────────
+  guardandoSemanaInline = signal(false);
+  nuevaSemanaNombre = '';
+  nuevaSemanaTemporada: 'otono' | 'verano' | 'invierno' | 'primavera' | 'general' = 'otono';
+  appliedSemanaId = signal<number | null>(null);
+
+  getSemanasTipoCatalog() {
+    return this.svc.getSemanasTipoList(this.formData()?.semanas_tipo);
+  }
+
+  getShortSemanaLabel(nombre: string): string {
+    return nombre
+      .replace(/^Semana\s+/i, '')
+      .replace(/\s*\/.*?\(/, ' (')
+      .replace(/\s+Vespertino\)/i, ')')
+      .replace(/\s+Matutino\)/i, ')')
+      .replace(/\s+Compacto\)/i, ')')
+      .replace(/\s+Tarde Extendida\)/i, ')');
+  }
+
+  getTemporadaEmoji(temporada: string): string {
+    switch ((temporada || '').toLowerCase()) {
+      case 'otono': return '🍂';
+      case 'verano': return '☀️';
+      case 'invierno': return '❄️';
+      case 'primavera': return '🌸';
+      default: return '📅';
+    }
+  }
+
+  aplicarSemanaTipoInline(grupoIdx: number, st: any): void {
+    this.appliedSemanaId.set(st.id);
+    this.grupos.update(list => {
+      const copy = list.map(grp => ({ ...grp, horarios: grp.horarios.map(h => ({ ...h })) }));
+      const target = copy[grupoIdx];
+      if (!target) return copy;
+
+      const nuevos: any[] = [];
+      for (const dia of (st.dias || [])) {
+        for (const f of (st.franjas || [])) {
+          nuevos.push({
+            dia_semana: Number(dia),
+            hora_inicio: (f.hora_inicio || '16:00').substring(0, 5),
+            hora_fin: (f.hora_fin || '17:00').substring(0, 5),
+            lugar: null,
+            area_id: null,
+            profesor_id: target.instructor_id,
+            costo_interno: target.costo_interno,
+            is_active: true,
+            motivo_cancelacion: null,
+          });
+        }
+      }
+      nuevos.sort((a, b) => a.dia_semana - b.dia_semana || a.hora_inicio.localeCompare(b.hora_inicio));
+      target.horarios = nuevos;
+      return copy;
+    });
+  }
+
+  abrirGuardarSemanaInline(grupoIdx: number): void {
+    const g = this.grupos()[grupoIdx];
+    this.nuevaSemanaNombre = g?.nombre ? `${g.nombre}` : '';
+    this.nuevaSemanaTemporada = 'general';
+    this.guardandoSemanaInline.set(true);
+  }
+
+  async confirmarGuardarSemanaInline(grupoIdx: number): Promise<void> {
+    const g = this.grupos()[grupoIdx];
+    const nom = this.nuevaSemanaNombre.trim();
+    if (!g || !g.horarios.length || !nom) return;
+
+    const activos = g.horarios.filter(h => h.is_active !== false);
+    const dias = Array.from(new Set(activos.map(h => Number(h.dia_semana)))).sort((a, b) => a - b);
+    const fMap = new Map<string, { hora_inicio: string; hora_fin: string }>();
+    for (const h of activos) {
+      const hi = (h.hora_inicio || '16:00').substring(0, 5);
+      const hf = (h.hora_fin || '17:00').substring(0, 5);
+      fMap.set(`${hi}-${hf}`, { hora_inicio: hi, hora_fin: hf });
+    }
+    const franjas = Array.from(fMap.values()).sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+
+    const updated = await this.svc.persistSemanaTipo(
+      {
+        nombre: nom,
+        temporada: this.nuevaSemanaTemporada,
+        dias,
+        franjas,
+      },
+      null,
+      this.formData()?.semanas_tipo
+    );
+    this.formData.update(fd => fd ? { ...fd, semanas_tipo: updated } : fd);
+    this.guardandoSemanaInline.set(false);
+    this.nuevaSemanaNombre = '';
+  }
+
+  async eliminarSemanaTipoInline(id: number, event: Event): Promise<void> {
+    event.stopPropagation();
+    const updated = await this.svc.removeSemanaTipo(id, this.formData()?.semanas_tipo);
+    this.formData.update(fd => fd ? { ...fd, semanas_tipo: updated } : fd);
+    if (this.appliedSemanaId() === id) {
+      this.appliedSemanaId.set(null);
+    }
   }
 
   // ── Paso 4: Criterios ────────────────────────────────────────────────────────
