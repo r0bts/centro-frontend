@@ -94,6 +94,7 @@ export interface HorarioEntrenamiento {
   costo_interno?: number | null;
   area_id?: number | null;         // FK → areas.id (área con layout mapeado)
   is_active: boolean;
+  motivo_cancelacion?: string | null;
   elegible_para_socios?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -117,11 +118,19 @@ export interface CriterioEvaluacion {
 // FORM DATA (GET /form-data)
 // =====================================================================
 
+export interface MotivoCancelacionHorario {
+  id: number;
+  categoria: string;
+  nombre: string;
+  orden?: number;
+}
+
 export interface ActividadFormData {
   acceso_clubes: { id: number; name: string }[];
   tipos: string[];
   instructores: Instructor[];
   areas_mapeadas: AreaMapeada[];
+  motivos_cancelacion?: MotivoCancelacionHorario[];
 }
 
 export interface Instructor {
@@ -219,6 +228,7 @@ export interface CreateHorarioRequest {
   hora_fin: string;                // HH:MM
   area_id?: number | null;
   is_active?: boolean;
+  motivo_cancelacion?: string | null;
   elegible_para_socios?: boolean;
 }
 
@@ -317,6 +327,8 @@ export interface WizardHorario {
   profesor_id: number | null;
   costo_interno: number | null;
   area_id: number | null;          // FK → areas.id (solo áreas con layout mapeado)
+  is_active?: boolean;
+  motivo_cancelacion?: string | null;
 }
 
 export interface WizardCriterio {

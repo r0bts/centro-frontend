@@ -447,42 +447,75 @@
                               </div>
                             }
                             @for (h of getHorariosByDia(gIdx, d.num); track h.originalIndex) {
-                              <div class="row g-2 align-items-center mb-2">
-                                <div class="col-12 col-md-3">
-                                  <label class="form-label small text-muted mb-1 d-block d-md-none">Inicio</label>
-                                  <input type="time" class="form-control form-control-sm rounded-pill bg-white"
-                                         [value]="h.item.hora_inicio"
-                                         (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_inicio', $any($event.target).value)">
+                              @let isHActive = h.item.is_active !== false;
+                              @let conflict = getHorarioConflict(gIdx, h.originalIndex);
+                              <div class="mb-2 p-2 rounded-3 transition-all"
+                                   [class.opacity-50]="!isHActive"
+                                   [class.bg-danger]="conflict"
+                                   [class.bg-opacity-10]="conflict"
+                                   [class.border]="conflict"
+                                   [class.border-danger]="conflict"
+                                   [class.border-opacity-50]="conflict">
+                                <div class="row g-2 align-items-center">
+                                  <div class="col-12 col-md-3">
+                                    <label class="form-label small text-muted mb-1 d-block d-md-none">Inicio</label>
+                                    <input type="time" class="form-control form-control-sm rounded-pill bg-white"
+                                           [class.border-danger]="conflict"
+                                           [class.text-decoration-line-through]="!isHActive"
+                                           [value]="h.item.hora_inicio"
+                                           (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_inicio', $any($event.target).value)">
+                                  </div>
+                                  <div class="col-12 col-md-3">
+                                    <label class="form-label small text-muted mb-1 d-block d-md-none">Fin</label>
+                                    <input type="time" class="form-control form-control-sm rounded-pill bg-white"
+                                           [class.border-danger]="conflict"
+                                           [class.text-decoration-line-through]="!isHActive"
+                                           [value]="h.item.hora_fin"
+                                           (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <label class="form-label small text-muted mb-1 d-block d-md-none">Área</label>
+                                    @if (getAreasByClub().length === 0) {
+                                      <input type="text" class="form-control form-control-sm rounded-pill bg-white" disabled
+                                             placeholder="No hay áreas mapeadas para este club">
+                                    } @else {
+                                      <select class="form-select form-select-sm rounded-pill bg-white"
+                                              [ngModel]="h.item.area_id"
+                                              (ngModelChange)="updateHorarioField(gIdx, h.originalIndex, 'area_id', $event || null)">
+                                        <option [ngValue]="null">Sin área asignada</option>
+                                        @for (area of getAreasByClub(); track area.area_id) {
+                                          <option [ngValue]="area.area_id">{{ area.area_name }}</option>
+                                        }
+                                      </select>
+                                    }
+                                  </div>
+                                  <div class="col-12 col-md-2 d-flex justify-content-end align-items-center gap-2 h-100">
+                                    <div class="form-check form-switch mb-0 d-flex align-items-center" style="padding-left: 0;"
+                                         [title]="isHActive ? 'Inhabilitar horario' : 'Habilitar horario'">
+                                      <input class="form-check-input m-0" type="checkbox" role="switch"
+                                             [checked]="isHActive"
+                                             (change)="toggleWizardHorarioActive(gIdx, h.originalIndex, $event)"
+                                             style="cursor: pointer; width: 2rem; height: 1.05rem;">
+                                    </div>
+                                    <button class="btn btn-sm text-danger border-0 p-1"
+                                            title="Eliminar horario"
+                                            (click)="removeHorario(gIdx, h.originalIndex)">
+                                      <i class="bi bi-trash fs-5"></i>
+                                    </button>
+                                  </div>
                                 </div>
-                                <div class="col-12 col-md-3">
-                                  <label class="form-label small text-muted mb-1 d-block d-md-none">Fin</label>
-                                  <input type="time" class="form-control form-control-sm rounded-pill bg-white"
-                                         [value]="h.item.hora_fin"
-                                         (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
-                                </div>
-                                <div class="col-12 col-md-5">
-                                  <label class="form-label small text-muted mb-1 d-block d-md-none">Área</label>
-                                  @if (getAreasByClub().length === 0) {
-                                    <input type="text" class="form-control form-control-sm rounded-pill bg-white" disabled
-                                           placeholder="No hay áreas mapeadas para este club">
-                                  } @else {
-                                    <select class="form-select form-select-sm rounded-pill bg-white"
-                                            [ngModel]="h.item.area_id"
-                                            (ngModelChange)="updateHorarioField(gIdx, h.originalIndex, 'area_id', $event || null)">
-                                      <option [ngValue]="null">Sin área asignada</option>
-                                      @for (area of getAreasByClub(); track area.area_id) {
-                                        <option [ngValue]="area.area_id">{{ area.area_name }}</option>
-                                      }
-                                    </select>
-                                  }
-                                </div>
-                                <div class="col-12 col-md-1 d-flex justify-content-end align-items-center h-100">
-                                  <button class="btn btn-sm text-danger border-0 p-1"
-                                          title="Eliminar horario"
-                                          (click)="removeHorario(gIdx, h.originalIndex)">
-                                    <i class="bi bi-trash fs-5"></i>
-                                  </button>
-                                </div>
+                                @if (!isHActive && h.item.motivo_cancelacion) {
+                                  <div class="text-secondary small mt-1 d-flex align-items-center gap-1 ps-1" style="font-size: 0.76rem;">
+                                    <i class="bi bi-info-circle-fill text-secondary opacity-75 flex-shrink-0"></i>
+                                    <span>Motivo: <strong class="text-dark">{{ h.item.motivo_cancelacion }}</strong></span>
+                                  </div>
+                                }
+                                @if (conflict) {
+                                  <div class="text-danger small mt-1 d-flex align-items-center gap-1 ps-1 fw-medium" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                                    <span>{{ conflict }}</span>
+                                  </div>
+                                }
                               </div>
                             }
                           </div>
@@ -630,6 +663,16 @@
               }
             </div>
           }
+          @let conflictResumen = findAnyHorarioConflict();
+          @if (conflictResumen) {
+            <div class="alert alert-danger d-flex align-items-center gap-2 mt-4 mb-0 py-2 rounded-3">
+              <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+              <div>
+                <strong>Conflicto detectado en horarios:</strong> {{ conflictResumen }}
+                <div class="small">Regresa al paso 4 para corregir el empalme antes de guardar.</div>
+              </div>
+            </div>
+          }
         </div>
       }
 
@@ -647,7 +690,7 @@
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-light" (click)="revertChanges()">Descartar</button>
-            <button class="btn btn-sm btn-dark" [disabled]="saving()" (click)="publish(false)">
+            <button class="btn btn-sm btn-dark" [disabled]="saving() || !!findAnyHorarioConflict()" (click)="publish(false)">
               @if (saving()) {
                 <span class="spinner-border spinner-border-sm me-1"></span>
               }
@@ -675,7 +718,7 @@
           </button>
         }
         @if (currentStep() === steps.length) {
-          <button class="btn btn-success" [disabled]="saving()" (click)="publish()">
+          <button class="btn btn-success" [disabled]="saving() || !!findAnyHorarioConflict()" (click)="publish()">
             @if (saving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             } @else {

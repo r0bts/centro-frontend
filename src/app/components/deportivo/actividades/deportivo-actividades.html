@@ -305,8 +305,18 @@
 
           <!-- Info -->
           <div class="mb-1">
-            <h6 class="mb-1 fw-medium text-uppercase" style="font-size: 1rem; color: #333;">{{ act.nombre }}</h6>
-            
+            @let cMsg = actividadesConflictsMap().get(act.id);
+            <h6 class="mb-1 fw-medium text-uppercase d-flex align-items-center flex-wrap gap-1" style="font-size: 1rem; color: #333;">
+              <span>{{ act.nombre }}</span>
+              @if (cMsg) {
+                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-2 py-0 fw-bold conflict-trigger-badge"
+                      style="font-size: 0.75rem; cursor: pointer; text-transform: none; vertical-align: middle;"
+                      (mouseenter)="showConflictTooltip($event, act.id)"
+                      (mouseleave)="hideConflictTooltip()">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i>*
+                </span>
+              }
+            </h6>
           </div>
 
           <!-- Meta list -->
@@ -451,8 +461,18 @@
                         <span>{{ act.icono || '🏆' }}</span>
                       </div>
                       <div>
-                        <span class="d-block text-dark fw-medium" style="font-size: 0.95rem;">{{ act.nombre }}</span>
-                        
+                        @let cMsg = actividadesConflictsMap().get(act.id);
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                          <span class="d-block text-dark fw-medium" style="font-size: 0.95rem;">{{ act.nombre }}</span>
+                          @if (cMsg) {
+                            <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-2 py-0 fw-bold conflict-trigger-badge"
+                                  style="font-size: 0.75rem; cursor: pointer; vertical-align: middle;"
+                                  (mouseenter)="showConflictTooltip($event, act.id)"
+                                  (mouseleave)="hideConflictTooltip()">
+                              <i class="bi bi-exclamation-triangle-fill me-1"></i>*
+                            </span>
+                          }
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -837,7 +857,18 @@
           <h5 class="offcanvas-title fw-bold" id="offcanvasHorariosLabel">
             <i class="bi bi-clock text-primary me-2"></i>Horarios Rápidos
           </h5>
-          <span class="text-muted small text-uppercase">{{ selectedActividadForHorarios()!.nombre }}</span>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="text-muted small text-uppercase">{{ selectedActividadForHorarios()!.nombre }}</span>
+            @let offcMsg = actividadesConflictsMap().get(selectedActividadForHorarios()!.id);
+            @if (offcMsg) {
+              <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-2 py-0 fw-bold conflict-trigger-badge"
+                    style="font-size: 0.75rem; cursor: pointer; text-transform: none; vertical-align: middle;"
+                    (mouseenter)="showConflictTooltip($event, selectedActividadForHorarios()!.id)"
+                    (mouseleave)="hideConflictTooltip()">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>*
+              </span>
+            }
+          </div>
         </div>
         <button type="button" class="btn-close" (click)="closeHorariosOffcanvas()" aria-label="Close"></button>
       </div>
@@ -898,16 +929,58 @@
                           <!-- Lista de horarios (Inputs Nivel 4) -->
                           <div class="card-body p-2 pt-0 bg-white">
                             @for (h of profGroup.horarios; track h.id) {
-                              <div class="d-flex align-items-center gap-2 mt-2">
-                                <div class="input-group input-group-sm w-100 rounded-pill border overflow-hidden bg-light">
-                                  <span class="input-group-text bg-transparent text-muted border-0 ps-3 pe-1"><i class="bi bi-box-arrow-in-right opacity-50"></i></span>
-                                  <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium text-dark" [value]="h.hora_inicio.substring(0,5)" readonly title="Para cambiar este horario, elimínalo y crea uno nuevo">
-                                  <span class="input-group-text bg-transparent text-muted border-0 px-1 opacity-50">a</span>
-                                  <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium text-dark" [value]="h.hora_fin.substring(0,5)" readonly title="Para cambiar este horario, elimínalo y crea uno nuevo">
+                              @let isHorarioActive = h.is_active !== false;
+                              @let hConflict = isHorarioActive ? checkProfesorScheduleConflict(profGroup.profesor_id, grupoDia.dia, h.hora_inicio, h.hora_fin, h.id) : null;
+                              <div class="mb-1">
+                                <div class="d-flex align-items-center gap-2 mt-2">
+                                  <div class="input-group input-group-sm w-100 rounded-pill border overflow-hidden transition-all"
+                                       [class.bg-light]="!hConflict"
+                                       [class.bg-danger-subtle]="hConflict"
+                                       [class.border-danger]="hConflict"
+                                       [class.opacity-50]="!isHorarioActive"
+                                       [title]="!isHorarioActive ? 'Horario inhabilitado' : (hConflict || '')">
+                                    <span class="input-group-text bg-transparent border-0 ps-3 pe-1" [class.text-muted]="!hConflict" [class.text-danger]="hConflict">
+                                      <i class="bi opacity-50" [class.bi-box-arrow-in-right]="isHorarioActive" [class.bi-slash-circle]="!isHorarioActive"></i>
+                                    </span>
+                                    <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium"
+                                           [class.text-dark]="!hConflict && isHorarioActive"
+                                           [class.text-muted]="!isHorarioActive"
+                                           [class.text-decoration-line-through]="!isHorarioActive"
+                                           [class.text-danger]="hConflict"
+                                           [value]="h.hora_inicio.substring(0,5)" readonly
+                                           title="Para cambiar este horario, elimínalo y crea uno nuevo">
+                                    <span class="input-group-text bg-transparent border-0 px-1 opacity-50" [class.text-muted]="!hConflict" [class.text-danger]="hConflict">a</span>
+                                    <input type="time" class="form-control text-center bg-transparent border-0 px-0 fw-medium"
+                                           [class.text-dark]="!hConflict && isHorarioActive"
+                                           [class.text-muted]="!isHorarioActive"
+                                           [class.text-decoration-line-through]="!isHorarioActive"
+                                           [class.text-danger]="hConflict"
+                                           [value]="h.hora_fin.substring(0,5)" readonly
+                                           title="Para cambiar este horario, elimínalo y crea uno nuevo">
+                                  </div>
+                                  <div class="form-check form-switch mb-0 d-flex align-items-center flex-shrink-0" style="padding-left: 0;"
+                                       [title]="isHorarioActive ? 'Inhabilitar horario' : 'Habilitar horario'">
+                                    <input class="form-check-input m-0" type="checkbox" role="switch"
+                                           [checked]="isHorarioActive"
+                                           (change)="toggleHorarioRapido(selectedActividadForHorarios()!.id, e.id, h, profGroup.profesor_id, $event)"
+                                           style="cursor: pointer; width: 2.1rem; height: 1.1rem;">
+                                  </div>
+                                  <button class="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center bg-white" style="width: 32px; height: 32px; border-width: 1.5px;" title="Eliminar" (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
+                                    <i class="bi bi-trash3"></i>
+                                  </button>
                                 </div>
-                                <button class="btn btn-sm btn-outline-danger rounded-circle flex-shrink-0 d-flex align-items-center justify-content-center bg-white" style="width: 32px; height: 32px; border-width: 1.5px;" title="Eliminar" (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
-                                  <i class="bi bi-trash3"></i>
-                                </button>
+                                @if (!isHorarioActive && h.motivo_cancelacion) {
+                                  <div class="text-secondary small mt-1 d-flex align-items-center gap-1 ps-2" style="font-size: 0.74rem;">
+                                    <i class="bi bi-info-circle-fill text-secondary opacity-75 flex-shrink-0"></i>
+                                    <span>Motivo: <strong class="text-dark">{{ h.motivo_cancelacion }}</strong></span>
+                                  </div>
+                                }
+                                @if (hConflict) {
+                                  <div class="text-danger small mt-1 d-flex align-items-center gap-1 ps-2 fw-medium" style="font-size: 0.75rem;">
+                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                                    <span>{{ hConflict }}</span>
+                                  </div>
+                                }
                               </div>
                             }
                             
@@ -949,10 +1022,64 @@
       </div>
     </div>
   }
+  <!-- ── Popover Flotante de Empalme de Horarios ── -->
+  @if (hoveredConflictActId(); as hActId) {
+    @let conflictGroups = actividadesConflictsGroupsMap().get(hActId);
+    @if (conflictGroups && conflictGroups.length > 0) {
+      <div class="conflict-floating-popover shadow-lg border border-danger-subtle rounded-4 bg-white overflow-hidden"
+           [style.top.px]="conflictTooltipPos().top"
+           [style.left.px]="conflictTooltipPos().left"
+           [class.show-above]="conflictTooltipPos().showAbove"
+           (mouseenter)="cancelHideConflictTooltip()"
+           (mouseleave)="hideConflictTooltip()">
+        <div class="px-3 py-2 bg-danger-subtle text-danger d-flex align-items-center gap-2 border-bottom border-danger-subtle">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+          <span class="fw-bold" style="font-size: 0.8rem;">Empalme de horario detectado</span>
+        </div>
+        <div class="d-flex flex-column gap-2"
+             style="padding: 0.65rem 0.85rem; overflow-y: auto;"
+             [style.max-height.px]="conflictTooltipPos().maxHeight">
+          @for (cg of conflictGroups; track $index; let last = $last) {
+            <div [class.border-bottom]="!last" [class.pb-2]="!last">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <i class="bi bi-person-badge-fill text-danger" style="font-size: 0.8rem;"></i>
+                <span class="fw-semibold text-dark" style="font-size: 0.8rem; text-transform: capitalize;">
+                  {{ cg.profesor.toLowerCase() }}
+                </span>
+              </div>
+              <div class="d-flex align-items-start gap-2 mb-1 text-muted" style="font-size: 0.75rem;">
+                <i class="bi bi-trophy-fill text-secondary opacity-75" style="font-size: 0.7rem; margin-top: 2px;"></i>
+                <div>
+                  @if (cg.esInterno) {
+                    <span>Empalme interno en <strong class="text-dark">{{ cg.actividad }}</strong></span>
+                  } @else {
+                    <span>Ya asignado en <strong class="text-dark">{{ cg.actividad }}</strong></span>
+                  }
+                  @if (cg.grupo) {
+                    <span class="text-secondary d-block" style="font-size: 0.7rem;">Grupo: {{ cg.grupo }}</span>
+                  }
+                </div>
+              </div>
+              <div class="d-flex flex-wrap gap-1 mt-1">
+                @for (h of cg.horarios; track $index) {
+                  <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill fw-medium px-2 py-1"
+                        style="font-size: 0.68rem;">
+                    <i class="bi bi-clock me-1"></i>{{ h.dia }} {{ h.rango }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
   <!-- ── Wizard ── -->
   @if (wizardOpen()) {
     <app-actividad-wizard
       [editActividad]="wizardEditTarget()"
+      [allActividades]="actividades()"
       (saved)="onWizardSaved($event)"
       (cancelled)="onWizardCancelled()">
     </app-actividad-wizard>

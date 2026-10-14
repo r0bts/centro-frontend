@@ -103,7 +103,7 @@ export class DeportivoActividadesComponent implements OnInit {
   getInstructorName(id: number, full: boolean = false): string {
     const list = this.formData()?.instructores || [];
     const found = list.find(x => x.id === id);
-    if (!found) return 'Desconocido';
+    if (!found) return full ? `Profesor #${id}` : 'Desconocido';
     return full ? found.full_name : found.full_name.split(' ').slice(0, 2).join(' '); // Show first 2 words for compactness
   }
 
@@ -112,8 +112,10 @@ export class DeportivoActividadesComponent implements OnInit {
     if (act.profesor_id) ids.add(act.profesor_id);
     if (act.grupos_categorias) {
       for (const g of act.grupos_categorias) {
+        if ((g as any).instructor_id) ids.add((g as any).instructor_id);
         if (g.equipos) {
           for (const e of g.equipos) {
+            if (e.coach_id) ids.add(e.coach_id);
             if (e.horarios) {
               for (const h of e.horarios) {
                 if (h.profesor_id) ids.add(h.profesor_id);
@@ -125,6 +127,218 @@ export class DeportivoActividadesComponent implements OnInit {
     }
     return Array.from(ids);
   }
+
+  hoveredConflictActId = signal<number | null>(null);
+  conflictTooltipPos = signal<{ top: number; left: number; showAbove: boolean; maxHeight: number }>({
+    top: 0,
+    left: 0,
+    showAbove: false,
+    maxHeight: 260,
+  });
+  private hideConflictTimer: ReturnType<typeof setTimeout> | null = null;
+
+  showConflictTooltip(event: MouseEvent, actId: number): void {
+    this.cancelHideConflictTooltip();
+    const el = event.currentTarget as HTMLElement;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const tooltipWidth = 340;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const showAbove = spaceBelow < 340 && spaceAbove > spaceBelow;
+
+    const availableSpace = showAbove ? spaceAbove : spaceBelow;
+    const maxHeight = Math.max(140, Math.min(280, availableSpace - 64));
+
+    let left = rect.left;
+    if (left + tooltipWidth > window.innerWidth - 16) {
+      left = Math.max(16, window.innerWidth - tooltipWidth - 16);
+    }
+
+    this.conflictTooltipPos.set({
+      top: showAbove ? rect.top - 6 : rect.bottom + 6,
+      left,
+      showAbove,
+      maxHeight,
+    });
+    this.hoveredConflictActId.set(actId);
+  }
+
+  cancelHideConflictTooltip(): void {
+    if (this.hideConflictTimer) {
+      clearTimeout(this.hideConflictTimer);
+      this.hideConflictTimer = null;
+    }
+  }
+
+  hideConflictTooltip(): void {
+    this.cancelHideConflictTooltip();
+    this.hideConflictTimer = setTimeout(() => {
+      this.hoveredConflictActId.set(null);
+    }, 180);
+  }
+
+  actividadesConflictsGroupsMap = computed<Map<number, Array<{
+    profesor: string;
+    actividad: string;
+    grupo: string;
+    esInterno: boolean;
+    horarios: Array<{ dia: string; rango: string }>;
+  }>>>(() => {
+    const list = this.actividades();
+    const instructores = this.formData()?.instructores || [];
+
+    interface SchedItem {
+      actId: number;
+      actNombre: string;
+      grupoNombre: string;
+      horarioId: number;
+      diaSemana: number;
+      horaInicio: string;
+      horaFin: string;
+      startMin: number;
+      endMin: number;
+      profesorId: number;
+      profesorNombre: string;
+    }
+
+    const allSchedules: SchedItem[] = [];
+
+    for (const act of list) {
+      if (act.is_active === false || !act.grupos_categorias) continue;
+      for (const gc of act.grupos_categorias) {
+        if (gc.is_active === false || !gc.equipos) continue;
+        for (const eq of gc.equipos) {
+          if (eq.is_active === false || !eq.horarios) continue;
+          for (const h of eq.horarios) {
+            if (h.is_active === false || !h.hora_inicio || !h.hora_fin) continue;
+
+            const profId = h.profesor_id || eq.coach_id || (gc as any).instructor_id || act.profesor_id || null;
+            if (!profId) continue;
+
+            const dia = Number(h.dia_semana);
+            if (!dia || dia < 1 || dia > 7) continue;
+
+            const startMin = this.timeToMinutes(h.hora_inicio);
+            const endMin = this.timeToMinutes(h.hora_fin);
+            if (endMin <= startMin) continue;
+
+            const prof = instructores.find(i => Number(i.id) === Number(profId));
+            const profNombre = prof ? prof.full_name : `Profesor #${profId}`;
+
+            allSchedules.push({
+              actId: act.id,
+              actNombre: act.nombre,
+              grupoNombre: gc.nombre || '',
+              horarioId: h.id,
+              diaSemana: dia,
+              horaInicio: h.hora_inicio.substring(0, 5),
+              horaFin: h.hora_fin.substring(0, 5),
+              startMin,
+              endMin,
+              profesorId: Number(profId),
+              profesorNombre: profNombre,
+            });
+          }
+        }
+      }
+    }
+
+    const groupsByAct = new Map<number, Map<string, {
+      profesor: string;
+      actividad: string;
+      grupo: string;
+      esInterno: boolean;
+      horariosMap: Map<string, { dia: string; rango: string }>;
+    }>>();
+
+    const addConflict = (
+      actId: number,
+      profesor: string,
+      actividad: string,
+      grupo: string,
+      esInterno: boolean,
+      dia: string,
+      rango: string
+    ) => {
+      if (!groupsByAct.has(actId)) {
+        groupsByAct.set(actId, new Map());
+      }
+      const actGroups = groupsByAct.get(actId)!;
+      const key = `${profesor}|${actividad}|${grupo}|${esInterno}`;
+      if (!actGroups.has(key)) {
+        actGroups.set(key, {
+          profesor,
+          actividad,
+          grupo: grupo && grupo !== 'General' ? grupo : '',
+          esInterno,
+          horariosMap: new Map(),
+        });
+      }
+      const hKey = `${dia}|${rango}`;
+      actGroups.get(key)!.horariosMap.set(hKey, { dia, rango });
+    };
+
+    for (let i = 0; i < allSchedules.length; i++) {
+      const a = allSchedules[i];
+      for (let j = i + 1; j < allSchedules.length; j++) {
+        const b = allSchedules[j];
+
+        if (a.profesorId !== b.profesorId) continue;
+        if (a.diaSemana !== b.diaSemana) continue;
+
+        if (a.startMin < b.endMin && b.startMin < a.endMin) {
+          const diaNombre = this.daysMapping[a.diaSemana] || `Día ${a.diaSemana}`;
+
+          if (a.actId !== b.actId) {
+            addConflict(a.actId, a.profesorNombre, b.actNombre, b.grupoNombre, false, diaNombre, `${b.horaInicio} - ${b.horaFin}`);
+            addConflict(b.actId, b.profesorNombre, a.actNombre, a.grupoNombre, false, diaNombre, `${a.horaInicio} - ${a.horaFin}`);
+          } else {
+            const rangoInterno = (a.horaInicio === b.horaInicio && a.horaFin === b.horaFin)
+              ? `${a.horaInicio} - ${a.horaFin}`
+              : `${a.horaInicio}-${a.horaFin} / ${b.horaInicio}-${b.horaFin}`;
+            addConflict(a.actId, a.profesorNombre, a.actNombre, b.grupoNombre, true, diaNombre, rangoInterno);
+          }
+        }
+      }
+    }
+
+    const finalMap = new Map<number, Array<{
+      profesor: string;
+      actividad: string;
+      grupo: string;
+      esInterno: boolean;
+      horarios: Array<{ dia: string; rango: string }>;
+    }>>();
+
+    groupsByAct.forEach((actGroups, actId) => {
+      const arr = Array.from(actGroups.values()).map(g => ({
+        profesor: g.profesor,
+        actividad: g.actividad,
+        grupo: g.grupo,
+        esInterno: g.esInterno,
+        horarios: Array.from(g.horariosMap.values()),
+      }));
+      if (arr.length > 0) {
+        finalMap.set(actId, arr);
+      }
+    });
+
+    return finalMap;
+  });
+
+  actividadesConflictsMap = computed<Map<number, string>>(() => {
+    const groupsMap = this.actividadesConflictsGroupsMap();
+    const resultMap = new Map<number, string>();
+    groupsMap.forEach((groups, actId) => {
+      const lines = groups.map(g => {
+        const hrs = g.horarios.map(h => `${h.dia} (${h.rango})`).join(', ');
+        return `Empalme: ${g.profesor} en "${g.actividad}" — ${hrs}`;
+      });
+      resultMap.set(actId, lines.join('\n'));
+    });
+    return resultMap;
+  });
 
   formatHora(hora: string): string {
     if (!hora) return '';
@@ -225,6 +439,7 @@ export class DeportivoActividadesComponent implements OnInit {
         for (const eq of gc.equipos) {
           if (!eq.horarios) continue;
           for (const h of eq.horarios) {
+            if (h.is_active === false) continue;
             const day = days.find(d => d.dia === h.dia_semana);
             if (!day) continue;
 
@@ -615,6 +830,11 @@ export class DeportivoActividadesComponent implements OnInit {
 
   @HostListener('document:keydown.escape')
   onEscapeKey() {
+    if (this.hoveredConflictActId()) {
+      this.cancelHideConflictTooltip();
+      this.hoveredConflictActId.set(null);
+      return;
+    }
     if (this.isOffcanvasOpen()) {
       this.closeHorariosOffcanvas();
     }
@@ -626,6 +846,60 @@ export class DeportivoActividadesComponent implements OnInit {
     this.isOffcanvasOpen.set(true);
     // Reset form
     this.horarioForm = { dia_semana: 1, hora_inicio: '08:00', hora_fin: '09:00', profesor_id: null };
+  }
+
+  timeToMinutes(timeStr: string): number {
+    if (!timeStr) return 0;
+    const parts = timeStr.split(':');
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || '0', 10);
+  }
+
+  checkProfesorScheduleConflict(
+    profesorId: number,
+    diaSemana: number,
+    horaInicio: string,
+    horaFin: string,
+    excludeHorarioId?: number
+  ): string | null {
+    if (!profesorId || !diaSemana || !horaInicio || !horaFin) return null;
+
+    const sA = this.timeToMinutes(horaInicio);
+    const eA = this.timeToMinutes(horaFin);
+    if (eA <= sA) {
+      return 'La hora de fin debe ser posterior a la hora de inicio.';
+    }
+
+    const profName = this.getInstructorName(profesorId, true);
+
+    for (const act of this.actividades()) {
+      if (act.is_active === false || !act.grupos_categorias) continue;
+      for (const gc of act.grupos_categorias) {
+        if (gc.is_active === false || !gc.equipos) continue;
+        for (const eq of gc.equipos) {
+          if (eq.is_active === false || !eq.horarios) continue;
+          for (const h of eq.horarios) {
+            if (h.is_active === false || Number(h.dia_semana) !== Number(diaSemana)) continue;
+            if (excludeHorarioId && Number(h.id) === Number(excludeHorarioId)) continue;
+
+            const existingProfId = h.profesor_id || eq.coach_id || (gc as any).instructor_id || act.profesor_id;
+            if (!existingProfId || Number(existingProfId) !== Number(profesorId)) continue;
+
+            const sB = this.timeToMinutes(h.hora_inicio);
+            const eB = this.timeToMinutes(h.hora_fin);
+
+            if (sA < eB && sB < eA) {
+              const hIni = h.hora_inicio.substring(0, 5);
+              const hFin = h.hora_fin.substring(0, 5);
+              const diaNombre = this.daysMapping[diaSemana] || 'el día seleccionado';
+              const grupo = gc.nombre && gc.nombre !== 'General' ? ` (${gc.nombre})` : '';
+              return `El profesor ${profName} ya tiene la clase "${act.nombre}"${grupo} asignada los ${diaNombre} de ${hIni} a ${hFin}.`;
+            }
+          }
+        }
+      }
+    }
+
+    return null;
   }
 
   openInlineForm(equipoId: number, dia: number, profesorId: number) {
@@ -644,6 +918,38 @@ export class DeportivoActividadesComponent implements OnInit {
 
     const act = this.selectedActividadForHorarios();
     if (!act) return;
+
+    // Validar hora fin > inicio
+    const sA = this.timeToMinutes(this.horarioForm.hora_inicio);
+    const eA = this.timeToMinutes(this.horarioForm.hora_fin);
+    if (eA <= sA) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Horario inválido',
+        text: 'La hora de fin debe ser posterior a la hora de inicio.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    // Validar empalmes del profesor
+    if (profId && profId > 0) {
+      const conflict = this.checkProfesorScheduleConflict(
+        profId,
+        Number(this.horarioForm.dia_semana),
+        this.horarioForm.hora_inicio,
+        this.horarioForm.hora_fin
+      );
+      if (conflict) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Horario no disponible',
+          text: conflict,
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+    }
     
     try {
       const payload: any = {
@@ -671,8 +977,15 @@ export class DeportivoActividadesComponent implements OnInit {
       this.inlineFormEquipoId.set(null);
       this.loadActividades();
     } catch (error: any) {
-      this.error.set(error.message || 'Error al agregar el horario');
-      setTimeout(() => this.error.set(null), 3000);
+      const msg = error?.error?.message || error?.message || 'Error al agregar el horario';
+      this.error.set(msg);
+      Swal.fire({
+        icon: 'warning',
+        title: 'Horario no disponible',
+        text: msg,
+        confirmButtonText: 'Entendido'
+      });
+      setTimeout(() => this.error.set(null), 4000);
     }
   }
 
@@ -715,9 +1028,634 @@ export class DeportivoActividadesComponent implements OnInit {
     }
   }
 
+  getMotivosCancelacionGrouped(): { categoria: string; items: string[] }[] {
+    const catalogo = this.formData()?.motivos_cancelacion;
+    if (catalogo && catalogo.length > 0) {
+      const map = new Map<string, string[]>();
+      for (const item of catalogo) {
+        const cat = item.categoria || 'General';
+        if (!map.has(cat)) map.set(cat, []);
+        map.get(cat)!.push(item.nombre);
+      }
+      return Array.from(map.entries()).map(([categoria, items]) => ({ categoria, items }));
+    }
+    return [
+      {
+        categoria: 'Cancelación',
+        items: ['Motivos de lluvia', 'Mantenimiento de instalaciones', 'Cancelación'],
+      },
+      {
+        categoria: 'Modificación',
+        items: ['Cambio de Ubicación', 'Cambio de Instructor', 'Cambio de Horario'],
+      },
+    ];
+  }
+
+  private getMotivoIcon(nombre: string, categoria: string): string {
+    const n = nombre.toLowerCase();
+    if (n.includes('lluvia') || n.includes('clima')) return 'bi-cloud-rain-fill';
+    if (n.includes('mantenimiento') || n.includes('instalacion')) return 'bi-tools';
+    if (n.includes('ubicaci') || n.includes('área') || n.includes('area')) return 'bi-geo-alt-fill';
+    if (n.includes('instructor') || n.includes('profesor')) return 'bi-person-badge-fill';
+    if (n.includes('horario') || n.includes('hora')) return 'bi-clock-history';
+    if (categoria.toLowerCase().includes('modific')) return 'bi-arrow-repeat';
+    return 'bi-x-octagon-fill';
+  }
+
+  private getModificationType(nombre: string, categoria: string): 'ubicacion' | 'instructor' | 'horario' | null {
+    const n = nombre.toLowerCase();
+    if (n.includes('ubicaci') || n.includes('área') || n.includes('area') || n.includes('lugar') || n.includes('salón') || n.includes('salon')) {
+      return 'ubicacion';
+    }
+    if (n.includes('instructor') || n.includes('profesor') || n.includes('coach')) {
+      return 'instructor';
+    }
+    if (n.includes('horario') || n.includes('hora') || n.includes('día') || n.includes('dia')) {
+      return 'horario';
+    }
+    return null;
+  }
+
+  async promptMotivoCancelacion(currentHorario?: {
+    dia_semana: number;
+    hora_inicio: string;
+    hora_fin: string;
+    area_id?: number | null;
+    lugar?: string | null;
+    profesor_id?: number | null;
+    club_id?: number | null;
+  }): Promise<{
+    motivo: string;
+    modType: 'ubicacion' | 'instructor' | 'horario' | null;
+    newSchedule?: {
+      dia_semana: number;
+      hora_inicio: string;
+      hora_fin: string;
+      area_id: number | null;
+      lugar: string | null;
+      profesor_id: number | null;
+    };
+  } | null> {
+    const groups = this.getMotivosCancelacionGrouped();
+    let selectedValue = '';
+    let selectedCategory = '';
+    let selectedModType: 'ubicacion' | 'instructor' | 'horario' | null = null;
+
+    const clubId = currentHorario?.club_id ?? this.selectedActividadForHorarios()?.club_id ?? null;
+    const allAreas = this.formData()?.areas_mapeadas ?? [];
+    const areasClub = clubId ? allAreas.filter(a => Number(a.acceso_club_id) === Number(clubId)) : allAreas;
+    const instructores = this.formData()?.instructores ?? [];
+
+    const curDia = Number(currentHorario?.dia_semana || 1);
+    const curIni = (currentHorario?.hora_inicio || '08:00').substring(0, 5);
+    const curFin = (currentHorario?.hora_fin || '09:00').substring(0, 5);
+    const curAreaId = currentHorario?.area_id ? Number(currentHorario.area_id) : 0;
+    const curProfId = currentHorario?.profesor_id ? Number(currentHorario.profesor_id) : 0;
+
+    const areasOptionsHtml = areasClub
+      .map(a => `<option value="${a.area_id}" ${Number(a.area_id) === curAreaId ? 'selected' : ''}>${a.area_name}</option>`)
+      .join('');
+
+    const instructoresOptionsHtml = instructores
+      .map(i => `<option value="${i.id}" ${Number(i.id) === curProfId ? 'selected' : ''}>${i.full_name}</option>`)
+      .join('');
+
+    const diasOptionsHtml = Object.entries(this.daysMapping)
+      .map(([num, label]) => `<option value="${num}" ${Number(num) === curDia ? 'selected' : ''}>${label}</option>`)
+      .join('');
+
+    const groupsHtml = groups
+      .map(g => {
+        const isMod = g.categoria.toLowerCase().includes('modific');
+        const badgeColor = isMod ? '#4f46e5' : '#dc2626';
+        const badgeBg = isMod ? '#eef2ff' : '#fef2f2';
+        const catIcon = isMod ? 'bi-arrow-left-right' : 'bi-slash-circle';
+
+        const optionsHtml = g.items
+          .map(item => {
+            const icon = this.getMotivoIcon(item, g.categoria);
+            const escaped = item.replace(/"/g, '&quot;');
+            const escapedCat = g.categoria.replace(/"/g, '&quot;');
+            const modType = this.getModificationType(item, g.categoria) || '';
+            return `
+              <div class="motivo-option-card" data-value="${escaped}" data-category="${escapedCat}" data-modtype="${modType}" style="
+                display: flex; align-items: center; gap: 8px;
+                padding: 7px 10px; border-radius: 9px;
+                border: 1.5px solid #e2e8f0; background: #ffffff;
+                cursor: pointer; transition: all 0.14s ease;
+                text-align: left; user-select: none;
+              ">
+                <div class="motivo-option-icon" style="
+                  width: 26px; height: 26px; border-radius: 6px;
+                  background: #f8fafc; color: #64748b;
+                  display: flex; align-items: center; justify-content: center;
+                  font-size: 0.85rem; flex-shrink: 0; transition: all 0.14s ease;
+                ">
+                  <i class="bi ${icon}"></i>
+                </div>
+                <span class="motivo-option-label" style="
+                  font-size: 0.82rem; font-weight: 500; color: #1e293b; flex-grow: 1; line-height: 1.2;
+                ">${item}</span>
+                <div class="motivo-option-check" style="
+                  width: 16px; height: 16px; border-radius: 50%;
+                  border: 1.5px solid #cbd5e1; display: flex;
+                  align-items: center; justify-content: center;
+                  font-size: 0.6rem; color: transparent; flex-shrink: 0; transition: all 0.14s ease;
+                ">
+                  <i class="bi bi-check-lg"></i>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+
+        return `
+          <div style="margin-bottom: 8px;">
+            <div style="
+              display: flex; align-items: center; gap: 5px;
+              margin-bottom: 5px;
+            ">
+              <span style="
+                display: inline-flex; align-items: center; gap: 4px;
+                font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+                letter-spacing: 0.5px; padding: 2px 8px; border-radius: 99px;
+                color: ${badgeColor}; background: ${badgeBg};
+              ">
+                <i class="bi ${catIcon}"></i> ${g.categoria}
+              </span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px;">
+              ${optionsHtml}
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    const { value, isConfirmed } = await Swal.fire({
+      width: 540,
+      padding: '0.85rem 1rem 0.75rem',
+      html: `
+        <div style="text-align: left;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <div style="
+              width: 36px; height: 36px; border-radius: 9px;
+              background: linear-gradient(135deg, #eff6ff, #dbeafe);
+              color: #2563eb; display: flex; align-items: center;
+              justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+            ">
+              <i class="bi bi-calendar2-x-fill"></i>
+            </div>
+            <div>
+              <h5 style="margin: 0; font-weight: 700; color: #0f172a; font-size: 1rem;">Inhabilitar horario</h5>
+              <p style="margin: 1px 0 0; font-size: 0.76rem; color: #64748b;">Selecciona el motivo de cancelación o modificación</p>
+            </div>
+          </div>
+          <div id="motivos-cards-container" style="max-height: 300px; overflow-y: auto;">
+            ${groupsHtml}
+          </div>
+
+          <!-- Panel dinámico para Modificación -->
+          <div id="mod-fields-wrapper" style="display: none; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: #f8fafc; border: 1.5px solid #cbd5e1;">
+            <!-- Sub-panel: Cambio de Ubicación -->
+            <div id="mod-panel-ubicacion" style="display: none;">
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
+                <i class="bi bi-geo-alt-fill text-primary me-1"></i>Nueva ubicación para el horario
+              </label>
+              ${areasClub.length > 0 ? `
+                <select id="swal-new-area" class="form-select form-select-sm" style="border-radius: 8px; font-size: 0.82rem; margin-bottom: 6px;">
+                  <option value="">Selecciona un área mapeada...</option>
+                  ${areasOptionsHtml}
+                </select>
+              ` : ''}
+              <input id="swal-new-lugar" type="text" class="form-control form-control-sm" placeholder="${areasClub.length > 0 ? 'O escribe otra ubicación libre (opcional)...' : 'Escribe la nueva ubicación o salón...'}" value="${(currentHorario?.lugar || '').replace(/"/g, '&quot;')}" style="border-radius: 8px; font-size: 0.82rem;">
+            </div>
+
+            <!-- Sub-panel: Cambio de Instructor -->
+            <div id="mod-panel-instructor" style="display: none;">
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
+                <i class="bi bi-person-badge-fill text-primary me-1"></i>Nuevo instructor asignado
+              </label>
+              <select id="swal-new-profesor" class="form-select form-select-sm" style="border-radius: 8px; font-size: 0.82rem;">
+                <option value="">Selecciona un instructor...</option>
+                ${instructoresOptionsHtml}
+              </select>
+            </div>
+
+            <!-- Sub-panel: Cambio de Horario -->
+            <div id="mod-panel-horario" style="display: none;">
+              <label style="display: block; font-size: 0.75rem; font-weight: 700; color: #334155; margin-bottom: 5px;">
+                <i class="bi bi-clock-fill text-primary me-1"></i>Nuevo día y horario
+              </label>
+              <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 6px; align-items: end;">
+                <div>
+                  <span style="font-size: 0.7rem; color: #64748b; display: block; margin-bottom: 2px;">Día</span>
+                  <select id="swal-new-dia" class="form-select form-select-sm" style="border-radius: 8px; font-size: 0.8rem;">
+                    ${diasOptionsHtml}
+                  </select>
+                </div>
+                <div>
+                  <span style="font-size: 0.7rem; color: #64748b; display: block; margin-bottom: 2px;">Inicio</span>
+                  <input id="swal-new-inicio" type="time" class="form-control form-control-sm" value="${curIni}" style="border-radius: 8px; font-size: 0.8rem;">
+                </div>
+                <div>
+                  <span style="font-size: 0.7rem; color: #64748b; display: block; margin-bottom: 2px;">Fin</span>
+                  <input id="swal-new-fin" type="time" class="form-control form-control-sm" value="${curFin}" style="border-radius: 8px; font-size: 0.8rem;">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-slash-circle me-1"></i>Inhabilitar horario',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#94a3b8',
+      reverseButtons: true,
+      focusConfirm: false,
+      didOpen: (popup) => {
+        const htmlContainer = popup.querySelector<HTMLElement>('.swal2-html-container');
+        if (htmlContainer) {
+          htmlContainer.style.margin = '0';
+          htmlContainer.style.padding = '0';
+        }
+        const actionsEl = popup.querySelector<HTMLElement>('.swal2-actions');
+        if (actionsEl) {
+          actionsEl.style.width = '100%';
+          actionsEl.style.display = 'flex';
+          actionsEl.style.justifyContent = 'space-between';
+          actionsEl.style.margin = '0.35rem 0 0 0';
+          actionsEl.style.padding = '0';
+        }
+        const confirmBtn = popup.querySelector<HTMLElement>('.swal2-confirm');
+        const cancelBtn = popup.querySelector<HTMLElement>('.swal2-cancel');
+        [confirmBtn, cancelBtn].forEach(btn => {
+          if (btn) {
+            btn.style.fontSize = '0.75rem';
+            btn.style.padding = '0.25rem 0.65rem';
+            btn.style.borderRadius = '6px';
+            btn.style.margin = '0';
+            btn.style.fontWeight = '600';
+            btn.style.lineHeight = '1.2';
+          }
+        });
+
+        const wrapperEl = popup.querySelector<HTMLElement>('#mod-fields-wrapper');
+        const pUbicacion = popup.querySelector<HTMLElement>('#mod-panel-ubicacion');
+        const pInstructor = popup.querySelector<HTMLElement>('#mod-panel-instructor');
+        const pHorario = popup.querySelector<HTMLElement>('#mod-panel-horario');
+
+        const cards = popup.querySelectorAll<HTMLElement>('.motivo-option-card');
+        cards.forEach(card => {
+          card.addEventListener('mouseenter', () => {
+            if (card.getAttribute('data-selected') !== 'true') {
+              card.style.borderColor = '#93c5fd';
+              card.style.background = '#f8fafc';
+            }
+          });
+          card.addEventListener('mouseleave', () => {
+            if (card.getAttribute('data-selected') !== 'true') {
+              card.style.borderColor = '#e2e8f0';
+              card.style.background = '#ffffff';
+            }
+          });
+          card.addEventListener('click', () => {
+            selectedValue = card.getAttribute('data-value') || '';
+            selectedCategory = card.getAttribute('data-category') || '';
+            const rawMod = card.getAttribute('data-modtype') || '';
+            selectedModType = (rawMod === 'ubicacion' || rawMod === 'instructor' || rawMod === 'horario') ? rawMod : null;
+
+            Swal.resetValidationMessage();
+            cards.forEach(c => {
+              c.setAttribute('data-selected', 'false');
+              c.style.borderColor = '#e2e8f0';
+              c.style.background = '#ffffff';
+              c.style.boxShadow = 'none';
+              const iconEl = c.querySelector<HTMLElement>('.motivo-option-icon');
+              const checkEl = c.querySelector<HTMLElement>('.motivo-option-check');
+              const labelEl = c.querySelector<HTMLElement>('.motivo-option-label');
+              if (iconEl) { iconEl.style.background = '#f8fafc'; iconEl.style.color = '#64748b'; }
+              if (checkEl) { checkEl.style.background = 'transparent'; checkEl.style.borderColor = '#cbd5e1'; checkEl.style.color = 'transparent'; }
+              if (labelEl) { labelEl.style.color = '#1e293b'; labelEl.style.fontWeight = '500'; }
+            });
+
+            card.setAttribute('data-selected', 'true');
+            card.style.borderColor = '#2563eb';
+            card.style.background = '#eff6ff';
+            card.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.12)';
+            const iconEl = card.querySelector<HTMLElement>('.motivo-option-icon');
+            const checkEl = card.querySelector<HTMLElement>('.motivo-option-check');
+            const labelEl = card.querySelector<HTMLElement>('.motivo-option-label');
+            if (iconEl) { iconEl.style.background = '#2563eb'; iconEl.style.color = '#ffffff'; }
+            if (checkEl) { checkEl.style.background = '#2563eb'; checkEl.style.borderColor = '#2563eb'; checkEl.style.color = '#ffffff'; }
+            if (labelEl) { labelEl.style.color = '#1e40af'; labelEl.style.fontWeight = '600'; }
+
+            // Mostrar u ocultar campos dinámicos según el tipo de modificación
+            if (wrapperEl && pUbicacion && pInstructor && pHorario) {
+              pUbicacion.style.display = selectedModType === 'ubicacion' ? 'block' : 'none';
+              pInstructor.style.display = selectedModType === 'instructor' ? 'block' : 'none';
+              pHorario.style.display = selectedModType === 'horario' ? 'block' : 'none';
+              wrapperEl.style.display = selectedModType ? 'block' : 'none';
+            }
+
+            if (confirmBtn) {
+              confirmBtn.innerHTML = selectedModType
+                ? '<i class="bi bi-arrow-repeat me-1"></i>Aplicar cambio'
+                : '<i class="bi bi-slash-circle me-1"></i>Inhabilitar horario';
+            }
+          });
+        });
+      },
+      preConfirm: () => {
+        if (!selectedValue) {
+          Swal.showValidationMessage('Por favor selecciona un motivo de la lista');
+          return false;
+        }
+
+        const popup = Swal.getPopup();
+        let finalMotivo = selectedValue;
+        const newSchedule = {
+          dia_semana: curDia,
+          hora_inicio: curIni,
+          hora_fin: curFin,
+          area_id: currentHorario?.area_id ?? null,
+          lugar: currentHorario?.lugar ?? null,
+          profesor_id: currentHorario?.profesor_id ?? null,
+        };
+
+        if (selectedModType === 'ubicacion' && popup) {
+          const areaSelect = popup.querySelector<HTMLSelectElement>('#swal-new-area');
+          const lugarInput = popup.querySelector<HTMLInputElement>('#swal-new-lugar');
+          const newAreaId = areaSelect?.value ? Number(areaSelect.value) : null;
+          const newLugar = lugarInput?.value?.trim() || null;
+
+          if (!newAreaId && !newLugar) {
+            Swal.showValidationMessage('Selecciona o escribe la nueva ubicación');
+            return false;
+          }
+
+          newSchedule.area_id = newAreaId;
+          newSchedule.lugar = newLugar;
+
+          const areaName = newAreaId
+            ? allAreas.find(a => Number(a.area_id) === newAreaId)?.area_name
+            : null;
+          const descUbicacion = [areaName, newLugar].filter(Boolean).join(' - ');
+          finalMotivo = `${selectedValue} (${descUbicacion})`;
+        } else if (selectedModType === 'instructor' && popup) {
+          const profSelect = popup.querySelector<HTMLSelectElement>('#swal-new-profesor');
+          const newProfId = profSelect?.value ? Number(profSelect.value) : null;
+
+          if (!newProfId) {
+            Swal.showValidationMessage('Selecciona el nuevo instructor');
+            return false;
+          }
+          if (curProfId && newProfId === curProfId) {
+            Swal.showValidationMessage('Selecciona un instructor distinto al actual');
+            return false;
+          }
+
+          // Validar empalme del nuevo instructor en ese horario
+          const conflict = this.checkProfesorScheduleConflict(
+            newProfId,
+            newSchedule.dia_semana,
+            newSchedule.hora_inicio,
+            newSchedule.hora_fin
+          );
+          if (conflict) {
+            Swal.showValidationMessage(conflict);
+            return false;
+          }
+
+          newSchedule.profesor_id = newProfId;
+          const profName = instructores.find(i => Number(i.id) === newProfId)?.full_name || `#${newProfId}`;
+          finalMotivo = `${selectedValue} (${profName})`;
+        } else if (selectedModType === 'horario' && popup) {
+          const diaSelect = popup.querySelector<HTMLSelectElement>('#swal-new-dia');
+          const iniInput = popup.querySelector<HTMLInputElement>('#swal-new-inicio');
+          const finInput = popup.querySelector<HTMLInputElement>('#swal-new-fin');
+
+          const newDia = diaSelect?.value ? Number(diaSelect.value) : curDia;
+          const newIni = iniInput?.value || '';
+          const newFin = finInput?.value || '';
+
+          if (!newIni || !newFin) {
+            Swal.showValidationMessage('Ingresa la hora de inicio y fin del nuevo horario');
+            return false;
+          }
+          if (this.timeToMinutes(newFin) <= this.timeToMinutes(newIni)) {
+            Swal.showValidationMessage('La hora de fin debe ser posterior a la de inicio');
+            return false;
+          }
+          if (newDia === curDia && newIni === curIni && newFin === curFin) {
+            Swal.showValidationMessage('El nuevo horario debe ser distinto al horario actual');
+            return false;
+          }
+
+          if (curProfId > 0) {
+            const conflict = this.checkProfesorScheduleConflict(
+              curProfId,
+              newDia,
+              newIni,
+              newFin
+            );
+            if (conflict) {
+              Swal.showValidationMessage(conflict);
+              return false;
+            }
+          }
+
+          newSchedule.dia_semana = newDia;
+          newSchedule.hora_inicio = newIni;
+          newSchedule.hora_fin = newFin;
+          const diaLabel = this.daysMapping[newDia] || '';
+          finalMotivo = `${selectedValue} (${diaLabel} ${newIni} - ${newFin})`;
+        }
+
+        return {
+          motivo: finalMotivo,
+          modType: selectedModType,
+          newSchedule: selectedModType ? newSchedule : undefined,
+        };
+      }
+    });
+
+    return isConfirmed && value ? value : null;
+  }
+
+  async toggleHorarioRapido(actId: number, equipoId: number, h: any, profesorId?: number, event?: Event) {
+    const newVal = h.is_active === false ? true : false;
+    const pId = h.profesor_id || profesorId || 0;
+    const checkbox = event?.target as HTMLInputElement | null;
+
+    // Si se va a reactivar, validar que no genere empalme
+    if (newVal && pId > 0) {
+      const conflict = this.checkProfesorScheduleConflict(
+        pId,
+        Number(h.dia_semana),
+        h.hora_inicio,
+        h.hora_fin,
+        h.id
+      );
+      if (conflict) {
+        if (checkbox) checkbox.checked = false;
+        Swal.fire({
+          icon: 'warning',
+          title: 'Horario con empalme',
+          text: conflict,
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+    }
+
+    let motivoCancelacion: string | null = null;
+    let newScheduleData: {
+      dia_semana: number;
+      hora_inicio: string;
+      hora_fin: string;
+      area_id: number | null;
+      lugar: string | null;
+      profesor_id: number | null;
+    } | undefined;
+
+    // Si se va a inhabilitar, pedir el motivo de cancelación o modificación
+    if (!newVal) {
+      const promptResult = await this.promptMotivoCancelacion({
+        dia_semana: Number(h.dia_semana),
+        hora_inicio: h.hora_inicio,
+        hora_fin: h.hora_fin,
+        area_id: h.area_id ?? null,
+        lugar: h.lugar ?? null,
+        profesor_id: pId || null,
+        club_id: this.selectedActividadForHorarios()?.club_id ?? null,
+      });
+      if (!promptResult) {
+        if (checkbox) checkbox.checked = true;
+        return;
+      }
+      motivoCancelacion = promptResult.motivo;
+      newScheduleData = promptResult.newSchedule;
+    }
+
+    try {
+      await firstValueFrom(this.svc.updateHorario(equipoId, h.id, {
+        is_active: newVal,
+        motivo_cancelacion: motivoCancelacion
+      }));
+
+      let createdHorario: any = null;
+      if (!newVal && newScheduleData) {
+        const resNew = await firstValueFrom(this.svc.createHorario(equipoId, {
+          dia_semana: Number(newScheduleData.dia_semana),
+          hora_inicio: newScheduleData.hora_inicio.length === 5 ? newScheduleData.hora_inicio + ':00' : newScheduleData.hora_inicio,
+          hora_fin: newScheduleData.hora_fin.length === 5 ? newScheduleData.hora_fin + ':00' : newScheduleData.hora_fin,
+          area_id: newScheduleData.area_id ?? undefined,
+          lugar: newScheduleData.lugar ?? undefined,
+          profesor_id: newScheduleData.profesor_id ?? undefined,
+          is_active: true,
+        }));
+        createdHorario = resNew.data;
+      }
+
+      this.showToast(
+        newVal
+          ? 'Horario habilitado'
+          : createdHorario
+            ? 'Cambio aplicado y nuevo horario creado'
+            : 'Horario inhabilitado'
+      );
+
+      this.selectedActividadForHorarios.update(act => {
+        if (!act) return null;
+        for (const g of act.grupos_categorias ?? []) {
+          for (const e of g.equipos ?? []) {
+            if (e.id === equipoId && e.horarios) {
+              e.horarios = e.horarios.map(item =>
+                item.id === h.id ? { ...item, is_active: newVal, motivo_cancelacion: motivoCancelacion } : item
+              );
+              if (createdHorario) {
+                e.horarios = [...e.horarios, createdHorario];
+              }
+            }
+          }
+        }
+        return { ...act };
+      });
+
+      this.actividades.update(list =>
+        list.map(a => {
+          if (a.id !== actId) return a;
+          return {
+            ...a,
+            grupos_categorias: (a.grupos_categorias ?? []).map(g => ({
+              ...g,
+              equipos: (g.equipos ?? []).map(e => {
+                if (e.id !== equipoId) return e;
+                const updatedHorarios = (e.horarios ?? []).map(item =>
+                  item.id === h.id ? { ...item, is_active: newVal, motivo_cancelacion: motivoCancelacion } : item
+                );
+                if (createdHorario) {
+                  updatedHorarios.push(createdHorario);
+                }
+                return {
+                  ...e,
+                  horarios: updatedHorarios,
+                };
+              }),
+            })),
+          };
+        })
+      );
+    } catch (err: any) {
+      if (checkbox) checkbox.checked = !newVal;
+      const msg = err?.error?.message || 'Error al cambiar estado del horario.';
+      Swal.fire({
+        icon: 'warning',
+        title: 'No se pudo actualizar',
+        text: msg,
+        confirmButtonText: 'Entendido'
+      });
+    }
+  }
+
   async addHorarioRapido(equipoId: number) {
     const act = this.selectedActividadForHorarios();
     if (!act) return;
+
+    // Validar hora fin > inicio
+    const sA = this.timeToMinutes(this.horarioForm.hora_inicio);
+    const eA = this.timeToMinutes(this.horarioForm.hora_fin);
+    if (eA <= sA) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Horario inválido',
+        text: 'La hora de fin debe ser posterior a la hora de inicio.',
+        confirmButtonText: 'Entendido'
+      });
+      return;
+    }
+
+    // Validar empalmes del profesor
+    const profId = this.horarioForm.profesor_id || act.profesor_id;
+    if (profId && profId > 0) {
+      const conflict = this.checkProfesorScheduleConflict(
+        profId,
+        Number(this.horarioForm.dia_semana),
+        this.horarioForm.hora_inicio,
+        this.horarioForm.hora_fin
+      );
+      if (conflict) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Horario no disponible',
+          text: conflict,
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+    }
     
     try {
       const res = await firstValueFrom(this.svc.createHorario(equipoId, {
@@ -743,7 +1681,14 @@ export class DeportivoActividadesComponent implements OnInit {
         }
         return { ...a };
       });
-    } catch (e) {
+    } catch (e: any) {
+      const msg = e?.error?.message || e?.message || 'Error al agregar horario';
+      Swal.fire({
+        icon: 'warning',
+        title: 'Horario no disponible',
+        text: msg,
+        confirmButtonText: 'Entendido'
+      });
       this.showToast('Error al agregar horario');
     }
   }

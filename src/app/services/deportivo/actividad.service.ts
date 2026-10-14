@@ -103,6 +103,10 @@ export class ActividadService {
     return this.http.post<HorarioResponse>(`${this.base}/equipos/${equipoId}/horarios`, data);
   }
 
+  updateHorario(equipoId: number, horarioId: number, data: Partial<CreateHorarioRequest>): Observable<HorarioResponse> {
+    return this.http.put<HorarioResponse>(`${this.base}/equipos/${equipoId}/horarios/${horarioId}`, data);
+  }
+
   deleteHorario(equipoId: number, horarioId: number): Observable<{ success: boolean; message: string }> {
     return this.http.delete<{ success: boolean; message: string }>(`${this.base}/equipos/${equipoId}/horarios/${horarioId}`);
   }
