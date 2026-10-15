@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { DocmgmtService } from '../../docmgmt.service';
 import { DocmgmtProcedure, DocmgmtDocument, DocmgmtPermission } from '../../models/docmgmt.model';
+import { AuthService } from '../../../../services/auth.service';
 
 import { ContentMenu } from '../../../../components/content-menu/content-menu';
 
@@ -20,6 +21,7 @@ export class ProcedureFormComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private cdr = inject(ChangeDetectorRef);
+  private authService = inject(AuthService);
 
   procedure: Partial<DocmgmtProcedure> = {
     name: '',
@@ -78,6 +80,14 @@ export class ProcedureFormComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Solo lectura para asignados: bloquear crear/editar sin permiso del submódulo
+    const isEditRoute = !!this.route.snapshot.paramMap.get('id');
+    const allowed = this.authService.hasPermission('procedimientos', isEditRoute ? 'update' : 'create');
+    if (!allowed) {
+      this.router.navigate(['/docmgmt']);
+      return;
+    }
+
     this.loadMasterData();
 
     const idParam = this.route.snapshot.paramMap.get('id');

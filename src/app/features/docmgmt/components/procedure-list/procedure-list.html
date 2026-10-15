@@ -126,7 +126,7 @@
                   <button *ngIf="canEdit" class="btn btn-sm btn-outline-secondary btn-table-action" title="Editar" [routerLink]="['/docmgmt', proc.id, 'edit']">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button *ngIf="canEdit" class="btn btn-sm btn-outline-secondary btn-table-action" title="Accesos" [routerLink]="['/docmgmt', proc.id, 'access']">
+                  <button *ngIf="canEdit" class="btn btn-sm btn-outline-secondary btn-table-action" title="Accesos" [routerLink]="['/docmgmt', proc.id]" [queryParams]="{ access: 1 }">
                     <i class="bi bi-shield-lock"></i>
                   </button>
                   <button *ngIf="canDelete" class="btn btn-sm btn-outline-danger btn-table-action" title="Eliminar" (click)="confirmDelete(proc)">

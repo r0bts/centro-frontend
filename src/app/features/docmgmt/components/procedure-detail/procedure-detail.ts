@@ -56,6 +56,9 @@ export class ProcedureDetailComponent implements OnInit {
       next: (res: any) => {
         if (res.docmgmtProcedure) {
           this.procedure = res.docmgmtProcedure;
+          if (this.canEdit && this.route.snapshot.queryParamMap.get('access') === '1') {
+            this.showAccessModal = true;
+          }
           if (this.procedure?.docmgmt_procedure_documents && this.procedure.docmgmt_procedure_documents.length > 0) {
             this.selectDocument(this.procedure.docmgmt_procedure_documents[0]);
           } else {
