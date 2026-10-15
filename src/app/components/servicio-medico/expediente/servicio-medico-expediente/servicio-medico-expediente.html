@@ -36,13 +36,13 @@
               <ng-template #noPhoto>
                 <div class="rounded-circle shadow-lg border border-3 border-white bg-primary text-white d-flex align-items-center justify-content-center mx-auto" 
                      style="width: 120px; height: 120px; font-size: 3rem; font-weight: bold; background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%) !important;">
-                    {{ (medicalProfile.first_name || medicalProfile.firstName || 'U')[0] }}
+                    {{ (medicalProfile.first_name || medicalProfile.firstName || medicalProfile.name || 'U')[0] }}
                 </div>
               </ng-template>
               <span class="position-absolute bottom-0 end-0 p-2 bg-success border border-white border-2 rounded-circle" title="Paciente Activo"></span>
             </div>
 
-            <h4 class="fw-bold text-dark mb-1">{{ medicalProfile.first_name || medicalProfile.firstName }} {{ medicalProfile.last_name || medicalProfile.lastName }}</h4>
+            <h4 class="fw-bold text-dark mb-1">{{ (medicalProfile.first_name || medicalProfile.firstName) ? ((medicalProfile.first_name || medicalProfile.firstName) + ' ' + (medicalProfile.last_name || medicalProfile.lastName || '')) : medicalProfile.name }}</h4>
             <span class="badge bg-dark bg-opacity-10 text-dark border px-3 py-2 rounded-pill mt-2">
               <i class="bi bi-person-badge me-1"></i> {{ medicalProfile.patient_type || 'Externo' | uppercase }}
             </span>
