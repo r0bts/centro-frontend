@@ -70,7 +70,7 @@ export class DeportivoActividadesComponent implements OnInit {
   filterHorario = signal<string>('');
   filterProfesorId = signal<number | null>(null);
   filterArea = signal<string | null>(null);
-  viewMode = signal<'grid' | 'list' | 'calendar' | 'classic' | 'heatmap'>(
+  viewMode = signal<'grid' | 'list' | 'calendar' | 'classic' | 'heatmap' | 'spreadsheet'>(
     (localStorage.getItem('centro_actividades_view_mode') as any) || 'grid'
   );
 
@@ -2320,5 +2320,787 @@ export class DeportivoActividadesComponent implements OnInit {
     const id = typeof stOrId === 'number' ? stOrId : stOrId.id;
     const updated = await this.svc.removeSemanaTipo(id, this.formData()?.semanas_tipo);
     this.formData.update(fd => fd ? { ...fd, semanas_tipo: updated } : fd);
+  }
+
+  // ── VISTA DE HOJA DE CÁLCULO (MANTENIMIENTO RÁPIDO) Y EXCEL ─────────────────
+
+  spreadsheetEdits = signal<Record<number, {
+    dia_semana?: number;
+    hora_inicio?: string;
+    hora_fin?: string;
+    profesor_id?: number | null;
+    costo_interno?: number | null;
+    area_id?: number | null;
+    lugar?: string | null;
+    is_active?: boolean;
+    motivo_cancelacion?: string | null;
+    grupo_activo?: boolean;
+    actividad_activa?: boolean;
+    actividad_nombre?: string;
+  }>>({});
+
+  spreadsheetSelectedIds       = signal<Set<number>>(new Set());
+  savingBulk                   = signal(false);
+  exportingExcel               = signal(false);
+  importingExcel               = signal(false);
+  filterEstadoClase            = signal<'todos' | 'activos' | 'inactivos' | 'modificados' | 'empalmes'>('todos');
+  spreadsheetFilterActividadId = signal<number | null>(null);
+  spreadsheetPage              = signal<number>(1);
+  spreadsheetPageSize          = signal<number>(40);
+  hoveredSpreadsheetRowId      = signal<number | null>(null);
+  spreadsheetSortColumn        = signal<'actividad' | 'clase' | 'grupo_activo' | 'dia' | 'inicio' | 'fin' | 'profesor' | 'costo' | 'area' | 'horario_activo' | null>(null);
+  spreadsheetSortDirection     = signal<'asc' | 'desc'>('asc');
+
+  // Acciones en lote sobre filas seleccionadas
+  batchActividadNombre: string = '';
+  batchProfesorId: number | null = null;
+  batchCostoInterno: number | null = null;
+  batchAreaId: number | null = null;
+  batchEstadoHorario: boolean | null = null;
+
+  uniqueAreasMapeadas = computed(() => {
+    const areas = this.formData()?.areas_mapeadas || [];
+    const seen = new Set<number>();
+    const list: Array<{ area_id: number; area_name: string }> = [];
+    for (const a of areas) {
+      const id = Number(a.area_id);
+      if (id && !seen.has(id)) {
+        seen.add(id);
+        list.push({ area_id: id, area_name: a.area_name });
+      }
+    }
+    return list;
+  });
+
+  allSpreadsheetRows = computed(() => {
+    const allActs = this.actividades();
+    const edits = this.spreadsheetEdits();
+    const instructores = this.formData()?.instructores || [];
+    const areas = this.formData()?.areas_mapeadas || [];
+    const clubes = this.formData()?.acceso_clubes || [];
+
+    const normStr = (s: string) =>
+      (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Pre-indexar catálogos en O(1) para evitar miles de .find() y .filter()
+    const clubMap = new Map<number, string>();
+    for (const c of clubes) clubMap.set(Number(c.id), c.name);
+
+    const instMap = new Map<number, string>();
+    for (const i of instructores) instMap.set(Number(i.id), i.full_name);
+
+    const areaMap = new Map<number, string>();
+    const areasByClubMap = new Map<number, Array<{ area_id: number; area_name: string }>>();
+    const areaIdByClubAndName = new Map<string, number>();
+    const areaIdByNameGlobal = new Map<string, number>();
+    const allUniqueAreas: Array<{ area_id: number; area_name: string }> = [];
+
+    for (const a of areas) {
+      const aId = Number(a.area_id);
+      const aName = a.area_name || '';
+      const normName = normStr(aName);
+
+      if (!areaMap.has(aId)) {
+        areaMap.set(aId, aName);
+        allUniqueAreas.push({ area_id: aId, area_name: aName });
+        if (normName) areaIdByNameGlobal.set(normName, aId);
+      }
+
+      const cId = Number(a.acceso_club_id || 0);
+      if (!areasByClubMap.has(cId)) areasByClubMap.set(cId, []);
+      const clubArr = areasByClubMap.get(cId)!;
+      if (!clubArr.some(x => x.area_id === aId)) {
+        clubArr.push({ area_id: aId, area_name: aName });
+      }
+      if (cId && normName) {
+        areaIdByClubAndName.set(`${cId}_${normName}`, aId);
+      }
+    }
+
+    type SpreadsheetRow = {
+      horario_id: number;
+      equipo_id: number;
+      grupo_id: number;
+      actividad_id: number;
+      club_id: number;
+      sede_nombre: string;
+      actividad_nombre: string;
+      actividad_icono: string;
+      actividad_color: string;
+      actividad_activa: boolean;
+      grupo_nombre: string;
+      equipo_nombre: string;
+      clase_label: string;
+      grupo_activo: boolean;
+      dia_semana: number;
+      hora_inicio: string;
+      hora_fin: string;
+      profesor_id: number | null;
+      profesor_nombre: string;
+      costo_interno: number | null;
+      area_id: number | null;
+      area_nombre: string;
+      lugar: string;
+      is_active: boolean;
+      motivo_cancelacion: string;
+      is_dirty: boolean;
+      schedule_or_prof_changed: boolean;
+      conflict_msg: string | null;
+      areas_disponibles: Array<{ area_id: number; area_name: string }>;
+    };
+
+    const rows: SpreadsheetRow[] = [];
+    // Buckets por (profesor_id + dia_semana) para detectar empalmes en O(N) en vez de O(N^2)
+    const profDayBuckets = new Map<string, SpreadsheetRow[]>();
+
+    for (const act of allActs) {
+      const clubIdNum = Number(act.club_id || 0);
+      const sedeNombre = clubMap.get(clubIdNum) || 'General';
+      const areasClub = (clubIdNum && areasByClubMap.get(clubIdNum)?.length)
+        ? areasByClubMap.get(clubIdNum)!
+        : allUniqueAreas;
+
+      for (const gc of act.grupos_categorias ?? []) {
+        for (const eq of gc.equipos ?? []) {
+          const claseLabel = gc.nombre + (eq.nombre && eq.nombre !== 'General' ? ` · ${eq.nombre}` : '');
+
+          for (const h of eq.horarios ?? []) {
+            const edit = edits[h.id] || {};
+
+            const origDia = Number(h.dia_semana || 1);
+            const origIni = (h.hora_inicio || '08:00').substring(0, 5);
+            const origFin = (h.hora_fin || '09:00').substring(0, 5);
+            const origProf = h.profesor_id ?? eq.coach_id ?? act.profesor_id ?? null;
+            const origCosto = h.costo_interno !== null && h.costo_interno !== undefined ? Number(h.costo_interno) : null;
+            const origLugar = h.lugar || '';
+            const normLug = origLugar ? normStr(origLugar) : '';
+            const origArea = h.area_id
+              ? Number(h.area_id)
+              : (normLug ? (areaIdByClubAndName.get(`${clubIdNum}_${normLug}`) ?? areaIdByNameGlobal.get(normLug) ?? null) : null);
+            const origActive = h.is_active !== false;
+            const origMotivo = h.motivo_cancelacion || '';
+            const origGrpActivo = gc.is_active !== false;
+            const origActActiva = act.is_active !== false;
+            const origActNombre = (act.nombre || '').trim();
+
+            const curDia = edit.dia_semana !== undefined ? Number(edit.dia_semana) : origDia;
+            const curIni = edit.hora_inicio !== undefined ? edit.hora_inicio : origIni;
+            const curFin = edit.hora_fin !== undefined ? edit.hora_fin : origFin;
+            const curProf = edit.profesor_id !== undefined ? edit.profesor_id : origProf;
+            const curCosto = edit.costo_interno !== undefined ? edit.costo_interno : origCosto;
+            const curArea = edit.area_id !== undefined ? edit.area_id : origArea;
+            const curLugar = edit.lugar !== undefined ? (edit.lugar || '') : origLugar;
+            const curActive = edit.is_active !== undefined ? edit.is_active : origActive;
+            const curMotivo = edit.motivo_cancelacion !== undefined ? (edit.motivo_cancelacion || '') : origMotivo;
+            const curGrpActivo = edit.grupo_activo !== undefined ? edit.grupo_activo : origGrpActivo;
+            const curActActiva = edit.actividad_activa !== undefined ? edit.actividad_activa : origActActiva;
+            const curActNombre = edit.actividad_nombre !== undefined && edit.actividad_nombre.trim() !== ''
+              ? edit.actividad_nombre.trim()
+              : origActNombre;
+
+            const scheduleOrProfChanged =
+              curDia !== origDia ||
+              curIni !== origIni ||
+              curFin !== origFin ||
+              Number(curProf || 0) !== Number(origProf || 0) ||
+              (!origActive && curActive);
+
+            const isDirty =
+              scheduleOrProfChanged ||
+              (curCosto ?? null) !== (origCosto ?? null) ||
+              Number(curArea || 0) !== Number(origArea || 0) ||
+              curLugar !== origLugar ||
+              curActive !== origActive ||
+              curMotivo !== origMotivo ||
+              curGrpActivo !== origGrpActivo ||
+              curActActiva !== origActActiva ||
+              curActNombre !== origActNombre;
+
+            const profNum = curProf ? Number(curProf) : null;
+            const areaNum = curArea ? Number(curArea) : null;
+
+            const sMin = this.timeToMinutes(curIni);
+            const eMin = this.timeToMinutes(curFin);
+            const invalidTimeMsg = eMin <= sMin
+              ? `Horario inválido: La hora de fin (${this.formatHora(curFin)}) debe ser posterior a la hora de inicio (${this.formatHora(curIni)}).`
+              : null;
+
+            const rowObj: SpreadsheetRow = {
+              horario_id: h.id,
+              equipo_id: eq.id,
+              grupo_id: gc.id,
+              actividad_id: act.id,
+              club_id: act.club_id,
+              sede_nombre: sedeNombre,
+              actividad_nombre: curActNombre,
+              actividad_icono: act.icono || '🏆',
+              actividad_color: eq.color || act.color || '#6366f1',
+              actividad_activa: curActActiva,
+              grupo_nombre: gc.nombre,
+              equipo_nombre: eq.nombre,
+              clase_label: claseLabel,
+              grupo_activo: curGrpActivo,
+              dia_semana: curDia,
+              hora_inicio: curIni,
+              hora_fin: curFin,
+              profesor_id: profNum,
+              profesor_nombre: profNum ? (instMap.get(profNum) || 'Sin asignar') : 'Sin asignar',
+              costo_interno: curCosto,
+              area_id: areaNum,
+              area_nombre: areaNum ? (areaMap.get(areaNum) || '') : '',
+              lugar: curLugar,
+              is_active: curActive,
+              motivo_cancelacion: curMotivo,
+              is_dirty: isDirty,
+              schedule_or_prof_changed: scheduleOrProfChanged,
+              conflict_msg: invalidTimeMsg,
+              areas_disponibles: areasClub,
+            };
+
+            rows.push(rowObj);
+
+            if (!invalidTimeMsg && curActive && curGrpActivo && curActActiva && profNum) {
+              const bucketKey = `${profNum}_${curDia}`;
+              let bucket = profDayBuckets.get(bucketKey);
+              if (!bucket) {
+                bucket = [];
+                profDayBuckets.set(bucketKey, bucket);
+              }
+              bucket.push(rowObj);
+            }
+          }
+        }
+      }
+    }
+
+    // Evaluar empalmes únicamente entre horarios activos del mismo profesor en el mismo día (O(N))
+    for (const bucket of profDayBuckets.values()) {
+      if (bucket.length < 2) continue;
+      for (let i = 0; i < bucket.length; i++) {
+        const a = bucket[i];
+        const sA = this.timeToMinutes(a.hora_inicio);
+        const eA = this.timeToMinutes(a.hora_fin);
+        for (let j = i + 1; j < bucket.length; j++) {
+          const b = bucket[j];
+          const sB = this.timeToMinutes(b.hora_inicio);
+          const eB = this.timeToMinutes(b.hora_fin);
+          if (sA < eB && sB < eA) {
+            const diaLabel = this.daysMapping[a.dia_semana] || 'ese día';
+            if (!a.conflict_msg) {
+              a.conflict_msg = `El profesor ${a.profesor_nombre} ya tiene "${b.actividad_nombre} (${b.grupo_nombre})" el ${diaLabel} de ${this.formatHora(b.hora_inicio)} a ${this.formatHora(b.hora_fin)}`;
+            }
+            if (!b.conflict_msg) {
+              b.conflict_msg = `El profesor ${b.profesor_nombre} ya tiene "${a.actividad_nombre} (${a.grupo_nombre})" el ${diaLabel} de ${this.formatHora(a.hora_inicio)} a ${this.formatHora(a.hora_fin)}`;
+            }
+          }
+        }
+      }
+    }
+
+    return rows;
+  });
+
+  spreadsheetRows = computed(() => {
+    const allowedActIds = new Set(this.filteredActividades().map(a => a.id));
+    const specificActId = this.spreadsheetFilterActividadId();
+    const filterEst = this.filterEstadoClase();
+    const filterProf = this.filterProfesorId();
+    const filterAreaName = this.filterArea();
+    const searchH = this.filterHorario()?.toLowerCase().trim();
+    const sortCol = this.spreadsheetSortColumn();
+    const sortDir = this.spreadsheetSortDirection();
+
+    const filtered = this.allSpreadsheetRows().filter(row => {
+      if (!allowedActIds.has(row.actividad_id)) return false;
+      if (specificActId && row.actividad_id !== Number(specificActId)) return false;
+      if (filterProf && Number(row.profesor_id) !== Number(filterProf)) return false;
+      if (filterAreaName) {
+        const resolvedArea = row.area_nombre || row.lugar;
+        if (resolvedArea !== filterAreaName) return false;
+      }
+      if (searchH) {
+        const dName = (this.daysMapping[row.dia_semana] || '').toLowerCase();
+        if (!dName.includes(searchH) && !row.hora_inicio.includes(searchH) && !row.hora_fin.includes(searchH)) {
+          return false;
+        }
+      }
+      if (!row.is_dirty) {
+        if (filterEst === 'activos' && (!row.is_active || !row.grupo_activo || !row.actividad_activa)) return false;
+        if (filterEst === 'inactivos' && (row.is_active && row.grupo_activo && row.actividad_activa)) return false;
+        if (filterEst === 'empalmes' && !row.conflict_msg) return false;
+      }
+      if (filterEst === 'modificados' && !row.is_dirty) return false;
+
+      return true;
+    });
+
+    if (!sortCol) return filtered;
+
+    const factor = sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortCol) {
+        case 'actividad':
+          cmp = (a.actividad_nombre || '').localeCompare(b.actividad_nombre || '', 'es', { sensitivity: 'base' });
+          break;
+        case 'clase':
+          cmp = (a.clase_label || '').localeCompare(b.clase_label || '', 'es', { sensitivity: 'base' });
+          break;
+        case 'grupo_activo':
+          cmp = Number(a.grupo_activo) - Number(b.grupo_activo);
+          break;
+        case 'dia':
+          cmp = a.dia_semana - b.dia_semana || (a.hora_inicio || '').localeCompare(b.hora_inicio || '');
+          break;
+        case 'inicio':
+          cmp = (a.hora_inicio || '').localeCompare(b.hora_inicio || '') || a.dia_semana - b.dia_semana;
+          break;
+        case 'fin':
+          cmp = (a.hora_fin || '').localeCompare(b.hora_fin || '') || a.dia_semana - b.dia_semana;
+          break;
+        case 'profesor':
+          cmp = (a.profesor_nombre || '').localeCompare(b.profesor_nombre || '', 'es', { sensitivity: 'base' });
+          break;
+        case 'costo':
+          cmp = Number(a.costo_interno ?? -1) - Number(b.costo_interno ?? -1);
+          break;
+        case 'area':
+          cmp = (a.area_nombre || '').localeCompare(b.area_nombre || '', 'es', { sensitivity: 'base' });
+          break;
+        case 'horario_activo':
+          cmp = Number(a.is_active) - Number(b.is_active);
+          break;
+      }
+      return cmp * factor;
+    });
+  });
+
+  toggleSpreadsheetSort(col: 'actividad' | 'clase' | 'grupo_activo' | 'dia' | 'inicio' | 'fin' | 'profesor' | 'costo' | 'area' | 'horario_activo'): void {
+    if (this.spreadsheetSortColumn() === col) {
+      if (this.spreadsheetSortDirection() === 'asc') {
+        this.spreadsheetSortDirection.set('desc');
+      } else {
+        this.spreadsheetSortColumn.set(null);
+        this.spreadsheetSortDirection.set('asc');
+      }
+    } else {
+      this.spreadsheetSortColumn.set(col);
+      this.spreadsheetSortDirection.set('asc');
+    }
+    this.spreadsheetPage.set(1);
+  }
+
+  spreadsheetTotalPages = computed(() => {
+    const total = this.spreadsheetRows().length;
+    const size = this.spreadsheetPageSize();
+    return Math.max(1, Math.ceil(total / size));
+  });
+
+  spreadsheetCurrentPage = computed(() => {
+    const p = this.spreadsheetPage();
+    const maxP = this.spreadsheetTotalPages();
+    return Math.min(Math.max(1, p), maxP);
+  });
+
+  spreadsheetPagedRows = computed(() => {
+    const rows = this.spreadsheetRows();
+    const size = this.spreadsheetPageSize();
+    const page = this.spreadsheetCurrentPage();
+    const start = (page - 1) * size;
+    return rows.slice(start, start + size);
+  });
+
+  spreadsheetDirtyCount = computed(() => {
+    const edits = this.spreadsheetEdits();
+    if (Object.keys(edits).length === 0) return 0;
+    return this.allSpreadsheetRows().filter(r => r.is_dirty).length;
+  });
+
+  setSpreadsheetPage(page: number): void {
+    const max = this.spreadsheetTotalPages();
+    this.spreadsheetPage.set(Math.min(Math.max(1, page), max));
+  }
+
+  onSpreadsheetPageSizeChange(size: any): void {
+    this.spreadsheetPageSize.set(Number(size) || 40);
+    this.spreadsheetPage.set(1);
+  }
+
+  onSpreadsheetActividadFilterChange(actId: any): void {
+    const val = actId === '' || actId === null || actId === undefined || Number(actId) === 0 ? null : Number(actId);
+    this.spreadsheetFilterActividadId.set(val);
+    this.spreadsheetPage.set(1);
+  }
+
+  updateSpreadsheetCell(
+    row: any,
+    field: 'dia_semana' | 'hora_inicio' | 'hora_fin' | 'profesor_id' | 'costo_interno' | 'area_id' | 'lugar' | 'is_active' | 'motivo_cancelacion' | 'grupo_activo' | 'actividad_activa',
+    value: any
+  ): void {
+    this.spreadsheetEdits.update(prev => {
+      const next = { ...prev };
+      const curRowEdit = { ...(next[row.horario_id] || {}) };
+
+      if (field === 'costo_interno') {
+        curRowEdit.costo_interno = value === '' || value === null || value === undefined ? null : Number(value);
+      } else if (field === 'profesor_id' || field === 'area_id') {
+        curRowEdit[field] = value === '' || value === null || value === undefined || Number(value) === 0 ? null : Number(value);
+      } else if (field === 'dia_semana') {
+        curRowEdit.dia_semana = Number(value);
+      } else {
+        (curRowEdit as any)[field] = value;
+      }
+
+      next[row.horario_id] = curRowEdit;
+
+      // Si cambió grupo_activo o actividad_activa, propagar visualmente a los demás horarios del mismo grupo/actividad
+      if (field === 'grupo_activo') {
+        for (const r of this.allSpreadsheetRows()) {
+          if (r.grupo_id === row.grupo_id) {
+            next[r.horario_id] = { ...(next[r.horario_id] || {}), grupo_activo: Boolean(value) };
+          }
+        }
+      } else if (field === 'actividad_activa') {
+        for (const r of this.allSpreadsheetRows()) {
+          if (r.actividad_id === row.actividad_id) {
+            next[r.horario_id] = { ...(next[r.horario_id] || {}), actividad_activa: Boolean(value) };
+          }
+        }
+      }
+
+      return next;
+    });
+
+    // Validar inmediatamente empalmes o rango de horas inválido al modificar horario, profesor o reactivar
+    if (['dia_semana', 'hora_inicio', 'hora_fin', 'profesor_id', 'is_active', 'grupo_activo', 'actividad_activa'].includes(field)) {
+      const updatedRow = this.allSpreadsheetRows().find(r => r.horario_id === row.horario_id);
+      if (updatedRow?.conflict_msg) {
+        const isInvalidTime = updatedRow.conflict_msg.startsWith('Horario inválido');
+        Swal.fire({
+          icon: 'warning',
+          title: isInvalidTime ? 'Horario inválido' : 'Horario con empalme detectado',
+          text: updatedRow.conflict_msg,
+          confirmButtonText: 'Entendido',
+        });
+      }
+    }
+  }
+
+  homologarCostoProfesorEnActividad(row: any): void {
+    if (!row.profesor_id) return;
+    const targetProfId = Number(row.profesor_id);
+    const targetActId = Number(row.actividad_id);
+    const targetCosto = row.costo_interno;
+
+    let count = 0;
+    this.spreadsheetEdits.update(prev => {
+      const next = { ...prev };
+      for (const r of this.allSpreadsheetRows()) {
+        if (r.actividad_id === targetActId && Number(r.profesor_id) === targetProfId) {
+          next[r.horario_id] = { ...(next[r.horario_id] || {}), costo_interno: targetCosto };
+          count++;
+        }
+      }
+      return next;
+    });
+    this.showToast(`Costo aplicado a los ${count} horarios del profesor en "${row.actividad_nombre}"`);
+  }
+
+  toggleSelectRow(horarioId: number): void {
+    this.spreadsheetSelectedIds.update(prev => {
+      const next = new Set(prev);
+      if (next.has(horarioId)) next.delete(horarioId);
+      else next.add(horarioId);
+      return next;
+    });
+  }
+
+  toggleSelectAllRows(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    if (!checked) {
+      this.spreadsheetSelectedIds.set(new Set());
+      return;
+    }
+    const allIds = new Set(this.spreadsheetRows().map(r => r.horario_id));
+    this.spreadsheetSelectedIds.set(allIds);
+  }
+
+  isAllRowsSelected = computed(() => {
+    const rows = this.spreadsheetRows();
+    const sel = this.spreadsheetSelectedIds();
+    return rows.length > 0 && rows.every(r => sel.has(r.horario_id));
+  });
+
+  clearSpreadsheetSelection(): void {
+    this.spreadsheetSelectedIds.set(new Set());
+  }
+
+  private applyPendingBatchInputsToSelection(): boolean {
+    const sel = this.spreadsheetSelectedIds();
+    if (sel.size === 0) return false;
+
+    const newActNombre = (this.batchActividadNombre || '').trim();
+    const hasAnyBatchVal =
+      newActNombre !== '' ||
+      this.batchProfesorId !== null ||
+      (this.batchCostoInterno !== null && (this.batchCostoInterno as any) !== '') ||
+      this.batchAreaId !== null ||
+      this.batchEstadoHorario !== null;
+
+    if (!hasAnyBatchVal) return false;
+
+    const affectedActIds = new Set<number>();
+    if (newActNombre !== '') {
+      for (const r of this.allSpreadsheetRows()) {
+        if (sel.has(r.horario_id)) {
+          affectedActIds.add(r.actividad_id);
+        }
+      }
+    }
+
+    this.spreadsheetEdits.update(prev => {
+      const next = { ...prev };
+      sel.forEach(hId => {
+        const cur = { ...(next[hId] || {}) };
+        if (newActNombre !== '') {
+          cur.actividad_nombre = newActNombre;
+        }
+        if (this.batchProfesorId !== null) {
+          cur.profesor_id = this.batchProfesorId === 0 ? null : Number(this.batchProfesorId);
+        }
+        if (this.batchCostoInterno !== null && (this.batchCostoInterno as any) !== '') {
+          cur.costo_interno = Number(this.batchCostoInterno);
+        }
+        if (this.batchAreaId !== null) {
+          cur.area_id = this.batchAreaId === 0 ? null : Number(this.batchAreaId);
+        }
+        if (this.batchEstadoHorario !== null) {
+          cur.is_active = Boolean(this.batchEstadoHorario);
+        }
+        next[hId] = cur;
+      });
+
+      // Si se cambió el nombre de la actividad, reflejarlo en todos los horarios de esa(s) actividad(es)
+      if (newActNombre !== '' && affectedActIds.size > 0) {
+        for (const r of this.allSpreadsheetRows()) {
+          if (affectedActIds.has(r.actividad_id)) {
+            next[r.horario_id] = { ...(next[r.horario_id] || {}), actividad_nombre: newActNombre };
+          }
+        }
+      }
+
+      return next;
+    });
+
+    this.batchActividadNombre = '';
+    this.batchProfesorId = null;
+    this.batchCostoInterno = null;
+    this.batchAreaId = null;
+    this.batchEstadoHorario = null;
+    return true;
+  }
+
+  async applyBatchChangesToSelected(): Promise<void> {
+    const sel = this.spreadsheetSelectedIds();
+    if (sel.size === 0) return;
+
+    const applied = this.applyPendingBatchInputsToSelection();
+    if (!applied && this.spreadsheetDirtyCount() === 0) {
+      this.showToast('Selecciona o escribe al menos un cambio en la barra de lote.');
+      return;
+    }
+
+    await this.saveSpreadsheetChanges();
+  }
+
+  discardSpreadsheetChanges(): void {
+    this.spreadsheetEdits.set({});
+    this.spreadsheetSelectedIds.set(new Set());
+    this.batchActividadNombre = '';
+    this.batchProfesorId = null;
+    this.batchCostoInterno = null;
+    this.batchAreaId = null;
+    this.batchEstadoHorario = null;
+    this.showToast('Cambios descartados');
+  }
+
+  async saveSpreadsheetChanges(): Promise<void> {
+    // Si el usuario escribió algo en la barra de lote y dio clic directo en "Guardar cambios", aplicarlo también
+    this.applyPendingBatchInputsToSelection();
+
+    const dirtyRows = this.allSpreadsheetRows().filter(r => r.is_dirty);
+    if (dirtyRows.length === 0) {
+      this.showToast('No hay cambios pendientes por guardar.');
+      return;
+    }
+
+    // Bloquear guardado solo si alguno de los horarios donde se cambió día/hora/profesor/reactivación tiene empalme o rango inválido
+    const conflictsInDirty = dirtyRows.filter(r => r.schedule_or_prof_changed && Boolean(r.conflict_msg));
+    if (conflictsInDirty.length > 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Conflicto de horario detectado',
+        html: `
+          <p class="small text-muted mb-2">No es posible guardar mientras existan empalmes o rangos inválidos en los horarios modificados:</p>
+          <div class="text-start small bg-danger-subtle text-danger p-2 rounded-3 border border-danger-subtle" style="max-height: 220px; overflow-y: auto;">
+            ${conflictsInDirty.map(c => `<div class="mb-1">• <strong>${c.actividad_nombre} (${c.grupo_nombre})</strong>: ${c.conflict_msg}</div>`).join('')}
+          </div>
+        `,
+        confirmButtonText: 'Entendido',
+      });
+      return;
+    }
+
+    this.savingBulk.set(true);
+    try {
+      const payloadItems = dirtyRows.map(r => ({
+        horario_id: r.horario_id,
+        equipo_id: r.equipo_id,
+        grupo_id: r.grupo_id,
+        actividad_id: r.actividad_id,
+        actividad_nombre: r.actividad_nombre,
+        actividad_activa: r.actividad_activa,
+        grupo_activo: r.grupo_activo,
+        dia_semana: r.dia_semana,
+        hora_inicio: r.hora_inicio,
+        hora_fin: r.hora_fin,
+        profesor_id: r.profesor_id,
+        costo_interno: r.costo_interno,
+        area_id: r.area_id,
+        lugar: r.area_nombre || null,
+        is_active: r.is_active,
+        motivo_cancelacion: r.motivo_cancelacion,
+      }));
+
+      const res = await firstValueFrom(this.svc.bulkUpdate(payloadItems));
+      this.spreadsheetEdits.set({});
+      this.spreadsheetSelectedIds.set(new Set());
+      this.batchActividadNombre = '';
+      this.batchProfesorId = null;
+      this.batchCostoInterno = null;
+      this.batchAreaId = null;
+      this.batchEstadoHorario = null;
+      this.refreshActividades();
+
+      if (res.data?.warnings && res.data.warnings.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Guardado con observaciones',
+          html: `<div class="text-start small">${res.data.warnings.map(w => `• ${w}`).join('<br>')}</div>`,
+          confirmButtonText: 'Entendido',
+        });
+      } else {
+        this.showToast(res.message || `Se actualizaron ${dirtyRows.length} horario(s) exitosamente.`);
+      }
+    } catch (err: any) {
+      const msg = err?.error?.message || 'Error al guardar los cambios masivos.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Error al guardar',
+        text: msg,
+        confirmButtonText: 'Entendido',
+      });
+    } finally {
+      this.savingBulk.set(false);
+    }
+  }
+
+  downloadExcelTemplate(): void {
+    this.exportingExcel.set(true);
+    this.svc.exportExcel({
+      club_id: this.filterClubId(),
+      profesor_id: this.filterProfesorId(),
+      q: this.filterNombre()?.trim() || undefined,
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        a.download = `MANTENIMIENTO_ACTIVIDADES_${dateStr}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        this.exportingExcel.set(false);
+        this.showToast('Plantilla Excel descargada correctamente');
+      },
+      error: async (err) => {
+        this.exportingExcel.set(false);
+        let detail = 'No se pudo generar el archivo Excel.';
+        try {
+          if (err?.error instanceof Blob) {
+            const txt = await err.error.text();
+            const parsed = JSON.parse(txt);
+            if (parsed?.message) detail = parsed.message;
+          } else if (err?.error?.message) {
+            detail = err.error.message;
+          }
+        } catch {}
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al exportar',
+          text: detail,
+          confirmButtonText: 'Entendido',
+        });
+      }
+    });
+  }
+
+  async onExcelFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    input.value = '';
+
+    const confirm = await Swal.fire({
+      title: '¿Importar cambios desde Excel?',
+      html: `Se procesará el archivo <strong>${file.name}</strong> para actualizar horarios, costos por profesor, profesores asignados, ubicaciones y estados.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-cloud-upload me-1"></i>Sí, importar y actualizar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#198754',
+      reverseButtons: true,
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    this.importingExcel.set(true);
+    try {
+      const res = await firstValueFrom(this.svc.importExcel(file));
+      this.spreadsheetEdits.set({});
+      this.refreshActividades();
+
+      const updated = res.data?.updated ?? 0;
+      const warnings = res.data?.warnings ?? [];
+
+      if (warnings.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: `Importación completada (${updated} actualizados)`,
+          html: `<div class="text-start small" style="max-height: 220px; overflow-y: auto;">${warnings.map(w => `• ${w}`).join('<br>')}</div>`,
+          confirmButtonText: 'Entendido',
+        });
+      } else {
+        Swal.fire({
+          icon: 'success',
+          title: '¡Excel importado!',
+          text: res.message || `Se actualizaron ${updated} registro(s) correctamente.`,
+          timer: 2400,
+          showConfirmButton: false,
+        });
+      }
+    } catch (err: any) {
+      const msg = err?.error?.message || 'Error al importar el archivo Excel.';
+      Swal.fire({
+        icon: 'error',
+        title: 'Error en la importación',
+        text: msg,
+        confirmButtonText: 'Entendido',
+      });
+    } finally {
+      this.importingExcel.set(false);
+    }
   }
 }

@@ -10,11 +10,41 @@
       </h4>
       <small class="text-muted">Gestión de actividades, clases y horarios del club</small>
     </div>
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <!-- Botones de Mantenimiento vía Excel -->
+      <div class="btn-group shadow-sm rounded-pill bg-white border p-0.5" role="group">
+        <button type="button"
+                class="btn btn-sm btn-light border-0 rounded-start-pill d-flex align-items-center gap-1.5 px-2.5 text-success fw-semibold"
+                style="font-size: 0.78rem; height: 32px; gap: 0.35rem; padding: 0 0.75rem;"
+                [disabled]="exportingExcel()"
+                (click)="downloadExcelTemplate()"
+                title="Descargar plantilla Excel (.xlsx) con horarios, costos, profesores y ubicaciones">
+          @if (exportingExcel()) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <i class="bi bi-file-earmark-excel-fill"></i>
+          }
+          <span>Exportar Excel</span>
+        </button>
+        <label class="btn btn-sm btn-light border-0 border-start rounded-end-pill d-flex align-items-center gap-1.5 px-2.5 text-primary fw-semibold mb-0"
+               style="font-size: 0.78rem; height: 32px; gap: 0.35rem; padding: 0 0.75rem; cursor: pointer;"
+               [class.disabled]="importingExcel()"
+               title="Subir plantilla Excel (.xlsx) modificada para aplicar cambios masivos">
+          @if (importingExcel()) {
+            <span class="spinner-border spinner-border-sm"></span>
+          } @else {
+            <i class="bi bi-cloud-upload-fill"></i>
+          }
+          <span>Importar Excel</span>
+          <input type="file" accept=".xlsx,.xls" class="d-none" (change)="onExcelFileSelected($event)" [disabled]="importingExcel()">
+        </label>
+      </div>
+
+      <!-- Selector de Vista -->
       <div class="d-flex align-items-center bg-white border rounded-pill p-1 shadow-sm" style="position: relative; isolation: isolate;">
         <div class="position-absolute bg-primary rounded-pill shadow-sm" 
              style="height: 32px; width: 36px; top: 0.25rem; left: 0.25rem; z-index: 0; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);"
-             [ngStyle]="{'transform': viewMode() === 'grid' ? 'translateX(0px)' : (viewMode() === 'list' ? 'translateX(40px)' : (viewMode() === 'calendar' ? 'translateX(80px)' : (viewMode() === 'classic' ? 'translateX(120px)' : 'translateX(160px)')))}">
+             [ngStyle]="{'transform': viewMode() === 'grid' ? 'translateX(0px)' : (viewMode() === 'list' ? 'translateX(40px)' : (viewMode() === 'spreadsheet' ? 'translateX(80px)' : (viewMode() === 'calendar' ? 'translateX(120px)' : (viewMode() === 'classic' ? 'translateX(160px)' : 'translateX(200px)'))))}">
         </div>
         <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
                 [class.text-white]="viewMode() === 'grid'" [class.text-secondary]="viewMode() !== 'grid'"
@@ -27,11 +57,16 @@
           <i class="bi bi-list-ul" style="font-size: 1.1rem;"></i>
         </button>
         <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
+                [class.text-white]="viewMode() === 'spreadsheet'" [class.text-secondary]="viewMode() !== 'spreadsheet'"
+                (click)="viewMode.set('spreadsheet')" title="Mantenimiento Rápido (Hoja de Cálculo)">
+          <i class="bi bi-table"></i>
+        </button>
+        <button type="button" class="btn btn-sm border-0 rounded-pill mx-1 position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
                 [class.text-white]="viewMode() === 'calendar'" [class.text-secondary]="viewMode() !== 'calendar'"
                 (click)="viewMode.set('calendar')" title="Línea de tiempo">
           <i class="bi bi-distribute-horizontal"></i>
         </button>
-        <button type="button" class="btn btn-sm border-0 rounded-pill mx-1 position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
+        <button type="button" class="btn btn-sm border-0 rounded-pill me-1 position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
                 [class.text-white]="viewMode() === 'classic'" [class.text-secondary]="viewMode() !== 'classic'"
                 (click)="viewMode.set('classic')" title="Agenda Clásica">
           <i class="bi bi-calendar-week"></i>
@@ -157,108 +192,110 @@
   <!-- ── Grid de actividades ── -->
   @if (!loading()) {
 
-    <!-- ── Filtros ── -->
-    <div class="card mb-4 border-0 shadow-sm">
-      <div class="card-body py-3">
-        <div class="row g-3 row-cols-1 row-cols-md-3 row-cols-lg-6">
-          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Buscar actividad</label>
-            <div class="position-relative">
-              <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem; z-index: 4;"></i>
-              <input type="text" class="form-control form-control-sm" style="padding-left: 2.2rem; padding-right: 2.2rem;" placeholder="Ej. Yoga, Tenis..." [(ngModel)]="filterNombre">
-              @if (filterNombre()) {
-                <i class="clear-search-icon bi bi-x-circle-fill position-absolute top-50 end-0 translate-middle-y me-3 text-muted" (click)="filterNombre.set('')"></i>
-              }
+    @if (viewMode() !== 'spreadsheet') {
+      <!-- ── Filtros ── -->
+      <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body py-3">
+          <div class="row g-3 row-cols-1 row-cols-md-3 row-cols-lg-6">
+            <div class="col">
+              <label class="form-label small fw-semibold text-muted mb-1">Buscar actividad</label>
+              <div class="position-relative">
+                <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.85rem; z-index: 4;"></i>
+                <input type="text" class="form-control form-control-sm" style="padding-left: 2.2rem; padding-right: 2.2rem;" placeholder="Ej. Yoga, Tenis..." [(ngModel)]="filterNombre">
+                @if (filterNombre()) {
+                  <i class="clear-search-icon bi bi-x-circle-fill position-absolute top-50 end-0 translate-middle-y me-3 text-muted" (click)="filterNombre.set('')"></i>
+                }
+              </div>
+            </div>
+            <div class="col">
+              <label class="form-label small fw-semibold text-muted mb-1">Sede (Unidad)</label>
+              <select class="form-select form-select-sm" [(ngModel)]="filterClubId">
+                <option [ngValue]="null">Todas las sedes</option>
+                @for (c of formData()?.acceso_clubes; track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+            </div>
+            <div class="col">
+              <label class="form-label small fw-semibold text-muted mb-1">Acceso</label>
+              <select class="form-select form-select-sm" [(ngModel)]="filterAcceso">
+                <option [ngValue]="null">Cualquiera</option>
+                <option [ngValue]="true">Socios</option>
+                <option [ngValue]="false">Staff</option>
+              </select>
+            </div>
+            <div class="col">
+              <label class="form-label small fw-semibold text-muted mb-1">Área / Salón</label>
+              <ng-select [items]="uniqueAreas()" 
+                         [ngModel]="filterArea()" 
+                         (ngModelChange)="filterArea.set($event)"
+                         bindLabel="" bindValue=""
+                         placeholder="Cualquier área"
+                         [clearable]="true"
+                         class="custom-sm-select w-100">
+              </ng-select>
+            </div>
+            <div class="col">
+              <label class="form-label small fw-semibold text-muted mb-1">Profesor</label>
+              <ng-select [items]="formData()?.instructores || []"
+                         bindLabel="full_name"
+                         bindValue="id"
+                         placeholder="Cualquier profesor"
+                         [(ngModel)]="filterProfesorId"
+                         class="custom-sm-select w-100">
+                <ng-template ng-label-tmp let-item="item">
+                  <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
+                </ng-template>
+                <ng-template ng-option-tmp let-item="item">
+                  <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
+                </ng-template>
+              </ng-select>
+            </div>
+            <div class="col">
+              <label class="form-label small fw-semibold text-muted mb-1">Horario / Día</label>
+              <input type="text" class="form-control form-control-sm" placeholder="Ej. Lunes, 08:00..." [(ngModel)]="filterHorario">
             </div>
           </div>
-          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Sede (Unidad)</label>
-            <select class="form-select form-select-sm" [(ngModel)]="filterClubId">
-              <option [ngValue]="null">Todas las sedes</option>
-              @for (c of formData()?.acceso_clubes; track c.id) {
-                <option [ngValue]="c.id">{{ c.name }}</option>
-              }
-            </select>
-          </div>
-          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Acceso</label>
-            <select class="form-select form-select-sm" [(ngModel)]="filterAcceso">
-              <option [ngValue]="null">Cualquiera</option>
-              <option [ngValue]="true">Socios</option>
-              <option [ngValue]="false">Staff</option>
-            </select>
-          </div>
-          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Área / Salón</label>
-            <ng-select [items]="uniqueAreas()" 
-                       [ngModel]="filterArea()" 
-                       (ngModelChange)="filterArea.set($event)"
-                       bindLabel="" bindValue=""
-                       placeholder="Cualquier área"
-                       [clearable]="true"
-                       class="custom-sm-select w-100">
-            </ng-select>
-          </div>
-          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Profesor</label>
-            <ng-select [items]="formData()?.instructores || []"
-                       bindLabel="full_name"
-                       bindValue="id"
-                       placeholder="Cualquier profesor"
-                       [(ngModel)]="filterProfesorId"
-                       class="custom-sm-select w-100">
-              <ng-template ng-label-tmp let-item="item">
-                <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
-              </ng-template>
-              <ng-template ng-option-tmp let-item="item">
-                <span style="text-transform: capitalize;">{{ item.full_name.toLowerCase() }}</span>
-              </ng-template>
-            </ng-select>
-          </div>
-          <div class="col">
-            <label class="form-label small fw-semibold text-muted mb-1">Horario / Día</label>
-            <input type="text" class="form-control form-control-sm" placeholder="Ej. Lunes, 08:00..." [(ngModel)]="filterHorario">
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- ── View Description Banner ── -->
-    <div class="alert alert-light border shadow-sm d-flex flex-column py-3 mb-4 gap-3" style="border-radius: 10px;">
-      <div class="d-flex align-items-center">
-        <i class="bi bi-info-circle text-primary fs-4 me-3"></i>
-        <div>
-          @if (viewMode() === 'grid') {
-            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Vista de Tarjetas</h6>
-            <span class="text-muted" style="font-size: 0.75rem;">Explora el catálogo de actividades en formato visual para un panorama general de cada disciplina.</span>
-          } @else if (viewMode() === 'list') {
-            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Vista de Tabla Dinámica</h6>
-            <span class="text-muted" style="font-size: 0.75rem;">Analiza los datos en formato de lista para exportar o editar campos de forma masiva.</span>
-          } @else if (viewMode() === 'calendar') {
-            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Línea de Tiempo (Gantt)</h6>
-            <span class="text-muted" style="font-size: 0.75rem;">Visualiza la duración exacta de cada clase. Indispensable para detectar empalmes visualmente a lo largo del día.</span>
-          } @else if (viewMode() === 'classic') {
-            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Agenda Clásica por Bloques</h6>
-            <span class="text-muted" style="font-size: 0.75rem;">Genera un horario estructurado tradicional, listo para imprimirse o compartirse individualmente.</span>
-          } @else if (viewMode() === 'heatmap') {
-            <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Mapa de Calor de Densidad Horaria</h6>
-            <span class="text-muted" style="font-size: 0.75rem;">Vista gerencial de operaciones. Los tonos más oscuros indican las horas "pico" con mayor saturación de instalaciones.</span>
-          }
         </div>
       </div>
       
-      <div>
-        <div class="d-flex align-items-center bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-25 w-100">
-          <i class="bi bi-lightbulb-fill text-warning me-2"></i>
+      <!-- ── View Description Banner ── -->
+      <div class="alert alert-light border shadow-sm d-flex flex-column py-3 mb-4 gap-3" style="border-radius: 10px;">
+        <div class="d-flex align-items-center">
+          <i class="bi bi-info-circle text-primary fs-4 me-3"></i>
           <div>
-            <span class="d-block text-dark fw-bold" style="font-size: 0.75rem;">💡 Recomendación para evitar saturación:</span>
-            <span class="text-muted lh-sm d-block" style="font-size: 0.7rem; margin-top: 2px;">
-              El volumen de datos es muy alto. Para una lectura clara y no sobrecargar la pantalla, <b>siempre utiliza el filtro de Área/Salón o Profesor</b> antes de cambiar de vista.
-            </span>
+            @if (viewMode() === 'grid') {
+              <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Vista de Tarjetas</h6>
+              <span class="text-muted" style="font-size: 0.75rem;">Explora el catálogo de actividades en formato visual para un panorama general de cada disciplina.</span>
+            } @else if (viewMode() === 'list') {
+              <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Vista de Tabla Dinámica</h6>
+              <span class="text-muted" style="font-size: 0.75rem;">Analiza los datos en formato de lista para exportar o editar campos de forma masiva.</span>
+            } @else if (viewMode() === 'calendar') {
+              <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Línea de Tiempo (Gantt)</h6>
+              <span class="text-muted" style="font-size: 0.75rem;">Visualiza la duración exacta de cada clase. Indispensable para detectar empalmes visualmente a lo largo del día.</span>
+            } @else if (viewMode() === 'classic') {
+              <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Agenda Clásica por Bloques</h6>
+              <span class="text-muted" style="font-size: 0.75rem;">Genera un horario estructurado tradicional, listo para imprimirse o compartirse individualmente.</span>
+            } @else if (viewMode() === 'heatmap') {
+              <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.85rem;">Mapa de Calor de Densidad Horaria</h6>
+              <span class="text-muted" style="font-size: 0.75rem;">Vista gerencial de operaciones. Los tonos más oscuros indican las horas "pico" con mayor saturación de instalaciones.</span>
+            }
+          </div>
+        </div>
+        
+        <div>
+          <div class="d-flex align-items-center bg-warning bg-opacity-10 p-2 rounded border border-warning border-opacity-25 w-100">
+            <i class="bi bi-lightbulb-fill text-warning me-2"></i>
+            <div>
+              <span class="d-block text-dark fw-bold" style="font-size: 0.75rem;">💡 Recomendación para evitar saturación:</span>
+              <span class="text-muted lh-sm d-block" style="font-size: 0.7rem; margin-top: 2px;">
+                El volumen de datos es muy alto. Para una lectura clara y no sobrecargar la pantalla, <b>siempre utiliza el filtro de Área/Salón o Profesor</b> antes de cambiar de vista.
+              </span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    }
 
 @if (viewMode() === 'grid') {
       <div class="activities-grid">
@@ -613,6 +650,638 @@
             </tbody>
           </table>
         </div>
+      </div>
+    }
+
+    <!-- ── VISTA DE MANTENIMIENTO RÁPIDO (HOJA DE CÁLCULO) ── -->
+    @if (viewMode() === 'spreadsheet') {
+      <!-- Barra Superior Sticky de Herramientas, Filtros Rápidos y Guardado -->
+      <div class="card shadow-sm border-0 mb-3 spreadsheet-sticky-toolbar" style="border-radius: 16px;">
+        <div class="card-body py-2 px-3 d-flex flex-column gap-2">
+          <!-- Fila 1: Título, Píldoras de Estado, Paginación Rápida y Botones de Guardado -->
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <span class="fw-bold text-dark d-flex align-items-center gap-2 ps-1" style="font-size: 0.9rem;">
+                <i class="bi bi-table text-primary"></i>
+                <span>Matriz de Mantenimiento</span>
+                <span class="badge bg-light text-secondary border rounded-pill fw-semibold ms-1" style="font-size: 0.72rem;">
+                  {{ spreadsheetRows().length }} horarios
+                </span>
+              </span>
+
+              <!-- Píldoras de filtro rápido de estado -->
+              <div class="btn-group btn-group-sm ms-md-2" role="group">
+                <button type="button" class="btn rounded-start-pill px-3" style="font-size: 0.74rem;"
+                        [class.btn-dark]="filterEstadoClase() === 'todos'"
+                        [class.btn-outline-secondary]="filterEstadoClase() !== 'todos'"
+                        (click)="filterEstadoClase.set('todos'); setSpreadsheetPage(1)">
+                  Todos
+                </button>
+                <button type="button" class="btn px-3" style="font-size: 0.74rem;"
+                        [class.btn-success]="filterEstadoClase() === 'activos'"
+                        [class.btn-outline-secondary]="filterEstadoClase() !== 'activos'"
+                        (click)="filterEstadoClase.set('activos'); setSpreadsheetPage(1)">
+                  Activos
+                </button>
+                <button type="button" class="btn px-3" style="font-size: 0.74rem;"
+                        [class.btn-secondary]="filterEstadoClase() === 'inactivos'"
+                        [class.btn-outline-secondary]="filterEstadoClase() !== 'inactivos'"
+                        (click)="filterEstadoClase.set('inactivos'); setSpreadsheetPage(1)">
+                  Inactivos
+                </button>
+                <button type="button" class="btn px-3" style="font-size: 0.74rem;"
+                        [class.btn-warning]="filterEstadoClase() === 'modificados'"
+                        [class.btn-outline-secondary]="filterEstadoClase() !== 'modificados'"
+                        (click)="filterEstadoClase.set('modificados'); setSpreadsheetPage(1)">
+                  <i class="bi bi-pencil-fill me-1" style="font-size: 0.65rem;"></i>Modificados ({{ spreadsheetDirtyCount() }})
+                </button>
+                <button type="button" class="btn rounded-end-pill px-3" style="font-size: 0.74rem;"
+                        [class.btn-danger]="filterEstadoClase() === 'empalmes'"
+                        [class.btn-outline-secondary]="filterEstadoClase() !== 'empalmes'"
+                        (click)="filterEstadoClase.set('empalmes'); setSpreadsheetPage(1)">
+                  <i class="bi bi-exclamation-triangle-fill me-1" style="font-size: 0.65rem;"></i>Con empalme
+                </button>
+              </div>
+            </div>
+
+            <!-- Navegación rápida de página + Botones de Guardado / Descarte Masivo -->
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              @if (spreadsheetRows().length > 0) {
+                <div class="d-none d-xl-flex align-items-center gap-1 me-1 bg-light border rounded-pill px-2 py-1">
+                  <button type="button" class="btn btn-sm btn-link text-dark p-0 px-1 text-decoration-none"
+                          style="font-size: 0.75rem;"
+                          [disabled]="spreadsheetCurrentPage() <= 1"
+                          (click)="setSpreadsheetPage(spreadsheetCurrentPage() - 1)"
+                          title="Página anterior">
+                    <i class="bi bi-chevron-left"></i>
+                  </button>
+                  <span class="small fw-semibold text-secondary px-1" style="font-size: 0.72rem;">
+                    Pág. {{ spreadsheetCurrentPage() }} / {{ spreadsheetTotalPages() }}
+                  </span>
+                  <button type="button" class="btn btn-sm btn-link text-dark p-0 px-1 text-decoration-none"
+                          style="font-size: 0.75rem;"
+                          [disabled]="spreadsheetCurrentPage() >= spreadsheetTotalPages()"
+                          (click)="setSpreadsheetPage(spreadsheetCurrentPage() + 1)"
+                          title="Página siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                  </button>
+                </div>
+              }
+
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" style="font-size: 0.76rem;"
+                      [disabled]="spreadsheetDirtyCount() === 0 || savingBulk()"
+                      (click)="discardSpreadsheetChanges()">
+                Descartar
+              </button>
+              <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold d-flex align-items-center gap-2 shadow-sm"
+                      style="font-size: 0.78rem;"
+                      [disabled]="spreadsheetDirtyCount() === 0 || savingBulk()"
+                      (click)="saveSpreadsheetChanges()">
+                @if (savingBulk()) {
+                  <span class="spinner-border spinner-border-sm"></span>
+                  <span>Guardando...</span>
+                } @else {
+                  <i class="bi bi-check2-all"></i>
+                  <span>Guardar cambios ({{ spreadsheetDirtyCount() }})</span>
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- Fila 2: Filtros Integrados (Buscar, Actividad, Sede, Profesor, Área, Día/Hora) -->
+          <div class="d-flex align-items-center flex-wrap gap-2 pt-2 border-top">
+            <!-- Buscador rápido por texto -->
+            <div class="position-relative" style="width: 195px;">
+              <i class="bi bi-search position-absolute top-50 translate-middle-y text-muted"
+                 style="left: 11px; font-size: 0.75rem; z-index: 4; pointer-events: none;"></i>
+              <input type="text" class="form-control form-control-sm rounded-pill"
+                     style="padding-left: 2rem; padding-right: 1.9rem; font-size: 0.75rem; height: 30px;"
+                     placeholder="Buscar actividad..."
+                     [ngModel]="filterNombre()"
+                     (ngModelChange)="filterNombre.set($event); setSpreadsheetPage(1)">
+              @if (filterNombre()) {
+                <i class="clear-search-icon bi bi-x-circle-fill position-absolute top-50 translate-middle-y text-muted"
+                   style="right: 10px; cursor: pointer; font-size: 0.75rem;"
+                   (click)="filterNombre.set(''); setSpreadsheetPage(1)"></i>
+              }
+            </div>
+
+            <!-- Selector directo por Actividad -->
+            <select class="form-select form-select-sm rounded-pill"
+                    style="width: 215px; font-size: 0.75rem; height: 30px;"
+                    [value]="spreadsheetFilterActividadId() ?? ''"
+                    (change)="onSpreadsheetActividadFilterChange($any($event.target).value)">
+              <option value="">Todas las actividades ({{ filteredActividades().length }})</option>
+              @for (act of filteredActividades(); track act.id) {
+                <option [value]="act.id" [selected]="act.id === spreadsheetFilterActividadId()">{{ act.nombre }}</option>
+              }
+            </select>
+
+            <!-- Sede -->
+            <select class="form-select form-select-sm rounded-pill"
+                    style="width: 150px; font-size: 0.75rem; height: 30px;"
+                    [ngModel]="filterClubId()"
+                    (ngModelChange)="filterClubId.set($event); setSpreadsheetPage(1)">
+              <option [ngValue]="null">Todas las sedes</option>
+              @for (c of formData()?.acceso_clubes; track c.id) {
+                <option [ngValue]="c.id">{{ c.name }}</option>
+              }
+            </select>
+
+            <!-- Profesor (Chosen / ng-select con buscador) -->
+            <div style="width: 235px;">
+              <ng-select class="custom-sm-select w-100"
+                         appendTo="body"
+                         [items]="formData()?.instructores || []"
+                         bindLabel="full_name"
+                         bindValue="id"
+                         placeholder="Cualquier profesor"
+                         notFoundText="Sin resultados"
+                         [clearable]="true"
+                         [searchable]="true"
+                         [ngModel]="filterProfesorId()"
+                         (ngModelChange)="filterProfesorId.set($event); setSpreadsheetPage(1)">
+              </ng-select>
+            </div>
+
+            <!-- Área / Salón (Chosen / ng-select con buscador) -->
+            <div style="width: 220px;">
+              <ng-select class="custom-sm-select w-100"
+                         appendTo="body"
+                         [items]="uniqueAreas()"
+                         placeholder="Cualquier área / salón"
+                         notFoundText="Sin resultados"
+                         [clearable]="true"
+                         [searchable]="true"
+                         [ngModel]="filterArea()"
+                         (ngModelChange)="filterArea.set($event); setSpreadsheetPage(1)">
+              </ng-select>
+            </div>
+
+            <!-- Horario / Día -->
+            <div class="position-relative" style="width: 155px;">
+              <input type="text" class="form-control form-control-sm rounded-pill"
+                     style="font-size: 0.75rem; height: 30px; padding-left: 0.75rem; padding-right: 1.8rem;"
+                     placeholder="Día o hora (ej. Lun, 16:00)"
+                     [ngModel]="filterHorario()"
+                     (ngModelChange)="filterHorario.set($event); setSpreadsheetPage(1)">
+              @if (filterHorario()) {
+                <i class="clear-search-icon bi bi-x-circle-fill position-absolute top-50 translate-middle-y text-muted"
+                   style="right: 10px; cursor: pointer; font-size: 0.75rem;"
+                   (click)="filterHorario.set(''); setSpreadsheetPage(1)"></i>
+              }
+            </div>
+
+            @if (spreadsheetSortColumn()) {
+              <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-2 py-0 d-inline-flex align-items-center gap-1"
+                      style="font-size: 0.72rem; height: 26px;"
+                      (click)="spreadsheetSortColumn.set(null); setSpreadsheetPage(1)"
+                      title="Restaurar el orden original de la tabla">
+                <i class="bi bi-arrow-down-up"></i>
+                <span>Quitar orden</span>
+                <i class="bi bi-x"></i>
+              </button>
+            }
+
+            @if (filterNombre() || spreadsheetFilterActividadId() || filterClubId() || filterProfesorId() || filterArea() || filterHorario() || filterEstadoClase() !== 'todos' || spreadsheetSortColumn()) {
+              <button type="button" class="btn btn-sm btn-link text-secondary p-0 ms-1 text-decoration-none"
+                      style="font-size: 0.74rem;"
+                      (click)="filterNombre.set(''); spreadsheetFilterActividadId.set(null); filterClubId.set(null); filterProfesorId.set(null); filterArea.set(null); filterHorario.set(''); filterEstadoClase.set('todos'); spreadsheetSortColumn.set(null); setSpreadsheetPage(1)">
+                <i class="bi bi-x-lg me-1"></i>Limpiar filtros
+              </button>
+            }
+          </div>
+
+          <!-- Barra de Edición en Lote (Aparece al seleccionar filas con checkbox) -->
+          @if (spreadsheetSelectedIds().size > 0) {
+            <div class="bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3 px-3 py-2 mt-1 d-flex align-items-center justify-content-between flex-wrap gap-2">
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary rounded-pill px-3 py-1" style="font-size: 0.74rem;">
+                  {{ spreadsheetSelectedIds().size }} seleccionado(s)
+                </span>
+                <span class="text-dark fw-semibold small" style="font-size: 0.76rem;">Aplicar en lote:</span>
+              </div>
+
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <!-- Nombre de Actividad en lote -->
+                <div class="input-group input-group-sm" style="width: 215px;">
+                  <span class="input-group-text bg-white border-end-0 rounded-start-pill text-muted" style="font-size: 0.75rem;" title="Nuevo nombre de la actividad">
+                    <i class="bi bi-fonts"></i>
+                  </span>
+                  <input type="text" class="form-control form-control-sm border-start-0 rounded-end-pill bg-white"
+                         style="font-size: 0.75rem;" placeholder="Cambiar nombre actividad..."
+                         [(ngModel)]="batchActividadNombre">
+                </div>
+
+                <!-- Profesor en lote -->
+                <div style="width: 220px;">
+                  <ng-select class="custom-sm-select w-100"
+                             appendTo="body"
+                             [items]="formData()?.instructores || []"
+                             bindLabel="full_name"
+                             bindValue="id"
+                             placeholder="— Cambiar Profesor —"
+                             notFoundText="Sin resultados"
+                             [clearable]="true"
+                             [searchable]="true"
+                             [(ngModel)]="batchProfesorId">
+                  </ng-select>
+                </div>
+
+                <!-- Costo por clase en lote -->
+                <div class="input-group input-group-sm" style="width: 145px;">
+                  <span class="input-group-text bg-white border-end-0 rounded-start-pill" style="font-size: 0.75rem;">$</span>
+                  <input type="number" min="0" step="0.01" class="form-control form-control-sm border-start-0 rounded-end-pill bg-white"
+                         style="font-size: 0.75rem;" placeholder="Costo prof." [(ngModel)]="batchCostoInterno">
+                </div>
+
+                <!-- Área en lote -->
+                <div style="width: 220px;">
+                  <ng-select class="custom-sm-select w-100"
+                             appendTo="body"
+                             [items]="uniqueAreasMapeadas()"
+                             bindLabel="area_name"
+                             bindValue="area_id"
+                             placeholder="— Cambiar Área / Salón —"
+                             notFoundText="Sin resultados"
+                             [clearable]="true"
+                             [searchable]="true"
+                             [(ngModel)]="batchAreaId">
+                  </ng-select>
+                </div>
+
+                <!-- Estado en lote -->
+                <select class="form-select form-select-sm rounded-pill bg-white" style="width: 145px; font-size: 0.75rem;" [(ngModel)]="batchEstadoHorario">
+                  <option [ngValue]="null">— Estado Horario —</option>
+                  <option [ngValue]="true">Activo</option>
+                  <option [ngValue]="false">Inactivo</option>
+                </select>
+
+                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;"
+                        [disabled]="savingBulk()"
+                        (click)="applyBatchChangesToSelected()">
+                  @if (savingBulk()) {
+                    <span class="spinner-border spinner-border-sm"></span>
+                    <span>Guardando...</span>
+                  } @else {
+                    <i class="bi bi-check2-circle"></i>
+                    <span>Aplicar y guardar</span>
+                  }
+                </button>
+                <button type="button" class="btn btn-sm btn-link text-secondary p-0 ms-1" style="font-size: 0.74rem;"
+                        (click)="clearSpreadsheetSelection()">
+                  Limpiar selección
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Card Contenedora de la Tabla con Margen Interno (p-3) y Navegación Fluida -->
+      <div class="card shadow-sm border-0 mb-4 p-3" style="border-radius: 16px;">
+        <div class="spreadsheet-table-container border rounded-4 overflow-x-auto bg-white">
+          <table class="table table-sm table-hover align-middle mb-0 spreadsheet-table w-100" style="font-size: 0.8rem;">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3 text-center sticky-col-check" style="width: 36px; min-width: 36px; max-width: 36px;">
+                  <input type="checkbox" class="form-check-input"
+                         [checked]="isAllRowsSelected()"
+                         (change)="toggleSelectAllRows($event)"
+                         title="Seleccionar todos los horarios filtrados ({{ spreadsheetRows().length }})">
+                </th>
+                <th class="sticky-col-act sortable-th" style="min-width: 265px; width: 265px;" (click)="toggleSpreadsheetSort('actividad')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Actividad</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'actividad' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'actividad' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'actividad'"
+                       [class.active]="spreadsheetSortColumn() === 'actividad'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 150px;" (click)="toggleSpreadsheetSort('clase')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Clase / Grupo</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'clase' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'clase' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'clase'"
+                       [class.active]="spreadsheetSortColumn() === 'clase'"></i>
+                  </div>
+                </th>
+                <th class="text-center sortable-th" style="width: 72px; min-width: 72px;" (click)="toggleSpreadsheetSort('grupo_activo')">
+                  <div class="d-inline-flex align-items-center justify-content-center gap-1">
+                    <span>Clase</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'grupo_activo' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'grupo_activo' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'grupo_activo'"
+                       [class.active]="spreadsheetSortColumn() === 'grupo_activo'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 120px;" (click)="toggleSpreadsheetSort('dia')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Día</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'dia' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'dia' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'dia'"
+                       [class.active]="spreadsheetSortColumn() === 'dia'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 108px;" (click)="toggleSpreadsheetSort('inicio')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Inicio</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'inicio' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'inicio' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'inicio'"
+                       [class.active]="spreadsheetSortColumn() === 'inicio'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 108px;" (click)="toggleSpreadsheetSort('fin')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Fin</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'fin' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'fin' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'fin'"
+                       [class.active]="spreadsheetSortColumn() === 'fin'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 265px;" (click)="toggleSpreadsheetSort('profesor')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Profesor Asignado</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'profesor' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'profesor' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'profesor'"
+                       [class.active]="spreadsheetSortColumn() === 'profesor'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 120px;" (click)="toggleSpreadsheetSort('costo')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Costo Prof.</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'costo' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'costo' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'costo'"
+                       [class.active]="spreadsheetSortColumn() === 'costo'"></i>
+                  </div>
+                </th>
+                <th class="sortable-th" style="min-width: 245px;" (click)="toggleSpreadsheetSort('area')">
+                  <div class="d-inline-flex align-items-center gap-1">
+                    <span>Área / Salón</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'area' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'area' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'area'"
+                       [class.active]="spreadsheetSortColumn() === 'area'"></i>
+                  </div>
+                </th>
+                <th class="text-center pe-3 sortable-th" style="width: 100px; min-width: 100px;" (click)="toggleSpreadsheetSort('horario_activo')">
+                  <div class="d-inline-flex align-items-center justify-content-center gap-1">
+                    <span>Horario</span>
+                    <i class="bi sort-icon"
+                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'horario_activo' && spreadsheetSortDirection() === 'asc'"
+                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'horario_activo' && spreadsheetSortDirection() === 'desc'"
+                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'horario_activo'"
+                       [class.active]="spreadsheetSortColumn() === 'horario_activo'"></i>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of spreadsheetPagedRows(); track row.horario_id) {
+                <tr [class.table-warning]="row.is_dirty && !row.conflict_msg"
+                    [class.table-danger]="row.conflict_msg"
+                    [class.row-inactive-muted]="!row.is_active || !row.grupo_activo || !row.actividad_activa"
+                    (mouseenter)="hoveredSpreadsheetRowId.set(row.horario_id)"
+                    (focusin)="hoveredSpreadsheetRowId.set(row.horario_id)">
+                  <!-- Checkbox (Fijo a la izquierda) -->
+                  <td class="ps-3 text-center sticky-col-check">
+                    <input type="checkbox" class="form-check-input"
+                           [checked]="spreadsheetSelectedIds().has(row.horario_id)"
+                           (change)="toggleSelectRow(row.horario_id)">
+                  </td>
+
+                  <!-- Actividad (Fija a la izquierda) -->
+                  <td class="sticky-col-act pe-2">
+                    <div class="d-flex align-items-center justify-content-between gap-2">
+                      <div class="d-flex align-items-center gap-2 overflow-hidden">
+                        <span class="rounded-2 d-inline-flex align-items-center justify-content-center flex-shrink-0 text-white"
+                              style="width: 24px; height: 24px; font-size: 0.78rem;"
+                              [style.background]="row.actividad_color">
+                          {{ row.actividad_icono }}
+                        </span>
+                        <div class="d-flex flex-column overflow-hidden">
+                          <span class="fw-semibold text-dark text-truncate" style="max-width: 195px; line-height: 1.15;" [title]="row.actividad_nombre">
+                            {{ row.actividad_nombre }}
+                          </span>
+                          <small class="text-muted text-truncate" style="max-width: 195px; font-size: 0.65rem; line-height: 1.1;">{{ row.sede_nombre }}</small>
+                        </div>
+                      </div>
+                      @if (row.conflict_msg) {
+                        <span class="badge bg-danger text-white rounded-pill flex-shrink-0 d-inline-flex align-items-center gap-1"
+                              style="font-size: 0.62rem; cursor: help;"
+                              [title]="row.conflict_msg">
+                          <i class="bi bi-exclamation-triangle-fill"></i>Empalme
+                        </span>
+                      }
+                    </div>
+                  </td>
+
+                  <!-- Clase / Grupo -->
+                  <td>
+                    <div class="d-flex align-items-center justify-content-between gap-1">
+                      <span class="fw-medium text-dark text-truncate" style="max-width: 135px;" [title]="row.clase_label">
+                        {{ row.clase_label }}
+                      </span>
+                    </div>
+                  </td>
+
+                  <!-- Estado de la Clase (Grupo) -->
+                  <td class="text-center">
+                    <div class="form-check form-switch d-inline-flex align-items-center justify-content-center mb-0" style="padding-left: 0; min-height: auto;">
+                      <input class="form-check-input m-0" type="checkbox" role="switch"
+                             style="cursor: pointer; width: 2rem; height: 1rem;"
+                             [checked]="row.grupo_activo"
+                             [title]="row.grupo_activo ? 'Clase activa' : 'Clase inactiva'"
+                             (change)="updateSpreadsheetCell(row, 'grupo_activo', $any($event.target).checked)">
+                    </div>
+                  </td>
+
+                  <!-- Día de la semana -->
+                  <td>
+                    <select class="form-select form-select-sm spreadsheet-input w-100"
+                            [class.border-danger]="row.conflict_msg"
+                            [class.text-danger]="row.conflict_msg"
+                            [title]="row.conflict_msg || ''"
+                            [value]="row.dia_semana"
+                            (change)="updateSpreadsheetCell(row, 'dia_semana', $any($event.target).value)">
+                      @for (d of [1,2,3,4,5,6,7]; track d) {
+                        <option [value]="d" [selected]="d === row.dia_semana">{{ daysMapping[d] }}</option>
+                      }
+                    </select>
+                  </td>
+
+                  <!-- Hora Inicio -->
+                  <td>
+                    <input type="time" class="form-control form-control-sm spreadsheet-input w-100"
+                           [class.border-danger]="row.conflict_msg"
+                           [class.text-danger]="row.conflict_msg"
+                           [title]="row.conflict_msg || ''"
+                           [value]="row.hora_inicio"
+                           (change)="updateSpreadsheetCell(row, 'hora_inicio', $any($event.target).value)">
+                  </td>
+
+                  <!-- Hora Fin -->
+                  <td>
+                    <input type="time" class="form-control form-control-sm spreadsheet-input w-100"
+                           [class.border-danger]="row.conflict_msg"
+                           [class.text-danger]="row.conflict_msg"
+                           [title]="row.conflict_msg || ''"
+                           [value]="row.hora_fin"
+                           (change)="updateSpreadsheetCell(row, 'hora_fin', $any($event.target).value)">
+                  </td>
+
+                  <!-- Profesor Asignado (Chosen / ng-select con buscador) -->
+                  <td>
+                    <ng-select class="custom-sm-select spreadsheet-ng-select w-100"
+                               appendTo="body"
+                               [items]="formData()?.instructores || []"
+                               bindLabel="full_name"
+                               bindValue="id"
+                               placeholder="— Sin asignar —"
+                               notFoundText="Sin resultados"
+                               [clearable]="true"
+                               [searchable]="true"
+                               [ngModel]="row.profesor_id"
+                               (ngModelChange)="updateSpreadsheetCell(row, 'profesor_id', $event)">
+                    </ng-select>
+                  </td>
+
+                  <!-- Costo por Clase del Profesor -->
+                  <td>
+                    <div class="position-relative d-flex align-items-center">
+                      <span class="position-absolute text-muted pointer-events-none"
+                            style="left: 11px; font-size: 0.74rem; z-index: 2; pointer-events: none;">$</span>
+                      <input type="number" min="0" step="0.01"
+                             class="form-control form-control-sm spreadsheet-input fw-semibold w-100"
+                             style="padding-left: 1.45rem !important;"
+                             placeholder="0.00"
+                             [value]="row.costo_interno !== null && row.costo_interno !== undefined ? row.costo_interno : ''"
+                             (change)="updateSpreadsheetCell(row, 'costo_interno', $any($event.target).value)">
+                    </div>
+                  </td>
+
+                  <!-- Área / Salón (Catálogo de Áreas y Clubes por sede con buscador Chosen / ng-select) -->
+                  <td>
+                    <ng-select class="custom-sm-select spreadsheet-ng-select w-100"
+                               appendTo="body"
+                               [items]="row.areas_disponibles"
+                               bindLabel="area_name"
+                               bindValue="area_id"
+                               placeholder="— Sin área —"
+                               notFoundText="Sin áreas en esta sede"
+                               [clearable]="true"
+                               [searchable]="true"
+                               [ngModel]="row.area_id"
+                               (ngModelChange)="updateSpreadsheetCell(row, 'area_id', $event)">
+                    </ng-select>
+                  </td>
+
+                  <!-- Estado del Horario -->
+                  <td class="text-center pe-3">
+                    <div class="form-check form-switch d-inline-flex align-items-center justify-content-center gap-1 mb-0 flex-nowrap" style="padding-left: 0; min-height: auto;">
+                      <input class="form-check-input m-0 flex-shrink-0" type="checkbox" role="switch"
+                             style="cursor: pointer; width: 1.85rem; height: 0.95rem;"
+                             [checked]="row.is_active"
+                             [title]="row.is_active ? 'Horario activo' : 'Horario inactivo'"
+                             (change)="updateSpreadsheetCell(row, 'is_active', $any($event.target).checked)">
+                      <span class="badge rounded-pill text-center" style="font-size: 0.62rem; min-width: 46px;"
+                            [class.bg-success-subtle]="row.is_active"
+                            [class.text-success]="row.is_active"
+                            [class.bg-secondary-subtle]="!row.is_active"
+                            [class.text-secondary]="!row.is_active">
+                        {{ row.is_active ? 'Activo' : 'Inactivo' }}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              }
+
+              @if (spreadsheetRows().length === 0) {
+                <tr>
+                  <td colspan="11" class="text-center py-5 text-muted">
+                    <i class="bi bi-table display-5 d-block mb-2 opacity-50"></i>
+                    <h6 class="fw-semibold">No se encontraron horarios con los filtros actuales</h6>
+                    <p class="small mb-0">Ajusta los filtros superiores o cambia el estado seleccionado.</p>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Barra de Paginación Inferior (dentro del card con margen limpio) -->
+        @if (spreadsheetRows().length > 0) {
+          <div class="pt-3 px-1 d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2 small text-muted" style="font-size: 0.76rem;">
+              <span>
+                Mostrando
+                <strong class="text-dark">{{ (spreadsheetCurrentPage() - 1) * spreadsheetPageSize() + 1 }}</strong>
+                –
+                <strong class="text-dark">{{ (spreadsheetCurrentPage() * spreadsheetPageSize()) > spreadsheetRows().length ? spreadsheetRows().length : (spreadsheetCurrentPage() * spreadsheetPageSize()) }}</strong>
+                de <strong class="text-dark">{{ spreadsheetRows().length }}</strong> horarios
+              </span>
+              <span class="text-muted mx-1">·</span>
+              <span>Filas por página:</span>
+              <select class="form-select form-select-sm d-inline-block w-auto rounded-pill"
+                      style="font-size: 0.74rem; height: 28px; min-width: 72px; padding: 0.15rem 1.85rem 0.15rem 0.65rem;"
+                      [value]="spreadsheetPageSize()"
+                      (change)="onSpreadsheetPageSizeChange($any($event.target).value)">
+                <option [value]="25" [selected]="spreadsheetPageSize() === 25">25</option>
+                <option [value]="40" [selected]="spreadsheetPageSize() === 40">40</option>
+                <option [value]="80" [selected]="spreadsheetPageSize() === 80">80</option>
+                <option [value]="150" [selected]="spreadsheetPageSize() === 150">150</option>
+              </select>
+            </div>
+
+            <div class="d-flex align-items-center gap-1">
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                      style="font-size: 0.74rem;"
+                      [disabled]="spreadsheetCurrentPage() <= 1"
+                      (click)="setSpreadsheetPage(1)"
+                      title="Primera página">
+                <i class="bi bi-chevron-double-left"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                      style="font-size: 0.74rem;"
+                      [disabled]="spreadsheetCurrentPage() <= 1"
+                      (click)="setSpreadsheetPage(spreadsheetCurrentPage() - 1)">
+                <i class="bi bi-chevron-left me-1"></i>Anterior
+              </button>
+              <span class="px-2 small fw-semibold text-dark" style="font-size: 0.76rem;">
+                Página {{ spreadsheetCurrentPage() }} de {{ spreadsheetTotalPages() }}
+              </span>
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                      style="font-size: 0.74rem;"
+                      [disabled]="spreadsheetCurrentPage() >= spreadsheetTotalPages()"
+                      (click)="setSpreadsheetPage(spreadsheetCurrentPage() + 1)">
+                Siguiente<i class="bi bi-chevron-right ms-1"></i>
+              </button>
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1"
+                      style="font-size: 0.74rem;"
+                      [disabled]="spreadsheetCurrentPage() >= spreadsheetTotalPages()"
+                      (click)="setSpreadsheetPage(spreadsheetTotalPages())"
+                      title="Última página">
+                <i class="bi bi-chevron-double-right"></i>
+              </button>
+            </div>
+          </div>
+        }
       </div>
     }
 

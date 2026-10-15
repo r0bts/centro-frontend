@@ -198,6 +198,35 @@ export class ActividadService {
     return this.http.delete<{ success: boolean; message: string }>(`${this.base}/equipos/${equipoId}/horarios/${horarioId}`);
   }
 
+  // ── Mantenimiento Masivo y Excel ────────────────────────────────────────────
+
+  bulkUpdate(items: any[]): Observable<{ success: boolean; message: string; data?: { updated: number; warnings: string[] } }> {
+    return this.http.post<{ success: boolean; message: string; data?: { updated: number; warnings: string[] } }>(
+      `${this.base}/actividades/bulk-update`,
+      { items }
+    );
+  }
+
+  exportExcel(filters: { club_id?: number | null; profesor_id?: number | null; q?: string } = {}): Observable<Blob> {
+    let params = new HttpParams();
+    if (filters.club_id) params = params.set('club_id', String(filters.club_id));
+    if (filters.profesor_id) params = params.set('profesor_id', String(filters.profesor_id));
+    if (filters.q) params = params.set('q', filters.q);
+    return this.http.get(`${this.base}/actividades/export-excel`, {
+      params,
+      responseType: 'blob',
+    });
+  }
+
+  importExcel(file: File): Observable<{ success: boolean; message: string; data?: { updated: number; warnings: string[] } }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    return this.http.post<{ success: boolean; message: string; data?: { updated: number; warnings: string[] } }>(
+      `${this.base}/actividades/import-excel`,
+      fd
+    );
+  }
+
   // ── Criterios de Evaluación ─────────────────────────────────────────────────
 
   createCriterio(data: CreateCriterioRequest): Observable<CriterioResponse> {
