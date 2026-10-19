@@ -411,6 +411,23 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
     return null;
   }
 
+  findAnyInvalidTimeRange(): string | null {
+    for (let gi = 0; gi < this.grupos().length; gi++) {
+      const g = this.grupos()[gi];
+      for (let hi = 0; hi < g.horarios.length; hi++) {
+        const h = g.horarios[hi];
+        if (!h || h.is_active === false || !h.hora_inicio || !h.hora_fin) continue;
+        const sA = this.timeToMinutes(h.hora_inicio);
+        const eA = this.timeToMinutes(h.hora_fin);
+        if (eA <= sA) {
+          const grpLabel = g.nombre ? ` en la clase "${g.nombre}"` : '';
+          return `La hora de fin debe ser posterior a la de inicio${grpLabel}.`;
+        }
+      }
+    }
+    return null;
+  }
+
   findAnyHorarioConflict(): string | null {
     for (let gi = 0; gi < this.grupos().length; gi++) {
       const g = this.grupos()[gi];
@@ -490,13 +507,13 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
     }
 
     if (step === 4) {
-      const conflict = this.findAnyHorarioConflict();
-      if (conflict) {
-        this.error.set(conflict);
+      const invalidTime = this.findAnyInvalidTimeRange();
+      if (invalidTime) {
+        this.error.set(invalidTime);
         Swal.fire({
           icon: 'warning',
-          title: 'Conflicto de horario',
-          text: conflict,
+          title: 'Horario inválido',
+          text: invalidTime,
           confirmButtonText: 'Entendido'
         });
         return false;
@@ -1371,18 +1388,6 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
   // ── Publicar ─────────────────────────────────────────────────────────────────
   async publish(closeModal = true): Promise<void> {
     if (!this.validateAllSteps()) return;
-
-    const conflict = this.findAnyHorarioConflict();
-    if (conflict) {
-      this.error.set(conflict);
-      Swal.fire({
-        icon: 'warning',
-        title: 'Conflicto de horario',
-        text: conflict,
-        confirmButtonText: 'Entendido'
-      });
-      return;
-    }
 
     this.saving.set(true);
     this.error.set(null);

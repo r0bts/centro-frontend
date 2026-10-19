@@ -906,29 +906,33 @@
 
               <div class="d-flex align-items-center flex-wrap gap-2">
                 <!-- Nombre de Actividad en lote -->
-                <div class="input-group input-group-sm" style="width: 215px;">
-                  <span class="input-group-text bg-white border-end-0 rounded-start-pill text-muted" style="font-size: 0.75rem;" title="Nuevo nombre de la actividad">
-                    <i class="bi bi-fonts"></i>
-                  </span>
-                  <input type="text" class="form-control form-control-sm border-start-0 rounded-end-pill bg-white"
-                         style="font-size: 0.75rem;" placeholder="Cambiar nombre actividad..."
-                         [(ngModel)]="batchActividadNombre">
-                </div>
+                @if (canUpdate) {
+                  <div class="input-group input-group-sm" style="width: 215px;">
+                    <span class="input-group-text bg-white border-end-0 rounded-start-pill text-muted" style="font-size: 0.75rem;" title="Nuevo nombre de la actividad">
+                      <i class="bi bi-fonts"></i>
+                    </span>
+                    <input type="text" class="form-control form-control-sm border-start-0 rounded-end-pill bg-white"
+                           style="font-size: 0.75rem;" placeholder="Cambiar nombre actividad..."
+                           [(ngModel)]="batchActividadNombre">
+                  </div>
+                }
 
                 <!-- Profesor en lote -->
-                <div style="width: 220px;">
-                  <ng-select class="custom-sm-select w-100"
-                             appendTo="body"
-                             [items]="formData()?.instructores || []"
-                             bindLabel="full_name"
-                             bindValue="id"
-                             placeholder="— Cambiar Profesor —"
-                             notFoundText="Sin resultados"
-                             [clearable]="true"
-                             [searchable]="true"
-                             [(ngModel)]="batchProfesorId">
-                  </ng-select>
-                </div>
+                @if (canManageHorarios) {
+                  <div style="width: 220px;">
+                    <ng-select class="custom-sm-select w-100"
+                               appendTo="body"
+                               [items]="formData()?.instructores || []"
+                               bindLabel="full_name"
+                               bindValue="id"
+                               placeholder="— Cambiar Profesor —"
+                               notFoundText="Sin resultados"
+                               [clearable]="true"
+                               [searchable]="true"
+                               [(ngModel)]="batchProfesorId">
+                    </ng-select>
+                  </div>
+                }
 
                 <!-- Costo por clase en lote -->
                 @if (canManageCostos) {
@@ -940,26 +944,28 @@
                 }
 
                 <!-- Área en lote -->
-                <div style="width: 220px;">
-                  <ng-select class="custom-sm-select w-100"
-                             appendTo="body"
-                             [items]="uniqueAreasMapeadas()"
-                             bindLabel="area_name"
-                             bindValue="area_id"
-                             placeholder="— Cambiar Área / Salón —"
-                             notFoundText="Sin resultados"
-                             [clearable]="true"
-                             [searchable]="true"
-                             [(ngModel)]="batchAreaId">
-                  </ng-select>
-                </div>
+                @if (canManageHorarios) {
+                  <div style="width: 220px;">
+                    <ng-select class="custom-sm-select w-100"
+                               appendTo="body"
+                               [items]="uniqueAreasMapeadas()"
+                               bindLabel="area_name"
+                               bindValue="area_id"
+                               placeholder="— Cambiar Área / Salón —"
+                               notFoundText="Sin resultados"
+                               [clearable]="true"
+                               [searchable]="true"
+                               [(ngModel)]="batchAreaId">
+                    </ng-select>
+                  </div>
 
-                <!-- Estado en lote -->
-                <select class="form-select form-select-sm rounded-pill bg-white" style="width: 145px; font-size: 0.75rem;" [(ngModel)]="batchEstadoHorario">
-                  <option [ngValue]="null">— Estado Horario —</option>
-                  <option [ngValue]="true">Activo</option>
-                  <option [ngValue]="false">Inactivo</option>
-                </select>
+                  <!-- Estado en lote -->
+                  <select class="form-select form-select-sm rounded-pill bg-white" style="width: 145px; font-size: 0.75rem;" [(ngModel)]="batchEstadoHorario">
+                    <option [ngValue]="null">— Estado Horario —</option>
+                    <option [ngValue]="true">Activo</option>
+                    <option [ngValue]="false">Inactivo</option>
+                  </select>
+                }
 
                 <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 fw-semibold d-inline-flex align-items-center gap-1" style="font-size: 0.75rem;"
                         [disabled]="savingBulk()"
@@ -1064,16 +1070,18 @@
                        [class.active]="spreadsheetSortColumn() === 'profesor'"></i>
                   </div>
                 </th>
-                <th class="sortable-th" style="min-width: 120px;" (click)="toggleSpreadsheetSort('costo')">
-                  <div class="d-inline-flex align-items-center gap-1">
-                    <span>Costo Prof.</span>
-                    <i class="bi sort-icon"
-                       [class.bi-arrow-up]="spreadsheetSortColumn() === 'costo' && spreadsheetSortDirection() === 'asc'"
-                       [class.bi-arrow-down]="spreadsheetSortColumn() === 'costo' && spreadsheetSortDirection() === 'desc'"
-                       [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'costo'"
-                       [class.active]="spreadsheetSortColumn() === 'costo'"></i>
-                  </div>
-                </th>
+                @if (canManageCostos) {
+                  <th class="sortable-th" style="min-width: 120px;" (click)="toggleSpreadsheetSort('costo')">
+                    <div class="d-inline-flex align-items-center gap-1">
+                      <span>Costo Prof.</span>
+                      <i class="bi sort-icon"
+                         [class.bi-arrow-up]="spreadsheetSortColumn() === 'costo' && spreadsheetSortDirection() === 'asc'"
+                         [class.bi-arrow-down]="spreadsheetSortColumn() === 'costo' && spreadsheetSortDirection() === 'desc'"
+                         [class.bi-arrow-down-up]="spreadsheetSortColumn() !== 'costo'"
+                         [class.active]="spreadsheetSortColumn() === 'costo'"></i>
+                    </div>
+                  </th>
+                }
                 <th class="sortable-th" style="min-width: 245px;" (click)="toggleSpreadsheetSort('area')">
                   <div class="d-inline-flex align-items-center gap-1">
                     <span>Área / Salón</span>
@@ -1151,7 +1159,8 @@
                       <input class="form-check-input m-0" type="checkbox" role="switch"
                              style="cursor: pointer; width: 2rem; height: 1rem;"
                              [checked]="row.grupo_activo"
-                             [title]="row.grupo_activo ? 'Clase activa' : 'Clase inactiva'"
+                             [disabled]="!canManageHorarios"
+                             [title]="!canManageHorarios ? 'Sin permiso para gestionar horarios' : (row.grupo_activo ? 'Clase activa' : 'Clase inactiva')"
                              (change)="updateSpreadsheetCell(row, 'grupo_activo', $any($event.target).checked)">
                     </div>
                   </td>
@@ -1161,7 +1170,8 @@
                     <select class="form-select form-select-sm spreadsheet-input w-100"
                             [class.border-danger]="row.conflict_msg"
                             [class.text-danger]="row.conflict_msg"
-                            [title]="row.conflict_msg || ''"
+                            [disabled]="!canManageHorarios"
+                            [title]="!canManageHorarios ? 'Sin permiso para gestionar horarios' : (row.conflict_msg || '')"
                             [value]="row.dia_semana"
                             (change)="updateSpreadsheetCell(row, 'dia_semana', $any($event.target).value)">
                       @for (d of [1,2,3,4,5,6,7]; track d) {
@@ -1175,7 +1185,8 @@
                     <input type="time" class="form-control form-control-sm spreadsheet-input w-100"
                            [class.border-danger]="row.conflict_msg"
                            [class.text-danger]="row.conflict_msg"
-                           [title]="row.conflict_msg || ''"
+                           [disabled]="!canManageHorarios"
+                           [title]="!canManageHorarios ? 'Sin permiso para gestionar horarios' : (row.conflict_msg || '')"
                            [value]="row.hora_inicio"
                            (change)="updateSpreadsheetCell(row, 'hora_inicio', $any($event.target).value)">
                   </td>
@@ -1185,7 +1196,8 @@
                     <input type="time" class="form-control form-control-sm spreadsheet-input w-100"
                            [class.border-danger]="row.conflict_msg"
                            [class.text-danger]="row.conflict_msg"
-                           [title]="row.conflict_msg || ''"
+                           [disabled]="!canManageHorarios"
+                           [title]="!canManageHorarios ? 'Sin permiso para gestionar horarios' : (row.conflict_msg || '')"
                            [value]="row.hora_fin"
                            (change)="updateSpreadsheetCell(row, 'hora_fin', $any($event.target).value)">
                   </td>
@@ -1199,28 +1211,29 @@
                                bindValue="id"
                                placeholder="— Sin asignar —"
                                notFoundText="Sin resultados"
-                               [clearable]="true"
-                               [searchable]="true"
+                               [disabled]="!canManageHorarios"
+                               [clearable]="canManageHorarios"
+                               [searchable]="canManageHorarios"
                                [ngModel]="row.profesor_id"
                                (ngModelChange)="updateSpreadsheetCell(row, 'profesor_id', $event)">
                     </ng-select>
                   </td>
 
                   <!-- Costo por Clase del Profesor -->
-                  <td>
-                    <div class="position-relative d-flex align-items-center">
-                      <span class="position-absolute text-muted pointer-events-none"
-                            style="left: 11px; font-size: 0.74rem; z-index: 2; pointer-events: none;">$</span>
-                      <input type="number" min="0" step="0.01"
-                             class="form-control form-control-sm spreadsheet-input fw-semibold w-100"
-                             style="padding-left: 1.45rem !important;"
-                             placeholder="0.00"
-                             [disabled]="!canManageCostos"
-                             [title]="!canManageCostos ? 'Sin permiso para gestionar costos' : ''"
-                             [value]="row.costo_interno !== null && row.costo_interno !== undefined ? row.costo_interno : ''"
-                             (change)="updateSpreadsheetCell(row, 'costo_interno', $any($event.target).value)">
-                    </div>
-                  </td>
+                  @if (canManageCostos) {
+                    <td>
+                      <div class="position-relative d-flex align-items-center">
+                        <span class="position-absolute text-muted pointer-events-none"
+                              style="left: 11px; font-size: 0.74rem; z-index: 2; pointer-events: none;">$</span>
+                        <input type="number" min="0" step="0.01"
+                               class="form-control form-control-sm spreadsheet-input fw-semibold w-100"
+                               style="padding-left: 1.45rem !important;"
+                               placeholder="0.00"
+                               [value]="row.costo_interno !== null && row.costo_interno !== undefined ? row.costo_interno : ''"
+                               (change)="updateSpreadsheetCell(row, 'costo_interno', $any($event.target).value)">
+                      </div>
+                    </td>
+                  }
 
                   <!-- Área / Salón (Catálogo de Áreas y Clubes por sede con buscador Chosen / ng-select) -->
                   <td>
@@ -1231,8 +1244,9 @@
                                bindValue="area_id"
                                placeholder="— Sin área —"
                                notFoundText="Sin áreas en esta sede"
-                               [clearable]="true"
-                               [searchable]="true"
+                               [disabled]="!canManageHorarios"
+                               [clearable]="canManageHorarios"
+                               [searchable]="canManageHorarios"
                                [ngModel]="row.area_id"
                                (ngModelChange)="updateSpreadsheetCell(row, 'area_id', $event)">
                     </ng-select>
@@ -1244,7 +1258,8 @@
                       <input class="form-check-input m-0 flex-shrink-0" type="checkbox" role="switch"
                              style="cursor: pointer; width: 1.85rem; height: 0.95rem;"
                              [checked]="row.is_active"
-                             [title]="row.is_active ? 'Horario activo' : 'Horario inactivo'"
+                             [disabled]="!canManageHorarios"
+                             [title]="!canManageHorarios ? 'Sin permiso para gestionar horarios' : (row.is_active ? 'Horario activo' : 'Horario inactivo')"
                              (change)="updateSpreadsheetCell(row, 'is_active', $any($event.target).checked)">
                       <span class="badge rounded-pill text-center" style="font-size: 0.62rem; min-width: 46px;"
                             [class.bg-success-subtle]="row.is_active"
@@ -1260,7 +1275,7 @@
 
               @if (spreadsheetRows().length === 0) {
                 <tr>
-                  <td colspan="11" class="text-center py-5 text-muted">
+                  <td [attr.colspan]="canManageCostos ? 11 : 10" class="text-center py-5 text-muted">
                     <i class="bi bi-table display-5 d-block mb-2 opacity-50"></i>
                     <h6 class="fw-semibold">No se encontraron horarios con los filtros actuales</h6>
                     <p class="small mb-0">Ajusta los filtros superiores o cambia el estado seleccionado.</p>
@@ -1667,46 +1682,45 @@
 
                     @if (e.horarios && e.horarios.length > 0) {
                       <!-- BARRA DE COSTO POR CLASE DEL PROFESOR -->
-                      <div class="d-flex flex-column gap-1.5 mb-2 mt-1">
-                        @for (profCosto of getEquipoProfesoresCosto(e); track profCosto.profesor_id) {
-                          <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-3 bg-white border shadow-xs"
-                               style="border-color: #e2e8f0 !important;">
-                            <div class="d-flex align-items-center gap-2 overflow-hidden">
-                              <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
-                                   style="width: 26px; height: 26px; background: #ecfdf5; color: #059669; font-size: 0.85rem;">
-                                <i class="bi bi-cash-coin"></i>
+                      @if (canManageCostos) {
+                        <div class="d-flex flex-column gap-1.5 mb-2 mt-1">
+                          @for (profCosto of getEquipoProfesoresCosto(e); track profCosto.profesor_id) {
+                            <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-3 bg-white border shadow-xs"
+                                 style="border-color: #e2e8f0 !important;">
+                              <div class="d-flex align-items-center gap-2 overflow-hidden">
+                                <div class="rounded-2 d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width: 26px; height: 26px; background: #ecfdf5; color: #059669; font-size: 0.85rem;">
+                                  <i class="bi bi-cash-coin"></i>
+                                </div>
+                                <div class="d-flex flex-column overflow-hidden">
+                                  <span class="text-secondary fw-medium" style="font-size: 0.68rem; line-height: 1.1;">
+                                    Costo por clase
+                                  </span>
+                                  <span class="text-dark fw-semibold text-truncate" style="font-size: 0.78rem; text-transform: capitalize; line-height: 1.25;">
+                                    {{ profCosto.profesor_nombre.toLowerCase() }}
+                                  </span>
+                                </div>
                               </div>
-                              <div class="d-flex flex-column overflow-hidden">
-                                <span class="text-secondary fw-medium" style="font-size: 0.68rem; line-height: 1.1;">
-                                  Costo por clase
-                                </span>
-                                <span class="text-dark fw-semibold text-truncate" style="font-size: 0.78rem; text-transform: capitalize; line-height: 1.25;">
-                                  {{ profCosto.profesor_nombre.toLowerCase() }}
-                                </span>
-                              </div>
-                            </div>
 
-                            <button type="button"
-                                    class="btn btn-sm rounded-pill d-inline-flex align-items-center fw-bold flex-shrink-0 transition-all"
-                                    style="font-size: 0.78rem; padding: 0.28rem 0.75rem; gap: 0.35rem;"
-                                    [style.background]="profCosto.costo_interno !== null ? '#ecfdf5' : '#f1f5f9'"
-                                    [style.color]="profCosto.costo_interno !== null ? '#047857' : '#475569'"
-                                    [style.border]="profCosto.costo_interno !== null ? '1px solid #6ee7b7' : '1px solid #cbd5e1'"
-                                    [disabled]="!canManageCostos"
-                                    [title]="canManageCostos ? 'Cambiar costo por clase de este profesor' : 'Sin permiso para gestionar costos'"
-                                    (click)="promptCostoProfesor(selectedActividadForHorarios()!.id, e, profCosto)">
-                              @if (profCosto.costo_interno !== null) {
-                                <span>{{ profCosto.costo_interno | currency:'MXN':'symbol-narrow':'1.0-2' }}</span>
-                              } @else {
-                                <span>{{ canManageCostos ? 'Asignar costo' : 'Sin costo' }}</span>
-                              }
-                              @if (canManageCostos) {
+                              <button type="button"
+                                      class="btn btn-sm rounded-pill d-inline-flex align-items-center fw-bold flex-shrink-0 transition-all"
+                                      style="font-size: 0.78rem; padding: 0.28rem 0.75rem; gap: 0.35rem;"
+                                      [style.background]="profCosto.costo_interno !== null ? '#ecfdf5' : '#f1f5f9'"
+                                      [style.color]="profCosto.costo_interno !== null ? '#047857' : '#475569'"
+                                      [style.border]="profCosto.costo_interno !== null ? '1px solid #6ee7b7' : '1px solid #cbd5e1'"
+                                      title="Cambiar costo por clase de este profesor"
+                                      (click)="promptCostoProfesor(selectedActividadForHorarios()!.id, e, profCosto)">
+                                @if (profCosto.costo_interno !== null) {
+                                  <span>{{ profCosto.costo_interno | currency:'MXN':'symbol-narrow':'1.0-2' }}</span>
+                                } @else {
+                                  <span>Asignar costo</span>
+                                }
                                 <i class="bi bi-pencil-fill opacity-75" style="font-size: 0.62rem;"></i>
-                              }
-                            </button>
-                          </div>
-                        }
-                      </div>
+                              </button>
+                            </div>
+                          }
+                        </div>
+                      }
 
                       <div class="d-flex flex-column">
                         @for (grupoDia of agruparPorDia(e.horarios); track grupoDia.dia) {

@@ -1137,23 +1137,15 @@ export class DeportivoActividadesComponent implements OnInit {
       return;
     }
 
-    // Validar empalmes del profesor
+    // Validar empalmes del profesor (informativo, no restrictivo)
+    let conflictWarning: string | null = null;
     if (profId && profId > 0) {
-      const conflict = this.checkProfesorScheduleConflict(
+      conflictWarning = this.checkProfesorScheduleConflict(
         profId,
         Number(this.horarioForm.dia_semana),
         this.horarioForm.hora_inicio,
         this.horarioForm.hora_fin
       );
-      if (conflict) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Horario no disponible',
-          text: conflict,
-          confirmButtonText: 'Entendido'
-        });
-        return;
-      }
     }
     
     try {
@@ -1179,6 +1171,14 @@ export class DeportivoActividadesComponent implements OnInit {
       }
       this.selectedActividadForHorarios.set({...act});
       this.showToast('Horario agregado');
+      if (conflictWarning) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Aviso de empalme',
+          text: `${conflictWarning}. El horario se guardó de todas formas.`,
+          confirmButtonText: 'Entendido'
+        });
+      }
       this.inlineFormEquipoId.set(null);
       this.loadActividades();
     } catch (error: any) {
@@ -1622,18 +1622,6 @@ export class DeportivoActividadesComponent implements OnInit {
             return false;
           }
 
-          // Validar empalme del nuevo instructor en ese horario
-          const conflict = this.checkProfesorScheduleConflict(
-            newProfId,
-            newSchedule.dia_semana,
-            newSchedule.hora_inicio,
-            newSchedule.hora_fin
-          );
-          if (conflict) {
-            Swal.showValidationMessage(conflict);
-            return false;
-          }
-
           newSchedule.profesor_id = newProfId;
           const profName = instructores.find(i => Number(i.id) === newProfId)?.full_name || `#${newProfId}`;
           finalMotivo = `${selectedValue} (${profName})`;
@@ -1657,19 +1645,6 @@ export class DeportivoActividadesComponent implements OnInit {
           if (newDia === curDia && newIni === curIni && newFin === curFin) {
             Swal.showValidationMessage('El nuevo horario debe ser distinto al horario actual');
             return false;
-          }
-
-          if (curProfId > 0) {
-            const conflict = this.checkProfesorScheduleConflict(
-              curProfId,
-              newDia,
-              newIni,
-              newFin
-            );
-            if (conflict) {
-              Swal.showValidationMessage(conflict);
-              return false;
-            }
           }
 
           newSchedule.dia_semana = newDia;
@@ -1700,25 +1675,16 @@ export class DeportivoActividadesComponent implements OnInit {
     const pId = h.profesor_id || profesorId || 0;
     const checkbox = event?.target as HTMLInputElement | null;
 
-    // Si se va a reactivar, validar que no genere empalme
+    // Si se va a reactivar, verificar empalme de forma informativa (sin bloquear)
+    let conflictWarning: string | null = null;
     if (newVal && pId > 0) {
-      const conflict = this.checkProfesorScheduleConflict(
+      conflictWarning = this.checkProfesorScheduleConflict(
         pId,
         Number(h.dia_semana),
         h.hora_inicio,
         h.hora_fin,
         h.id
       );
-      if (conflict) {
-        if (checkbox) checkbox.checked = false;
-        Swal.fire({
-          icon: 'warning',
-          title: 'Horario con empalme',
-          text: conflict,
-          confirmButtonText: 'Entendido'
-        });
-        return;
-      }
     }
 
     let motivoCancelacion: string | null = null;
@@ -1748,6 +1714,14 @@ export class DeportivoActividadesComponent implements OnInit {
       }
       motivoCancelacion = promptResult.motivo;
       newScheduleData = promptResult.newSchedule;
+      if (newScheduleData && newScheduleData.profesor_id && Number(newScheduleData.profesor_id) > 0) {
+        conflictWarning = this.checkProfesorScheduleConflict(
+          Number(newScheduleData.profesor_id),
+          Number(newScheduleData.dia_semana),
+          newScheduleData.hora_inicio,
+          newScheduleData.hora_fin
+        );
+      }
     }
 
     try {
@@ -1777,6 +1751,15 @@ export class DeportivoActividadesComponent implements OnInit {
             ? 'Cambio aplicado y nuevo horario creado'
             : 'Horario inhabilitado'
       );
+
+      if (conflictWarning) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Aviso de empalme',
+          text: `${conflictWarning}. El cambio se guardó de todas formas.`,
+          confirmButtonText: 'Entendido'
+        });
+      }
 
       this.selectedActividadForHorarios.update(act => {
         if (!act) return null;
@@ -1849,24 +1832,16 @@ export class DeportivoActividadesComponent implements OnInit {
       return;
     }
 
-    // Validar empalmes del profesor
+    // Validar empalmes del profesor (informativo, no restrictivo)
     const profId = this.horarioForm.profesor_id || act.profesor_id;
+    let conflictWarning: string | null = null;
     if (profId && profId > 0) {
-      const conflict = this.checkProfesorScheduleConflict(
+      conflictWarning = this.checkProfesorScheduleConflict(
         profId,
         Number(this.horarioForm.dia_semana),
         this.horarioForm.hora_inicio,
         this.horarioForm.hora_fin
       );
-      if (conflict) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Horario no disponible',
-          text: conflict,
-          confirmButtonText: 'Entendido'
-        });
-        return;
-      }
     }
     
     try {
@@ -1879,6 +1854,14 @@ export class DeportivoActividadesComponent implements OnInit {
       }));
       
       this.showToast('Horario agregado.');
+      if (conflictWarning) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Aviso de empalme',
+          text: `${conflictWarning}. El horario se guardó de todas formas.`,
+          confirmButtonText: 'Entendido'
+        });
+      }
       this.loadActividades();
       
       this.selectedActividadForHorarios.update(a => {
@@ -3000,16 +2983,18 @@ export class DeportivoActividadesComponent implements OnInit {
       return;
     }
 
-    // Bloquear guardado solo si alguno de los horarios donde se cambió día/hora/profesor/reactivación tiene empalme o rango inválido
-    const conflictsInDirty = dirtyRows.filter(r => r.schedule_or_prof_changed && Boolean(r.conflict_msg));
-    if (conflictsInDirty.length > 0) {
+    // Bloquear guardado únicamente si existe un rango de horas inválido (hora_fin <= hora_inicio). Los empalmes son solo informativos.
+    const invalidTimeRows = dirtyRows.filter(
+      r => r.schedule_or_prof_changed && Boolean(r.conflict_msg?.startsWith('Horario inválido'))
+    );
+    if (invalidTimeRows.length > 0) {
       Swal.fire({
         icon: 'warning',
-        title: 'Conflicto de horario detectado',
+        title: 'Horario inválido detectado',
         html: `
-          <p class="small text-muted mb-2">No es posible guardar mientras existan empalmes o rangos inválidos en los horarios modificados:</p>
+          <p class="small text-muted mb-2">No es posible guardar mientras existan rangos de hora inválidos en los horarios modificados:</p>
           <div class="text-start small bg-danger-subtle text-danger p-2 rounded-3 border border-danger-subtle" style="max-height: 220px; overflow-y: auto;">
-            ${conflictsInDirty.map(c => `<div class="mb-1">• <strong>${c.actividad_nombre} (${c.grupo_nombre})</strong>: ${c.conflict_msg}</div>`).join('')}
+            ${invalidTimeRows.map(c => `<div class="mb-1">• <strong>${c.actividad_nombre} (${c.grupo_nombre})</strong>: ${c.conflict_msg}</div>`).join('')}
           </div>
         `,
         confirmButtonText: 'Entendido',

@@ -310,7 +310,7 @@
 
                   <!-- Instructor de la clase -->
                   <div class="row g-2 mb-3">
-                    <div class="col-12 col-md-8">
+                    <div class="col-12" [class.col-md-8]="canManageCostos">
                       <label class="form-label small fw-semibold">Instructor titular</label>
                       <ng-select class="custom-sm-select"
                         [items]="formData()?.instructores || []"
@@ -324,20 +324,22 @@
                         >
                       </ng-select>
                     </div>
-                    <div class="col-12 col-md-4">
-                      <label class="form-label small fw-semibold">Costo base</label>
-                      <div class="input-group input-group-sm">
-                        <span class="input-group-text">$</span>
-                        <input type="number" class="form-control form-control-sm" min="0" step="0.01"
-                               placeholder="0.00"
-                               [disabled]="!canManageCostos"
-                               [title]="!canManageCostos ? 'Sin permiso para gestionar costos' : ''"
-                               [ngModel]="grupos()[gi].costo_interno"
-                               (ngModelChange)="setGrupoCosto(gi, $event)">
+                    @if (canManageCostos) {
+                      <div class="col-12 col-md-4">
+                        <label class="form-label small fw-semibold">Costo base</label>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text">$</span>
+                          <input type="number" class="form-control form-control-sm" min="0" step="0.01"
+                                 placeholder="0.00"
+                                 [ngModel]="grupos()[gi].costo_interno"
+                                 (ngModelChange)="setGrupoCosto(gi, $event)">
+                        </div>
                       </div>
-                    </div>
+                    }
                     <div class="col-12">
-                      <small class="text-muted" style="font-size: 0.75rem;">Este profesor y costo se asignarán automáticamente a todos los horarios de esta clase.</small>
+                      <small class="text-muted" style="font-size: 0.75rem;">
+                        {{ canManageCostos ? 'Este profesor y costo se asignarán automáticamente a todos los horarios de esta clase.' : 'Este profesor se asignará automáticamente a todos los horarios de esta clase.' }}
+                      </small>
                     </div>
                   </div>
 
@@ -720,11 +722,11 @@
           }
           @let conflictResumen = findAnyHorarioConflict();
           @if (conflictResumen) {
-            <div class="alert alert-danger d-flex align-items-center gap-2 mt-4 mb-0 py-2 rounded-3">
+            <div class="alert alert-warning d-flex align-items-center gap-2 mt-4 mb-0 py-2 rounded-3">
               <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
               <div>
-                <strong>Conflicto detectado en horarios:</strong> {{ conflictResumen }}
-                <div class="small">Regresa al paso 4 para corregir el empalme antes de guardar.</div>
+                <strong>Aviso de empalme en horarios:</strong> {{ conflictResumen }}
+                <div class="small">Este aviso es informativo; puedes continuar y guardar la actividad si así lo deseas.</div>
               </div>
             </div>
           }
@@ -745,7 +747,7 @@
           </div>
           <div class="d-flex gap-2">
             <button class="btn btn-sm btn-light" (click)="revertChanges()">Descartar</button>
-            <button class="btn btn-sm btn-dark" [disabled]="saving() || !!findAnyHorarioConflict()" (click)="publish(false)">
+            <button class="btn btn-sm btn-dark" [disabled]="saving() || !!findAnyInvalidTimeRange()" (click)="publish(false)">
               @if (saving()) {
                 <span class="spinner-border spinner-border-sm me-1"></span>
               }
@@ -773,7 +775,7 @@
           </button>
         }
         @if (currentStep() === steps.length) {
-          <button class="btn btn-success" [disabled]="saving() || !!findAnyHorarioConflict()" (click)="publish()">
+          <button class="btn btn-success" [disabled]="saving() || !!findAnyInvalidTimeRange()" (click)="publish()">
             @if (saving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             } @else {
