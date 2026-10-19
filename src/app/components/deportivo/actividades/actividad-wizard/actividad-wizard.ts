@@ -112,12 +112,48 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
   costo_interno: number | null = null;
   profesor_id: number | null = null;
 
-  setFechaInicioHoy(): void {
+  get hoyISO(): string {
     const now = new Date();
     const yyyy = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
-    this.fecha_inicio = `${yyyy}-${mm}-${dd}`;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  get canManageCostos(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'gestionar_costos_actividades');
+  }
+
+  get canManageHorarios(): boolean {
+    return (
+      this.auth.hasPermission('actividades.lista', 'gestionar_horarios_actividades') ||
+      this.auth.hasPermission('actividades.equipos', 'update')
+    );
+  }
+
+  get originalFechaInicio(): string {
+    return (this.originalActividad()?.fecha_inicio || this.editActividad?.fecha_inicio || '').substring(0, 10);
+  }
+
+  get isFechaInicioBloqueada(): boolean {
+    if (!this.isEditing()) return false;
+    const orig = this.originalFechaInicio;
+    return !!orig && orig < this.hoyISO;
+  }
+
+  setFechaInicioHoy(): void {
+    if (this.isFechaInicioBloqueada) return;
+    this.fecha_inicio = this.hoyISO;
+    if (this.fecha_fin && this.fecha_fin < this.fecha_inicio) {
+      this.fecha_fin = '';
+    }
+  }
+
+  onFechaInicioChange(val: string): void {
+    this.fecha_inicio = val;
+    if (this.fecha_fin && val && this.fecha_fin < val) {
+      this.fecha_fin = '';
+    }
   }
 
   // ── Paso 2: Grupos ──────────────────────────────────────────────────────────
@@ -263,18 +299,12 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
   // ── Navegación ───────────────────────────────────────────────────────────────
   goTo(step: number): void {
     if (step < 1 || step > STEPS.length) return;
-    if (step > this.currentStep() && !this.validateCurrentStep()) return;
-    if (step > 4) {
-      const conflict = this.findAnyHorarioConflict();
-      if (conflict) {
-        this.error.set(conflict);
-        Swal.fire({
-          icon: 'warning',
-          title: 'Conflicto de horario',
-          text: conflict,
-          confirmButtonText: 'Entendido'
-        });
-        return;
+    if (step > this.currentStep()) {
+      for (let s = this.currentStep(); s < step; s++) {
+        if (!this.validateStep(s)) {
+          this.currentStep.set(s);
+          return;
+        }
       }
     }
     this.currentStep.set(step);
@@ -392,8 +422,10 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
     return null;
   }
 
-  private validateCurrentStep(): boolean {
-    if (this.currentStep() === 1) {
+  private validateStep(step: number): boolean {
+    const hoy = this.hoyISO;
+
+    if (step === 1) {
       if (!this.club_id) {
         this.error.set('Debes seleccionar un club o sede.');
         return false;
@@ -406,24 +438,58 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
         this.error.set('La fecha de inicio de la actividad es obligatoria.');
         return false;
       }
-      if (this.fecha_fin && this.fecha_fin < this.fecha_inicio) {
-        this.error.set('La fecha fin no puede ser anterior a la fecha inicio.');
-        return false;
+
+      const fIni = this.fecha_inicio.substring(0, 10);
+      const origIni = this.originalFechaInicio;
+
+      if (this.isEditing()) {
+        if (origIni && origIni < hoy && fIni !== origIni) {
+          this.error.set('No se puede cambiar la fecha de inicio de una actividad cuya fecha es anterior al día de hoy.');
+          return false;
+        }
+        if ((!origIni || origIni >= hoy || fIni !== origIni) && fIni < hoy) {
+          this.error.set('La fecha de inicio no puede ser anterior al día de hoy.');
+          return false;
+        }
+      } else {
+        if (fIni < hoy) {
+          this.error.set('La fecha de inicio no puede ser anterior al día de hoy.');
+          return false;
+        }
       }
-      if (this.tiene_costo && !this.monto) {
-        this.error.set('Debes ingresar el monto a cobrar.');
+
+      if (this.fecha_fin) {
+        const fFin = this.fecha_fin.substring(0, 10);
+        if (fFin < fIni) {
+          this.error.set('La fecha final no puede ser anterior a la fecha inicial.');
+          return false;
+        }
+      }
+
+      if (this.tiene_costo && (!this.monto || this.monto <= 0)) {
+        this.error.set('Debes ingresar un monto a cobrar mayor a 0.');
         return false;
       }
     }
 
-    if (this.currentStep() === 3) {
+    if (step === 3) {
       if (this.grupos().some(g => !g.nombre || !g.nombre.trim())) {
         this.error.set('Todas las clases deben tener un nombre.');
         return false;
       }
+      for (const g of this.grupos()) {
+        if (g.edad_min !== null && g.edad_max !== null && Number(g.edad_max) < Number(g.edad_min)) {
+          this.error.set(`En la clase "${g.nombre}", la edad máxima no puede ser menor que la edad mínima.`);
+          return false;
+        }
+        if (g.tiene_cupo && (!g.cupo_maximo || Number(g.cupo_maximo) <= 0)) {
+          this.error.set(`En la clase "${g.nombre}", debes ingresar un cupo máximo mayor a 0.`);
+          return false;
+        }
+      }
     }
 
-    if (this.currentStep() === 4) {
+    if (step === 4) {
       const conflict = this.findAnyHorarioConflict();
       if (conflict) {
         this.error.set(conflict);
@@ -437,6 +503,32 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
       }
     }
 
+    if (step === 5) {
+      for (const c of this.criterios()) {
+        if (!c.nombre || !c.nombre.trim()) {
+          this.error.set('Todos los criterios de evaluación deben tener un nombre.');
+          return false;
+        }
+        if (c.escala_max !== null && c.escala_min !== null && Number(c.escala_max) <= Number(c.escala_min)) {
+          this.error.set(`En el criterio "${c.nombre}", la escala máxima debe ser mayor a la escala mínima.`);
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
+  private validateCurrentStep(): boolean {
+    return this.validateStep(this.currentStep());
+  }
+
+  private validateAllSteps(): boolean {
+    for (const s of [1, 3, 4, 5]) {
+      if (!this.validateStep(s)) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -1278,7 +1370,7 @@ export class ActividadWizardComponent implements OnInit, DoCheck {
 
   // ── Publicar ─────────────────────────────────────────────────────────────────
   async publish(closeModal = true): Promise<void> {
-    if (!this.validateCurrentStep()) return;
+    if (!this.validateAllSteps()) return;
 
     const conflict = this.findAnyHorarioConflict();
     if (conflict) {

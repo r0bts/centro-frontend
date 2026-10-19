@@ -12,39 +12,50 @@
     </div>
     <div class="d-flex align-items-center flex-wrap gap-2">
       <!-- Botones de Mantenimiento vía Excel -->
-      <div class="btn-group shadow-sm rounded-pill bg-white border p-0.5" role="group">
-        <button type="button"
-                class="btn btn-sm btn-light border-0 rounded-start-pill d-flex align-items-center gap-1.5 px-2.5 text-success fw-semibold"
-                style="font-size: 0.78rem; height: 32px; gap: 0.35rem; padding: 0 0.75rem;"
-                [disabled]="exportingExcel()"
-                (click)="downloadExcelTemplate()"
-                title="Descargar plantilla Excel (.xlsx) con horarios, costos, profesores y ubicaciones">
-          @if (exportingExcel()) {
-            <span class="spinner-border spinner-border-sm"></span>
-          } @else {
-            <i class="bi bi-file-earmark-excel-fill"></i>
+      @if (canExportExcel || canImportExcel) {
+        <div class="btn-group shadow-sm rounded-pill bg-white border p-0.5" role="group">
+          @if (canExportExcel) {
+            <button type="button"
+                    class="btn btn-sm btn-light border-0 d-flex align-items-center gap-1.5 px-2.5 text-success fw-semibold"
+                    [class.rounded-start-pill]="canImportExcel"
+                    [class.rounded-pill]="!canImportExcel"
+                    style="font-size: 0.78rem; height: 32px; gap: 0.35rem; padding: 0 0.75rem;"
+                    [disabled]="exportingExcel()"
+                    (click)="downloadExcelTemplate()"
+                    title="Descargar plantilla Excel (.xlsx) con horarios, costos, profesores y ubicaciones">
+              @if (exportingExcel()) {
+                <span class="spinner-border spinner-border-sm"></span>
+              } @else {
+                <i class="bi bi-file-earmark-excel-fill"></i>
+              }
+              <span>Exportar Excel</span>
+            </button>
           }
-          <span>Exportar Excel</span>
-        </button>
-        <label class="btn btn-sm btn-light border-0 border-start rounded-end-pill d-flex align-items-center gap-1.5 px-2.5 text-primary fw-semibold mb-0"
-               style="font-size: 0.78rem; height: 32px; gap: 0.35rem; padding: 0 0.75rem; cursor: pointer;"
-               [class.disabled]="importingExcel()"
-               title="Subir plantilla Excel (.xlsx) modificada para aplicar cambios masivos">
-          @if (importingExcel()) {
-            <span class="spinner-border spinner-border-sm"></span>
-          } @else {
-            <i class="bi bi-cloud-upload-fill"></i>
+          @if (canImportExcel) {
+            <label class="btn btn-sm btn-light border-0 d-flex align-items-center gap-1.5 px-2.5 text-primary fw-semibold mb-0"
+                   [class.border-start]="canExportExcel"
+                   [class.rounded-end-pill]="canExportExcel"
+                   [class.rounded-pill]="!canExportExcel"
+                   style="font-size: 0.78rem; height: 32px; gap: 0.35rem; padding: 0 0.75rem; cursor: pointer;"
+                   [class.disabled]="importingExcel()"
+                   title="Subir plantilla Excel (.xlsx) modificada para aplicar cambios masivos">
+              @if (importingExcel()) {
+                <span class="spinner-border spinner-border-sm"></span>
+              } @else {
+                <i class="bi bi-cloud-upload-fill"></i>
+              }
+              <span>Importar Excel</span>
+              <input type="file" accept=".xlsx,.xls" class="d-none" (change)="onExcelFileSelected($event)" [disabled]="importingExcel()">
+            </label>
           }
-          <span>Importar Excel</span>
-          <input type="file" accept=".xlsx,.xls" class="d-none" (change)="onExcelFileSelected($event)" [disabled]="importingExcel()">
-        </label>
-      </div>
+        </div>
+      }
 
       <!-- Selector de Vista -->
       <div class="d-flex align-items-center bg-white border rounded-pill p-1 shadow-sm" style="position: relative; isolation: isolate;">
         <div class="position-absolute bg-primary rounded-pill shadow-sm" 
              style="height: 32px; width: 36px; top: 0.25rem; left: 0.25rem; z-index: 0; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);"
-             [ngStyle]="{'transform': viewMode() === 'grid' ? 'translateX(0px)' : (viewMode() === 'list' ? 'translateX(40px)' : (viewMode() === 'spreadsheet' ? 'translateX(80px)' : (viewMode() === 'calendar' ? 'translateX(120px)' : (viewMode() === 'classic' ? 'translateX(160px)' : 'translateX(200px)'))))}">
+             [ngStyle]="{'transform': activeViewModeTranslateX}">
         </div>
         <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
                 [class.text-white]="viewMode() === 'grid'" [class.text-secondary]="viewMode() !== 'grid'"
@@ -56,11 +67,13 @@
                 (click)="viewMode.set('list')" title="Lista">
           <i class="bi bi-list-ul" style="font-size: 1.1rem;"></i>
         </button>
-        <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
-                [class.text-white]="viewMode() === 'spreadsheet'" [class.text-secondary]="viewMode() !== 'spreadsheet'"
-                (click)="viewMode.set('spreadsheet')" title="Mantenimiento Rápido (Hoja de Cálculo)">
-          <i class="bi bi-table"></i>
-        </button>
+        @if (canBulkEdit) {
+          <button type="button" class="btn btn-sm border-0 rounded-pill position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
+                  [class.text-white]="viewMode() === 'spreadsheet'" [class.text-secondary]="viewMode() !== 'spreadsheet'"
+                  (click)="viewMode.set('spreadsheet')" title="Mantenimiento Rápido (Hoja de Cálculo)">
+            <i class="bi bi-table"></i>
+          </button>
+        }
         <button type="button" class="btn btn-sm border-0 rounded-pill mx-1 position-relative" style="width: 36px; height: 32px; display: flex; align-items: center; justify-content: center; z-index: 1; transition: color 0.3s;"
                 [class.text-white]="viewMode() === 'calendar'" [class.text-secondary]="viewMode() !== 'calendar'"
                 (click)="viewMode.set('calendar')" title="Línea de tiempo">
@@ -77,10 +90,12 @@
           <i class="bi bi-grid-3x3-gap-fill"></i>
         </button>
       </div>
-      <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
-        <i class="bi bi-plus-lg"></i>
-        <span>Nueva actividad</span>
-      </button>
+      @if (canCreate) {
+        <button class="btn btn-primary d-flex align-items-center gap-2" (click)="openWizard()">
+          <i class="bi bi-plus-lg"></i>
+          <span>Nueva actividad</span>
+        </button>
+      }
     </div>
   </div>
 
@@ -301,13 +316,15 @@
       <div class="activities-grid">
 
       <!-- Tarjeta "Nueva actividad" -->
-      <div class="activity-card add-card" (click)="openWizard()" role="button" tabindex="0"
-           (keydown.enter)="openWizard()">
-        <div class="add-icon">
-          <i class="bi bi-plus-lg"></i>
+      @if (canCreate) {
+        <div class="activity-card add-card" (click)="openWizard()" role="button" tabindex="0"
+             (keydown.enter)="openWizard()">
+          <div class="add-icon">
+            <i class="bi bi-plus-lg"></i>
+          </div>
+          <span class="add-label">Nueva actividad</span>
         </div>
-        <span class="add-label">Nueva actividad</span>
-      </div>
+      }
 
       <!-- Tarjetas de actividades -->
       @for (act of filteredActividades(); track act.id) {
@@ -326,14 +343,17 @@
               }
               
               <div class="form-check form-switch mb-0 d-flex align-items-center justify-content-end" style="padding-left: 0;">
-                <label class="form-check-label small me-1 fw-bold" style="font-size: 0.7rem; cursor: pointer;" (click)="toggleSocios(act); $event.preventDefault()"
+                <label class="form-check-label small me-1 fw-bold" style="font-size: 0.7rem;"
+                       [style.cursor]="canUpdate ? 'pointer' : 'default'"
+                       (click)="toggleSocios(act); $event.preventDefault()"
                        [class.text-primary]="act.elegible_para_socios !== false"
                        [class.text-secondary]="act.elegible_para_socios === false">
                   <i class="bi" [class.bi-person-check]="act.elegible_para_socios !== false" [class.bi-building]="act.elegible_para_socios === false"></i>
                   {{ act.elegible_para_socios !== false ? 'Socios' : 'Staff' }}
                 </label>
                 <input class="form-check-input m-0" type="checkbox" role="switch"
-                       [checked]="act.elegible_para_socios !== false" 
+                       [checked]="act.elegible_para_socios !== false"
+                       [disabled]="!canUpdate"
                        (change)="toggleSocios(act)"
                        style="cursor: pointer; width: 2.2rem; height: 1.1rem;">
               </div>
@@ -426,10 +446,11 @@
             <!-- Switch -->
             <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" style="padding-left: 0;" [title]="act.is_active ? 'Desactivar actividad' : 'Activar actividad'">
               <input class="form-check-input m-0" type="checkbox" role="switch"
-                     [checked]="act.is_active" 
+                     [checked]="act.is_active"
+                     [disabled]="!canUpdate"
                      (change)="toggleActive(act)"
                      style="cursor: pointer; width: 2.2rem; height: 1.1rem;">
-              <label class="form-check-label small text-dark mb-0" style="cursor: pointer; font-size: 0.85rem;" (click)="toggleActive(act); $event.preventDefault()">
+              <label class="form-check-label small text-dark mb-0" [style.cursor]="canUpdate ? 'pointer' : 'default'" style="font-size: 0.85rem;" (click)="toggleActive(act); $event.preventDefault()">
                 Activa
               </label>
             </div>
@@ -441,24 +462,30 @@
                       (click)="openHorariosOffcanvas(act)">
                 <i class="bi bi-clock"></i>
               </button>
-              <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-muted"
-                      style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
-                      title="Duplicar"
-                      (click)="duplicateActividad(act)">
-                <i class="bi bi-files"></i>
-              </button>
-              <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-danger"
-                      style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
-                      title="Eliminar"
-                      (click)="confirmDelete(act)">
-                <i class="bi bi-trash"></i>
-              </button>
-              <button class="btn btn-sm btn-primary px-3"
-                      style="border-radius: 16px; font-weight: 600; font-size: 0.82rem; background-color: #3b71ca; border-color: #3b71ca;"
-                      title="Editar"
-                      (click)="editActividad(act)">
-                Editar
-              </button>
+              @if (canDuplicate) {
+                <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-muted"
+                        style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
+                        title="Duplicar"
+                        (click)="duplicateActividad(act)">
+                  <i class="bi bi-files"></i>
+                </button>
+              }
+              @if (canDelete) {
+                <button class="btn btn-sm btn-light border d-flex align-items-center justify-content-center text-danger"
+                        style="width: 30px; height: 30px; border-radius: 6px; background-color: #f8f9fa;"
+                        title="Eliminar"
+                        (click)="confirmDelete(act)">
+                  <i class="bi bi-trash"></i>
+                </button>
+              }
+              @if (canUpdate) {
+                <button class="btn btn-sm btn-primary px-3"
+                        style="border-radius: 16px; font-weight: 600; font-size: 0.82rem; background-color: #3b71ca; border-color: #3b71ca;"
+                        title="Editar"
+                        (click)="editActividad(act)">
+                  Editar
+                </button>
+              }
             </div>
           </div>
         </div>
@@ -469,10 +496,12 @@
         <div class="empty-state col-span-full">
           <i class="bi bi-trophy display-4 text-muted d-block mb-1"></i>
           <h5 class="text-muted">No hay actividades registradas</h5>
-          <p class="text-muted small">Crea la primera actividad usando el botón "Nueva actividad".</p>
-          <button class="btn btn-primary" (click)="openWizard()">
-            <i class="bi bi-plus-lg me-2"></i>Crear actividad
-          </button>
+          @if (canCreate) {
+            <p class="text-muted small">Crea la primera actividad usando el botón "Nueva actividad".</p>
+            <button class="btn btn-primary" (click)="openWizard()">
+              <i class="bi bi-plus-lg me-2"></i>Crear actividad
+            </button>
+          }
         </div>
       }
     </div>
@@ -526,12 +555,12 @@
                   <td>
                     <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" style="padding-left: 0;">
                       <input class="form-check-input m-0" type="checkbox" role="switch"
-                             [checked]="act.elegible_para_socios !== false" 
+                             [checked]="act.elegible_para_socios !== false"
+                             [disabled]="!canUpdate"
                              (change)="toggleSocios(act)"
                              style="cursor: pointer; width: 2.2rem; height: 1.1rem;"
-                             
                              >
-                      <label class="form-check-label small mb-0 fw-bold" style="cursor: pointer;" (click)="toggleSocios(act); $event.preventDefault()"
+                      <label class="form-check-label small mb-0 fw-bold" [style.cursor]="canUpdate ? 'pointer' : 'default'" (click)="toggleSocios(act); $event.preventDefault()"
                              [class.text-primary]="act.elegible_para_socios !== false"
                              [class.text-secondary]="act.elegible_para_socios === false">
                         <i class="bi" [class.bi-person-check]="act.elegible_para_socios !== false" [class.bi-building]="act.elegible_para_socios === false"></i> 
@@ -603,10 +632,11 @@
                   <td>
                     <div class="form-check form-switch mb-0 d-flex align-items-center gap-2" style="padding-left: 0;">
                       <input class="form-check-input m-0" type="checkbox" role="switch"
-                             [checked]="act.is_active" 
+                             [checked]="act.is_active"
+                             [disabled]="!canUpdate"
                              (change)="toggleActive(act)"
                              style="cursor: pointer; width: 2.2rem; height: 1.1rem;">
-                      <label class="form-check-label small mb-0 fw-bold" style="cursor: pointer;" (click)="toggleActive(act); $event.preventDefault()"
+                      <label class="form-check-label small mb-0 fw-bold" [style.cursor]="canUpdate ? 'pointer' : 'default'" (click)="toggleActive(act); $event.preventDefault()"
                              [class.text-success]="act.is_active"
                              [class.text-secondary]="!act.is_active">
                         {{ act.is_active ? 'Activa' : 'Inactiva' }}
@@ -622,18 +652,30 @@
                   <!-- Acciones -->
                   <td class="text-end pe-4">
                     <div class="btn-group border rounded-pill bg-white shadow-sm" role="group">
-                      <button type="button" class="btn btn-sm btn-light border-0 rounded-start-pill text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Horarios" (click)="openHorariosOffcanvas(act)">
+                      <button type="button" class="btn btn-sm btn-light border-0 rounded-start-pill text-primary d-flex align-items-center justify-content-center"
+                              [class.rounded-end-pill]="!canDuplicate && !canUpdate && !canDelete"
+                              style="width: 36px; height: 32px;" title="Horarios" (click)="openHorariosOffcanvas(act)">
                         <i class="bi bi-clock" style="font-size: 0.85rem;"></i>
                       </button>
-                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Duplicar" (click)="duplicateActividad(act)">
-                        <i class="bi bi-files" style="font-size: 0.85rem;"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
-                        <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
-                      </button>
-                      <button type="button" class="btn btn-sm btn-light border-0 border-start rounded-end-pill text-danger d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Eliminar" (click)="confirmDelete(act)">
-                        <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
-                      </button>
+                      @if (canDuplicate) {
+                        <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center"
+                                [class.rounded-end-pill]="!canUpdate && !canDelete"
+                                style="width: 36px; height: 32px;" title="Duplicar" (click)="duplicateActividad(act)">
+                          <i class="bi bi-files" style="font-size: 0.85rem;"></i>
+                        </button>
+                      }
+                      @if (canUpdate) {
+                        <button type="button" class="btn btn-sm btn-light border-0 border-start text-secondary d-flex align-items-center justify-content-center"
+                                [class.rounded-end-pill]="!canDelete"
+                                style="width: 36px; height: 32px;" title="Editar" (click)="editActividad(act)">
+                          <i class="bi bi-pencil" style="font-size: 0.85rem;"></i>
+                        </button>
+                      }
+                      @if (canDelete) {
+                        <button type="button" class="btn btn-sm btn-light border-0 border-start rounded-end-pill text-danger d-flex align-items-center justify-content-center" style="width: 36px; height: 32px;" title="Eliminar" (click)="confirmDelete(act)">
+                          <i class="bi bi-trash" style="font-size: 0.85rem;"></i>
+                        </button>
+                      }
                     </div>
                   </td>
                 </tr>
@@ -889,11 +931,13 @@
                 </div>
 
                 <!-- Costo por clase en lote -->
-                <div class="input-group input-group-sm" style="width: 145px;">
-                  <span class="input-group-text bg-white border-end-0 rounded-start-pill" style="font-size: 0.75rem;">$</span>
-                  <input type="number" min="0" step="0.01" class="form-control form-control-sm border-start-0 rounded-end-pill bg-white"
-                         style="font-size: 0.75rem;" placeholder="Costo prof." [(ngModel)]="batchCostoInterno">
-                </div>
+                @if (canManageCostos) {
+                  <div class="input-group input-group-sm" style="width: 145px;">
+                    <span class="input-group-text bg-white border-end-0 rounded-start-pill" style="font-size: 0.75rem;">$</span>
+                    <input type="number" min="0" step="0.01" class="form-control form-control-sm border-start-0 rounded-end-pill bg-white"
+                           style="font-size: 0.75rem;" placeholder="Costo prof." [(ngModel)]="batchCostoInterno">
+                  </div>
+                }
 
                 <!-- Área en lote -->
                 <div style="width: 220px;">
@@ -1171,6 +1215,8 @@
                              class="form-control form-control-sm spreadsheet-input fw-semibold w-100"
                              style="padding-left: 1.45rem !important;"
                              placeholder="0.00"
+                             [disabled]="!canManageCostos"
+                             [title]="!canManageCostos ? 'Sin permiso para gestionar costos' : ''"
                              [value]="row.costo_interno !== null && row.costo_interno !== undefined ? row.costo_interno : ''"
                              (change)="updateSpreadsheetCell(row, 'costo_interno', $any($event.target).value)">
                     </div>
@@ -1355,7 +1401,7 @@
                                    <i class="bi bi-person me-1"></i>{{ session.profesor }}
                                 </div>
         
-                                @if (session.hovered) {
+                                @if (session.hovered && canUpdate) {
                                   <div class="position-absolute bottom-0 end-0 p-1 rounded-start" style="z-index: 10;">
                                      <button class="btn btn-sm btn-primary rounded-circle shadow-sm d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;" title="Editar Actividad" (click)="editActividad(session.actRef); $event.stopPropagation()">
                                        <i class="bi bi-pencil" style="font-size: 0.6rem;"></i>
@@ -1646,14 +1692,17 @@
                                     [style.background]="profCosto.costo_interno !== null ? '#ecfdf5' : '#f1f5f9'"
                                     [style.color]="profCosto.costo_interno !== null ? '#047857' : '#475569'"
                                     [style.border]="profCosto.costo_interno !== null ? '1px solid #6ee7b7' : '1px solid #cbd5e1'"
-                                    title="Cambiar costo por clase de este profesor"
+                                    [disabled]="!canManageCostos"
+                                    [title]="canManageCostos ? 'Cambiar costo por clase de este profesor' : 'Sin permiso para gestionar costos'"
                                     (click)="promptCostoProfesor(selectedActividadForHorarios()!.id, e, profCosto)">
                               @if (profCosto.costo_interno !== null) {
                                 <span>{{ profCosto.costo_interno | currency:'MXN':'symbol-narrow':'1.0-2' }}</span>
                               } @else {
-                                <span>Asignar costo</span>
+                                <span>{{ canManageCostos ? 'Asignar costo' : 'Sin costo' }}</span>
                               }
-                              <i class="bi bi-pencil-fill opacity-75" style="font-size: 0.62rem;"></i>
+                              @if (canManageCostos) {
+                                <i class="bi bi-pencil-fill opacity-75" style="font-size: 0.62rem;"></i>
+                              }
                             </button>
                           </div>
                         }
@@ -1712,12 +1761,14 @@
                                     </div>
                                   </div>
                                   <div class="d-flex align-items-center flex-shrink-0" style="gap: 0.6rem;">
-                                    <button class="btn btn-sm btn-light border p-0 d-flex align-items-center justify-content-center text-primary rounded-circle shadow-sm"
-                                            style="width: 28px; height: 28px;"
-                                            title="Añadir horario a este profesor"
-                                            (click)="openInlineForm(e.id, grupoDia.dia, profGroup.profesor_id); $event.stopPropagation()">
-                                      <i class="bi bi-plus-lg" style="font-size: 0.78rem;"></i>
-                                    </button>
+                                    @if (canManageHorarios) {
+                                      <button class="btn btn-sm btn-light border p-0 d-flex align-items-center justify-content-center text-primary rounded-circle shadow-sm"
+                                              style="width: 28px; height: 28px;"
+                                              title="Añadir horario a este profesor"
+                                              (click)="openInlineForm(e.id, grupoDia.dia, profGroup.profesor_id); $event.stopPropagation()">
+                                        <i class="bi bi-plus-lg" style="font-size: 0.78rem;"></i>
+                                      </button>
+                                    }
                                     <i class="bi text-secondary transition-all"
                                        [class.bi-chevron-up]="profExpanded"
                                        [class.bi-chevron-down]="!profExpanded"
@@ -1756,21 +1807,23 @@
                                             </span>
                                           </div>
 
-                                          <div class="d-flex align-items-center gap-2 flex-shrink-0">
-                                            <div class="form-check form-switch mb-0 d-flex align-items-center" style="padding-left: 0;"
-                                                 [title]="isHorarioActive ? 'Inhabilitar o modificar horario' : 'Habilitar horario'">
-                                              <input class="form-check-input m-0" type="checkbox" role="switch"
-                                                     [checked]="isHorarioActive"
-                                                     (change)="toggleHorarioRapido(selectedActividadForHorarios()!.id, e.id, h, profGroup.profesor_id, $event)"
-                                                     style="cursor: pointer; width: 2rem; height: 1.05rem;">
+                                          @if (canManageHorarios) {
+                                            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                              <div class="form-check form-switch mb-0 d-flex align-items-center" style="padding-left: 0;"
+                                                   [title]="isHorarioActive ? 'Inhabilitar o modificar horario' : 'Habilitar horario'">
+                                                <input class="form-check-input m-0" type="checkbox" role="switch"
+                                                       [checked]="isHorarioActive"
+                                                       (change)="toggleHorarioRapido(selectedActividadForHorarios()!.id, e.id, h, profGroup.profesor_id, $event)"
+                                                       style="cursor: pointer; width: 2rem; height: 1.05rem;">
+                                              </div>
+                                              <button class="btn btn-sm btn-link text-danger p-0 d-flex align-items-center justify-content-center opacity-75 hover-opacity-100"
+                                                      style="width: 24px; height: 24px;"
+                                                      title="Eliminar horario"
+                                                      (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
+                                                <i class="bi bi-trash3" style="font-size: 0.82rem;"></i>
+                                              </button>
                                             </div>
-                                            <button class="btn btn-sm btn-link text-danger p-0 d-flex align-items-center justify-content-center opacity-75 hover-opacity-100"
-                                                    style="width: 24px; height: 24px;"
-                                                    title="Eliminar horario"
-                                                    (click)="deleteHorarioRapido(selectedActividadForHorarios()!.id, e.id, h.id)">
-                                              <i class="bi bi-trash3" style="font-size: 0.82rem;"></i>
-                                            </button>
-                                          </div>
+                                          }
                                         </div>
 
                                         <!-- Sub-fila compacta de motivo de inhabilitación -->

@@ -62,6 +62,50 @@ export class DeportivoActividadesComponent implements OnInit {
   private svc    = inject(ActividadService);
   private auth   = inject(AuthService);
 
+  // ── Permisos del usuario para Actividades y Profesores (actividades.lista) ──
+  get canCreate(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'create');
+  }
+  get canUpdate(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'update');
+  }
+  get canDelete(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'delete');
+  }
+  get canDuplicate(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'copy');
+  }
+  get canExportExcel(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'exportar_excel_actividades');
+  }
+  get canImportExcel(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'importar_excel_actividades');
+  }
+  get canBulkEdit(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'edicion_masiva_actividades');
+  }
+  get canManageHorarios(): boolean {
+    return (
+      this.auth.hasPermission('actividades.lista', 'gestionar_horarios_actividades') ||
+      this.auth.hasPermission('actividades.lista', 'update') ||
+      this.auth.hasPermission('actividades.equipos', 'update')
+    );
+  }
+  get canManageCostos(): boolean {
+    return this.auth.hasPermission('actividades.lista', 'gestionar_costos_actividades');
+  }
+
+  get availableViewModes(): Array<'grid' | 'list' | 'spreadsheet' | 'calendar' | 'classic' | 'heatmap'> {
+    return this.canBulkEdit
+      ? ['grid', 'list', 'spreadsheet', 'calendar', 'classic', 'heatmap']
+      : ['grid', 'list', 'calendar', 'classic', 'heatmap'];
+  }
+
+  get activeViewModeTranslateX(): string {
+    const idx = Math.max(0, this.availableViewModes.indexOf(this.viewMode()));
+    return `translateX(${idx * 40}px)`;
+  }
+
   // ── State ──────────────────────────────────────────────────────────────────
   formData      = signal<ActividadFormData | null>(null);
   filterClubId  = signal<number | null>(null);
@@ -76,7 +120,12 @@ export class DeportivoActividadesComponent implements OnInit {
 
   constructor() {
     effect(() => {
-      localStorage.setItem('centro_actividades_view_mode', this.viewMode());
+      const current = this.viewMode();
+      if (current === 'spreadsheet' && !this.canBulkEdit) {
+        this.viewMode.set('grid');
+        return;
+      }
+      localStorage.setItem('centro_actividades_view_mode', current);
     });
   }
   dropdownState = signal<Record<number, boolean>>({});
@@ -734,16 +783,19 @@ export class DeportivoActividadesComponent implements OnInit {
 
   // ── Wizard ─────────────────────────────────────────────────────────────────
   openWizard(): void {
+    if (!this.canCreate) return;
     this.wizardEditTarget.set(null);
     this.wizardOpen.set(true);
   }
 
   editActividad(act: Actividad): void {
+    if (!this.canUpdate) return;
     this.wizardEditTarget.set(act);
     this.wizardOpen.set(true);
   }
 
   duplicateActividad(act: Actividad): void {
+    if (!this.canDuplicate) return;
     Swal.fire({
       title: '¿Duplicar actividad?',
       text: `¿Estás seguro de duplicar "${act.nombre}"?`,
@@ -808,6 +860,7 @@ export class DeportivoActividadesComponent implements OnInit {
 
   // ── Toggle activo ──────────────────────────────────────────────────────────
   toggleSocios(act: Actividad) {
+    if (!this.canUpdate) return;
     const newVal = act.elegible_para_socios === false ? true : false;
     act.elegible_para_socios = newVal;
     this.svc.update(act.id, { elegible_para_socios: newVal } as any).subscribe({
@@ -821,6 +874,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   toggleActive(act: Actividad): void {
+    if (!this.canUpdate) return;
     this.svc.toggleActive(act.id, !act.is_active).subscribe({
       next: res => {
         this.actividades.update(list =>
@@ -834,6 +888,7 @@ export class DeportivoActividadesComponent implements OnInit {
 
   // ── Delete ─────────────────────────────────────────────────────────────────
   confirmDelete(act: Actividad): void {
+    if (!this.canDelete) return;
     this.deleteTarget.set(act);
   }
 
@@ -1045,6 +1100,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   openInlineForm(equipoId: number, dia: number, profesorId: number) {
+    if (!this.canManageHorarios) return;
     const key = this.getProfGroupKey(equipoId, dia, profesorId);
     this.expandedProfGroupsSet.update(prev => {
       const next = new Set(prev);
@@ -1060,6 +1116,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async saveInlineForm() {
+    if (!this.canManageHorarios) return;
     const equipoId = this.inlineFormEquipoId();
     const profId = this.inlineFormProfesorId();
     if (!equipoId) return;
@@ -1143,6 +1200,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async deleteHorarioRapido(actId: number, equipoId: number, horarioId: number) {
+    if (!this.canManageHorarios) return;
     const result = await Swal.fire({
       title: '¿Eliminar horario?',
       text: '¿Estás seguro de que deseas eliminar este horario?',
@@ -1633,6 +1691,11 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async toggleHorarioRapido(actId: number, equipoId: number, h: any, profesorId?: number, event?: Event) {
+    if (!this.canManageHorarios) {
+      const cb = event?.target as HTMLInputElement | null;
+      if (cb) cb.checked = h.is_active !== false;
+      return;
+    }
     const newVal = h.is_active === false ? true : false;
     const pId = h.profesor_id || profesorId || 0;
     const checkbox = event?.target as HTMLInputElement | null;
@@ -1769,6 +1832,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async addHorarioRapido(equipoId: number) {
+    if (!this.canManageHorarios) return;
     const act = this.selectedActividadForHorarios();
     if (!act) return;
 
@@ -1988,6 +2052,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async promptCostoProfesor(actId: number, equipo: any, profGroup: any): Promise<void> {
+    if (!this.canManageCostos) return;
     const profId = Number(profGroup.profesor_id || 0);
     const profName = profGroup.profesor_nombre || 'Sin asignar';
     const currentCosto = profGroup.costo_interno !== null && profGroup.costo_interno !== undefined
@@ -2925,6 +2990,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async saveSpreadsheetChanges(): Promise<void> {
+    if (!this.canBulkEdit) return;
     // Si el usuario escribió algo en la barra de lote y dio clic directo en "Guardar cambios", aplicarlo también
     this.applyPendingBatchInputsToSelection();
 
@@ -3006,6 +3072,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   downloadExcelTemplate(): void {
+    if (!this.canExportExcel) return;
     this.exportingExcel.set(true);
     this.svc.exportExcel({
       club_id: this.filterClubId(),
@@ -3048,6 +3115,7 @@ export class DeportivoActividadesComponent implements OnInit {
   }
 
   async onExcelFileSelected(event: Event): Promise<void> {
+    if (!this.canImportExcel) return;
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
     if (!file) return;
