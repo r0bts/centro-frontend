@@ -1,7 +1,7 @@
 <div class="container-fluid bg-light min-vh-100 p-0" style="background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%) !important;">
   <app-content-menu></app-content-menu>
   
-  <div class="p-4 p-md-5">
+  <div class="p-3 p-md-5">
     
 
 
@@ -117,25 +117,25 @@
       <div class="col-lg-8 col-xl-9">
         
         <!-- Tabs de Navegación -->
-        <ul class="nav nav-pills mb-4 p-2 bg-white rounded-pill shadow-sm d-inline-flex">
+        <ul class="nav nav-pills mb-4 p-2 bg-white rounded-4 shadow-sm d-inline-flex flex-wrap gap-2">
           <li class="nav-item">
-            <button class="nav-link rounded-pill fw-semibold px-4 transition-all" 
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 transition-all text-nowrap" 
                     [class.active]="activeTab === 'expediente'" 
                     [class.bg-dark]="activeTab === 'expediente'"
                     (click)="activeTab = 'expediente'">
               <i class="bi bi-folder2-open me-2"></i> Datos Generales
             </button>
           </li>
-          <li class="nav-item ms-2">
-            <button class="nav-link rounded-pill fw-semibold px-4 transition-all" 
+          <li class="nav-item">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 transition-all text-nowrap" 
                     [class.active]="activeTab === 'nueva_consulta'"
                     [class.bg-dark]="activeTab === 'nueva_consulta'"
                     (click)="iniciarNuevaConsulta()">
               <i class="bi bi-plus-circle me-2"></i> Nueva Consulta
             </button>
           </li>
-          <li class="nav-item ms-2" *ngIf="isEditingConsulta">
-            <button class="nav-link rounded-pill fw-semibold px-4 transition-all" 
+          <li class="nav-item" *ngIf="isEditingConsulta">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 transition-all text-nowrap" 
                     [class.active]="activeTab === 'editar_consulta'"
                     [class.bg-dark]="activeTab === 'editar_consulta'"
                     (click)="activeTab = 'editar_consulta'">
@@ -163,7 +163,7 @@
                 </button>
               </div>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body p-3 p-md-4">
               
               <div class="row g-3">
                                                 <!-- ACORDEON DE ANTECEDENTES -->
@@ -178,7 +178,7 @@
                     </h2>
                     <div id="collapsePatologicos" class="accordion-collapse collapse show" data-bs-parent="#accordionFichaClinica">
                       <div class="accordion-body pt-2 pb-0">
-                        <div class="d-flex flex-column gap-3 ms-2 ps-4 ">
+                        <div class="d-flex flex-column gap-3 ms-md-2 ps-md-4">
                           
                           <!-- Enfermedades -->
                           <div class="row align-items-center border-bottom pb-2">
@@ -260,7 +260,7 @@
                     </h2>
                     <div id="collapseNoPatologicos" class="accordion-collapse collapse" data-bs-parent="#accordionFichaClinica">
                       <div class="accordion-body pt-2 pb-0">
-                        <div class="d-flex flex-column gap-3 ms-2 ps-4 ">
+                        <div class="d-flex flex-column gap-3 ms-md-2 ps-md-4">
                           
                           <!-- Estilo de Vida -->
                           <div class="row align-items-center border-bottom pb-2">
@@ -320,7 +320,7 @@
                     </h2>
                     <div id="collapseLab" class="accordion-collapse collapse" data-bs-parent="#accordionFichaClinica">
                       <div class="accordion-body pt-2">
-                        <div class="ms-2 ps-4 ">
+                        <div class="ms-md-2 ps-md-4">
                           <textarea class="form-control premium-textarea py-2 w-100" appAutosize rows="1" style="white-space: pre-wrap;"
                                     [(ngModel)]="medicalProfile.medical_notes" placeholder="Describa los estudios recientes..."></textarea>
                         </div>
@@ -332,7 +332,7 @@
 
               </div>
               <div class="d-flex justify-content-end mt-4 pt-3 border-top">
-                <button class="btn custom-btn-primary px-5 py-2" 
+                <button class="btn custom-btn-primary px-4 px-sm-5 py-2" 
                         (click)="guardarDatosGenerales()" [disabled]="isSavingProfile">
                   <span *ngIf="isSavingProfile" class="spinner-border spinner-border-sm me-2"></span>
                   <i class="bi bi-save2 me-2" *ngIf="!isSavingProfile"></i> Actualizar Ficha Clínica
@@ -342,8 +342,8 @@
           </div>
 
           <!-- Historial de Consultas -->
-          <div class="card glass-card border-0 rounded-4">
-            <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
+          <div class="card glass-card border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-transparent border-bottom px-3 px-md-4 py-3 d-flex justify-content-between align-items-center">
               <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-primary me-2"></i> Historial de Atenciones</h5>
             </div>
             
@@ -359,37 +359,40 @@
               </div>
 
               <div *ngIf="!isLoadingConsultas && consultas.length > 0" class="list-group list-group-flush">
-                <div *ngFor="let c of consultas" class="list-group-item px-3 py-2 border-bottom border-light transition-all hover-bg-light">
-                  <div class="d-flex justify-content-between align-items-center">
+                <div *ngFor="let c of consultas" class="list-group-item px-3 py-3 border-bottom border-light transition-all hover-bg-light">
+                  <div class="d-flex flex-column flex-md-row justify-content-between align-items-stretch align-items-md-center gap-2 gap-md-3">
                     
-                    <div class="flex-grow-1 pe-3">
-                      <div class="d-flex align-items-center mb-1">
-                        <i class="bi bi-clipboard2-pulse text-primary me-2"></i>
-                        <h6 class="fw-bold mb-0 text-dark me-2">{{ c.motivo_consulta || c.motivo || 'Consulta Médica General' }}</h6>
+                    <div class="flex-grow-1 overflow-hidden">
+                      <div class="d-flex align-items-start mb-1">
+                        <i class="bi bi-clipboard2-pulse text-primary me-2 mt-1 flex-shrink-0"></i>
+                        <h6 class="fw-bold mb-0 text-dark text-break">{{ c.motivo_consulta || c.motivo || 'Consulta Médica General' }}</h6>
                       </div>
                       
-                      <div class="d-flex flex-wrap align-items-center text-muted" style="font-size: 0.8rem;">
+                      <div class="d-flex flex-wrap align-items-center text-muted mt-1" style="font-size: 0.8rem;">
                         <span class="me-3"><i class="bi bi-calendar-check me-1"></i> {{ c.created | date:'dd MMM yyyy, HH:mm' }}</span>
-                        <span class="me-3"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ c.ubicacion_netsuite || 'Servicio Médico' }}</span>
-                        <span *ngIf="c.diagnostico" class="text-truncate" style="max-width: 350px;" title="{{ c.diagnostico }}">
-                          <strong class="text-dark"><i class="bi bi-check2-circle text-success me-1"></i> Diagnóstico:</strong> {{ c.diagnostico }}
-                        </span>
+                        <span class="me-3"><i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ getLocationName(c.ubicacion_netsuite) }}</span>
+                      </div>
+
+                      <div *ngIf="c.diagnostico" class="text-muted text-truncate mt-1" style="font-size: 0.8rem;" title="{{ c.diagnostico }}">
+                        <strong class="text-dark"><i class="bi bi-check2-circle text-success me-1"></i> Diagnóstico:</strong> {{ c.diagnostico }}
                       </div>
                     </div>
                     
-                    <div class="d-flex gap-2 align-items-center">
-                      <button *ngIf="c.status !== 'cerrada'" class="btn btn-sm btn-outline-danger p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;" (click)="eliminarConsulta(c, $event)" title="Eliminar">
-                        <i class="bi bi-trash-fill" style="font-size: 0.8rem;"></i>
-                      </button>
-                      <button class="btn btn-sm btn-outline-primary p-1 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;" (click)="editarConsulta(c)" title="Ver / Editar">
-                        <i class="bi" [ngClass]="c.status === 'cerrada' ? 'bi-eye-fill' : 'bi-pencil-fill'" style="font-size: 0.8rem;"></i>
-                      </button>
+                    <div class="d-flex gap-2 align-items-center justify-content-between justify-content-md-end flex-shrink-0">
+                      <div class="d-flex gap-2 align-items-center">
+                        <button *ngIf="c.status !== 'cerrada'" class="btn btn-sm btn-outline-danger p-1 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;" (click)="eliminarConsulta(c, $event)" title="Eliminar">
+                          <i class="bi bi-trash-fill" style="font-size: 0.85rem;"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary p-1 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 32px; height: 32px;" (click)="editarConsulta(c)" title="Ver / Editar">
+                          <i class="bi" [ngClass]="c.status === 'cerrada' ? 'bi-eye-fill' : 'bi-pencil-fill'" style="font-size: 0.85rem;"></i>
+                        </button>
+                      </div>
                       
-                      <button *ngIf="c.status !== 'cerrada'" class="btn btn-sm custom-btn-primary px-3 py-1 d-flex align-items-center shadow-sm fw-bold" style="font-size: 0.8rem;" (click)="enviarANetsuite(c, $event)">
+                      <button *ngIf="c.status !== 'cerrada'" class="btn btn-sm custom-btn-primary px-3 py-1 d-flex align-items-center shadow-sm fw-bold text-nowrap" style="font-size: 0.8rem; height: 32px;" (click)="enviarANetsuite(c, $event)">
                         <i class="bi bi-cloud-arrow-up-fill me-2"></i> Cerrar y enviar
                       </button>
 
-                      <button *ngIf="c.status === 'cerrada'" class="btn btn-sm btn-light border px-3 py-1 d-flex align-items-center text-success fw-bold" style="font-size: 0.8rem;" disabled>
+                      <button *ngIf="c.status === 'cerrada'" class="btn btn-sm btn-light border px-3 py-1 d-flex align-items-center text-success fw-bold text-nowrap" style="font-size: 0.8rem; height: 32px;" disabled>
                         <i class="bi bi-check-circle-fill me-2"></i> Enviada a NetSuite
                       </button>
                     </div>
@@ -751,15 +754,15 @@
               </div>
 
               <div class="list-group list-group-flush border rounded-3 overflow-hidden shadow-sm" *ngIf="nuevaConsultaData.materiales_json.length > 0">
-                <div class="list-group-item px-3 py-2 d-flex align-items-center material-item bg-white" *ngFor="let m of nuevaConsultaData.materiales_json; let i = index">
-                  <!-- Columna 1: Nombre (35%) -->
-                  <div style="width: 35%;" class="fw-bold text-dark small d-flex align-items-center text-wrap pe-2">
+                <div class="list-group-item px-3 py-2 d-flex flex-wrap flex-md-nowrap align-items-center gap-2 material-item bg-white" *ngFor="let m of nuevaConsultaData.materiales_json; let i = index">
+                  <!-- Columna 1: Nombre -->
+                  <div class="fw-bold text-dark small d-flex align-items-center text-wrap pe-2 flex-grow-1" style="min-width: 150px;">
                     <i class="bi bi-box me-2 text-muted"></i> 
                     <span style="word-break: break-word;">{{ m.product_name || m.material }}</span>
                   </div>
                   
-                  <!-- Columna 2: Switch/Badge (25%) -->
-                  <div style="width: 25%;" class="d-flex align-items-center">
+                  <!-- Columna 2: Switch/Badge -->
+                  <div class="d-flex align-items-center flex-shrink-0">
                     <div class="form-check form-switch mb-0 d-flex align-items-center" *ngIf="nuevaConsultaData.status !== 'cerrada'">
                       <input class="form-check-input m-0 me-2" type="checkbox" role="switch" id="switchDescuenta{{i}}" 
                              [ngModel]="!m.no_incluir" (ngModelChange)="m.no_incluir = !$event" style="cursor: pointer; width: 2.5em; height: 1.25em;">
@@ -771,16 +774,16 @@
                     <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" *ngIf="m.no_incluir && nuevaConsultaData.status === 'cerrada'" style="font-size: 0.6rem;">No Descuenta</span>
                   </div>
 
-                  <!-- Columna 3: Cantidad (10%) -->
-                  <div style="width: 10%; text-align: center;">
+                  <!-- Columna 3: Cantidad -->
+                  <div class="text-center flex-shrink-0 px-2">
                     <span class="badge bg-primary rounded-pill px-2 py-1 shadow-sm">{{ m.cantidad }}</span>
                   </div>
 
-                  <!-- Columna 4: Observaciones (25%) -->
-                  <div style="width: 25%;" class="text-muted small fst-italic ps-2 text-truncate" [title]="m.observaciones || ''">{{ m.observaciones || '--' }}</div>
+                  <!-- Columna 4: Observaciones -->
+                  <div class="text-muted small fst-italic ps-md-2 text-truncate flex-grow-1" style="max-width: 200px;" [title]="m.observaciones || ''">{{ m.observaciones || '--' }}</div>
 
-                  <!-- Columna 5: Botón Eliminar (5%) -->
-                  <div style="width: 5%; text-align: right;">
+                  <!-- Columna 5: Botón Eliminar -->
+                  <div class="text-end ms-auto flex-shrink-0">
                     <button class="btn btn-sm btn-link text-danger p-0" (click)="removerMaterial(i)" title="Eliminar" *ngIf="nuevaConsultaData.status !== 'cerrada'">
                       <i class="bi bi-trash-fill"></i>
                     </button>
@@ -793,18 +796,18 @@
           </fieldset>
 
           <!-- Flat Sticky Bottom Bar -->
-          <div class="position-sticky bottom-0 bg-white border-top shadow-lg p-3 mx-n4 mx-md-n5 mt-4" style="z-index: 1000;">
-            <div class="d-flex justify-content-between align-items-center px-2">
+          <div class="position-sticky bottom-0 bg-white border-top shadow-lg p-3 mx-n3 mx-md-n5 mt-4" style="z-index: 1000;">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 px-2">
               <span class="text-muted small fw-medium d-none d-md-inline"><i class="bi bi-info-circle me-1"></i> Verifica los datos antes de guardar</span>
-              <div class="d-flex gap-2 ms-auto">
-                <div *ngIf="nuevaConsultaData.status === 'cerrada'" class="d-flex align-items-center text-danger fw-bold me-3">
+              <div class="d-flex flex-wrap flex-sm-nowrap gap-2 ms-sm-auto justify-content-end">
+                <div *ngIf="nuevaConsultaData.status === 'cerrada'" class="d-flex align-items-center text-danger fw-bold me-sm-3">
                   <i class="bi bi-lock-fill me-2"></i> Consulta Cerrada (Enviada a NetSuite)
                 </div>
-                <button class="btn custom-btn-outline px-4 rounded-3 bg-white fw-bold shadow-sm" (click)="guardarConsulta(false)" [disabled]="isSavingConsulta" *ngIf="nuevaConsultaData.status !== 'cerrada'">
+                <button class="btn custom-btn-outline px-3 px-sm-4 rounded-3 bg-white fw-bold shadow-sm flex-grow-1 flex-sm-grow-0" (click)="guardarConsulta(false)" [disabled]="isSavingConsulta" *ngIf="nuevaConsultaData.status !== 'cerrada'">
                   <span *ngIf="isSavingConsulta" class="spinner-border spinner-border-sm me-2"></span>
                   <i class="bi bi-save me-2" *ngIf="!isSavingConsulta"></i> Solo Guardar
                 </button>
-                <button class="btn custom-btn-primary px-4 rounded-3 fw-bold shadow-sm" (click)="guardarConsulta(true)" [disabled]="isSavingConsulta" *ngIf="nuevaConsultaData.status !== 'cerrada'">
+                <button class="btn custom-btn-primary px-3 px-sm-4 rounded-3 fw-bold shadow-sm flex-grow-1 flex-sm-grow-0" (click)="guardarConsulta(true)" [disabled]="isSavingConsulta" *ngIf="nuevaConsultaData.status !== 'cerrada'">
                   <i class="bi bi-check-circle-fill me-2"></i> Guardar y Afectar Inventario
                 </button>
               </div>
@@ -837,7 +840,7 @@
           <div>
             <h4 class="fw-bold mb-1 text-primary">{{ consultaSeleccionada.motivo_consulta || consultaSeleccionada.motivo || 'Consulta Médica General' }}</h4>
             <div class="text-muted small">
-              <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ consultaSeleccionada.ubicacion_netsuite || 'Servicio Médico' }}
+              <i class="bi bi-geo-alt-fill text-danger me-1"></i> {{ getLocationName(consultaSeleccionada.ubicacion_netsuite) }}
             </div>
           </div>
           <div class="text-end">

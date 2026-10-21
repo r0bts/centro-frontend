@@ -1,19 +1,50 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Directive, ElementRef, HostListener, AfterViewInit, OnDestroy, Optional } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-import { Directive, ElementRef, HostListener, AfterViewInit } from '@angular/core';
+import { NgModel } from '@angular/forms';
+import { Subscription } from 'rxjs';
 
 @Directive({
   selector: '[appAutosize]',
   standalone: true
 })
-export class AutosizeDirective implements AfterViewInit {
-  constructor(private el: ElementRef) {}
+export class AutosizeDirective implements AfterViewInit, OnDestroy {
+  private resizeObserver: ResizeObserver | null = null;
+  private modelSub: Subscription | null = null;
+
+  constructor(
+    private el: ElementRef,
+    @Optional() private ngModel: NgModel
+  ) {}
 
   ngAfterViewInit() {
     this.adjust();
-    // Re-adjust after a slight delay for accordions/modals
-    setTimeout(() => this.adjust(), 200);
+    // Re-adjust after a slight delay for initial binding and accordions
+    setTimeout(() => this.adjust(), 50);
+    setTimeout(() => this.adjust(), 250);
+
+    // Listen to programmatic ngModel updates (e.g., syncFromNetSuite or profile load)
+    if (this.ngModel && this.ngModel.valueChanges) {
+      this.modelSub = this.ngModel.valueChanges.subscribe(() => {
+        setTimeout(() => this.adjust(), 0);
+      });
+    }
+
+    // Listen to width changes (window resize, DevTools responsive mode, accordion expand)
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => {
+        this.adjust();
+      });
+      this.resizeObserver.observe(this.el.nativeElement);
+    }
+  }
+
+  ngOnDestroy() {
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    if (this.modelSub) {
+      this.modelSub.unsubscribe();
+    }
   }
 
   @HostListener('input')
@@ -21,9 +52,14 @@ export class AutosizeDirective implements AfterViewInit {
     this.adjust();
   }
 
+  @HostListener('window:resize')
+  onWindowResize() {
+    this.adjust();
+  }
+
   private adjust() {
-    const textarea = this.el.nativeElement;
-    if (textarea) {
+    const textarea = this.el.nativeElement as HTMLTextAreaElement;
+    if (textarea && textarea.offsetParent !== null) {
       textarea.style.overflow = 'hidden';
       textarea.style.height = 'auto';
       textarea.style.height = textarea.scrollHeight + 'px';
@@ -136,10 +172,17 @@ export class ServicioMedicoExpediente implements OnInit {
           const allLocs = res.data.locations || res.data;
           // Se cambió para obtener desde acceso_clubes. Ya no se filtra por "Servicio Médico"
           this.locations = Array.isArray(allLocs) ? allLocs : [];
+          this.cdr.detectChanges();
         }
       },
       error: (err) => console.error('Error al cargar locations', err)
     });
+  }
+
+  getLocationName(id: string | number | null | undefined): string {
+    if (!id) return 'Servicio Médico';
+    const loc = this.locations.find(l => String(l.id) === String(id));
+    return loc ? loc.name : String(id);
   }
 
   loadMedicos() {

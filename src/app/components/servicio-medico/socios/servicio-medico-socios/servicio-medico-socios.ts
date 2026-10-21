@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { Html5Qrcode } from 'html5-qrcode';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,7 +34,8 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
 
   constructor(
     private membresiaService: MembresiaService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {
     this.searchSubscription = this.searchSubject.pipe(
       debounceTime(300),
@@ -43,7 +44,12 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
         if (term) {
           this.isLoading = true;
           this.hasSearched = true;
+        } else {
+          this.isLoading = false;
+          this.hasSearched = false;
+          this.searchResults = [];
         }
+        this.cdr.detectChanges();
       }),
       switchMap(term => {
         if (!term) return of(null);
@@ -61,6 +67,7 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
       } else {
         this.searchResults = [];
       }
+      this.cdr.detectChanges();
     });
   }
 
@@ -75,16 +82,19 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
   ngOnDestroy() {
     if (this.searchSubscription) {
       this.searchSubscription.unsubscribe();
-    this.stopCamera();
     }
+    this.stopCamera();
   }
 
   onSearchModelChange(termRaw: string) {
-    const term = termRaw.trim();
+    const term = termRaw ? termRaw.trim() : '';
     
     if (!term) {
+      this.searchSubject.next('');
       this.searchResults = [];
       this.hasSearched = false;
+      this.isLoading = false;
+      this.cdr.detectChanges();
       return;
     }
     
@@ -98,8 +108,11 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
     if (term.length >= 3 || (!isNaN(Number(term)) && term.length > 0)) {
       this.searchSubject.next(term);
     } else {
+      this.searchSubject.next('');
       this.searchResults = [];
       this.hasSearched = false;
+      this.isLoading = false;
+      this.cdr.detectChanges();
     }
   }
 
@@ -110,6 +123,7 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
     } else {
       this.isCameraOpen = true;
       this.cameraError = null;
+      this.cdr.detectChanges();
       setTimeout(() => {
         this.startScanner();
       }, 300);
@@ -138,6 +152,7 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
       return tryStart('user');
     }).catch((err) => {
       this.cameraError = 'No se pudo acceder a la cámara. Por favor, autoriza los permisos de tu navegador.';
+      this.cdr.detectChanges();
     });
   }
 
@@ -145,12 +160,15 @@ export class ServicioMedicoSocios implements AfterViewInit, OnDestroy {
     if (this.html5QrCode && this.html5QrCode.isScanning) {
       this.html5QrCode.stop().then(() => {
         this.isCameraOpen = false;
+        this.cdr.detectChanges();
       }).catch(err => {
         console.error("Error al detener cámara:", err);
         this.isCameraOpen = false;
+        this.cdr.detectChanges();
       });
     } else {
       this.isCameraOpen = false;
+      this.cdr.detectChanges();
     }
   }
 
