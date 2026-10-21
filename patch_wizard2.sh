@@ -1,0 +1,1 @@
+sed -i '' -e '/<small class="text-muted">Actívalo si la actividad requiere pago de inscripción o mensualidad<\/small>/,/<\/div>\n            }/d' src/app/components/deportivo/actividades/actividad-wizard/actividad-wizard.html

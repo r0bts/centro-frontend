@@ -1,5 +1,5 @@
 <!-- Overlay -->
-<div class="wizard-overlay">
+<div class="wizard-overlay" (click)="onOverlayClick($event)">
   <div class="wizard-container">
 
     <!-- ── Header del wizard ──────────────────────────────────────────────── -->
@@ -58,28 +58,30 @@
           <span class="text-muted">Cargando datos…</span>
         </div>
       } @else {
-      <!-- ════ PASO 1: Identidad ════ -->
+      <!-- ════ PASO 1: General ════ -->
       @if (currentStep() === 1) {
         <div class="step-content">
           <h6 class="step-section-title">Información básica</h6>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
-            <select class="form-select" [(ngModel)]="club_id" [disabled]="isEditing()">
-              <option [ngValue]="null" disabled>Selecciona una sede</option>
-              @for (c of formData()?.acceso_clubes; track c.id) {
-                <option [ngValue]="c.id">{{ c.name }}</option>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Club o Sede <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="club_id" [disabled]="isEditing()">
+                <option [ngValue]="null" disabled>Selecciona una sede</option>
+                @for (c of formData()?.acceso_clubes; track c.id) {
+                  <option [ngValue]="c.id">{{ c.name }}</option>
+                }
+              </select>
+              @if (isEditing()) {
+                <small class="text-muted d-block mt-1">La sede no se puede cambiar una vez creada la actividad.</small>
               }
-            </select>
-            @if (isEditing()) {
-              <small class="text-muted d-block mt-1">La sede no se puede cambiar una vez creada la actividad.</small>
-            }
-          </div>
+            </div>
 
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
-            <input type="text" class="form-control" placeholder="Ej: Fútbol Sub-15"
-                   [(ngModel)]="nombre" maxlength="100">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Nombre <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" placeholder="Ej: Fútbol Sub-15"
+                     [(ngModel)]="nombre" maxlength="100">
+            </div>
           </div>
 
           <div class="mb-3">
@@ -93,18 +95,71 @@
             <label class="form-label fw-semibold">Vigencia de la actividad</label>
             <div class="row g-2">
               <div class="col-12 col-md-6">
-                <label class="form-label small fw-semibold">Fecha inicio <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" [(ngModel)]="fecha_inicio">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <label class="form-label small fw-semibold mb-0">Fecha inicio <span class="text-danger">*</span></label>
+                  @if (!isFechaInicioBloqueada) {
+                    <button type="button"
+                            class="btn btn-sm rounded-pill d-inline-flex align-items-center fw-semibold transition-all"
+                            style="font-size: 0.7rem; padding: 0.1rem 0.55rem; gap: 0.25rem; background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe;"
+                            title="Asignar la fecha de hoy"
+                            (click)="setFechaInicioHoy()">
+                      <i class="bi bi-calendar-check" style="font-size: 0.68rem;"></i>
+                      <span>Hoy</span>
+                    </button>
+                  }
+                </div>
+                <input type="date" class="form-control"
+                       [ngModel]="fecha_inicio"
+                       (ngModelChange)="onFechaInicioChange($event)"
+                       [min]="isFechaInicioBloqueada ? originalFechaInicio : hoyISO"
+                       [disabled]="isFechaInicioBloqueada">
+                @if (isFechaInicioBloqueada) {
+                  <small class="text-muted d-block mt-1">La fecha de inicio no se puede cambiar porque es anterior al día de hoy.</small>
+                }
               </div>
               <div class="col-12 col-md-6">
-                <label class="form-label small fw-semibold">
-                  Fecha fin
-                  <span class="text-muted fw-normal">(opcional)</span>
-                </label>
-                <input type="date" class="form-control" [(ngModel)]="fecha_fin" [min]="fecha_inicio">
-                <small class="text-muted">Sin fecha fin la actividad es indefinida.</small>
+                <div class="d-flex align-items-center justify-content-between mb-1" style="min-height: 22px;">
+                  <label class="form-label small fw-semibold mb-0">
+                    Fecha fin
+                    <span class="text-muted fw-normal">(opcional)</span>
+                  </label>
+                </div>
+                <input type="date" class="form-control" [(ngModel)]="fecha_fin" [min]="fecha_inicio || hoyISO">
+                <small class="text-muted d-block mt-1">Sin fecha fin la actividad es indefinida.</small>
               </div>
             </div>
+          </div>
+
+                    <!-- Costo al socio -->
+          <div class="mb-4 bg-light rounded p-3 border border-light-subtle">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <label class="form-label fw-semibold mb-0">Costo para el socio</label>
+                <div class="small text-muted mt-1">Habilita esta opción si la actividad tiene un costo de inscripción.</div>
+              </div>
+              <div class="form-check form-switch ms-3 m-0">
+                <input class="form-check-input" type="checkbox" role="switch" style="width: 2.5rem; height: 1.25rem; cursor: pointer;"
+                       [disabled]="!canManageCostos"
+                       [title]="!canManageCostos ? 'Sin permiso para gestionar costos' : ''"
+                       [(ngModel)]="tiene_costo">
+              </div>
+            </div>
+
+            @if (tiene_costo) {
+              <div class="mt-3 pt-3 border-top">
+                <label class="form-label small fw-semibold">Monto a cobrar</label>
+                <div class="input-group" style="max-width: 300px;">
+                  <span class="input-group-text bg-white text-muted border-end-0" style="border-top-right-radius: 0 !important; border-bottom-right-radius: 0 !important;">$</span>
+                  <input type="number" class="form-control border-start-0 ps-0" style="border-top-left-radius: 0 !important; border-bottom-left-radius: 0 !important;"
+                         [disabled]="!canManageCostos"
+                         [title]="!canManageCostos ? 'Sin permiso para gestionar costos' : ''"
+                         [(ngModel)]="monto" min="0" step="0.01" placeholder="Ej. 150.00">
+                </div>
+              </div>
+            }
+            @if (!canManageCostos) {
+              <small class="text-muted d-block mt-2"><i class="bi bi-lock-fill me-1"></i>No cuentas con el permiso <strong>Gestionar Costos</strong> para modificar importes.</small>
+            }
           </div>
 
           <div class="mb-3">
@@ -144,9 +199,28 @@
             </div>
           </div>
 
+                  </div>
+      }
+<!-- ════ PASO 2: Operación ════ -->
+      @if (currentStep() === 2) {
+        <div class="step-content">
+          <h6 class="step-section-title">Reglas de Operación</h6>
+          
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Elegibilidad</label>
+            <label class="mensajeria-option" [class.selected]="elegible_para_socios">
+              <div class="fw-semibold" style="flex: 0 0 220px;">¿Exclusivo para Socios?</div>
+              <small class="text-muted" style="flex: 1;">Desactiva esta opción si la actividad está abierta a invitados o externos.</small>
+              <div class="form-check form-switch ms-auto mb-0" style="padding-left: 2.5rem;">
+                <input class="form-check-input m-0" type="checkbox" role="switch"
+                       [(ngModel)]="elegible_para_socios" style="width:2.5rem;height:1.25rem;cursor:pointer; margin-left: -2.5rem !important;">
+              </div>
+            </label>
+          </div>
+
           <div class="mb-3">
             <label class="form-label fw-semibold">Modo de mensajería</label>
-            <div class="d-flex flex-column gap-2">
+<div class="d-flex flex-column gap-2">
               @for (opt of [
                 {val:'bidireccional', label:'Bidireccional', desc:'Entrenadores y alumnos pueden enviar y responder mensajes'},
                 {val:'solo_respuesta', label:'Solo respuesta', desc:'Los alumnos solo pueden responder mensajes del entrenador'},
@@ -154,55 +228,28 @@
               ]; track opt.val) {
                 <label class="mensajeria-option" [class.selected]="modo_mensajeria === opt.val">
                   <input type="radio" [(ngModel)]="modo_mensajeria" [value]="opt.val" class="visually-hidden">
-                  <div>
-                    <div class="fw-semibold">{{ opt.label }}</div>
-                    <small class="text-muted">{{ opt.desc }}</small>
-                  </div>
+                  <div class="fw-semibold" style="flex: 0 0 220px;">{{ opt.label }}</div>
+                  <small class="text-muted" style="flex: 1;">{{ opt.desc }}</small>
                   @if (modo_mensajeria === opt.val) {
-                    <i class="bi bi-check-circle-fill text-primary ms-auto"></i>
+                    <i class="bi bi-check-circle-fill text-primary fs-5 ms-auto"></i>
+                  } @else {
+                    <i class="bi bi-circle text-muted fs-5 ms-auto" style="opacity: 0.3;"></i>
                   }
                 </label>
               }
             </div>
           </div>
-
-          <!-- Cobro -->
-          <div class="mb-3">
-            <label class="form-label fw-semibold">Cobro</label>
-            <label class="mensajeria-option" [class.selected]="tiene_costo">
-              <div>
-                <div class="fw-semibold">¿Esta actividad tiene costo?</div>
-                <small class="text-muted">Actívalo si la actividad requiere pago de inscripción o mensualidad</small>
-              </div>
-              <div class="form-check form-switch ms-auto mb-0">
-                <input class="form-check-input" type="checkbox" role="switch"
-                       [(ngModel)]="tiene_costo" style="width:2.5rem;height:1.25rem;cursor:pointer">
-              </div>
-            </label>
-
-            @if (tiene_costo) {
-              <div class="mt-2">
-                <label class="form-label small fw-semibold">Monto a cobrar <span class="text-danger">*</span></label>
-                <div class="input-group">
-                  <span class="input-group-text">$</span>
-                  <input type="number" class="form-control" placeholder="0.00"
-                         min="0" step="0.01" [(ngModel)]="monto">
-                </div>
-              </div>
-            }
-          </div>
         </div>
       }
-
-      <!-- ════ PASO 2: Grupos ════ -->
-      @if (currentStep() === 2) {
+<!-- ════ PASO 3: Clases ════ -->
+      @if (currentStep() === 3) {
         <div class="step-content">
-          <h6 class="step-section-title">Grupos y categorías</h6>
-          <p class="text-muted small mb-3">Crea grupos por categoría o rango de edad. Podrás agregar equipos dentro de cada grupo.</p>
+          <h6 class="step-section-title">Clases y categorías</h6>
+          <p class="text-muted small mb-3">Crea clases por categoría o rango de edad. Podrás configurar los horarios dentro de cada clase.</p>
 
-          <!-- Agregar grupo -->
+          <!-- Agregar clase -->
           <div class="input-add-row mb-3">
-            <input type="text" class="form-control" placeholder="Nombre del grupo (Ej: Sub-12)"
+            <input type="text" class="form-control" placeholder="Nombre de la clase (Ej: Sub-12)"
                    [(ngModel)]="nuevoGrupoNombre"
                    (keydown.enter)="addGrupo()">
             <button class="btn btn-primary" (click)="addGrupo()">
@@ -213,11 +260,11 @@
           @if (grupos().length === 0) {
             <div class="empty-hint">
               <i class="bi bi-people text-muted d-block mb-2" style="font-size:2rem"></i>
-              <span>Agrega al menos un grupo para continuar</span>
+              <span>Agrega al menos una clase para continuar</span>
             </div>
           }
 
-          <!-- Lista de grupos -->
+          <!-- Lista de clases -->
           @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
             <div class="grupo-card" [class.active]="activeGrupoIndex() === gi">
               <div class="grupo-header" (click)="activeGrupoIndex.set(gi)">
@@ -237,6 +284,12 @@
 
               @if (activeGrupoIndex() === gi) {
                 <div class="grupo-body">
+                  <div class="mb-2">
+                    <label class="form-label small fw-semibold">Nombre de la clase <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm"
+                           placeholder="Ej: Sub-12, Principiantes, Matutino..."
+                           [(ngModel)]="grupos()[gi].nombre" maxlength="100">
+                  </div>
                   <div class="row g-2 mb-3">
                     <div class="col-6">
                       <label class="form-label small">Descripción</label>
@@ -255,11 +308,46 @@
                     </div>
                   </div>
 
-                  <!-- Cupo del grupo -->
+                  <!-- Instructor de la clase -->
+                  <div class="row g-2 mb-3">
+                    <div class="col-12" [class.col-md-8]="canManageCostos">
+                      <label class="form-label small fw-semibold">Instructor titular</label>
+                      <ng-select class="custom-sm-select"
+                        [items]="formData()?.instructores || []"
+                        bindLabel="full_name"
+                        bindValue="id"
+                        placeholder="Sin instructor titular"
+                        [ngModel]="grupos()[gi].instructor_id"
+                        (ngModelChange)="setGrupoInstructor(gi, $event)"
+                        [clearable]="true"
+                        [searchable]="true"
+                        >
+                      </ng-select>
+                    </div>
+                    @if (canManageCostos) {
+                      <div class="col-12 col-md-4">
+                        <label class="form-label small fw-semibold">Costo base</label>
+                        <div class="input-group input-group-sm">
+                          <span class="input-group-text">$</span>
+                          <input type="number" class="form-control form-control-sm" min="0" step="0.01"
+                                 placeholder="0.00"
+                                 [ngModel]="grupos()[gi].costo_interno"
+                                 (ngModelChange)="setGrupoCosto(gi, $event)">
+                        </div>
+                      </div>
+                    }
+                    <div class="col-12">
+                      <small class="text-muted" style="font-size: 0.75rem;">
+                        {{ canManageCostos ? 'Este profesor y costo se asignarán automáticamente a todos los horarios de esta clase.' : 'Este profesor se asignará automáticamente a todos los horarios de esta clase.' }}
+                      </small>
+                    </div>
+                  </div>
+
+                  <!-- Cupo de la clase -->
                   <div class="mb-3">
                     <label class="mensajeria-option" [class.selected]="grupos()[gi].tiene_cupo">
                       <div>
-                        <div class="fw-semibold small">Limitar cupo del grupo</div>
+                        <div class="fw-semibold small">Limitar cupo de la clase</div>
                         <small class="text-muted">Establece un máximo de lugares disponibles</small>
                       </div>
                       <div class="form-check form-switch ms-auto mb-0">
@@ -279,24 +367,6 @@
                       </div>
                     }
                   </div>
-
-                  <!-- Instructor del grupo -->
-                  <div class="mb-3">
-                    <label class="form-label small fw-semibold">Instructor asignado</label>
-                    <select class="form-select form-select-sm"
-                            [ngModel]="grupos()[gi].instructor_id"
-                            (ngModelChange)="setGrupoInstructor(gi, $event)">
-                      <option [ngValue]="null">Sin instructor asignado</option>
-                      @for (inst of formData()?.instructores; track inst.id) {
-                        <option [ngValue]="inst.id">
-                          {{ inst.full_name }}{{ inst.specialty ? ' — ' + inst.specialty : '' }}
-                        </option>
-                      }
-                    </select>
-                    @if (formData()?.instructores?.length === 0) {
-                      <small class="text-muted">No hay instructores registrados aún.</small>
-                    }
-                  </div>
                 </div>
               }
             </div>
@@ -304,116 +374,118 @@
         </div>
       }
 
-      <!-- ════ PASO 3: Horarios ════ -->
-      @if (currentStep() === 3) {
+      <!-- ════ PASO 4: Horarios ════ -->
+      @if (currentStep() === 4) {
         <div class="step-content">
-          <h6 class="step-section-title">Horarios de entrenamiento</h6>
-          <p class="text-muted small mb-3">Configura los días y horarios de cada grupo.</p>
+          <h6 class="step-section-title text-uppercase fw-bold text-secondary mb-3">Horarios de entrenamiento</h6>
+          <p class="text-muted small mb-4">Configura los días y horarios de cada clase.</p>
 
           @if (grupos().length === 0) {
-            <div class="empty-hint">
+            <div class="empty-hint text-center py-5">
               <i class="bi bi-clock text-muted d-block mb-2" style="font-size:2rem"></i>
-              <span>No hay grupos definidos. Vuelve al paso anterior.</span>
+              <span>No hay clases definidas. Vuelve al paso anterior.</span>
             </div>
-          }
+          } @else {
+            <div class="d-flex flex-column h-100">
+              <!-- Tabs por clase -->
+              <div class="grupo-tabs mb-4">
+                @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
+                  <button type="button" class="btn btn-sm rounded-pill px-3 fw-medium me-2 mb-2"
+                          [class.btn-primary]="activeGrupoIndex() === gi"
+                          [class.btn-outline-secondary]="activeGrupoIndex() !== gi"
+                          (click)="activeGrupoIndex.set(gi)">
+                    {{ g.nombre }}
+                  </button>
+                }
+              </div>
 
-          <!-- Tabs por grupo -->
-          @if (grupos().length > 0) {
-            <div class="grupo-tabs mb-3">
-              @for (g of grupos(); track trackByIdx($index, g); let gi = $index) {
-                <button type="button" class="grupo-tab"
-                        [class.active]="activeGrupoIndex() === gi"
-                        (click)="activeGrupoIndex.set(gi)">
-                  {{ g.nombre }}
-                </button>
-              }
-            </div>
-
-            @let gIdx = activeGrupoIndex();
-            @let gActual = grupos()[gIdx];
-            @if (gActual) {
-              <div class="horario-panel">
-                <label class="form-label fw-semibold small">Días</label>
-                <div class="dias-chips mb-3">
-                  @for (d of dias; track d.num) {
-                    <button type="button" class="dia-chip"
-                            [class.selected]="isDiaSelected(gIdx, d.num)"
-                            (click)="toggleDia(gIdx, d.num)">
-                      {{ d.label }}
-                    </button>
-                  }
-                </div>
-
-                @if (gActual.horarios.length > 0 && gActual.equipos.length === 0) {
-                  <div class="alert alert-info alert-sm d-flex align-items-center gap-2 py-2 mb-3">
-                    <i class="bi bi-info-circle-fill"></i>
-                    <span class="small">Este grupo no tiene equipos. Se creará un equipo <strong>General</strong> automáticamente para guardar los horarios.</span>
+              @let gIdx = activeGrupoIndex();
+              @let gActual = grupos()[gIdx];
+              @if (gActual) {
+                <div class="horario-panel">
+                  <!-- Píldoras Inline de Semanas Tipo (1 clic para cargar y personalizar abajo) -->
+                  <div class="mb-3 px-3 py-2 rounded-4 border bg-white" style="border-color: #e2e8f0 !important;">
+                    <div class="d-flex align-items-center flex-wrap" style="gap: 0.4rem;">
+                      <span class="text-secondary fw-semibold me-1" style="font-size: 0.74rem;">
+                        <i class="bi bi-calendar-week text-primary me-1"></i>Semanas tipo:
+                      </span>
+                      @for (st of getSemanasTipoCatalog(); track st.id) {
+                        <button type="button"
+                                class="btn btn-sm rounded-pill d-inline-flex align-items-center transition-all"
+                                style="font-size: 0.73rem; padding: 0.2rem 0.65rem; gap: 0.3rem;"
+                                [style.background]="appliedSemanaId() === st.id ? '#eff6ff' : '#f8fafc'"
+                                [style.color]="appliedSemanaId() === st.id ? '#1d4ed8' : '#334155'"
+                                [style.border]="appliedSemanaId() === st.id ? '1px solid #93c5fd' : '1px solid #e2e8f0'"
+                                [style.font-weight]="appliedSemanaId() === st.id ? '600' : '500'"
+                                [title]="st.descripcion || st.nombre"
+                                (click)="aplicarSemanaTipoInline(gIdx, st)">
+                          <span>{{ getTemporadaEmoji(st.temporada) }}</span>
+                          <span>{{ getShortSemanaLabel(st.nombre) }}</span>
+                        </button>
+                      }
+                    </div>
                   </div>
-                }
 
-                @if (gActual.horarios.length === 0) {
-                  <p class="text-muted small">Selecciona días para configurar horarios.</p>
-                }
-
-                <div class="row g-3">
-                  @for (d of dias; track d.num) {
-                    @if (isDiaSelected(gIdx, d.num)) {
-                      <div class="col-12">
-                        <div class="dia-horario-card p-3 border rounded shadow-sm bg-white">
-                          <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                            <div class="d-flex align-items-center gap-2">
-                              <span class="badge bg-primary fs-6">{{ d.label }}</span>
-                              <span class="fw-semibold text-secondary">{{ getDiaNombre(d.num) }}</span>
-                            </div>
-                            <div class="d-flex gap-2">
-                              @if (getHorariosByDia(gIdx, d.num).length > 0) {
-                                <button class="btn btn-sm btn-outline-secondary rounded-pill d-flex align-items-center gap-1"
-                                        title="Replicar este horario en otros días"
-                                        (click)="toggleReplicar(gIdx, d.num)">
-                                  <i class="bi bi-copy"></i>
-                                  <span class="d-none d-sm-inline">Replicar</span>
-                                </button>
-                              }
-                              <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
-                                      (click)="addHorarioOnly(gIdx, d.num)">
-                                <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
-                              </button>
-                            </div>
+                  <div class="d-flex flex-column gap-3">
+                    @for (d of dias; track d.num) {
+                      <div class="dia-horario-card p-3 border rounded shadow-sm bg-white">
+                        <div class="d-flex justify-content-between align-items-center pb-2" [class.border-bottom]="getHorariosByDia(gIdx, d.num).length > 0 || replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num" [class.mb-3]="getHorariosByDia(gIdx, d.num).length > 0 || replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold fs-5">{{ getDiaNombre(d.num) }}</span>
                           </div>
-
+                          <div class="d-flex gap-2">
+                            <!-- Botón Replicar -->
+                            @if (getHorariosByDia(gIdx, d.num).length > 0) {
+                              <button class="btn btn-sm btn-outline-secondary rounded-pill d-flex align-items-center gap-1"
+                                      title="Replicar este horario en otros días"
+                                      (click)="toggleReplicar(gIdx, d.num)">
+                                <i class="bi bi-files"></i>
+                                <span class="d-none d-sm-inline">Replicar</span>
+                              </button>
+                            }
+                            <!-- Botón Añadir -->
+                            <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1"
+                                    (click)="addHorarioOnly(gIdx, d.num)">
+                              <i class="bi bi-plus-circle"></i> <span class="d-none d-sm-inline">Añadir horario</span>
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div class="dia-horario-body">
                           <!-- Panel de réplica inline -->
                           @if (replicandoDia()?.grupoIdx === gIdx && replicandoDia()?.dia === d.num) {
-                            <div class="replicate-panel mb-3">
-                              <div class="replicate-panel__title">
-                                <i class="bi bi-copy me-1"></i>
-                                Replicar horarios del <strong>{{ getDiaNombre(d.num) }}</strong> en:
-                              </div>
-                              <div class="replicate-panel__dias">
+                            <div class="replicate-panel mb-3 p-3 bg-light border rounded">
+                              <label class="fw-semibold small d-block mb-2">
+                                <i class="bi bi-copy me-1"></i> Replicar horarios de <strong>{{ getDiaNombre(d.num) }}</strong> a:
+                              </label>
+                              <div class="replicate-panel__days d-flex flex-wrap gap-2 mb-3">
                                 @for (rd of dias; track rd.num) {
                                   @if (rd.num !== d.num) {
-                                    <label class="replicate-day-check"
-                                           [class.has-existing]="isDiaSelected(gIdx, rd.num)"
-                                           [class.checked]="isDiaParaReplicar(rd.num)">
-                                      <input type="checkbox"
+                                    <label class="btn btn-sm rounded-pill"
+                                           [class.btn-primary]="isDiaParaReplicar(rd.num)"
+                                           [class.btn-outline-secondary]="!isDiaParaReplicar(rd.num) && getHorariosByDia(gIdx, rd.num).length === 0"
+                                           [class.btn-outline-warning]="!isDiaParaReplicar(rd.num) && getHorariosByDia(gIdx, rd.num).length > 0"
+                                           style="cursor: pointer;">
+                                      <input type="checkbox" class="d-none"
                                              [checked]="isDiaParaReplicar(rd.num)"
                                              (change)="toggleDiaReplica(rd.num, $any($event.target).checked)">
-                                      <span>{{ rd.label }}</span>
-                                      @if (isDiaSelected(gIdx, rd.num)) {
-                                        <i class="bi bi-exclamation-triangle-fill text-warning ms-1" title="Este día ya tiene horarios, serán reemplazados"></i>
+                                      {{ rd.label }}
+                                      @if (getHorariosByDia(gIdx, rd.num).length > 0) {
+                                        <i class="bi bi-exclamation-triangle-fill ms-1" title="Se reemplazarán los horarios"></i>
                                       }
                                     </label>
                                   }
                                 }
                               </div>
                               @if (tieneDestinosConConflicto(gIdx)) {
-                                <div class="replicate-panel__warn">
-                                  <i class="bi bi-exclamation-triangle-fill"></i>
-                                  Los días marcados con ⚠ ya tienen horarios configurados y serán <strong>reemplazados</strong>.
+                                <div class="alert alert-warning py-1 px-2 small mb-3">
+                                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                  Los días con advertencia ya tienen horarios configurados y serán <strong>reemplazados</strong>.
                                 </div>
                               }
-                              <div class="replicate-panel__actions">
-                                <button class="btn btn-sm btn-outline-secondary" (click)="cerrarReplicar()">Cancelar</button>
-                                <button class="btn btn-sm btn-primary"
+                              <div class="d-flex justify-content-end gap-2">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="cerrarReplicar()">Cancelar</button>
+                                <button class="btn btn-sm btn-primary rounded-pill px-3"
                                         [disabled]="diasParaReplicar().length === 0"
                                         (click)="aplicarReplica(gIdx, d.num)">
                                   <i class="bi bi-check-lg me-1"></i>Aplicar
@@ -422,60 +494,101 @@
                             </div>
                           }
 
-                          <div class="d-flex flex-column gap-2">
+                                                    <div class="d-flex flex-column gap-2">
+                            @if (getHorariosByDia(gIdx, d.num).length > 0) {
+                              <div class="row g-2 d-none d-md-flex mb-1">
+                                <div class="col-md-3"><small class="text-muted fw-semibold">Inicio</small></div>
+                                <div class="col-md-3"><small class="text-muted fw-semibold">Fin</small></div>
+                                <div class="col-md-5"><small class="text-muted fw-semibold">Área</small></div>
+                                <div class="col-md-1"></div>
+                              </div>
+                            }
                             @for (h of getHorariosByDia(gIdx, d.num); track h.originalIndex) {
-                              <div class="row g-2 align-items-center p-2 rounded bg-light border border-light-subtle">
-                                <div class="col-12 col-md-3">
-                                  <label class="form-label small text-muted mb-1 d-block">Inicio</label>
-                                  <input type="time" class="form-control form-control-sm"
-                                         [value]="h.item.hora_inicio"
-                                         (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_inicio', $any($event.target).value)">
+                              @let isHActive = h.item.is_active !== false;
+                              @let conflict = getHorarioConflict(gIdx, h.originalIndex);
+                              <div class="mb-2 p-2 rounded-3 transition-all"
+                                   [class.opacity-50]="!isHActive"
+                                   [class.bg-danger]="conflict"
+                                   [class.bg-opacity-10]="conflict"
+                                   [class.border]="conflict"
+                                   [class.border-danger]="conflict"
+                                   [class.border-opacity-50]="conflict">
+                                <div class="row g-2 align-items-center">
+                                  <div class="col-12 col-md-3">
+                                    <label class="form-label small text-muted mb-1 d-block d-md-none">Inicio</label>
+                                    <input type="time" class="form-control form-control-sm rounded-pill bg-white"
+                                           [class.border-danger]="conflict"
+                                           [class.text-decoration-line-through]="!isHActive"
+                                           [value]="h.item.hora_inicio"
+                                           (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_inicio', $any($event.target).value)">
+                                  </div>
+                                  <div class="col-12 col-md-3">
+                                    <label class="form-label small text-muted mb-1 d-block d-md-none">Fin</label>
+                                    <input type="time" class="form-control form-control-sm rounded-pill bg-white"
+                                           [class.border-danger]="conflict"
+                                           [class.text-decoration-line-through]="!isHActive"
+                                           [value]="h.item.hora_fin"
+                                           (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
+                                  </div>
+                                  <div class="col-12 col-md-4">
+                                    <label class="form-label small text-muted mb-1 d-block d-md-none">Área</label>
+                                    @if (getAreasByClub().length === 0) {
+                                      <input type="text" class="form-control form-control-sm rounded-pill bg-white" disabled
+                                             placeholder="No hay áreas mapeadas para este club">
+                                    } @else {
+                                      <select class="form-select form-select-sm rounded-pill bg-white"
+                                              [ngModel]="h.item.area_id"
+                                              (ngModelChange)="updateHorarioField(gIdx, h.originalIndex, 'area_id', $event || null)">
+                                        <option [ngValue]="null">Sin área asignada</option>
+                                        @for (area of getAreasByClub(); track area.area_id) {
+                                          <option [ngValue]="area.area_id">{{ area.area_name }}</option>
+                                        }
+                                      </select>
+                                    }
+                                  </div>
+                                  <div class="col-12 col-md-2 d-flex justify-content-end align-items-center gap-2 h-100">
+                                    <div class="form-check form-switch mb-0 d-flex align-items-center" style="padding-left: 0;"
+                                         [title]="isHActive ? 'Inhabilitar horario' : 'Habilitar horario'">
+                                      <input class="form-check-input m-0" type="checkbox" role="switch"
+                                             [checked]="isHActive"
+                                             (change)="toggleWizardHorarioActive(gIdx, h.originalIndex, $event)"
+                                             style="cursor: pointer; width: 2rem; height: 1.05rem;">
+                                    </div>
+                                    <button class="btn btn-sm text-danger border-0 p-1"
+                                            title="Eliminar horario"
+                                            (click)="removeHorario(gIdx, h.originalIndex)">
+                                      <i class="bi bi-trash fs-5"></i>
+                                    </button>
+                                  </div>
                                 </div>
-                                <div class="col-12 col-md-3">
-                                  <label class="form-label small text-muted mb-1 d-block">Fin</label>
-                                  <input type="time" class="form-control form-control-sm"
-                                         [value]="h.item.hora_fin"
-                                         (change)="updateHorarioField(gIdx, h.originalIndex, 'hora_fin', $any($event.target).value)">
-                                </div>
-                                <div class="col-12 col-md-5">
-                                  <label class="form-label small text-muted mb-1 d-block">Área</label>
-                                  @if (getAreasByClub().length === 0) {
-                                    <input type="text" class="form-control form-control-sm" disabled
-                                           placeholder="No hay áreas mapeadas para este club">
-                                  } @else {
-                                    <select class="form-select form-select-sm"
-                                            [ngModel]="h.item.area_id"
-                                            (ngModelChange)="updateHorarioField(gIdx, h.originalIndex, 'area_id', $event || null)">
-                                      <option [ngValue]="null">Sin área asignada</option>
-                                      @for (area of getAreasByClub(); track area.area_id) {
-                                        <option [ngValue]="area.area_id">{{ area.area_name }}</option>
-                                      }
-                                    </select>
-                                  }
-                                </div>
-                                <div class="col-12 col-md-1 d-flex justify-content-end align-items-end h-100 pb-1">
-                                  <button class="btn btn-sm text-danger border-0 p-1"
-                                          title="Eliminar horario"
-                                          (click)="removeHorario(gIdx, h.originalIndex)">
-                                    <i class="bi bi-trash fs-5"></i>
-                                  </button>
-                                </div>
+                                @if (!isHActive && h.item.motivo_cancelacion) {
+                                  <div class="text-secondary small mt-1 d-flex align-items-center gap-1 ps-1" style="font-size: 0.76rem;">
+                                    <i class="bi bi-info-circle-fill text-secondary opacity-75 flex-shrink-0"></i>
+                                    <span>Motivo: <strong class="text-dark">{{ h.item.motivo_cancelacion }}</strong></span>
+                                  </div>
+                                }
+                                @if (conflict) {
+                                  <div class="text-danger small mt-1 d-flex align-items-center gap-1 ps-1 fw-medium" style="font-size: 0.78rem;">
+                                    <i class="bi bi-exclamation-triangle-fill flex-shrink-0"></i>
+                                    <span>{{ conflict }}</span>
+                                  </div>
+                                }
                               </div>
                             }
                           </div>
                         </div>
                       </div>
                     }
-                  }
+                  </div>
                 </div>
-              </div>
-            }
+              }
+            </div>
           }
         </div>
       }
 
-      <!-- ════ PASO 4: Evaluación ════ -->
-      @if (currentStep() === 4) {
+      <!-- ════ PASO 5: Evaluación ════ -->
+      @if (currentStep() === 5) {
         <div class="step-content">
           <h6 class="step-section-title">Criterios de evaluación</h6>
           <p class="text-muted small mb-3">Define los aspectos que se evaluarán en esta actividad.</p>
@@ -521,8 +634,8 @@
         </div>
       }
 
-      <!-- ════ PASO 5: Resumen ════ -->
-      @if (currentStep() === 5) {
+      <!-- ════ PASO 6: Resumen ════ -->
+      @if (currentStep() === 6) {
         <div class="step-content">
           <h6 class="step-section-title">Resumen</h6>
           <p class="text-muted small mb-3">Revisa los datos antes de {{ isEditing() ? 'guardar los cambios' : 'publicar la actividad' }}.</p>
@@ -564,14 +677,14 @@
                 <span class="fw-semibold">${{ monto | number:'1.2-2' }}</span>
               </div>
             }
-            @if (tiene_costo && (fecha_inicio || fecha_fin)) {
+            @if (fecha_inicio || fecha_fin) {
               <div class="summary-row">
                 <span class="summary-label"><i class="bi bi-calendar-range me-2"></i>Vigencia</span>
-                <span>{{ fecha_inicio | date:'dd/MM/yyyy' }} – {{ fecha_fin | date:'dd/MM/yyyy' }}</span>
+                <span>{{ fecha_inicio ? (fecha_inicio | date:'dd/MM/yyyy') : '—' }} – {{ fecha_fin ? (fecha_fin | date:'dd/MM/yyyy') : 'Indefinida' }}</span>
               </div>
             }
             <div class="summary-row">
-              <span class="summary-label"><i class="bi bi-people me-2"></i>Grupos</span>
+              <span class="summary-label"><i class="bi bi-people me-2"></i>Clases</span>
               <span>{{ grupos().length }}</span>
             </div>
             <div class="summary-row">
@@ -586,7 +699,7 @@
 
           @if (grupos().length > 0) {
             <div class="mt-3">
-              <h6 class="small fw-semibold text-muted mb-2">GRUPOS</h6>
+              <h6 class="small fw-semibold text-muted mb-2">CLASES</h6>
               @for (g of grupos(); track trackByIdx($index, g)) {
                 <div class="summary-grupo">
                   <i class="bi bi-people-fill text-primary me-2"></i>
@@ -607,11 +720,43 @@
               }
             </div>
           }
+          @let conflictResumen = findAnyHorarioConflict();
+          @if (conflictResumen) {
+            <div class="alert alert-warning d-flex align-items-center gap-2 mt-4 mb-0 py-2 rounded-3">
+              <i class="bi bi-exclamation-triangle-fill fs-5 flex-shrink-0"></i>
+              <div>
+                <strong>Aviso de empalme en horarios:</strong> {{ conflictResumen }}
+                <div class="small">Este aviso es informativo; puedes continuar y guardar la actividad si así lo deseas.</div>
+              </div>
+            </div>
+          }
         </div>
       }
 
       } <!-- end @else loadingDetail -->
     </div><!-- /wizard-body -->
+
+
+    <!-- Toast de cambios sin guardar -->
+    @if (hasUnsavedChanges()) {
+      <div class="unsaved-changes-toast">
+        <div class="d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill text-warning"></i>
+            <span class="fw-semibold">Tienes cambios sin guardar</span>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-light" (click)="revertChanges()">Descartar</button>
+            <button class="btn btn-sm btn-dark" [disabled]="saving() || !!findAnyInvalidTimeRange()" (click)="publish(false)">
+              @if (saving()) {
+                <span class="spinner-border spinner-border-sm me-1"></span>
+              }
+              Guardar
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- ── Footer con navegación ─────────────────────────────────────────── -->
     <div class="wizard-footer">
@@ -630,7 +775,7 @@
           </button>
         }
         @if (currentStep() === steps.length) {
-          <button class="btn btn-success" [disabled]="saving()" (click)="publish()">
+          <button class="btn btn-success" [disabled]="saving() || !!findAnyInvalidTimeRange()" (click)="publish()">
             @if (saving()) {
               <span class="spinner-border spinner-border-sm me-2"></span>
             } @else {

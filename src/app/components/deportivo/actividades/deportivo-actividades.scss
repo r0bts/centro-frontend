@@ -15,8 +15,26 @@
 // ── Grid ────────────────────────────────────────────────────────────────────────
 .activities-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
+}
+
+@media (max-width: 1200px) {
+  .activities-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .activities-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .activities-grid {
+    grid-template-columns: 1fr;
+  }
 
   .col-span-full {
     grid-column: 1 / -1;
@@ -29,18 +47,18 @@
   background: #fff;
   border: 1px solid var(--bs-border-color);
   border-radius: 1rem;
-  padding: 1.25rem;
+  padding: 0.75rem;
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  min-height: 220px;
-  overflow: hidden;
+  min-height: 100px;
+  overflow: visible;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   cursor: default;
 
-  &:hover {
+  &:hover, &:has(.dropdown-menu.show) {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px);
+    z-index: 50;
   }
 
   &.inactive {
@@ -53,7 +71,7 @@
   border: 2px dashed var(--bs-border-color);
   align-items: center;
   justify-content: center;
-  min-height: 180px;
+  min-height: 100px;
   cursor: pointer;
   background: transparent;
 
@@ -102,7 +120,7 @@
 }
 
 .card-action-btn {
-  flex: 1;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -268,3 +286,344 @@
   right: 1.5rem;
   z-index: 1100;
 }
+
+.clear-search-icon {
+  cursor: pointer;
+  pointer-events: auto;
+  font-size: 0.85rem;
+  z-index: 10;
+  transition: color 0.15s ease-in-out;
+
+  &:hover {
+    color: var(--bs-danger) !important;
+  }
+}
+
+
+::ng-deep .custom-sm-select {
+  .ng-select-container {
+    min-height: 30px !important;
+    height: 30px !important;
+    border-radius: var(--border-global, 20px) !important;
+    border: 1px solid #cbd5e1 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  &.ng-select-focused > .ng-select-container,
+  &.ng-select-opened > .ng-select-container {
+    border-radius: var(--border-global, 20px) !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15) !important;
+  }
+
+  .ng-value-container {
+    padding-left: 0.65rem !important;
+    padding-top: 0 !important;
+    font-size: 0.78rem !important;
+    color: #212529 !important;
+    align-items: center !important;
+  }
+
+  .ng-input {
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    padding-left: 0.65rem !important;
+
+    > input {
+      font-size: 0.78rem !important;
+      padding: 0 !important;
+      color: #212529 !important;
+    }
+  }
+
+  .ng-placeholder {
+    font-size: 0.78rem !important;
+    color: #212529 !important;
+  }
+
+  .ng-value {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100%;
+    font-size: 0.78rem !important;
+    color: #212529 !important;
+  }
+
+  .ng-clear-wrapper {
+    width: 14px !important;
+    color: #94a3b8 !important;
+    &:hover .ng-clear {
+      color: #ef4444 !important;
+    }
+  }
+
+  // Usar exactamente el mismo chevron SVG de Bootstrap .form-select en vez del triángulo gris de ng-select
+  .ng-arrow-wrapper {
+    width: 24px !important;
+    padding-right: 0.5rem !important;
+
+    .ng-arrow {
+      border: 0 !important;
+      width: 12px !important;
+      height: 10px !important;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e") !important;
+      background-repeat: no-repeat !important;
+      background-position: center !important;
+      background-size: 12px 10px !important;
+      top: 0 !important;
+    }
+  }
+}
+
+.conflict-trigger-badge {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+  }
+}
+
+.conflict-floating-popover {
+  position: fixed;
+  z-index: 9999;
+  width: 330px;
+  pointer-events: auto;
+  animation: conflictPopoverFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &.show-above {
+    transform: translateY(-100%);
+    animation: conflictPopoverFadeInAbove 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes conflictPopoverFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes conflictPopoverFadeInAbove {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-100% + 4px)) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-100%) scale(1);
+  }
+}
+
+// ── Spreadsheet (Mantenimiento Rápido) ──────────────────────────────────────────
+.spreadsheet-sticky-toolbar {
+  position: sticky;
+  top: 72px;
+  z-index: 40;
+  background-color: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+.spreadsheet-table-container {
+  border-color: #e2e8f0 !important;
+  overflow: hidden;
+  overflow-x: auto;
+  scrollbar-width: thin;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 999px;
+
+    &:hover {
+      background: #64748b;
+    }
+  }
+}
+
+.spreadsheet-table {
+  table-layout: auto;
+
+  th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #475569;
+    font-weight: 700;
+    background-color: #f8fafc !important;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
+    white-space: nowrap;
+
+    &.sortable-th {
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.15s ease, color 0.15s ease;
+
+      &:hover {
+        background-color: #f1f5f9 !important;
+        color: #1e293b;
+
+        .sort-icon {
+          opacity: 0.75;
+        }
+      }
+
+      .sort-icon {
+        font-size: 0.72rem;
+        opacity: 0.35;
+        transition: opacity 0.15s ease, color 0.15s ease;
+
+        &.active {
+          opacity: 1;
+          color: var(--primary-color, #406eba);
+        }
+      }
+    }
+  }
+
+  tbody tr {
+    height: 46px;
+
+    &.row-inactive-muted > td > * {
+      opacity: 0.65;
+    }
+
+    &:last-child td {
+      border-bottom: none;
+    }
+  }
+
+  td {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  // Columnas fijas a la izquierda (Checkbox + Actividad)
+  th.sticky-col-check,
+  td.sticky-col-check {
+    position: sticky;
+    left: 0;
+    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
+  }
+
+  th.sticky-col-act,
+  td.sticky-col-act {
+    position: sticky;
+    left: 36px;
+    min-width: 265px;
+    width: 265px;
+    border-right: 1px solid #e2e8f0;
+    box-shadow: 3px 0 6px -2px rgba(15, 23, 42, 0.06);
+  }
+
+  thead th.sticky-col-check,
+  thead th.sticky-col-act {
+    z-index: 30;
+    background-color: #f8fafc !important;
+  }
+
+  tbody td.sticky-col-check,
+  tbody td.sticky-col-act {
+    z-index: 10;
+    background-color: #ffffff;
+  }
+
+  tbody tr.table-warning td.sticky-col-check,
+  tbody tr.table-warning td.sticky-col-act {
+    background-color: #fff3cd !important;
+  }
+
+  tbody tr.table-danger td.sticky-col-check,
+  tbody tr.table-danger td.sticky-col-act {
+    background-color: #f8d7da !important;
+  }
+
+  tbody tr:hover td.sticky-col-check,
+  tbody tr:hover td.sticky-col-act {
+    background-color: #f1f5f9;
+  }
+
+  .form-control.spreadsheet-input {
+    font-size: 0.78rem !important;
+    padding: 0.22rem 0.65rem !important;
+    height: 30px !important;
+    border-radius: var(--border-global, 20px) !important;
+    border-color: #cbd5e1;
+    background-color: #ffffff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+  }
+
+  .form-select.spreadsheet-input {
+    font-size: 0.78rem !important;
+    padding: 0.22rem 1.7rem 0.22rem 0.65rem !important;
+    background-position: right 0.5rem center !important;
+    background-size: 12px 10px !important;
+    height: 30px !important;
+    border-radius: var(--border-global, 20px) !important;
+    border-color: #cbd5e1;
+    background-color: #ffffff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+  }
+
+  ::ng-deep .spreadsheet-ng-select {
+    .ng-select-container {
+      min-height: 30px !important;
+      height: 30px !important;
+      border-radius: var(--border-global, 20px) !important;
+      border-color: #cbd5e1 !important;
+      background-color: #ffffff !important;
+      font-size: 0.78rem !important;
+    }
+
+    .ng-value-container {
+      padding-left: 0.65rem !important;
+      font-size: 0.78rem !important;
+    }
+
+    .ng-placeholder,
+    .ng-value,
+    .ng-input > input {
+      font-size: 0.78rem !important;
+    }
+  }
+}
+
+::ng-deep .ng-dropdown-panel {
+  z-index: 1060 !important;
+  font-size: 0.78rem !important;
+  border-radius: 10px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
