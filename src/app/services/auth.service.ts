@@ -368,7 +368,9 @@ export class AuthService {
       const submodule = module.submodules[submoduleName];
       
       if (submodule && submodule.permissions) {
-        const permission = submodule.permissions[permissionName];
+        // Soporta tanto nombre estándar ('create', 'view') como nombres con prefijo ('gestion_documental_create')
+        const permission = submodule.permissions[permissionName] || 
+                           submodule.permissions[`gestion_documental_${permissionName}`];
         return permission?.granted === true;
       }
     }
