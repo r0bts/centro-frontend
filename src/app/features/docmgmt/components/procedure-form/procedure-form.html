@@ -84,7 +84,7 @@
         <i class="bi bi-cloud-upload fs-2 text-primary mb-2 d-block"></i>
         <div class="fw-semibold small">Haz clic para seleccionar</div>
         <div class="text-muted" style="font-size:.72rem;">PDF o Imágenes — máx. 20 MB por archivo</div>
-        <input type="file" #fileInput class="d-none" accept="application/pdf, image/*" (change)="onFileSelected($event)">
+        <input type="file" #fileInput class="d-none" accept="application/pdf, image/*, .pdf, .jpg, .jpeg, .png, .webp" (change)="onFileSelected($event)">
       </div>
 
       <div id="doc-list">

@@ -176,8 +176,20 @@ export class ProcedureFormComponent implements OnInit {
   onFileSelected(event: any) {
     const file: File = event.target.files[0];
     if (file) {
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+      const allowedTypes = [
+        'application/pdf',
+        'application/x-pdf',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'image/webp'
+      ];
+      const isMimeOk = allowedTypes.includes(file.type) || file.type.startsWith('image/');
+      const isExtOk = allowedExts.includes(ext);
+
+      if (!isExtOk || (!isMimeOk && file.type !== '')) {
         alert('Solo se permiten archivos PDF o imágenes (JPG, PNG, WEBP).');
         return;
       }
@@ -185,10 +197,14 @@ export class ProcedureFormComponent implements OnInit {
         // Upload immediately
         this.docmgmtService.uploadDocument(this.procedureId, file).subscribe({
           next: (res: any) => {
-            if (res.success) this.loadProcedure();
-            else alert('Error subiendo archivo: ' + (res.message || "") + " " + JSON.stringify(res.errors || {}));
+            if (res.success) {
+              this.loadProcedure();
+            } else {
+              const detail = res.errors?.detail || (res.errors && Object.keys(res.errors).length ? JSON.stringify(res.errors) : '');
+              alert('Error subiendo archivo: ' + (res.message || "") + (detail ? `\nDetalle: ${detail}` : ''));
+            }
           },
-          error: () => alert('Error en la conexión')
+          error: (err) => alert('Error en la conexión al subir archivo: ' + (err.message || ''))
         });
       } else {
         // Queue for later
@@ -278,13 +294,16 @@ export class ProcedureFormComponent implements OnInit {
                 // Comprobar si alguno falló
                 const failures = results.filter(r => !r.success);
                 if (failures.length > 0) {
-                  const errorMsgs = failures.map(f => f.message + ' ' + JSON.stringify(f.errors || {})).join('\\n');
-                  alert('El procedimiento se creó, pero hubo errores subiendo los documentos:\\n' + errorMsgs);
+                  const errorMsgs = failures.map(f => {
+                    const detail = f.errors?.detail || (f.errors && Object.keys(f.errors).length ? JSON.stringify(f.errors) : '');
+                    return (f.message || 'Error') + (detail ? `\nDetalle: ${detail}` : '');
+                  }).join('\n');
+                  alert('El procedimiento se creó, pero hubo errores subiendo los documentos:\n' + errorMsgs);
                 }
                 this.router.navigate(['/docmgmt', procId]);
               },
-              error: () => {
-                alert('Error de conexión al subir documentos');
+              error: (err) => {
+                alert('Error de conexión al subir documentos: ' + (err.message || 'Error de red'));
                 this.router.navigate(['/docmgmt', procId]);
               }
             });
