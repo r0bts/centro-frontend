@@ -116,6 +116,7 @@ export class ProcedureListComponent implements OnInit {
   }
 
   getInitials(name: string): string {
+    if (!name) return '??';
     return name.substring(0, 2).toUpperCase();
   }
 }

@@ -215,6 +215,7 @@ export class AccessManagementComponent implements OnInit {
   }
 
   getInitials(name: string): string {
+    if (!name) return '??';
     return name.substring(0, 2).toUpperCase();
   }
 
