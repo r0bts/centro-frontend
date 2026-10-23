@@ -105,7 +105,12 @@ export class AccessManagementComponent implements OnInit {
     this.docmgmtService.getProcedure(id).subscribe({
       next: (res: any) => {
         if (res.docmgmtProcedure) {
-          this.procedure = res.docmgmtProcedure;
+          const proc = res.docmgmtProcedure;
+          this.procedure = {
+            ...proc,
+            name: proc.name || proc.title || '',
+            status: proc.status || (proc.is_active === false ? 'archived' : 'published')
+          };
           this.originalPermissions = res.docmgmtProcedure.docmgmt_procedure_permissions || [];
           this.mapPermissions();
         } else {
@@ -215,8 +220,12 @@ export class AccessManagementComponent implements OnInit {
   }
 
   getInitials(name: string): string {
-    if (!name) return '??';
-    return name.substring(0, 2).toUpperCase();
+    if (!name || !name.trim()) return 'US';
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.trim().substring(0, 2).toUpperCase();
   }
 
   goBack(saved = false) {

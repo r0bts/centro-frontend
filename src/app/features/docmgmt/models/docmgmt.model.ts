@@ -1,13 +1,18 @@
 export interface DocmgmtProcedure {
   id?: number;
   name: string;
+  title?: string;
+  code?: string | null;
   description: string;
   status: 'draft' | 'published' | 'archived';
+  is_active?: boolean;
   created_by?: number;
   updated_by?: number;
   deleted_at?: string | null;
   created?: string;
   modified?: string;
+  created_at?: string;
+  updated_at?: string;
   docmgmt_procedure_documents?: DocmgmtDocument[];
   docmgmt_procedure_permissions?: DocmgmtPermission[];
 }

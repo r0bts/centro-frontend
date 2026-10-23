@@ -53,7 +53,11 @@ export class ProcedureListComponent implements OnInit {
       .subscribe({
         next: (res: any) => {
           if (res.docmgmtProcedures) {
-            this.procedures = res.docmgmtProcedures;
+            this.procedures = res.docmgmtProcedures.map((p: any) => ({
+              ...p,
+              name: p.name || p.title || '',
+              status: p.status || (p.is_active === false ? 'archived' : 'published')
+            }));
             this.calculateKPIs();
           } else {
             this.error = res.message || 'Error al cargar procedimientos';
@@ -116,7 +120,11 @@ export class ProcedureListComponent implements OnInit {
   }
 
   getInitials(name: string): string {
-    if (!name) return '??';
-    return name.substring(0, 2).toUpperCase();
+    if (!name || !name.trim()) return 'DOC';
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.trim().substring(0, 2).toUpperCase();
   }
 }

@@ -103,7 +103,12 @@ export class ProcedureFormComponent implements OnInit {
     this.docmgmtService.getProcedure(this.procedureId).subscribe({
       next: (res: any) => {
         if (res.docmgmtProcedure) {
-          this.procedure = res.docmgmtProcedure;
+          const proc = res.docmgmtProcedure;
+          this.procedure = {
+            ...proc,
+            name: proc.name || proc.title || '',
+            status: proc.status || (proc.is_active === false ? 'archived' : 'published')
+          };
           this.documents = res.docmgmtProcedure.docmgmt_procedure_documents || [];
           this.permissions = res.docmgmtProcedure.docmgmt_procedure_permissions || [];
           
@@ -162,7 +167,7 @@ export class ProcedureFormComponent implements OnInit {
   validationMessage: string | null = null;
 
   goStep(step: number) {
-    if (step > this.currentStep && step === 2 && !this.procedure.name) {
+    if (step > 1 && (!this.procedure.name || !this.procedure.name.trim())) {
       this.validationMessage = 'Debes ingresar un nombre para el procedimiento.';
       return;
     }
@@ -262,6 +267,14 @@ export class ProcedureFormComponent implements OnInit {
   }
 
   finishForm(publish: boolean) {
+    const trimmedName = this.procedure.name ? this.procedure.name.trim() : '';
+    if (!trimmedName) {
+      this.validationMessage = 'Debes ingresar un nombre para el procedimiento.';
+      this.currentStep = 1;
+      return;
+    }
+
+    this.procedure.name = trimmedName;
     this.procedure.status = publish ? 'published' : 'draft';
     this.saving = true;
 
@@ -269,11 +282,19 @@ export class ProcedureFormComponent implements OnInit {
       ...this.departments.filter(d => d.selected).map(d => ({ permission_type: 'department' as const, department_id: d.id })),
       ...this.users.filter(u => u.selected).map(u => ({ permission_type: 'user' as const, user_id: u.id }))
     ];
-    this.procedure.docmgmt_procedure_permissions = mappedPermissions;
+
+    const payload: any = {
+      name: this.procedure.name,
+      title: this.procedure.name,
+      description: this.procedure.description || '',
+      status: this.procedure.status,
+      is_active: this.procedure.status === 'published',
+      docmgmt_procedure_permissions: mappedPermissions
+    };
 
     const request = this.isEdit && this.procedureId 
-      ? this.docmgmtService.updateProcedure(this.procedureId, this.procedure)
-      : this.docmgmtService.createProcedure(this.procedure);
+      ? this.docmgmtService.updateProcedure(this.procedureId, payload)
+      : this.docmgmtService.createProcedure(payload);
 
     request.subscribe({
       next: (res: any) => {

@@ -14,13 +14,13 @@
         {{ getInitials(procedure.name) }}
       </div>
       <div>
-        <h2 class="mb-1 fw-bold text-dark">{{ procedure.name }}</h2>
+        <h2 class="mb-1 fw-bold text-dark">{{ procedure.name || 'Procedimiento sin título' }}</h2>
         <div class="d-flex flex-wrap align-items-center gap-2" style="font-size:.85rem; color:#6c757d;">
           <span class="badge rounded-pill bg-success-subtle text-success-emphasis border border-success-subtle" *ngIf="procedure.status === 'published'">Publicado</span>
           <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle" *ngIf="procedure.status === 'draft'">Borrador</span>
           <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle" *ngIf="procedure.status === 'archived'">Archivado</span>
           <span>·</span>
-          <span><i class="bi bi-clock me-1"></i>Actualizado el {{ procedure.modified | date:'dd MMM yyyy' }}</span>
+          <span><i class="bi bi-clock me-1"></i>Actualizado el {{ (procedure.updated_at || procedure.modified || procedure.created_at) | date:'dd MMM yyyy' }}</span>
         </div>
       </div>
     </div>

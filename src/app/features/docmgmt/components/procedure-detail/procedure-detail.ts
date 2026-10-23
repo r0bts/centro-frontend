@@ -55,7 +55,12 @@ export class ProcedureDetailComponent implements OnInit {
     this.docmgmtService.getProcedure(id).subscribe({
       next: (res: any) => {
         if (res.docmgmtProcedure) {
-          this.procedure = res.docmgmtProcedure;
+          const proc = res.docmgmtProcedure;
+          this.procedure = {
+            ...proc,
+            name: proc.name || proc.title || '',
+            status: proc.status || (proc.is_active === false ? 'archived' : 'published')
+          };
           if (this.canEdit && this.route.snapshot.queryParamMap.get('access') === '1') {
             this.showAccessModal = true;
           }
@@ -133,8 +138,12 @@ export class ProcedureDetailComponent implements OnInit {
   }
 
   getInitials(name: string): string {
-    if (!name) return '??';
-    return name.substring(0, 2).toUpperCase();
+    if (!name || !name.trim()) return 'DOC';
+    const words = name.trim().split(/\s+/);
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return name.trim().substring(0, 2).toUpperCase();
   }
 
   openAccessModal() {
