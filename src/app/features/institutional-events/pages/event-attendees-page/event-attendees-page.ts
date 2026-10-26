@@ -89,7 +89,11 @@ export class EventAttendeesPageComponent implements OnInit {
         firstValueFrom(this.svc.getById(id)),
         firstValueFrom(this.svc.getAttendees(id)),
       ]);
-      this.event.set(evRes.data.event);
+      const evData = evRes.data.event;
+      if (evData) {
+        evData.has_registration = Boolean(evData.has_registration);
+      }
+      this.event.set(evData);
       this.attendees.set(attRes.data.attendees ?? []);
     } catch {
       this.error.set('No se pudo cargar la información del evento.');

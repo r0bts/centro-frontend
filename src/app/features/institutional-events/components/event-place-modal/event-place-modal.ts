@@ -55,7 +55,8 @@ export class EventPlaceModalComponent implements AfterViewInit, OnDestroy {
 
   async ngAfterViewInit(): Promise<void> {
     // Importación dinámica: Leaflet solo se carga en el browser (no en SSR)
-    this.L = await import('leaflet');
+    const leafletModule: any = await import('leaflet');
+    this.L = leafletModule.default?.icon ? leafletModule.default : (leafletModule.icon ? leafletModule : (leafletModule.default || leafletModule));
 
     // Rellenar formulario si viene en modo edición
     if (this.place) {
