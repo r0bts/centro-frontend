@@ -103,7 +103,12 @@ export class ProcedureFormComponent implements OnInit {
     this.docmgmtService.getProcedure(this.procedureId).subscribe({
       next: (res: any) => {
         if (res.docmgmtProcedure) {
-          this.procedure = res.docmgmtProcedure;
+          const proc = res.docmgmtProcedure;
+          this.procedure = {
+            ...proc,
+            name: proc.name || proc.title || '',
+            status: proc.status || (proc.is_active === false ? 'archived' : 'published')
+          };
           this.documents = res.docmgmtProcedure.docmgmt_procedure_documents || [];
           this.permissions = res.docmgmtProcedure.docmgmt_procedure_permissions || [];
           
@@ -162,7 +167,7 @@ export class ProcedureFormComponent implements OnInit {
   validationMessage: string | null = null;
 
   goStep(step: number) {
-    if (step > this.currentStep && step === 2 && !this.procedure.name) {
+    if (step > 1 && (!this.procedure.name || !this.procedure.name.trim())) {
       this.validationMessage = 'Debes ingresar un nombre para el procedimiento.';
       return;
     }
@@ -176,8 +181,20 @@ export class ProcedureFormComponent implements OnInit {
   onFileSelected(event: any) {
     const file: File = event.target.files[0];
     if (file) {
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-      if (!allowedTypes.includes(file.type)) {
+      const ext = file.name.split('.').pop()?.toLowerCase() || '';
+      const allowedExts = ['pdf', 'jpg', 'jpeg', 'png', 'webp'];
+      const allowedTypes = [
+        'application/pdf',
+        'application/x-pdf',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'image/webp'
+      ];
+      const isMimeOk = allowedTypes.includes(file.type) || file.type.startsWith('image/');
+      const isExtOk = allowedExts.includes(ext);
+
+      if (!isExtOk || (!isMimeOk && file.type !== '')) {
         alert('Solo se permiten archivos PDF o imágenes (JPG, PNG, WEBP).');
         return;
       }
@@ -185,10 +202,14 @@ export class ProcedureFormComponent implements OnInit {
         // Upload immediately
         this.docmgmtService.uploadDocument(this.procedureId, file).subscribe({
           next: (res: any) => {
-            if (res.success) this.loadProcedure();
-            else alert('Error subiendo archivo: ' + (res.message || "") + " " + JSON.stringify(res.errors || {}));
+            if (res.success) {
+              this.loadProcedure();
+            } else {
+              const detail = res.errors?.detail || (res.errors && Object.keys(res.errors).length ? JSON.stringify(res.errors) : '');
+              alert('Error subiendo archivo: ' + (res.message || "") + (detail ? `\nDetalle: ${detail}` : ''));
+            }
           },
-          error: () => alert('Error en la conexión')
+          error: (err) => alert('Error en la conexión al subir archivo: ' + (err.message || ''))
         });
       } else {
         // Queue for later
@@ -246,6 +267,14 @@ export class ProcedureFormComponent implements OnInit {
   }
 
   finishForm(publish: boolean) {
+    const trimmedName = this.procedure.name ? this.procedure.name.trim() : '';
+    if (!trimmedName) {
+      this.validationMessage = 'Debes ingresar un nombre para el procedimiento.';
+      this.currentStep = 1;
+      return;
+    }
+
+    this.procedure.name = trimmedName;
     this.procedure.status = publish ? 'published' : 'draft';
     this.saving = true;
 
@@ -253,11 +282,19 @@ export class ProcedureFormComponent implements OnInit {
       ...this.departments.filter(d => d.selected).map(d => ({ permission_type: 'department' as const, department_id: d.id })),
       ...this.users.filter(u => u.selected).map(u => ({ permission_type: 'user' as const, user_id: u.id }))
     ];
-    this.procedure.docmgmt_procedure_permissions = mappedPermissions;
+
+    const payload: any = {
+      name: this.procedure.name,
+      title: this.procedure.name,
+      description: this.procedure.description || '',
+      status: this.procedure.status,
+      is_active: this.procedure.status === 'published',
+      docmgmt_procedure_permissions: mappedPermissions
+    };
 
     const request = this.isEdit && this.procedureId 
-      ? this.docmgmtService.updateProcedure(this.procedureId, this.procedure)
-      : this.docmgmtService.createProcedure(this.procedure);
+      ? this.docmgmtService.updateProcedure(this.procedureId, payload)
+      : this.docmgmtService.createProcedure(payload);
 
     request.subscribe({
       next: (res: any) => {
@@ -278,13 +315,16 @@ export class ProcedureFormComponent implements OnInit {
                 // Comprobar si alguno falló
                 const failures = results.filter(r => !r.success);
                 if (failures.length > 0) {
-                  const errorMsgs = failures.map(f => f.message + ' ' + JSON.stringify(f.errors || {})).join('\\n');
-                  alert('El procedimiento se creó, pero hubo errores subiendo los documentos:\\n' + errorMsgs);
+                  const errorMsgs = failures.map(f => {
+                    const detail = f.errors?.detail || (f.errors && Object.keys(f.errors).length ? JSON.stringify(f.errors) : '');
+                    return (f.message || 'Error') + (detail ? `\nDetalle: ${detail}` : '');
+                  }).join('\n');
+                  alert('El procedimiento se creó, pero hubo errores subiendo los documentos:\n' + errorMsgs);
                 }
                 this.router.navigate(['/docmgmt', procId]);
               },
-              error: () => {
-                alert('Error de conexión al subir documentos');
+              error: (err) => {
+                alert('Error de conexión al subir documentos: ' + (err.message || 'Error de red'));
                 this.router.navigate(['/docmgmt', procId]);
               }
             });

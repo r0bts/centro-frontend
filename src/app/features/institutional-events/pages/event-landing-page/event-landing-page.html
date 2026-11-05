@@ -58,7 +58,8 @@
   </header>
 
   <!-- ─────────────── HERO SECCIÓN (FONDO DE IMAGEN) ─────────────── -->
-  <section class="hero hero-bg-image" id="inicio" [style.background-image]="ev.banner_image_url ? 'url(' + ev.banner_image_url + ')' : 'none'">
+  @let heroBg = ev.banner_image_url || ev.extra_data?.['cover_image_url'] || ev.extra_data?.['banner_mobile_url'];
+  <section class="hero hero-bg-image" id="inicio" [style.background-image]="heroBg ? 'url(' + heroBg + ')' : 'none'">
     <div class="hero-overlay"></div>
     <div class="contenedor hero-content-wrapper position-relative" style="z-index: 2;">
       <div class="hero-content text-center">

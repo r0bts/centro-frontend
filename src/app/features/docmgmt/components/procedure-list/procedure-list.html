@@ -63,7 +63,7 @@
           </span>
           <input type="text" class="form-control border-start-0 ps-0" placeholder="Buscar procedimiento..." [(ngModel)]="searchTerm">
         </div>
-        <button *ngIf="canAdd" class="btn btn-sm btn-primary d-flex align-items-center gap-1" routerLink="/docmgmt/new">
+        <button *ngIf="canAdd" class="btn btn-sm btn-primary d-flex align-items-center gap-1" routerLink="/docmgmt/create">
           <i class="bi bi-plus-lg"></i>Nuevo
         </button>
       </div>
@@ -96,7 +96,7 @@
                     {{ getInitials(proc.name) }}
                   </div>
                   <div>
-                    <div class="proc-name">{{ proc.name }}</div>
+                    <div class="proc-name">{{ proc.name || 'Procedimiento sin título' }}</div>
                     <div class="proc-meta text-truncate" style="max-width:260px">{{ proc.description || 'Sin descripción' }}</div>
                   </div>
                 </div>
@@ -106,7 +106,7 @@
                   {{ proc.docmgmt_procedure_documents?.length || 0 }} documentos
                 </span>
               </td>
-              <td><span class="small text-muted">{{ proc.modified | date:'dd MMM yyyy' }}</span></td>
+              <td><span class="small text-muted">{{ (proc.updated_at || proc.modified || proc.created_at) | date:'dd MMM yyyy' }}</span></td>
               <td>
                 <span class="badge bg-success-subtle text-success-emphasis border border-success-subtle d-inline-flex align-items-center gap-1" *ngIf="proc.status === 'published'">
                   <i class="bi bi-circle-fill" style="font-size:.45rem;"></i>Publicado
