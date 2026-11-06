@@ -1,0 +1,383 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CUESTIONARIO MÉDICO PÚBLICO (/cuestionario/:token)
+   Homologado con la paleta institucional de Centro Libanés (:root en styles.scss)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:host {
+  display: block;
+}
+
+.cq-page {
+  background: var(--neutral-50, #f6f6f6);
+  color: var(--neutral-800, #373737);
+}
+
+.cq-container {
+  max-width: 840px;
+}
+
+.cq-header-card {
+  background: #ffffff;
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  border-top: 4px solid var(--primary-color, #406eba);
+  border-radius: 14px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+.cq-logo {
+  height: 44px;
+  width: auto;
+  object-fit: contain;
+}
+
+.cq-subtitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--neutral-600, #727272);
+  margin-top: 2px;
+}
+
+.cq-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--primary-color, #406eba);
+  background: rgba(64, 110, 186, 0.1);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+}
+
+.cq-card {
+  background: #ffffff;
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.cq-section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary-dark, #1d3d79);
+  padding-bottom: 0.65rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--neutral-100, #e8e8e8);
+}
+
+.cq-icon-circle {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: rgba(64, 110, 186, 0.1);
+  color: var(--primary-color, #406eba);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.cq-success-card {
+  padding: 3.5rem 2rem;
+  background: #ffffff;
+}
+
+.cq-success-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2.5px solid var(--primary-color, #406eba);
+  color: var(--primary-color, #406eba);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+.cq-success-title {
+  font-size: 1.65rem;
+  font-weight: 700;
+  color: var(--neutral-800, #373737);
+}
+
+.cq-success-text {
+  max-width: 480px;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--neutral-600, #727272);
+}
+
+.cq-legal-scroll {
+  background: var(--neutral-50, #f6f6f6);
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  border-radius: 10px;
+  padding: 1.15rem 1.35rem;
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 0.84rem;
+  line-height: 1.65;
+  color: var(--neutral-800, #373737);
+
+  p {
+    margin-bottom: 0.85rem;
+  }
+}
+
+.cq-checkbox-box {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  border-radius: 10px;
+  background: #ffffff;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover {
+    background: var(--neutral-50, #f6f6f6);
+    border-color: var(--primary-color, #406eba);
+  }
+}
+
+.cq-btn-primary {
+  background: var(--primary-color, #406eba);
+  color: #ffffff;
+  border: 1px solid var(--primary-color, #406eba);
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &.btn-sm {
+    font-size: 0.8rem;
+    line-height: 1.25;
+    padding: 0.25rem 0.75rem;
+    border-radius: 7px;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--primary-dark, #1d3d79);
+    color: #ffffff;
+    border-color: var(--primary-dark, #1d3d79);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+  }
+}
+
+.cq-btn-outline {
+  background: #ffffff;
+  color: var(--neutral-800, #373737);
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  font-weight: 500;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+
+  &.btn-sm {
+    font-size: 0.8rem;
+    line-height: 1.25;
+    padding: 0.25rem 0.75rem;
+    border-radius: 7px;
+  }
+
+  &:hover:not(:disabled) {
+    background: var(--neutral-50, #f6f6f6);
+    color: var(--primary-color, #406eba);
+    border-color: var(--primary-color, #406eba);
+  }
+}
+
+.cq-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+
+  @media (max-width: 767.98px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 479.98px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cq-chip {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  background: #ffffff;
+  color: var(--neutral-800, #373737);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.25;
+  padding: 0.35rem 0.7rem;
+  border-radius: 7px;
+  transition: all 0.2s ease;
+  text-align: left;
+
+  &:hover {
+    background: var(--neutral-50, #f6f6f6);
+    color: var(--primary-color, #406eba);
+    border-color: var(--primary-color, #406eba);
+  }
+
+  &.active {
+    background: var(--primary-color, #406eba);
+    color: #ffffff;
+    border-color: var(--primary-color, #406eba);
+    font-weight: 600;
+  }
+}
+
+/* ── SELECTOR BUSCADOR TIPO CHOSEN (ng-select) ─────────────────────────── */
+::ng-deep .cq-ng-select.ng-select {
+  outline: none !important;
+
+  &.ng-select-single {
+    .ng-select-container {
+      min-height: 42px;
+      height: 42px;
+      border-radius: 10px !important;
+      border: 1px solid var(--neutral-200, #d0d0d0);
+      background-color: #ffffff;
+      color: var(--neutral-900, #141414);
+      font-size: 0.92rem;
+      padding: 0 6px 0 12px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      cursor: text;
+      outline: none !important;
+
+      &:hover {
+        border-color: var(--primary-color, #406eba);
+      }
+
+      .ng-value-container {
+        display: flex;
+        align-items: center;
+        padding-left: 0 !important;
+        overflow: hidden;
+
+        .ng-placeholder {
+          color: var(--neutral-500, #8a8a8a);
+          padding: 0;
+        }
+
+        .ng-value {
+          display: none !important;
+        }
+
+        .ng-input {
+          position: static !important;
+          flex: 1 1 100%;
+          width: 100% !important;
+          top: auto !important;
+          left: auto !important;
+          transform: none !important;
+          padding-left: 0 !important;
+          padding-right: 8px !important;
+
+          > input {
+            color: var(--neutral-900, #141414);
+            font-size: 0.92rem;
+            cursor: text;
+            width: 100% !important;
+          }
+        }
+      }
+
+      .ng-arrow-wrapper {
+        padding-right: 6px;
+
+        .ng-arrow {
+          border-color: var(--neutral-600, #727272) transparent transparent;
+        }
+      }
+    }
+  }
+
+  &.ng-select-focused:not(.ng-select-opened) > .ng-select-container,
+  &.ng-select-opened > .ng-select-container,
+  &.ng-select-opened.ng-select-bottom > .ng-select-container,
+  &.ng-select-opened.ng-select-top > .ng-select-container {
+    border-radius: 10px !important;
+    border-color: var(--primary-color, #406eba) !important;
+    box-shadow: 0 0 0 0.2rem rgba(64, 110, 186, 0.15) !important;
+    background-color: #ffffff;
+  }
+
+  .ng-dropdown-panel {
+    border: 1px solid var(--neutral-200, #d0d0d0);
+    border-radius: 12px !important;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(20, 20, 20, 0.12);
+    margin-top: 6px;
+    overflow: hidden;
+    z-index: 1060;
+
+    .ng-dropdown-panel-items {
+      max-height: 260px;
+      padding: 6px;
+
+      .ng-option {
+        padding: 9px 12px;
+        border-radius: 8px !important;
+        font-size: 0.88rem;
+        color: var(--neutral-800, #373737);
+        background-color: transparent;
+        transition: background-color 0.12s ease, color 0.12s ease;
+        margin-bottom: 2px;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        &.ng-option-marked {
+          background-color: rgba(64, 110, 186, 0.08);
+          color: var(--primary-dark, #1d3d79);
+        }
+
+        &.ng-option-selected {
+          background-color: rgba(64, 110, 186, 0.12);
+          color: var(--primary-color, #406eba);
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}
+
+.form-control,
+.form-select {
+  border-radius: 10px;
+  border-color: var(--neutral-200, #d0d0d0);
+
+  &:focus {
+    border-color: var(--primary-color, #406eba);
+    box-shadow: 0 0 0 0.2rem rgba(64, 110, 186, 0.15);
+  }
+}
+
+.cq-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--neutral-100, #e8e8e8) 0px,
+    var(--neutral-50, #f6f6f6) 50%,
+    var(--neutral-100, #e8e8e8) 100%
+  );
+  background-size: 200% 100%;
+  animation: cqShimmer 1.35s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes cqShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}

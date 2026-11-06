@@ -1,0 +1,1650 @@
+<div class="cq-page min-vh-100 py-4 px-3">
+  <div class="cq-container mx-auto">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         CABECERA INSTITUCIONAL (CENTRO LIBANÉS · SERVICIO MÉDICO)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cq-header-card mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+          <img
+            src="/assets/images/logo-centro-libanes.png"
+            alt="Centro Libanés"
+            class="cq-logo" />
+          <div>
+            <h4 class="fw-bold text-dark mb-0">
+              <ng-container *ngIf="consentStatus !== 'accepted' && consentStep === 1 && !isSubmitted && !errorState">
+                Aviso Integral de Privacidad
+              </ng-container>
+              <ng-container *ngIf="consentStatus !== 'accepted' && consentStep === 2 && !isSubmitted && !errorState">
+                Aviso de privacidad y consentimiento
+              </ng-container>
+              <ng-container *ngIf="consentStatus === 'accepted' || isSubmitted || errorState">
+                {{ isSimplifiedVariant ? 'Cuestionario de Salud — Invitado a evento' : 'Cuestionario de Historia Clínica' }}
+              </ng-container>
+            </h4>
+            <div class="cq-subtitle">Centro Libanés A.C. · Servicio Médico</div>
+          </div>
+        </div>
+
+        <div class="small text-muted" *ngIf="consentStatus === 'accepted' && !isSubmitted && !errorState">
+          <span *ngIf="isSavingDraft"><i class="bi bi-arrow-repeat me-1"></i>Guardando borrador...</span>
+          <span *ngIf="!isSavingDraft && lastSavedAt"><i class="bi bi-check2 me-1"></i>Borrador guardado ({{ lastSavedAt }})</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         SKELETON DE CARGA INICIAL
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cq-card p-4" *ngIf="isLoading">
+      <div class="cq-skeleton mb-3" style="width: 240px; height: 22px;"></div>
+      <div class="cq-skeleton mb-2" style="width: 100%; height: 14px;"></div>
+      <div class="cq-skeleton mb-4" style="width: 80%; height: 14px;"></div>
+      <div class="cq-skeleton mb-3" style="width: 100%; height: 120px;"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         ESTADOS TERMINALES DE TOKEN (INVÁLIDO / EXPIRADO / CANCELADO / RECHAZADO)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cq-card p-4 p-md-5 text-center" *ngIf="!isLoading && errorState">
+      <div class="cq-icon-circle mx-auto mb-3">
+        <i class="bi bi-link-45deg"></i>
+      </div>
+      <h5 class="fw-bold text-dark mb-2" *ngIf="errorState === 'invalid'">Esta liga no es válida</h5>
+      <h5 class="fw-bold text-dark mb-2" *ngIf="errorState === 'expired'">Esta liga ha expirado</h5>
+      <h5 class="fw-bold text-dark mb-2" *ngIf="errorState === 'cancelled'">Esta liga fue cancelada</h5>
+      <h5 class="fw-bold text-dark mb-2" *ngIf="errorState === 'rejected'">Este cuestionario requiere una nueva liga</h5>
+
+      <p class="text-muted small mb-0">
+        Por favor solicita un nuevo enlace directamente al personal de Servicio Médico del Centro Libanés.
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PANTALLA DE ÉXITO TRAS ENVÍO
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cq-card cq-success-card text-center" *ngIf="!isLoading && !errorState && isSubmitted">
+      <div class="cq-success-check mx-auto mb-3">
+        <i class="bi bi-check2"></i>
+      </div>
+
+      <h3 class="cq-success-title mb-2">{{ settings.thank_you_title || '¡Gracias!' }}</h3>
+
+      <p class="cq-success-text mx-auto mb-0">
+        {{ isSimplifiedVariant ? settings.simplified_thank_you_message : settings.thank_you_message }}
+      </p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PASO 1 LEGAL: AVISO INTEGRAL DE PRIVACIDAD (EXACTO A LOVABLE)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cq-card p-4 p-md-5" *ngIf="!isLoading && !errorState && !isSubmitted && consentStatus !== 'accepted' && consentStep === 1">
+      <div class="d-flex align-items-start gap-2 mb-1">
+        <i class="bi bi-shield-check text-secondary fs-5 mt-1"></i>
+        <h6 class="fw-bold text-dark mb-0" style="line-height: 1.4;">
+          {{ settings.privacy_notice_title }}
+        </h6>
+      </div>
+      <p class="text-muted small mb-3">
+        {{ settings.privacy_notice_subtitle }}
+      </p>
+
+      <!-- Contenedor con scroll del Aviso Integral de Privacidad completo -->
+      <div class="cq-legal-scroll mb-3" *ngIf="settings.privacy_notice_html" [innerHTML]="settings.privacy_notice_html"></div>
+      <div class="cq-legal-scroll mb-3" *ngIf="!settings.privacy_notice_html">
+        <p>Centro Libanés, A.C. (en lo sucesivo "Centro Libanés"), con domicilio en Hermes número 67, Colonia Crédito Constructor, Alcaldía Benito Juárez, Código Postal 03940, Ciudad de México, es responsable del tratamiento de sus datos personales, del uso que se les dé y de su debida protección, de conformidad con lo dispuesto por la Ley Federal de Protección de Datos Personales en Posesión de los Particulares, su Reglamento y demás disposiciones aplicables.</p>
+
+        <p>La privacidad y confianza de nuestros aspirantes y colaboradores es muy importante para Centro Libanés. Por ello, queremos asegurarnos de que conozca cómo salvaguardamos la integridad, privacidad y protección de sus datos personales.</p>
+
+        <p>Para Centro Libanés resulta necesaria la recopilación de ciertos datos personales para llevar a cabo las actividades inherentes a su objeto social y dar cumplimiento a las obligaciones derivadas de la relación jurídica que exista con usted. En este sentido, tenemos el compromiso legal y social de implementar las medidas de seguridad administrativas, técnicas y físicas necesarias para proteger sus datos personales y garantizar su tratamiento legítimo, controlado e informado, conforme a las finalidades descritas en el presente Aviso Integral de Privacidad.</p>
+
+        <p>Lo anterior tiene como propósito brindarle pleno control y decisión sobre sus datos personales. Por ello, le recomendamos leer atentamente la siguiente información.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">I. DATOS PERSONALES QUE PODRÁN SER RECABADOS</p>
+
+        <p>Para las finalidades señaladas en el presente Aviso Integral de Privacidad, Centro Libanés podrá recabar y tratar, de manera enunciativa más no limitativa, las siguientes categorías de datos personales:</p>
+
+        <p><strong>A. Datos de identificación:</strong> Nombre completo, domicilio, teléfono particular, celular y/o de trabajo, correo electrónico, estado civil, nacionalidad, firma, RFC, CURP, lugar y fecha de nacimiento, edad, fotografía, imagen, audio y video, identificación oficial, número de seguridad social, así como nombres de familiares, dependientes, beneficiarios y contactos de emergencia.</p>
+
+        <p><strong>B. Datos laborales:</strong> Ocupación, puesto, área o departamento, domicilio, teléfono y correo de trabajo, experiencia laboral, actividades extracurriculares, referencias laborales y personales, información relacionada con reclutamiento, selección, desempeño, capacitación y evaluaciones internas.</p>
+
+        <p><strong>C. Datos académicos:</strong> Trayectoria educativa, certificados, constancias de estudios, título profesional, número de cédula profesional y demás información académica relacionada con el perfil del titular.</p>
+
+        <p><strong>D. Datos patrimoniales y financieros:</strong> Cuentas bancarias, CLABE interbancaria, institución financiera, información para pago de nómina, compensaciones, prestaciones, seguros, afores, ingresos y egresos, así como datos de facturación.</p>
+
+        <p><strong>E. Datos personales sensibles:</strong> Estado de salud presente o futuro, historial médico, enfermedades o padecimientos, certificados y resultados médicos, información para atención de emergencias, estudios psicométricos, evaluaciones socioeconómicas y demás información sensible necesaria para la relación laboral o proceso de reclutamiento. Asimismo, tratándose de colaboradores activos, Centro Libanés podrá recabar y tratar certificados de incapacidad laboral, constancias médicas, avisos de enfermedad, dictámenes médicos, formatos emitidos por el Instituto Mexicano del Seguro Social, médicos tratantes, médicos del trabajo o autoridades competentes, así como demás documentación médica relacionada con la relación laboral vigente, con la finalidad de dar cumplimiento a obligaciones legales, laborales, de seguridad social, salud ocupacional, prevención de riesgos y demás disposiciones aplicables.</p>
+
+        <p><strong>F. Datos biométricos:</strong> Huella digital, reconocimiento facial y demás datos biométricos utilizados para control de acceso, control de asistencia, seguridad institucional y cumplimiento de políticas internas.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">II. FINALIDADES PRIMARIAS DEL TRATAMIENTO</p>
+
+        <p>Los datos personales serán utilizados para las siguientes finalidades primarias, necesarias para la relación jurídica entre el titular y Centro Libanés:</p>
+
+        <p class="mb-1"><strong>A. Aspirantes:</strong></p>
+        <p class="mb-2">• Gestionar procesos de reclutamiento, selección, evaluación y contratación.</p>
+
+        <p class="mb-1"><strong>B. Colaboradores:</strong></p>
+        <p class="mb-2">
+          • Integrar y administrar expedientes laborales.<br />
+          • Elaborar contratos y documentación laboral.<br />
+          • Gestionar altas, bajas y movimientos laborales.<br />
+          • Administrar nómina, prestaciones, beneficios, pagos y obligaciones fiscales.<br />
+          • Cumplir obligaciones ante autoridades laborales, fiscales y de seguridad social.<br />
+          • Gestionar controles de acceso, asistencia y seguridad institucional.<br />
+          • Operar plataformas y sistemas institucionales.<br />
+          • Gestionar capacitación y desarrollo organizacional.<br />
+          • Realizar evaluaciones internas.<br />
+          • Atender situaciones médicas, emergencias y servicios de atención médica derivados de la relación laboral.<br />
+          • Dar cumplimiento a políticas internas y protocolos de seguridad.
+        </p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">III. FINALIDADES SECUNDARIAS</p>
+
+        <p class="mb-2">
+          Adicionalmente, Centro Libanés podrá utilizar los datos personales para:<br />
+          • Aplicación de encuestas internas y elaboración de estadísticas institucionales.<br />
+          • Evaluación y mejora de procesos internos.<br />
+          • Programas institucionales de bienestar.<br />
+          • Comunicación institucional interna.<br />
+          • Invitaciones a actividades, eventos y programas de integración.<br />
+          • Captación y uso de fotografías, audio y video para fines informativos y de memoria institucional de las actividades y eventos organizados por Centro Libanés, incluyendo su publicación en redes sociales, página de internet, boletines, revistas y demás medios institucionales.
+        </p>
+
+        <p>En caso de que no desee que sus datos personales sean tratados para las finalidades secundarias antes señaladas, podrá manifestarlo conforme al procedimiento descrito en el presente Aviso Integral de Privacidad.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">IV. TRANSFERENCIAS Y REMISIONES DE DATOS PERSONALES</p>
+
+        <p>Centro Libanés podrá transferir sus datos personales a terceros nacionales o extranjeros, sin requerir consentimiento del titular en los casos previstos por la legislación aplicable, incluyendo autoridades laborales, fiscales o judiciales, instituciones bancarias, instituciones de seguridad social, aseguradoras y demás entidades que resulten necesarias para el cumplimiento de obligaciones legales, contractuales o derivadas de la relación jurídica con el titular.</p>
+
+        <p>Asimismo, Centro Libanés podrá compartir datos personales con proveedores, prestadores de servicios y plataformas tecnológicas que actúen por cuenta de Centro Libanés para la operación, administración y gestión de procesos laborales, médicos, administrativos, tecnológicos, de seguridad y capacitación, quienes asumirán las obligaciones correspondientes en materia de confidencialidad, protección y tratamiento de datos personales, conforme a la legislación aplicable.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">V. USO DE PLATAFORMAS Y TECNOLOGÍAS</p>
+
+        <p>Centro Libanés podrá utilizar sistemas, plataformas digitales, medios electrónicos y herramientas tecnológicas para la administración de procesos laborales, capacitación, evaluación, control de acceso y demás actividades relacionadas con la operación y gestión interna de Centro Libanés.</p>
+
+        <p>Asimismo, podrá utilizar plataformas y herramientas tecnológicas para la validación de la calidad de empleado o colaborador para la aplicación de beneficios, promociones o descuentos proporcionados por terceros autorizados dentro de las instalaciones de Centro Libanés.</p>
+
+        <p>Centro Libanés también podrá utilizar tecnologías de videovigilancia, control de acceso y herramientas de comunicación electrónica y mensajería institucional.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">VI. VIDEOVIGILANCIA Y CONTROL DE ACCESO</p>
+
+        <p>Las instalaciones de Centro Libanés podrán contar con sistemas de videovigilancia, monitoreo y mecanismos de control de acceso físico, electrónico y biométrico, incluyendo tecnologías de reconocimiento facial y, en su caso, herramientas de grabación de audio y voz en determinadas áreas, con la finalidad de salvaguardar la seguridad de las personas, proteger bienes e instalaciones, controlar accesos, verificar la identidad de las personas, atender incidentes y dar cumplimiento a los protocolos internos de seguridad.</p>
+
+        <p>Las imágenes, grabaciones, audios y demás información obtenida mediante dichos sistemas podrán ser utilizadas para fines de seguridad, control de accesos, atención de incidentes, seguimiento operativo y cumplimiento de disposiciones legales y reglamentarias aplicables.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">VII. CONSENTIMIENTO PARA DATOS SENSIBLES Y BIOMÉTRICOS</p>
+
+        <p>Centro Libanés podrá tratar datos personales sensibles y biométricos cuando éstos resulten necesarios para el cumplimiento de las finalidades previstas en el presente Aviso Integral de Privacidad, de conformidad con la legislación aplicable.</p>
+
+        <p>En aquellos casos en que la normatividad vigente o la naturaleza del tratamiento así lo requieran, Centro Libanés recabará el consentimiento expreso del titular a través de los medios físicos o electrónicos que resulten procedentes.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">VIII. LIMITACIÓN DEL USO O DIVULGACIÓN DE DATOS PERSONALES</p>
+
+        <p>El titular podrá solicitar la limitación del uso o divulgación de sus datos personales para determinadas finalidades, conforme a los mecanismos y procedimientos establecidos por Centro Libanés, mediante solicitud dirigida al área responsable de protección de datos personales a través del correo electrónico avisodeprivacidad&#64;centrolibanes.org.mx</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">IX. DERECHOS ARCO</p>
+
+        <p>El titular podrá ejercer en cualquier momento sus derechos de acceso, rectificación, cancelación y oposición respecto de sus datos personales, mediante solicitud dirigida al área responsable de protección de datos personales de Centro Libanés a través del correo electrónico avisodeprivacidad&#64;centrolibanes.org.mx</p>
+
+        <p>Centro Libanés dará trámite a las solicitudes conforme a los plazos, términos y procedimientos establecidos en la legislación aplicable.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">X. REVOCACIÓN DEL CONSENTIMIENTO</p>
+
+        <p>El titular podrá revocar el consentimiento otorgado para el tratamiento de sus datos personales, siguiendo el procedimiento señalado para el ejercicio de derechos ARCO, salvo en los casos en que el tratamiento resulte necesario por disposición legal o derivado de la relación jurídica existente.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">XI. CONSERVACIÓN DE DATOS PERSONALES</p>
+
+        <p>En el caso de aspirantes que no sean contratados, Centro Libanés podrá conservar sus datos personales únicamente durante el tiempo necesario para atender posibles aclaraciones, dar seguimiento a futuros procesos de reclutamiento o cumplir obligaciones legales aplicables, procediendo posteriormente a su bloqueo, supresión o eliminación conforme a las políticas internas y la legislación aplicable.</p>
+
+        <p>Tratándose de colaboradores activos y exempleados, Centro Libanés podrá conservar los datos personales, incluyendo información laboral, administrativa, fiscal, de seguridad social, médica y demás información relacionada con la relación laboral, durante el tiempo que resulte necesario para el cumplimiento de obligaciones legales, contractuales, fiscales, laborales, de seguridad social, prevención de riesgos, atención de auditorías, procedimientos administrativos o judiciales y demás finalidades legítimas relacionadas con la relación laboral y su terminación, conforme a los plazos establecidos en la legislación aplicable y las políticas internas de conservación de información.</p>
+
+        <p>Una vez concluidos los plazos de conservación aplicables y cuando los datos personales ya no resulten necesarios para las finalidades que motivaron su tratamiento, Centro Libanés procederá a su bloqueo, supresión, cancelación o eliminación conforme a las disposiciones legales y administrativas aplicables.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">XII. CAMBIOS AL AVISO DE PRIVACIDAD</p>
+
+        <p>Centro Libanés se reserva el derecho de modificar o actualizar el presente Aviso Integral de Privacidad en cualquier momento, derivado de reformas legales, políticas internas o nuevos requerimientos para la operación y administración institucional.</p>
+
+        <p>Las modificaciones al presente Aviso Integral de Privacidad estarán disponibles a través de la página oficial de internet de Centro Libanés, medios electrónicos institucionales o comunicados internos que, en su caso, se emitan para tal efecto.</p>
+
+        <p class="fw-bold text-dark mt-3 mb-2">XIII. ACEPTACIÓN DEL AVISO INTEGRAL DE PRIVACIDAD</p>
+
+        <p>El titular manifiesta que el presente Aviso Integral de Privacidad le ha sido dado a conocer y que entiende el alcance y contenido del mismo.</p>
+
+        <p class="mb-0">Cuando la legislación aplicable o la naturaleza del tratamiento así lo requieran, particularmente tratándose de datos personales sensibles y/o biométricos, Centro Libanés recabará el consentimiento expreso del titular a través de los medios físicos, electrónicos o mecanismos que resulten procedentes.</p>
+      </div>
+
+      <!-- Casilla de verificación exacta a Lovable -->
+      <label class="cq-checkbox-box mb-4" for="chkPrivacyRead">
+        <input class="form-check-input m-0" type="checkbox" id="chkPrivacyRead" [(ngModel)]="privacyNoticeRead" />
+        <span class="small fw-semibold text-dark">
+          {{ settings.privacy_notice_checkbox }}
+        </span>
+      </label>
+
+      <div *ngIf="consentStatus === 'rejected'" class="p-3 rounded border bg-light small text-dark mb-3">
+        Has indicado que no aceptas el Aviso Integral de Privacidad. Sin tu aceptación no es posible continuar ni enviar el cuestionario médico. Si deseas continuar, marca la casilla y presiona "Continuar".
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-end gap-2">
+        <button
+          type="button"
+          class="btn cq-btn-outline px-4"
+          [disabled]="isSavingConsent"
+          (click)="submitPrivacyConsent('rejected')">
+          No acepto
+        </button>
+        <button
+          type="button"
+          class="btn cq-btn-primary px-4"
+          [disabled]="isSavingConsent || !privacyNoticeRead"
+          (click)="submitPrivacyConsent('accepted')">
+          <span *ngIf="isSavingConsent" class="spinner-border spinner-border-sm me-1"></span>
+          Continuar
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PASO 2 LEGAL: CONSENTIMIENTO PARA EL TRATAMIENTO DE DATOS PERSONALES SENSIBLES
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="cq-card p-4 p-md-5" *ngIf="!isLoading && !errorState && !isSubmitted && consentStatus !== 'accepted' && consentStep === 2">
+      <div class="d-flex align-items-start gap-2 mb-1">
+        <i class="bi bi-shield-check text-secondary fs-5 mt-1"></i>
+        <h6 class="fw-bold text-dark mb-0" style="line-height: 1.4;">
+          {{ settings.sensitive_consent_title }}
+        </h6>
+      </div>
+      <p class="text-muted small mb-3">
+        {{ settings.sensitive_consent_subtitle }}
+      </p>
+
+      <div class="cq-legal-scroll mb-3" *ngIf="settings.sensitive_consent_html" [innerHTML]="settings.sensitive_consent_html"></div>
+      <div class="cq-legal-scroll mb-3" *ngIf="!settings.sensitive_consent_html">
+        <p>Declaro que previamente se me puso a disposición el Aviso Integral de Privacidad para Aspirantes y Colaboradores de Centro Libanés, A.C., y que conozco el alcance, contenido y finalidades del tratamiento de mis datos personales y datos personales sensibles.</p>
+
+        <p>Asimismo, otorgo mi consentimiento expreso para que Centro Libanés, A.C., a través del personal médico y/o personal estrictamente autorizado, recabe, utilice, almacene, conserve y trate los datos personales sensibles relacionados con mi estado de salud, antecedentes médicos, padecimientos, historial clínico, información de emergencia y demás información médica contenida en el presente cuestionario, exclusivamente para finalidades relacionadas con:</p>
+
+        <p class="mb-2">
+          1. Valoración y atención médica ocupacional.<br />
+          2. Integración y administración de expediente médico.<br />
+          3. Prevención y atención de emergencias médicas.<br />
+          4. Cumplimiento de obligaciones en materia de seguridad y salud en el trabajo.<br />
+          5. Implementación de medidas preventivas y de protección dentro de las instalaciones de Centro Libanés y demás finalidades necesarias derivadas de la relación jurídica, conforme al Aviso Integral de Privacidad aplicable.
+        </p>
+
+        <p>Centro Libanés, A.C., se obliga a tratar la información médica y sensible proporcionada bajo estrictas medidas de confidencialidad, seguridad administrativa, técnica y física, limitando el acceso únicamente al personal que requiera conocer dicha información conforme a sus funciones y atribuciones.</p>
+
+        <p>Asimismo, se hace constar que los datos personales sensibles recabados mediante el presente cuestionario serán tratados bajo criterios de licitud, necesidad, proporcionalidad y minimización de datos, solicitándose únicamente aquella información razonablemente necesaria para las finalidades médicas, ocupacionales, de seguridad y atención correspondientes.</p>
+
+        <p>De igual forma, Centro Libanés, A.C., manifiesta que la información médica proporcionada no será utilizada para fines discriminatorios, prácticas de exclusión indebida o tratamientos contrarios a la dignidad de las personas, observando en todo momento la legislación aplicable en materia de protección de datos personales, derechos laborales, igualdad y no discriminación.</p>
+
+        <p class="mb-0">Entiendo que puedo ejercer en cualquier momento mis derechos de Acceso, Rectificación, Cancelación y Oposición (ARCO), así como revocar mi consentimiento, conforme a los mecanismos establecidos en el Aviso Integral de Privacidad correspondiente.</p>
+      </div>
+
+      <label class="cq-checkbox-box mb-4" for="chkSensitiveRead">
+        <input class="form-check-input m-0" type="checkbox" id="chkSensitiveRead" [(ngModel)]="sensitiveConsentRead" />
+        <span class="small fw-semibold text-dark">
+          {{ settings.sensitive_consent_checkbox }}
+        </span>
+      </label>
+
+      <div *ngIf="consentStatus === 'rejected'" class="p-3 rounded border bg-light small text-dark mb-3">
+        Has indicado que no otorgas tu consentimiento expreso. Sin este consentimiento no es posible continuar ni enviar el cuestionario médico. Si deseas continuar, marca la casilla y presiona "Continuar al cuestionario".
+      </div>
+
+      <div class="d-flex flex-wrap justify-content-end gap-2">
+        <button
+          type="button"
+          class="btn cq-btn-outline px-4"
+          [disabled]="isSavingConsent"
+          (click)="submitSensitiveConsent('rejected')">
+          No acepto
+        </button>
+        <button
+          type="button"
+          class="btn cq-btn-primary px-4"
+          [disabled]="isSavingConsent || !sensitiveConsentRead"
+          (click)="submitSensitiveConsent('accepted')">
+          <span *ngIf="isSavingConsent" class="spinner-border spinner-border-sm me-1"></span>
+          Continuar al cuestionario
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         FORMULARIO DEL CUESTIONARIO (UNA VEZ ACEPTADO EL CONSENTIMIENTO)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <form *ngIf="!isLoading && !errorState && !isSubmitted && consentStatus === 'accepted'" (ngSubmit)="submitQuestionnaire()">
+
+      <!-- ═════════════════════════════════════════════════════════════════════
+           VARIANTE A: CUESTIONARIO DE HISTORIA CLÍNICA COMPLETO (SOCIOS / COLABORADORES / PROSPECTOS)
+           ═════════════════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="!isSimplifiedVariant">
+
+      <!-- 1. DATOS PERSONALES -->
+      <div class="cq-card p-4 mb-3">
+        <h6 class="cq-section-title mb-1">1. Datos personales</h6>
+        <p class="text-muted small mb-3">Información básica de identificación.</p>
+
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label small fw-semibold">Nombre completo*</label>
+            <input
+              type="text"
+              class="form-control"
+              [class.bg-light]="isNombreReadonly"
+              name="nombre_completo"
+              [(ngModel)]="r.nombre_completo"
+              [readonly]="isNombreReadonly"
+              (ngModelChange)="triggerDraftSave()"
+              required />
+          </div>
+
+          <div class="col-md-4">
+            <div class="d-flex justify-content-between align-items-center">
+              <label class="form-label small fw-semibold mb-1">Edad*</label>
+              <button
+                *ngIf="!isEdadReadonly"
+                type="button"
+                class="btn btn-link btn-sm p-0 text-decoration-none small"
+                style="font-size: 0.75rem;"
+                (click)="showBirthdateEditor = !showBirthdateEditor">
+                {{ showBirthdateEditor ? 'Ocultar fecha nac.' : 'Corregir' }}
+              </button>
+            </div>
+            <input
+              type="number"
+              min="0"
+              max="120"
+              class="form-control"
+              [class.bg-light]="isEdadReadonly"
+              name="edad"
+              placeholder="Ej. 32"
+              [(ngModel)]="r.edad"
+              [readonly]="isEdadReadonly"
+              (ngModelChange)="triggerDraftSave()"
+              required />
+          </div>
+
+          <div class="col-md-6" *ngIf="showBirthdateEditor">
+            <label class="form-label small fw-semibold">Fecha de nacimiento (calcula la edad automáticamente)</label>
+            <input
+              type="date"
+              class="form-control"
+              name="fecha_nacimiento"
+              [(ngModel)]="r.fecha_nacimiento"
+              (ngModelChange)="onBirthdateChange()" />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Persona de contacto en caso de emergencia*</label>
+            <input
+              type="text"
+              class="form-control"
+              name="contacto_emergencia_nombre"
+              placeholder="Nombre y apellido"
+              [(ngModel)]="r.contacto_emergencia_nombre"
+              (ngModelChange)="triggerDraftSave()"
+              required />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Parentesco del contacto de emergencia*</label>
+            <ng-select
+              #selParentesco
+              class="cq-ng-select"
+              name="contacto_emergencia_parentesco"
+              [items]="parentescos"
+              [searchable]="true"
+              [editableSearchTerm]="true"
+              [clearable]="false"
+              placeholder="Buscar o seleccionar parentesco..."
+              notFoundText="Sin coincidencias"
+              [(ngModel)]="r.contacto_emergencia_parentesco"
+              (ngModelChange)="triggerDraftSave()"
+              (focus)="onChosenFocus(selParentesco)"
+              (open)="onChosenOpen(selParentesco)"
+              (keydown)="onChosenKeydown(selParentesco, $event)">
+              <ng-template ng-option-tmp let-item="item" let-item$="item$">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                  <span>{{ item }}</span>
+                  <i *ngIf="item$.selected" class="bi bi-check2 fw-bold"></i>
+                </div>
+              </ng-template>
+            </ng-select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Teléfono del contacto de emergencia (10 dígitos)*</label>
+            <input
+              type="tel"
+              class="form-control"
+              name="contacto_emergencia_telefono"
+              maxlength="10"
+              placeholder="5512345678"
+              [(ngModel)]="r.contacto_emergencia_telefono"
+              (ngModelChange)="triggerDraftSave()"
+              required />
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Tipo de grupo sanguíneo*</label>
+            <ng-select
+              #selSangre
+              class="cq-ng-select"
+              name="grupo_sanguineo"
+              [items]="gruposSanguineos"
+              [searchable]="true"
+              [editableSearchTerm]="true"
+              [clearable]="false"
+              placeholder="Buscar o seleccionar grupo sanguíneo..."
+              notFoundText="Sin coincidencias"
+              [(ngModel)]="r.grupo_sanguineo"
+              (ngModelChange)="triggerDraftSave()"
+              (focus)="onChosenFocus(selSangre)"
+              (open)="onChosenOpen(selSangre)"
+              (keydown)="onChosenKeydown(selSangre, $event)">
+              <ng-template ng-option-tmp let-item="item" let-item$="item$">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                  <span>{{ item }}</span>
+                  <i *ngIf="item$.selected" class="bi bi-check2 fw-bold"></i>
+                </div>
+              </ng-template>
+            </ng-select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. ESTADO DE SALUD ACTUAL -->
+      <div class="cq-card p-4 mb-3" *ngIf="!isSimplifiedVariant">
+        <h6 class="cq-section-title mb-3">2. Estado de salud actual</h6>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Actualmente se encuentra enfermo?*</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.enfermo_actualmente === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.enfermo_actualmente = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.enfermo_actualmente === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.enfermo_actualmente = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+
+          <ng-container *ngIf="r.enfermo_actualmente === 'Sí'">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">¿Qué enfermedad?</label>
+              <div class="cq-chip-grid">
+                <button
+                  type="button"
+                  class="cq-chip"
+                  *ngFor="let cat of enfermedadesActualesCat"
+                  [class.active]="isSelected('enfermedad_actual', cat)"
+                  (click)="toggleMultiOption('enfermedad_actual', cat)">
+                  {{ cat }}
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Especifique enfermedad o síntomas actuales</label>
+              <input
+                type="text"
+                class="form-control"
+                name="enfermedad_actual_otra"
+                placeholder="Describa brevemente..."
+                [(ngModel)]="r.enfermedad_actual_otra"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">¿Desde cuándo presenta los síntomas?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="sintomas_desde"
+                placeholder="Ej. Hace 3 días"
+                [(ngModel)]="r.sintomas_desde"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label small fw-semibold d-block">¿Ha recibido algún tratamiento?</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.recibio_tratamiento === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.recibio_tratamiento = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.recibio_tratamiento === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.recibio_tratamiento = 'No'; triggerDraftSave()">
+                  No
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-8" *ngIf="r.recibio_tratamiento === 'Sí'">
+              <label class="form-label small fw-semibold">¿Qué tipo de tratamiento?</label>
+              <div class="cq-chip-grid mb-2">
+                <button
+                  type="button"
+                  class="cq-chip"
+                  *ngFor="let tr of tratamientosCat"
+                  [class.active]="isSelected('tratamiento_recibido', tr)"
+                  (click)="toggleMultiOption('tratamiento_recibido', tr)">
+                  {{ tr }}
+                </button>
+              </div>
+              <input
+                *ngIf="isSelected('tratamiento_recibido', 'Otras')"
+                type="text"
+                class="form-control form-control-sm"
+                name="tratamiento_recibido_otro"
+                placeholder="Especifique otro tratamiento..."
+                [(ngModel)]="r.tratamiento_recibido_otro"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- 3. ANTECEDENTES PERSONALES -->
+      <div class="cq-card p-4 mb-3">
+        <h6 class="cq-section-title mb-3">3. Antecedentes personales</h6>
+
+        <!-- ¿Ha tenido o tiene alguna de las siguientes enfermedades?* -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">¿Ha tenido o tiene alguna de las siguientes enfermedades?*</label>
+          <div class="cq-chip-grid">
+            <button
+              type="button"
+              class="cq-chip text-start"
+              *ngFor="let enf of enfermedadesPersonalesCat"
+              [class.active]="isSelected('enfermedades_personales', enf)"
+              (click)="toggleMultiOption('enfermedades_personales', enf, 'Ninguna')">
+              {{ enf }}
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3" *ngIf="!isSelected('enfermedades_personales', 'Ninguna')">
+          <div class="col-md-6" *ngIf="isSelected('enfermedades_personales', 'Otras')">
+            <label class="form-label small fw-semibold">Especifique otra enfermedad</label>
+            <input
+              type="text"
+              class="form-control"
+              name="enfermedades_personales_otra"
+              [(ngModel)]="r.enfermedades_personales_otra"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">¿Desde hace cuánto tiempo?</label>
+            <input
+              type="text"
+              class="form-control"
+              name="enfermedades_desde"
+              placeholder="Ej. Desde 2021 / Hace 3 años"
+              [(ngModel)]="r.enfermedades_desde"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <!-- ¿Tomas algún medicamento? -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Tomas algún medicamento?</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.toma_medicamento === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.toma_medicamento = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.toma_medicamento === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.toma_medicamento = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+          <div class="col-12" *ngIf="r.toma_medicamento === 'Sí'">
+            <label class="form-label small fw-semibold">¿Qué medicamento tomas?</label>
+            <textarea
+              class="form-control"
+              rows="2"
+              name="medicamentos_actuales"
+              placeholder="Nombre del medicamento, dosis y horario..."
+              [(ngModel)]="r.medicamentos_actuales"
+              (ngModelChange)="triggerDraftSave()"></textarea>
+          </div>
+
+          <ng-container *ngIf="!isSimplifiedVariant">
+            <!-- ¿Ha sido hospitalizado o intervenido quirúrgicamente?* -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">¿Ha sido hospitalizado o intervenido quirúrgicamente?*</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.hospitalizado_o_cirugia === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.hospitalizado_o_cirugia = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.hospitalizado_o_cirugia === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.hospitalizado_o_cirugia = 'No'; triggerDraftSave()">
+                  No
+                </button>
+              </div>
+            </div>
+            <div class="col-md-8" *ngIf="r.hospitalizado_o_cirugia === 'Sí'">
+              <label class="form-label small fw-semibold">¿Por qué?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="hospitalizacion_motivo"
+                placeholder="Motivo de hospitalización o cirugía"
+                [(ngModel)]="r.hospitalizacion_motivo"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+            <div class="col-md-4" *ngIf="r.hospitalizado_o_cirugia === 'Sí'">
+              <label class="form-label small fw-semibold">¿Cuándo?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="hospitalizacion_fecha"
+                placeholder="Fecha o año"
+                [(ngModel)]="r.hospitalizacion_fecha"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+
+            <!-- ¿Has tenido algún traumatismo grave que requiera férulas o yeso?* -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">¿Has tenido algún traumatismo grave que requiera férulas o yeso?*</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.traumatismo_grave === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.traumatismo_grave = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.traumatismo_grave === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.traumatismo_grave = 'No'; triggerDraftSave()">
+                  No
+                </button>
+              </div>
+            </div>
+            <div class="col-md-8" *ngIf="r.traumatismo_grave === 'Sí'">
+              <label class="form-label small fw-semibold">¿Qué evento fue?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="traumatismo_evento"
+                placeholder="Describa el traumatismo o fractura"
+                [(ngModel)]="r.traumatismo_evento"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+            <div class="col-md-4" *ngIf="r.traumatismo_grave === 'Sí'">
+              <label class="form-label small fw-semibold">¿En qué fecha?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="traumatismo_fecha"
+                placeholder="Fecha o año"
+                [(ngModel)]="r.traumatismo_fecha"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </ng-container>
+        </div>
+
+        <!-- Seleccione si cuenta con una condición de alergia* -->
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Seleccione si cuenta con una condición de alergia*</label>
+          <div class="cq-chip-grid">
+            <button
+              type="button"
+              class="cq-chip"
+              *ngFor="let al of alergiasCat"
+              [class.active]="isSelected('alergias_tipo', al)"
+              (click)="toggleMultiOption('alergias_tipo', al, 'Ninguna')">
+              {{ al }}
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-3" *ngIf="isSelected('alergias_tipo', 'Otras')">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Especifique otra alergia</label>
+            <input
+              type="text"
+              class="form-control"
+              name="alergias_tipo_otra"
+              [(ngModel)]="r.alergias_tipo_otra"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+        </div>
+
+        <!-- ¿Alguna vez ha tenido una transfusión sanguínea?* -->
+        <div class="row g-3" *ngIf="!isSimplifiedVariant">
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Alguna vez ha tenido una transfusión sanguínea?*</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.transfusion_sanguinea === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.transfusion_sanguinea = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.transfusion_sanguinea === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.transfusion_sanguinea = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+          <div class="col-md-8" *ngIf="r.transfusion_sanguinea === 'Sí'">
+            <label class="form-label small fw-semibold">Motivo</label>
+            <input
+              type="text"
+              class="form-control"
+              name="transfusion_motivo"
+              placeholder="Motivo de la transfusión"
+              [(ngModel)]="r.transfusion_motivo"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+          <div class="col-md-4" *ngIf="r.transfusion_sanguinea === 'Sí'">
+            <label class="form-label small fw-semibold">Fecha</label>
+            <input
+              type="text"
+              class="form-control"
+              name="transfusion_fecha"
+              placeholder="Fecha o año"
+              [(ngModel)]="r.transfusion_fecha"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. ANTECEDENTES FAMILIARES -->
+      <div class="cq-card p-4 mb-3" *ngIf="!isSimplifiedVariant">
+        <h6 class="cq-section-title mb-1">4. Antecedentes familiares</h6>
+        <p class="text-muted small mb-3">Solo familiares directos: padres, hermanos o abuelos.</p>
+
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Hay antecedentes familiares de enfermedades hereditarias o crónicas?</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.antecedentes_familiares_si === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.antecedentes_familiares_si = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.antecedentes_familiares_si === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.antecedentes_familiares_si = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+
+          <ng-container *ngIf="r.antecedentes_familiares_si === 'Sí'">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">¿Qué enfermedad crónica ha padecido su familiar? *</label>
+              <div class="cq-chip-grid">
+                <button
+                  type="button"
+                  class="cq-chip text-start"
+                  *ngFor="let fam of enfermedadesFamiliaresCat"
+                  [class.active]="isSelected('enfermedades_familiares', fam)"
+                  (click)="toggleMultiOption('enfermedades_familiares', fam, 'Ninguna')">
+                  {{ fam }}
+                </button>
+              </div>
+            </div>
+
+            <div class="col-md-6" *ngIf="isSelected('enfermedades_familiares', 'Otras')">
+              <label class="form-label small fw-semibold">Especifique otra enfermedad familiar</label>
+              <input
+                type="text"
+                class="form-control"
+                name="enfermedades_familiares_otra"
+                [(ngModel)]="r.enfermedades_familiares_otra"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- 5. HÁBITOS Y ESTILO DE VIDA -->
+      <div class="cq-card p-4 mb-3" *ngIf="!isSimplifiedVariant">
+        <h6 class="cq-section-title mb-3">5. Hábitos y estilo de vida</h6>
+
+        <div class="row g-3">
+          <!-- ¿Fuma? -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Fuma?</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.fuma === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.fuma = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.fuma === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.fuma = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6" *ngIf="r.fuma === 'Sí'">
+            <label class="form-label small fw-semibold">¿Desde cuándo?</label>
+            <input
+              type="text"
+              class="form-control"
+              name="fuma_desde"
+              placeholder="Ej. Desde 2018"
+              [(ngModel)]="r.fuma_desde"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+          <div class="col-md-6" *ngIf="r.fuma === 'Sí'">
+            <label class="form-label small fw-semibold">¿Cuánto? (cigarros al día)</label>
+            <input
+              type="text"
+              class="form-control"
+              name="fuma_cantidad"
+              placeholder="Ej. 5"
+              [(ngModel)]="r.fuma_cantidad"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+
+          <!-- ¿Consume alcohol? -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Consume alcohol?</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.alcohol === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.alcohol = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.alcohol === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.alcohol = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+          <div class="col-12" *ngIf="r.alcohol === 'Sí'">
+            <label class="form-label small fw-semibold">Frecuencia de consumo de alcohol</label>
+            <ng-select
+              #selAlcohol
+              class="cq-ng-select"
+              name="alcohol_frecuencia"
+              [items]="frecuenciasConsumoCat"
+              [searchable]="true"
+              [editableSearchTerm]="true"
+              [clearable]="false"
+              placeholder="Buscar o seleccionar frecuencia..."
+              notFoundText="Sin coincidencias"
+              [(ngModel)]="r.alcohol_frecuencia"
+              (ngModelChange)="triggerDraftSave()"
+              (focus)="onChosenFocus(selAlcohol)"
+              (open)="onChosenOpen(selAlcohol)"
+              (keydown)="onChosenKeydown(selAlcohol, $event)">
+              <ng-template ng-option-tmp let-item="item" let-item$="item$">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                  <span>{{ item }}</span>
+                  <i *ngIf="item$.selected" class="bi bi-check2 fw-bold"></i>
+                </div>
+              </ng-template>
+            </ng-select>
+          </div>
+
+          <!-- ¿Ha consumido alguna droga en su vida?* -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">¿Ha consumido alguna droga en su vida?*</label>
+            <ng-select
+              #selDrogas
+              class="cq-ng-select"
+              name="drogas"
+              [items]="frecuenciasConsumoCat"
+              [searchable]="true"
+              [editableSearchTerm]="true"
+              [clearable]="false"
+              placeholder="Buscar o seleccionar opción..."
+              notFoundText="Sin coincidencias"
+              [(ngModel)]="r.drogas"
+              (ngModelChange)="triggerDraftSave()"
+              (focus)="onChosenFocus(selDrogas)"
+              (open)="onChosenOpen(selDrogas)"
+              (keydown)="onChosenKeydown(selDrogas, $event)">
+              <ng-template ng-option-tmp let-item="item" let-item$="item$">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                  <span>{{ item }}</span>
+                  <i *ngIf="item$.selected" class="bi bi-check2 fw-bold"></i>
+                </div>
+              </ng-template>
+            </ng-select>
+          </div>
+
+          <ng-container *ngIf="r.drogas && r.drogas !== 'Nunca' && r.drogas !== 'No'">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">¿Cuáles?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="drogas_cuales"
+                placeholder="Especifique..."
+                [(ngModel)]="r.drogas_cuales"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">¿Cuándo fue la última vez?</label>
+              <input
+                type="text"
+                class="form-control"
+                name="drogas_ultima_vez"
+                placeholder="Ej. Hace 2 años"
+                [(ngModel)]="r.drogas_ultima_vez"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </ng-container>
+
+          <!-- ¿Realiza actividad física? -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Realiza actividad física?</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.actividad_fisica === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.actividad_fisica = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.actividad_fisica === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.actividad_fisica = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+          <div class="col-12" *ngIf="r.actividad_fisica === 'Sí'">
+            <label class="form-label small fw-semibold">¿Con qué frecuencia?</label>
+            <div class="cq-chip-grid">
+              <button
+                type="button"
+                class="cq-chip"
+                *ngFor="let freq of frecuenciasActividadFisicaCat"
+                [class.active]="r.actividad_fisica_frecuencia === freq"
+                (click)="r.actividad_fisica_frecuencia = freq; triggerDraftSave()">
+                {{ freq }}
+              </button>
+            </div>
+          </div>
+
+          <!-- ¿Cómo describiría su alimentación? -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">¿Cómo describiría su alimentación?</label>
+            <ng-select
+              #selAlimentacion
+              class="cq-ng-select"
+              name="alimentacion"
+              [items]="alimentacionCat"
+              [searchable]="true"
+              [editableSearchTerm]="true"
+              [clearable]="false"
+              placeholder="Buscar o seleccionar tipo de alimentación..."
+              notFoundText="Sin coincidencias"
+              [(ngModel)]="r.alimentacion"
+              (ngModelChange)="triggerDraftSave()"
+              (focus)="onChosenFocus(selAlimentacion)"
+              (open)="onChosenOpen(selAlimentacion)"
+              (keydown)="onChosenKeydown(selAlimentacion, $event)">
+              <ng-template ng-option-tmp let-item="item" let-item$="item$">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                  <span>{{ item }}</span>
+                  <i *ngIf="item$.selected" class="bi bi-check2 fw-bold"></i>
+                </div>
+              </ng-template>
+            </ng-select>
+          </div>
+
+          <!-- ¿Se ha aplicado alguna de las siguientes vacunas en el último año? -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold">¿Se ha aplicado alguna de las siguientes vacunas en el último año?</label>
+            <div class="cq-chip-grid">
+              <button
+                type="button"
+                class="cq-chip"
+                *ngFor="let vac of vacunasCat"
+                [class.active]="isSelected('vacunas_ultimo_anio', vac)"
+                (click)="toggleMultiOption('vacunas_ultimo_anio', vac, 'Ninguna')">
+                {{ vac }}
+              </button>
+            </div>
+            <div class="mt-2" *ngIf="isSelected('vacunas_ultimo_anio', 'Otras')">
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                name="vacunas_otra"
+                placeholder="Especifique otra vacuna..."
+                [(ngModel)]="r.vacunas_otra"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </div>
+
+          <!-- ¿Tiene mascotas?* -->
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Tiene mascotas?*</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.tiene_mascotas === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.tiene_mascotas = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.tiene_mascotas === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.tiene_mascotas = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+
+          <ng-container *ngIf="r.tiene_mascotas === 'Sí'">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">¿Cuántas mascotas tiene? *</label>
+              <input
+                type="text"
+                class="form-control"
+                name="numero_mascotas"
+                [(ngModel)]="r.numero_mascotas"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">¿De qué tipo? *</label>
+              <div class="cq-chip-grid">
+                <button
+                  type="button"
+                  class="cq-chip"
+                  *ngFor="let m of mascotasCat"
+                  [class.active]="isSelected('tipo_mascotas', m)"
+                  (click)="toggleMultiOption('tipo_mascotas', m)">
+                  {{ m }}
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="isSelected('tipo_mascotas', 'Otras')">
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  name="tipo_mascotas_otra"
+                  placeholder="Especifique otro tipo de mascota..."
+                  [(ngModel)]="r.tipo_mascotas_otra"
+                  (ngModelChange)="triggerDraftSave()" />
+              </div>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- 6. ESTUDIOS DE LABORATORIO -->
+      <div class="cq-card p-4 mb-3" *ngIf="!isSimplifiedVariant">
+        <h6 class="cq-section-title mb-3">6. Estudios de laboratorio</h6>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold">¿Cuenta con estudios de laboratorio recientes?</label>
+            <div class="cq-chip-grid">
+              <button
+                type="button"
+                class="cq-chip text-start"
+                *ngFor="let est of estudiosCat"
+                [class.active]="isSelected('estudios_laboratorio', est)"
+                (click)="toggleMultiOption('estudios_laboratorio', est, 'No')">
+                {{ est }}
+              </button>
+            </div>
+          </div>
+
+          <div class="col-md-6" *ngIf="isSelected('estudios_laboratorio', 'Otras')">
+            <label class="form-label small fw-semibold">Especifique otro estudio de laboratorio</label>
+            <input
+              type="text"
+              class="form-control"
+              name="estudios_laboratorio_otra"
+              [(ngModel)]="r.estudios_laboratorio_otra"
+              (ngModelChange)="triggerDraftSave()" />
+          </div>
+
+          <ng-container *ngIf="!isSelected('estudios_laboratorio', 'No')">
+            <div class="col-md-5">
+              <label class="form-label small fw-semibold d-block">¿Apareció algún dato importante a reportar médicamente?</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.estudios_dato_relevante === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.estudios_dato_relevante = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-3"
+                  [ngClass]="r.estudios_dato_relevante === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.estudios_dato_relevante = 'No'; triggerDraftSave()">
+                  No
+                </button>
+              </div>
+            </div>
+            <div class="col-md-7" *ngIf="r.estudios_dato_relevante === 'Sí'">
+              <label class="form-label small fw-semibold">Detalle del hallazgo relevante</label>
+              <textarea
+                class="form-control"
+                rows="2"
+                name="estudios_dato_relevante_detalle"
+                placeholder="Especifique qué resultado salió alterado..."
+                [(ngModel)]="r.estudios_dato_relevante_detalle"
+                (ngModelChange)="triggerDraftSave()"></textarea>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- 7. INFORMACIÓN COMPLEMENTARIA -->
+      <div class="cq-card p-4 mb-4">
+        <h6 class="cq-section-title mb-3">7. Información complementaria</h6>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">¿Cuenta con seguro médico? *</label>
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.cuenta_seguro_medico === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.cuenta_seguro_medico = 'Sí'; triggerDraftSave()">
+                Sí
+              </button>
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                [ngClass]="r.cuenta_seguro_medico === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.cuenta_seguro_medico = 'No'; triggerDraftSave()">
+                No
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12" *ngIf="r.cuenta_seguro_medico === 'Sí'">
+            <label class="form-label small fw-semibold">¿Qué tipo de seguro médico tiene? *</label>
+            <div class="cq-chip-grid">
+              <button
+                type="button"
+                class="cq-chip"
+                *ngFor="let ts of tiposSeguroCat"
+                [class.active]="isSelected('tipo_seguro', ts)"
+                (click)="toggleMultiOption('tipo_seguro', ts)">
+                {{ ts }}
+              </button>
+            </div>
+            <div class="mt-2" *ngIf="isSelected('tipo_seguro', 'Otro')">
+              <input
+                type="text"
+                class="form-control form-control-sm"
+                name="seguro_medico_aseguradora"
+                placeholder="Especifique otro tipo de seguro..."
+                [(ngModel)]="r.seguro_medico_aseguradora"
+                (ngModelChange)="r.tipo_seguro_otro = r.seguro_medico_aseguradora; triggerDraftSave()" />
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold d-block">Motivo de la visita *</label>
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="btn btn-sm px-3"
+                *ngFor="let mv of motivosVisitaCat"
+                [ngClass]="r.motivo_visita === mv ? 'cq-btn-primary' : 'cq-btn-outline'"
+                (click)="r.motivo_visita = mv; r.tipo_visita = mv; triggerDraftSave()">
+                {{ mv }}
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12">
+            <label class="form-label small fw-semibold mb-1">Notas adicionales</label>
+            <p class="text-muted small mb-2">
+              Por favor escriba alguna otra información relevante de su salud que no contemplamos en este cuestionario.
+            </p>
+            <textarea
+              class="form-control"
+              rows="3"
+              name="notas_adicionales"
+              [(ngModel)]="r.notas_adicionales"
+              (ngModelChange)="triggerDraftSave()"
+              placeholder="Escriba aquí..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      </ng-container>
+
+      <!-- ═════════════════════════════════════════════════════════════════════
+           VARIANTE B: CUESTIONARIO DE SALUD — INVITADO A EVENTO (EXTERNO / SIMPLIFICADO)
+           ═════════════════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="isSimplifiedVariant">
+
+        <!-- TARJETA 1: DATOS DEL PARTICIPANTE -->
+        <div class="cq-card p-4 mb-3">
+          <h6 class="cq-section-title mb-1">Datos del participante</h6>
+          <p class="text-muted small mb-3">Información básica.</p>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Nombre completo *</label>
+              <input
+                type="text"
+                class="form-control"
+                name="simp_nombre_completo"
+                [(ngModel)]="r.nombre_completo"
+                (ngModelChange)="triggerDraftSave()"
+                required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Fecha de nacimiento</label>
+              <input
+                type="date"
+                class="form-control"
+                name="simp_fecha_nacimiento"
+                [(ngModel)]="r.fecha_nacimiento"
+                (ngModelChange)="onBirthdateChange()" />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Edad</label>
+              <input
+                type="number"
+                min="0"
+                class="form-control"
+                name="simp_edad"
+                [(ngModel)]="r.edad"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Nombre del padre / madre / tutor *</label>
+              <input
+                type="text"
+                class="form-control"
+                name="simp_responsable_nombre"
+                [(ngModel)]="r.responsable_nombre"
+                (ngModelChange)="triggerDraftSave()"
+                required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Teléfono de contacto (móvil) *</label>
+              <input
+                type="text"
+                class="form-control"
+                name="simp_telefono_contacto"
+                [(ngModel)]="r.telefono_contacto"
+                (ngModelChange)="triggerDraftSave()"
+                required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Teléfono alterno</label>
+              <input
+                type="text"
+                class="form-control"
+                name="simp_telefono_alterno"
+                [(ngModel)]="r.telefono_alterno"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 2: ANTECEDENTES MÉDICOS -->
+        <div class="cq-card p-4 mb-3">
+          <h6 class="cq-section-title mb-3">Antecedentes médicos</h6>
+
+          <div class="row g-3">
+            <!-- 1. Enfermedad crónica -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">
+                ¿Padece alguna enfermedad crónica o condición médica? (asma, diabetes, epilepsia, cardiopatías, alergias, etc.)
+              </label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.padece_enfermedad_cronica === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.padece_enfermedad_cronica = 'No'; triggerDraftSave()">
+                  No
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.padece_enfermedad_cronica === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.padece_enfermedad_cronica = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="r.padece_enfermedad_cronica === 'Sí'">
+                <label class="form-label small fw-semibold">¿Cuál?</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="simp_enfermedad_cronica_cual"
+                  [(ngModel)]="r.enfermedad_cronica_cual"
+                  (ngModelChange)="triggerDraftSave()" />
+              </div>
+            </div>
+
+            <!-- 2. Alergia conocida -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">¿Tiene alguna alergia conocida?</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.tiene_alergia_conocida === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.tiene_alergia_conocida = 'No'; triggerDraftSave()">
+                  No
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.tiene_alergia_conocida === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.tiene_alergia_conocida = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="r.tiene_alergia_conocida === 'Sí'">
+                <div class="cq-chip-grid">
+                  <button
+                    type="button"
+                    class="cq-chip"
+                    *ngFor="let alg of alergiasSimplificadoCat"
+                    [class.active]="isSelected('alergias_simplificado', alg)"
+                    (click)="toggleMultiOption('alergias_simplificado', alg)">
+                    {{ alg }}
+                  </button>
+                </div>
+                <div class="mt-2" *ngIf="isSelected('alergias_simplificado', 'Otra')">
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    name="simp_alergia_otra"
+                    placeholder="Especifique la otra alergia"
+                    [(ngModel)]="r.alergia_otra_especifique"
+                    (ngModelChange)="triggerDraftSave()" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Medicamento continuo -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">¿Toma actualmente algún medicamento de forma continua?</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.toma_medicamento_continuo === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.toma_medicamento_continuo = 'No'; triggerDraftSave()">
+                  No
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.toma_medicamento_continuo === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.toma_medicamento_continuo = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="r.toma_medicamento_continuo === 'Sí'">
+                <label class="form-label small fw-semibold">Nombre, dosis y horario</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="simp_medicamento_continuo_detalle"
+                  [(ngModel)]="r.medicamento_continuo_detalle"
+                  (ngModelChange)="triggerDraftSave()" />
+              </div>
+            </div>
+
+            <!-- 4. Hospitalizado o intervenido en el último año -->
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">¿Ha sido hospitalizado o intervenido quirúrgicamente en el último año?</label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.hospitalizado_ultimo_anio === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.hospitalizado_ultimo_anio = 'No'; triggerDraftSave()">
+                  No
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.hospitalizado_ultimo_anio === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.hospitalizado_ultimo_anio = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="r.hospitalizado_ultimo_anio === 'Sí'">
+                <label class="form-label small fw-semibold">Explique</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="simp_hospitalizado_explique"
+                  [(ngModel)]="r.hospitalizado_ultimo_anio_explique"
+                  (ngModelChange)="triggerDraftSave()" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 3: ESTADO DE SALUD ACTUAL (ÚLTIMOS 14 DÍAS) -->
+        <div class="cq-card p-4 mb-3">
+          <h6 class="cq-section-title mb-1">Estado de salud actual (últimos 14 días)</h6>
+          <p class="text-muted small mb-3">Marque los síntomas que correspondan.</p>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="cq-chip-grid">
+                <button
+                  type="button"
+                  class="cq-chip"
+                  *ngFor="let sint of sintomasSimplificadoCat"
+                  [class.active]="isSelected('sintomas_ultimos_14_dias', sint)"
+                  (click)="toggleMultiOption('sintomas_ultimos_14_dias', sint, 'Ninguno')">
+                  {{ sint }}
+                </button>
+              </div>
+            </div>
+
+            <div class="col-12 mt-3">
+              <label class="form-label small fw-semibold d-block">
+                ¿Ha tenido contacto reciente con alguna persona enferma o con diagnóstico de enfermedad contagiosa?
+              </label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.contacto_enfermo_reciente === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.contacto_enfermo_reciente = 'No'; triggerDraftSave()">
+                  No
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.contacto_enfermo_reciente === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.contacto_enfermo_reciente = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="r.contacto_enfermo_reciente === 'Sí'">
+                <label class="form-label small fw-semibold">Especifique</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  name="simp_contacto_enfermo_especifique"
+                  [(ngModel)]="r.contacto_enfermo_especifique"
+                  (ngModelChange)="triggerDraftSave()" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 4: INFORMACIÓN ADICIONAL -->
+        <div class="cq-card p-4 mb-3">
+          <h6 class="cq-section-title mb-3">Información adicional</h6>
+
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">
+                ¿Existe alguna condición física, emocional o conductual que debamos conocer para cuidar mejor durante el evento?
+              </label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.condicion_especial_cuidado === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.condicion_especial_cuidado = 'No'; triggerDraftSave()">
+                  No
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.condicion_especial_cuidado === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.condicion_especial_cuidado = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+              </div>
+              <div class="mt-2" *ngIf="r.condicion_especial_cuidado === 'Sí'">
+                <label class="form-label small fw-semibold">Describa</label>
+                <textarea
+                  class="form-control"
+                  rows="2"
+                  name="simp_condicion_especial_describa"
+                  [(ngModel)]="r.condicion_especial_describa"
+                  (ngModelChange)="triggerDraftSave()"></textarea>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label small fw-semibold d-block">
+                En caso de emergencia, ¿autoriza la atención médica básica y primeros auxilios? *
+              </label>
+              <div class="d-flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.autoriza_atencion_basica === 'Sí' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.autoriza_atencion_basica = 'Sí'; triggerDraftSave()">
+                  Sí
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm px-4"
+                  [ngClass]="r.autoriza_atencion_basica === 'No' ? 'cq-btn-primary' : 'cq-btn-outline'"
+                  (click)="r.autoriza_atencion_basica = 'No'; triggerDraftSave()">
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 5: LEYENDA DE RESPONSABILIDAD Y COMPROMISO -->
+        <div class="cq-card p-4 mb-3">
+          <h6 class="cq-section-title mb-2">{{ settings.simplified_disclaimer_title || 'Leyenda de responsabilidad y compromiso' }}</h6>
+          <p class="small text-secondary mb-3" style="line-height: 1.65;">
+            {{ settings.simplified_disclaimer_text }}
+          </p>
+
+          <label class="cq-checkbox-box mb-3" for="chkSimpResponsabilidad">
+            <input
+              class="form-check-input m-0"
+              type="checkbox"
+              id="chkSimpResponsabilidad"
+              name="simp_acepta_leyenda"
+              [(ngModel)]="r.acepta_leyenda_responsabilidad"
+              (ngModelChange)="triggerDraftSave()" />
+            <span class="small fw-semibold text-dark">
+              {{ settings.simplified_disclaimer_checkbox || 'Declaro que la información es verdadera y acepto la responsabilidad descrita.' }}
+            </span>
+          </label>
+
+          <div>
+            <label class="form-label small fw-semibold">Comentarios adicionales (opcional)</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              name="simp_comentarios_adicionales"
+              [(ngModel)]="r.comentarios_adicionales"
+              (ngModelChange)="triggerDraftSave()"></textarea>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <!-- TEXTO INFORMATIVO Y BOTÓN DE ENVÍO DEFINITIVO -->
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5">
+        <p class="text-muted small mb-0">
+          {{ isSimplifiedVariant ? 'Al enviar, la información será revisada por el Servicio Médico.' : 'Al enviar, tu información será revisada por el equipo médico antes de tu cita.' }}
+        </p>
+        <button type="submit" class="btn cq-btn-primary px-4 py-2" [disabled]="isSubmitting">
+          <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
+          {{ isSubmitting ? 'Enviando…' : 'Enviar cuestionario' }}
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>

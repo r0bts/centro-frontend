@@ -168,6 +168,11 @@
                     <div *ngIf="activeSection() === 'department_limits'" class="config-panel">
                         <app-department-limits></app-department-limits>
                     </div>
+
+                    <!-- Consentimientos y Cuestionarios Médicos -->
+                    <div *ngIf="activeSection() === 'cuestionarios_medicos'" class="config-panel">
+                        <app-cuestionarios-medicos-config></app-cuestionarios-medicos-config>
+                    </div>
                 </div>
             </div>
         </div>

@@ -302,6 +302,17 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  // ── Tecla Escape → cerrar cualquier menú/dropdown abierto ──
+  @HostListener('document:keydown.escape')
+  onEscapePress(): void {
+    this.closeAllDropdowns();
+    this.isGearOpen.set(false);
+    this.isAvatarOpen.set(false);
+    this.isNotifOpen.set(false);
+    this.isMobileMenuOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
   // ── Click fuera → cerrar todo ─────────────────
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -313,6 +324,10 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
       this.isAvatarOpen.set(false);
       this.isNotifOpen.set(false);
     } else {
+      // Clic dentro del nav pero fuera de un dropdown de módulo → cerrarlo
+      if (!target.closest('.topnav-item-dd')) {
+        this.closeAllDropdowns();
+      }
       // Clic dentro del nav pero fuera del panel de notificaciones → cerrarlo
       if (!target.closest('.topnav-notif-wrapper')) {
         this.isNotifOpen.set(false);

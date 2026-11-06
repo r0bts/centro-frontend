@@ -39,6 +39,14 @@ export const routes: Routes = [
     path: 'pase-salida/:token',
     loadComponent: () => import('./components/pickup-pass-view/pickup-pass-view').then(m => m.PickupPassViewComponent)
   },
+  // ── Ruta PÚBLICA: Cuestionario Médico por token (Sin sesión requerida) ────
+  {
+    path: 'cuestionario/:token',
+    loadComponent: () =>
+      import('./components/servicio-medico/cuestionario-publico/servicio-medico-cuestionario-publico').then(
+        m => m.ServicioMedicoCuestionarioPublico
+      )
+  },
   {
     path: 'dashboard',
     loadComponent: () => import('./components/dashboard/dashboard').then(m => m.Dashboard),
@@ -144,6 +152,11 @@ export const routes: Routes = [
   },
   {
     path: 'configuracion/limites-departamento',
+    component: ConfiguracionComponent,
+    canActivate: [authGuard]
+  },
+  {
+    path: 'configuracion/cuestionarios-medicos',
     component: ConfiguracionComponent,
     canActivate: [authGuard]
   },

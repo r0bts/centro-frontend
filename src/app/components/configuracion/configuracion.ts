@@ -19,6 +19,7 @@ import { AuthService } from '../../services/auth.service';
 import { AreasClubesComponent } from './areas-clubes/areas-clubes';
 import { SummerCourseInstructorsComponent } from '../summer-course/instructors/summer-course-instructors';
 import { DepartmentLimitsComponent } from './department-limits/department-limits';
+import { CuestionariosMedicosConfigComponent } from './cuestionarios-medicos/cuestionarios-medicos';
 import Swal from 'sweetalert2';
 
 interface ConfigSection {
@@ -47,7 +48,7 @@ interface SystemConfig {
   selector: 'app-configuracion',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent, AreasClubesComponent, SummerCourseInstructorsComponent, DepartmentLimitsComponent],
+  imports: [CommonModule, FormsModule, ContentMenu, RolesListComponent, RoleFormComponent, UsersListComponent, UserFormComponent, ProductsListComponent, NetsuiteSyncComponent, UserProfileComponent, CategoriesListComponent, AreasClubesComponent, SummerCourseInstructorsComponent, DepartmentLimitsComponent, CuestionariosMedicosConfigComponent],
   templateUrl: './configuracion.html',
   styleUrls: ['./configuracion.scss']
 })
@@ -132,6 +133,13 @@ export class ConfiguracionComponent implements OnInit {
       icon: 'bi-sliders',
       description: 'Límites de productos por departamento o usuario',
       active: false
+    },
+    {
+      id: 'cuestionarios_medicos',
+      title: 'Consentimientos Médicos',
+      icon: 'bi-file-earmark-medical',
+      description: 'Aviso de privacidad, consentimiento sensible y cuestionarios',
+      active: false
     }
   ]);
 
@@ -196,6 +204,8 @@ export class ConfiguracionComponent implements OnInit {
       targetSection = 'instructores';
     } else if (urlPath.includes('/configuracion/limites-departamento')) {
       targetSection = 'department_limits';
+    } else if (urlPath.includes('/configuracion/cuestionarios-medicos')) {
+      targetSection = 'cuestionarios_medicos';
     } else if (urlPath.includes('/configuracion/general')) {
       targetSection = 'general';
     }
@@ -312,7 +322,8 @@ export class ConfiguracionComponent implements OnInit {
       'netsuite': 'netsuite_sync',
       'areas_clubes': 'areas_clubes',
       'instructores': 'instructores',
-      'department_limits': 'department_limits'
+      'department_limits': 'department_limits',
+      'cuestionarios_medicos': 'cuestionarios_medicos'
     };
     
     return mapping[sectionId] || null;

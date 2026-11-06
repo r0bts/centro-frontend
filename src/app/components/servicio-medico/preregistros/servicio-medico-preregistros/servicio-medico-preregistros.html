@@ -1,22 +1,639 @@
-<div class="container-fluid bg-light min-vh-100 p-0">
+<div class="container-fluid sm-prereg-page min-vh-100 p-0">
   <app-content-menu></app-content-menu>
-  
-  <div class="p-4 p-md-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+
+  <div class="sm-container px-3 px-md-4 py-4">
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         ENCABEZADO DE MÓDULO (Fijo sin saltos de layout)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
       <div>
-        <h3 class="fw-bold text-dark mb-1">Preregistros</h3>
-        <p class="text-muted mb-0">Cuestionarios pendientes de revisión y sincronización a NetSuite.</p>
+        <h4 class="fw-bold text-dark mb-1">Preregistros</h4>
+        <p class="text-muted small mb-0">
+          Cuestionarios de historia clínica y sincronización de expedientes hacia NetSuite.
+        </p>
       </div>
-      <button class="btn btn-outline-primary">
-        <i class="bi bi-arrow-clockwise me-2"></i>Sincronizar
-      </button>
+
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn sm-btn-primary" (click)="openGenerateModal()">
+          <i class="bi bi-plus-lg me-1"></i> Generar cuestionario
+        </button>
+        <button type="button" class="btn sm-btn-outline" (click)="loadPreregistros()" [disabled]="isLoading" title="Actualizar">
+          <i class="bi bi-arrow-clockwise" [class.spin-icon]="isLoading"></i>
+        </button>
+        <a routerLink="/servicio-medico/dashboard" class="btn sm-btn-outline">
+          <i class="bi bi-arrow-left me-1"></i> Inicio
+        </a>
+      </div>
     </div>
 
-    <div class="card border-0 shadow-sm custom-card">
-      <div class="card-body p-4 text-center">
-        <i class="bi bi-clipboard-check text-muted mb-3" style="font-size: 3rem;"></i>
-        <h5 class="fw-bold">No hay cuestionarios pendientes</h5>
-        <p class="text-muted">Los preregistros enviados por los socios se listarán en esta bandeja.</p>
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         PESTAÑAS DE ESTADO (6 TABS DE CICLO DE VIDA — Fijas sin saltos)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+      <div class="sm-tabs-bar">
+        <!-- Indicador deslizante (slide) de tab activo -->
+        <span
+          class="sm-tab-glider"
+          *ngIf="gliderReady"
+          [style.transform]="'translateX(' + gliderLeft + 'px)'"
+          [style.width.px]="gliderWidth"></span>
+
+        <button
+          #tabBtn
+          type="button"
+          class="sm-tab-btn"
+          *ngFor="let t of tabsList"
+          [class.active]="activeTab === t.key"
+          (click)="setTab(t.key)">
+          <span class="sm-tab-label">{{ t.label }}</span>
+          <span class="sm-tab-count" *ngIf="counts[t.key] > 0">{{ counts[t.key] }}</span>
+        </button>
+      </div>
+
+      <div class="sm-search-mini">
+        <i class="bi bi-search text-muted"></i>
+        <input
+          type="text"
+          placeholder="Filtrar por nombre, correo o acción..."
+          [(ngModel)]="searchQuery" />
+        <button *ngIf="searchQuery" type="button" class="btn-clear" (click)="searchQuery = ''">
+          <i class="bi bi-x"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         CONTENEDOR PRINCIPAL DE PREREGISTROS
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div class="card border-0 shadow-sm sm-panel-card">
+      <div class="card-header bg-white border-0 pt-4 px-4 pb-3">
+        <div [ngClass]="!isLoading ? tabSlideClass : ''">
+          <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+            <i class="bi bi-clipboard2-check text-secondary"></i>
+            <ng-container *ngIf="!isLoading; else skCount">
+              {{ filteredItems.length }} {{ filteredItems.length === 1 ? 'preregistro' : 'preregistros' }}
+            </ng-container>
+            <ng-template #skCount>
+              <span class="sm-skeleton d-inline-block" style="width: 115px; height: 16px; border-radius: 5px;"></span>
+            </ng-template>
+          </h6>
+          <p class="text-muted small mb-0">{{ tabSubtitle }}</p>
+        </div>
+      </div>
+
+      <div class="card-body px-4 pb-4 pt-2 overflow-hidden">
+        <!-- Skeleton Shimmer de filas (misma altura exacta que sm-prereg-row) -->
+        <div *ngIf="isLoading && skeletonRows.length > 0" class="sm-prereg-list">
+          <div class="sm-prereg-row sm-skeleton-row" *ngFor="let idx of skeletonRows">
+            <div class="sm-prereg-main">
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <div class="sm-skeleton" style="width: 96px; height: 20px; border-radius: 6px;"></div>
+                <div class="sm-skeleton" style="width: 190px; height: 16px; border-radius: 5px;"></div>
+                <div class="sm-skeleton d-none d-sm-block" style="width: 140px; height: 14px; border-radius: 5px;"></div>
+              </div>
+              <div class="sm-prereg-meta d-flex align-items-center">
+                <div class="sm-skeleton" style="width: 280px; height: 12px; border-radius: 4px;"></div>
+              </div>
+            </div>
+            <div class="sm-prereg-actions">
+              <div class="sm-skeleton" style="width: 82px; height: 28px; border-radius: 7px;"></div>
+              <div class="sm-skeleton" style="width: 78px; height: 24px; border-radius: 999px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skeleton Shimmer de estado vacío (cuando la bandeja tiene 0 registros en caché) -->
+        <div *ngIf="isLoading && skeletonRows.length === 0" class="text-center py-5">
+          <div class="sm-skeleton mx-auto mb-2" style="width: 48px; height: 48px; border-radius: 50%;"></div>
+          <div class="sm-skeleton mx-auto mb-2" style="width: 180px; height: 16px; border-radius: 5px;"></div>
+          <div class="sm-skeleton mx-auto mb-3" style="width: 280px; height: 12px; border-radius: 4px;"></div>
+          <div class="sm-skeleton mx-auto" style="width: 195px; height: 31px; border-radius: 20px;"></div>
+        </div>
+
+        <!-- Estado vacío -->
+        <div *ngIf="!isLoading && filteredItems.length === 0" class="text-center py-5" [ngClass]="tabSlideClass">
+          <div class="sm-empty-circle mx-auto mb-2">
+            <i class="bi bi-clipboard2 text-secondary"></i>
+          </div>
+          <h6 class="fw-bold text-dark mb-1">Sin registros en esta bandeja</h6>
+          <p class="text-muted small mb-3">No se encontraron cuestionarios con el estado seleccionado.</p>
+          <button type="button" class="btn sm-btn-outline btn-sm" (click)="openGenerateModal()">
+            <i class="bi bi-plus-lg me-1"></i> Generar nuevo cuestionario
+          </button>
+        </div>
+
+        <!-- Lista de Preregistros -->
+        <div *ngIf="!isLoading && filteredItems.length > 0" class="sm-prereg-list" [ngClass]="tabSlideClass">
+          <div
+            class="sm-prereg-row"
+            *ngFor="let item of filteredItems"
+            (click)="openDetailModal(item)">
+
+            <div class="sm-prereg-main">
+              <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <span class="sm-role-chip">{{ item.tipo_label }}</span>
+                <span class="fw-bold text-dark">{{ item.destinatario_nombre }}</span>
+                <span class="text-muted small" *ngIf="item.email_destino">· {{ item.email_destino }}</span>
+                <span class="sm-cred-chip" *ngIf="item.destinatario_credencial">{{ item.destinatario_credencial }}</span>
+              </div>
+
+              <div class="sm-prereg-meta">
+                <span>Generado {{ item.created_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                <span *ngIf="item.completado_at"> · contestado {{ item.completado_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                <span *ngIf="item.sincronizado_at"> · sincronizado {{ item.sincronizado_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                <span *ngIf="item.estado === 'pendiente' && item.expira_at"> · vence {{ item.expira_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+                <span *ngIf="item.error_message" class="sm-error-inline">
+                  · <i class="bi bi-exclamation-triangle"></i> {{ item.error_message }}
+                </span>
+              </div>
+            </div>
+
+            <div class="sm-prereg-actions" (click)="$event.stopPropagation()">
+              <button
+                *ngIf="item.estado === 'pendiente'"
+                type="button"
+                class="btn sm-action-btn"
+                title="Copiar liga pública"
+                (click)="copyLink(item.token, $event)">
+                <i class="bi bi-link-45deg"></i> Copiar liga
+              </button>
+
+              <button
+                *ngIf="item.estado === 'pendiente' || item.estado === 'en_revision'"
+                type="button"
+                class="btn sm-action-btn"
+                (click)="cancelItem(item, $event)">
+                <i class="bi bi-slash-circle"></i> Cancelar
+              </button>
+
+              <span class="sm-state-pill">{{ item.estado }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL 1: GENERAR CUESTIONARIO MÉDICO
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="sm-modal-backdrop" *ngIf="showGenerateModal" (click)="closeGenerateModal()">
+  <div class="sm-modal-dialog" (click)="$event.stopPropagation()">
+    <div class="sm-modal-header">
+      <div>
+        <h5 class="fw-bold text-dark mb-0">Generar cuestionario médico</h5>
+        <p class="text-muted small mb-0">Selecciona el tipo de destinatario para crear su liga confidencial.</p>
+      </div>
+      <button type="button" class="btn-close" (click)="closeGenerateModal()"></button>
+    </div>
+
+    <div class="sm-modal-body" *ngIf="!generatedResult">
+      <!-- Selector de Tipo de Destinatario (5 pestañas de Lovable) -->
+      <label class="form-label small fw-bold text-secondary mb-2">1. Tipo de destinatario</label>
+      <div class="sm-recipient-tabs mb-4">
+        <button type="button" class="sm-rec-tab" [class.active]="genTipo === 'socio'" (click)="selectGenTipo('socio')">
+          <i class="bi bi-person-vcard"></i> Socio
+        </button>
+        <button type="button" class="sm-rec-tab" [class.active]="genTipo === 'empleado'" (click)="selectGenTipo('empleado')">
+          <i class="bi bi-person-workspace"></i> Colaborador
+        </button>
+        <button type="button" class="sm-rec-tab" [class.active]="genTipo === 'prospecto_socio'" (click)="selectGenTipo('prospecto_socio')">
+          <i class="bi bi-person-plus"></i> Prospecto socio
+        </button>
+        <button type="button" class="sm-rec-tab" [class.active]="genTipo === 'prospecto_empleado'" (click)="selectGenTipo('prospecto_empleado')">
+          <i class="bi bi-briefcase"></i> Prospecto empleado
+        </button>
+        <button type="button" class="sm-rec-tab" [class.active]="genTipo === 'externo'" (click)="selectGenTipo('externo')">
+          <i class="bi bi-calendar2-event"></i> Invitado / Externo
+        </button>
+      </div>
+
+      <!-- CASO A: SOCIO O COLABORADOR EXISTENTE -->
+      <div *ngIf="genTipo === 'socio' || genTipo === 'empleado'" class="mb-3">
+        <label class="form-label small fw-bold text-secondary">
+          Buscar {{ genTipo === 'socio' ? 'Socio (por número de acción o nombre)' : 'Colaborador (por nómina o nombre)' }}
+        </label>
+
+        <div *ngIf="!selectedEntity" class="position-relative">
+          <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              [placeholder]="genTipo === 'socio' ? 'Ej. 4101401 o nombre del socio...' : 'Ej. 1045 o nombre del colaborador...'"
+              [ngModel]="entitySearchTerm"
+              (ngModelChange)="onEntitySearchChange($event)" />
+          </div>
+
+          <div *ngIf="isSearchingEntities" class="small text-muted mt-2">
+            <span class="spinner-border spinner-border-sm me-1"></span> Buscando...
+          </div>
+
+          <div class="sm-dropdown-results mt-1" *ngIf="entityResults.length > 0">
+            <div
+              class="sm-dropdown-item"
+              *ngFor="let ent of entityResults"
+              (click)="selectEntityForGenerate(ent)">
+              <div>
+                <div class="text-dark small">{{ ent.name }}</div>
+                <div class="text-muted" style="font-size: 0.75rem;">{{ ent.subtitle }} <span *ngIf="ent.email">· {{ ent.email }}</span></div>
+              </div>
+              <span class="sm-cred-chip">{{ ent.credential }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entidad seleccionada -->
+        <div *ngIf="selectedEntity" class="sm-selected-entity-box d-flex justify-content-between align-items-center">
+          <div>
+            <div class="fw-bold text-dark">{{ selectedEntity.name }}</div>
+            <div class="text-muted small">{{ selectedEntity.credential }} · {{ selectedEntity.subtitle }}</div>
+          </div>
+          <button type="button" class="btn btn-sm sm-btn-outline" (click)="clearSelectedEntity()">
+            Cambiar
+          </button>
+        </div>
+
+        <div class="mt-3">
+          <label class="form-label small fw-semibold text-secondary">Correo electrónico para envío de liga (opcional)</label>
+          <input type="email" class="form-control" placeholder="correo@ejemplo.com" [(ngModel)]="genEmail" />
+        </div>
+      </div>
+
+      <!-- CASO B: PROSPECTO SOCIO O PROSPECTO EMPLEADO -->
+      <div *ngIf="genTipo === 'prospecto_socio' || genTipo === 'prospecto_empleado'">
+        <div class="sm-info-banner mb-3">
+          <i class="bi bi-info-circle me-2"></i>
+          Para aspirantes que aún no tienen ID en NetSuite. Una vez aprobado su ingreso, podrás vincular este cuestionario con su registro definitivo antes de sincronizar.
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-12">
+            <label class="form-label small fw-semibold text-secondary">Nombre completo *</label>
+            <input type="text" class="form-control" placeholder="Nombre y apellidos" [(ngModel)]="genNombre" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary">Correo electrónico *</label>
+            <input type="email" class="form-control" placeholder="correo@ejemplo.com" [(ngModel)]="genEmail" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary">Teléfono (opcional)</label>
+            <input type="text" class="form-control" placeholder="10 dígitos" [(ngModel)]="genTelefono" />
+          </div>
+          <div class="col-12">
+            <label class="form-label small fw-semibold text-secondary">Notas internas (opcional)</label>
+            <textarea class="form-control" rows="2" placeholder="Puesto al que aplica o número de trámite..." [(ngModel)]="genNotas"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- CASO C: INVITADO A EVENTO / EXTERNO -->
+      <div *ngIf="genTipo === 'externo'">
+        <div class="d-flex gap-2 mb-3">
+          <button type="button" class="btn btn-sm" [ngClass]="externoMode === 'nuevo' ? 'sm-btn-primary' : 'sm-btn-outline'" (click)="externoMode = 'nuevo'">
+            Registrar nuevo invitado
+          </button>
+          <button type="button" class="btn btn-sm" [ngClass]="externoMode === 'existente' ? 'sm-btn-primary' : 'sm-btn-outline'" (click)="externoMode = 'existente'">
+            Seleccionar existente ({{ existingExternos.length }})
+          </button>
+        </div>
+
+        <div *ngIf="externoMode === 'existente'" class="mb-3">
+          <label class="form-label small fw-semibold text-secondary">Seleccionar invitado registrado</label>
+          <select class="form-select" [(ngModel)]="selectedProspectoId">
+            <option [ngValue]="null">-- Selecciona un registro --</option>
+            <option *ngFor="let ext of existingExternos" [ngValue]="ext.id">
+              {{ ext.nombre }} ({{ ext.email }}) — {{ ext.tipo_externo || 'Invitado' }}
+            </option>
+          </select>
+        </div>
+
+        <div *ngIf="externoMode === 'nuevo'" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary">Clasificación del externo *</label>
+            <select class="form-select" [(ngModel)]="genTipoExterno">
+              <option value="invitado">Invitado</option>
+              <option value="visitante">Visitante</option>
+              <option value="curso_verano">Curso de Verano</option>
+              <option value="otro">Otro evento</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary">Nombre completo *</label>
+            <input type="text" class="form-control" placeholder="Nombre y apellidos" [(ngModel)]="genNombre" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary">Correo electrónico *</label>
+            <input type="email" class="form-control" placeholder="correo@ejemplo.com" [(ngModel)]="genEmail" />
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold text-secondary">Teléfono principal</label>
+            <input type="text" class="form-control" placeholder="10 dígitos" [(ngModel)]="genTelefono" />
+          </div>
+
+          <ng-container *ngIf="genTipoExterno === 'curso_verano'">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-secondary">Fecha de nacimiento (menor) *</label>
+              <input type="date" class="form-control" [(ngModel)]="genFechaNacimiento" />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold text-secondary">Nombre del padre / tutor responsable *</label>
+              <input type="text" class="form-control" placeholder="Nombre completo del responsable" [(ngModel)]="genResponsableNombre" />
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <!-- Vigencia en horas -->
+      <hr class="my-3" />
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <label class="form-label small fw-semibold text-secondary mb-1">Vigencia del enlace (horas)</label>
+          <input type="number" class="form-control" min="1" max="720" [(ngModel)]="genVigenciaHoras" />
+        </div>
+        <div class="col-md-6 pt-3">
+          <span class="text-muted small">
+            Variante asignada: <strong>{{ genTipo === 'externo' ? 'Simplificado de Evento' : 'Historia Clínica Completa' }}</strong>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resultado exitoso con liga lista para copiar -->
+    <div class="sm-modal-body" *ngIf="generatedResult">
+      <div class="p-3 rounded-3 border bg-light mb-3">
+        <div class="fw-bold text-dark mb-1">
+          <i class="bi bi-check2-circle me-1"></i> Liga generada exitosamente
+        </div>
+        <p class="text-muted small mb-2">
+          Comparte este enlace con el destinatario para que responda su cuestionario médico:
+        </p>
+        <div class="input-group">
+          <input type="text" class="form-control bg-white" readonly [value]="generatedResult.public_url" />
+          <button type="button" class="btn sm-btn-primary" (click)="copyLink(generatedResult.token)">
+            <i class="bi bi-clipboard me-1"></i> Copiar liga
+          </button>
+        </div>
+        <div class="mt-2 small text-muted">
+          Vigencia hasta: {{ generatedResult.expira_at | date:'dd/MM/yyyy, h:mm a' }}
+        </div>
+      </div>
+    </div>
+
+    <div class="sm-modal-footer">
+      <button type="button" class="btn sm-btn-outline" (click)="closeGenerateModal()">
+        {{ generatedResult ? 'Cerrar' : 'Cancelar' }}
+      </button>
+      <button
+        *ngIf="!generatedResult"
+        type="button"
+        class="btn sm-btn-primary"
+        [disabled]="isGenerating"
+        (click)="submitGenerate()">
+        <span *ngIf="isGenerating" class="spinner-border spinner-border-sm me-1"></span>
+        Generar liga de cuestionario
+      </button>
+      <a
+        *ngIf="generatedResult"
+        [href]="generatedResult.public_url"
+        target="_blank"
+        class="btn sm-btn-outline">
+        <i class="bi bi-box-arrow-up-right me-1"></i> Abrir cuestionario en pestaña nueva
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MODAL 2: DETALLE Y REVISIÓN CLÍNICA DEL CUESTIONARIO
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<div class="sm-modal-backdrop" *ngIf="selectedItem" (click)="closeDetailModal()">
+  <div class="sm-modal-dialog sm-modal-xl" (click)="$event.stopPropagation()">
+    <div class="sm-modal-header">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="sm-role-chip">{{ selectedItem.tipo_label }}</span>
+          <h5 class="fw-bold text-dark mb-0">{{ selectedItem.destinatario_nombre }}</h5>
+          <span class="sm-state-pill">{{ selectedItem.estado }}</span>
+        </div>
+        <div class="text-muted small">
+          <span *ngIf="selectedItem.email_destino">{{ selectedItem.email_destino }} · </span>
+          <span>Variante: {{ selectedItem.questionnaire_variant === 'evento_simplificado' ? 'Simplificado de Evento' : 'Historia Clínica Completa' }}</span>
+          <span *ngIf="selectedItem.completado_at"> · Contestado: {{ selectedItem.completado_at | date:'dd/MM/yyyy, h:mm a' }}</span>
+          <span *ngIf="selectedItem.privacy_notice_accepted">
+            · <i class="bi bi-shield-check me-1"></i>Aviso de Privacidad aceptado ({{ (selectedItem.privacy_notice_accepted_at || selectedItem.consent_accepted_at) | date:'dd/MM/yyyy, h:mm a' }})
+          </span>
+          <span *ngIf="selectedItem.sensitive_consent_accepted">
+            · <i class="bi bi-check2-circle me-1"></i>Consentimiento de Datos Sensibles aceptado ({{ (selectedItem.sensitive_consent_accepted_at || selectedItem.consent_accepted_at) | date:'dd/MM/yyyy, h:mm a' }})
+          </span>
+          <span *ngIf="selectedItem.consent_status === 'rejected'">
+            · <i class="bi bi-shield-x me-1"></i>Aviso / Consentimiento no aceptado
+          </span>
+        </div>
+      </div>
+      <button type="button" class="btn-close" (click)="closeDetailModal()"></button>
+    </div>
+
+    <div class="sm-modal-body">
+      <!-- Barra de herramientas rápidas de la liga -->
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 rounded-3 border bg-light mb-3">
+        <div class="small text-muted text-truncate" style="max-width: 65%;">
+          <strong>Liga pública:</strong> {{ getPublicLink(selectedItem.token) }}
+        </div>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-sm sm-btn-outline" (click)="copyLink(selectedItem.token)">
+            <i class="bi bi-clipboard me-1"></i> Copiar liga
+          </button>
+          <button
+            *ngIf="selectedItem.email_destino && selectedItem.estado === 'pendiente'"
+            type="button"
+            class="btn btn-sm sm-btn-outline"
+            (click)="resendEmail(selectedItem)">
+            <i class="bi bi-envelope me-1"></i> Reenviar correo
+          </button>
+          <a [href]="getPublicLink(selectedItem.token)" target="_blank" class="btn btn-sm sm-btn-outline">
+            <i class="bi bi-box-arrow-up-right"></i>
+          </a>
+        </div>
+      </div>
+
+      <!-- Alerta / Caja de Vinculación a NetSuite si es Prospecto -->
+      <div *ngIf="isProspectoLinkable" class="sm-link-box mb-4">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+          <div>
+            <h6 class="fw-bold text-dark mb-1">
+              <i class="bi bi-link-45deg me-1"></i> Vincular prospecto a registro de NetSuite
+            </h6>
+            <p class="text-muted small mb-0">
+              Para aprobar y sincronizar con NetSuite, vincula este cuestionario con el Socio o Colaborador dado de alta.
+            </p>
+          </div>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn" [ngClass]="linkTargetType === 'empleado' ? 'sm-btn-primary' : 'sm-btn-outline'" (click)="linkTargetType = 'empleado'; linkResults = []">
+              Colaborador
+            </button>
+            <button type="button" class="btn" [ngClass]="linkTargetType === 'socio' ? 'sm-btn-primary' : 'sm-btn-outline'" (click)="linkTargetType = 'socio'; linkResults = []">
+              Socio
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="!selectedLinkTarget" class="position-relative">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            [placeholder]="linkTargetType === 'socio' ? 'Buscar Socio por acción, nombre o correo...' : 'Buscar Colaborador por nombre, número de empleado o correo...'"
+            [ngModel]="linkSearchTerm"
+            (ngModelChange)="onLinkSearchChange($event)" />
+          <div class="sm-dropdown-results mt-1" *ngIf="linkResults.length > 0">
+            <div class="sm-dropdown-item" *ngFor="let item of linkResults" (click)="selectLinkEntity(item)">
+              <span class="text-dark small">
+                {{ item.name }}<span *ngIf="item.email" class="text-muted"> · {{ item.email }}</span>
+              </span>
+              <span class="sm-cred-chip">{{ item.credential }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="selectedLinkTarget" class="d-flex justify-content-between align-items-center mt-2 p-2 bg-white rounded border">
+          <div class="small">
+            Seleccionado: <strong>{{ selectedLinkTarget.name }}</strong>
+            <span *ngIf="selectedLinkTarget.email" class="text-muted"> · {{ selectedLinkTarget.email }}</span>
+            ({{ selectedLinkTarget.credential }})
+          </div>
+          <button type="button" class="btn btn-sm sm-btn-outline" (click)="selectedLinkTarget = null">
+            Cambiar
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen Clínico de Respuestas -->
+      <div class="row g-3 mb-4" *ngIf="selectedItem.respuestas as r">
+        <!-- 1. Identificación y Contacto de Emergencia -->
+        <div class="col-md-6">
+          <div class="sm-clinical-card h-100">
+            <h6 class="sm-clinical-title">1. Identificación y Emergencia</h6>
+            <div class="sm-kv-grid">
+              <div><span class="sm-k">Nombre reportado:</span> <span class="sm-v">{{ r.nombre_completo || selectedItem.destinatario_nombre }}</span></div>
+              <div><span class="sm-k">Fecha nac. / Edad:</span> <span class="sm-v">{{ r.fecha_nacimiento || '—' }} <ng-container *ngIf="r.edad">({{ r.edad }} años)</ng-container></span></div>
+              <div><span class="sm-k">Grupo sanguíneo:</span> <span class="sm-v fw-bold">{{ r.grupo_sanguineo || r.tipo_sangre || 'No especificado' }}</span></div>
+              <div><span class="sm-k">Contacto emergencia:</span> <span class="sm-v">{{ r.contacto_emergencia_nombre || '—' }} <ng-container *ngIf="r.contacto_emergencia_parentesco">({{ r.contacto_emergencia_parentesco }})</ng-container></span></div>
+              <div><span class="sm-k">Teléfono emergencia:</span> <span class="sm-v">{{ r.contacto_emergencia_telefono || '—' }}</span></div>
+              <div><span class="sm-k">Seguro Gastos Médicos:</span> <span class="sm-v">{{ r.cuenta_seguro_medico || '—' }} <ng-container *ngIf="r.seguro_medico_aseguradora">({{ r.seguro_medico_aseguradora }})</ng-container></span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Estado de Salud Actual y Motivo -->
+        <div class="col-md-6">
+          <div class="sm-clinical-card h-100">
+            <h6 class="sm-clinical-title">2. Estado de Salud Actual y Visita</h6>
+            <div class="sm-kv-grid">
+              <div><span class="sm-k">¿Enfermo actualmente?:</span> <span class="sm-v">{{ r.enfermo_actualmente || 'No' }}</span></div>
+              <div *ngIf="r.enfermedad_actual?.length"><span class="sm-k">Padecimiento actual:</span> <span class="sm-v">{{ formatArrayOrString(r.enfermedad_actual) }} {{ r.enfermedad_actual_otra || '' }}</span></div>
+              <div *ngIf="r.sintomas_desde"><span class="sm-k">Inicio de síntomas:</span> <span class="sm-v">{{ r.sintomas_desde }}</span></div>
+              <div><span class="sm-k">Tipo / Motivo visita:</span> <span class="sm-v">{{ r.tipo_visita || '—' }} {{ r.motivo_visita ? '· ' + r.motivo_visita : '' }}</span></div>
+              <div><span class="sm-k">Notas del paciente:</span> <span class="sm-v">{{ r.notas_adicionales || r.observaciones_importantes || '—' }}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Antecedentes Personales Patológicos (Narrativas NetSuite) -->
+        <div class="col-md-6">
+          <div class="sm-clinical-card h-100">
+            <h6 class="sm-clinical-title">3. Antecedentes Patológicos (Mapeo NetSuite)</h6>
+            <div class="sm-kv-grid">
+              <div><span class="sm-k">Alergias:</span> <span class="sm-v">{{ r.alergias || formatArrayOrString(r.alergias_tipo) }}</span></div>
+              <div><span class="sm-k">Crónico-degenerativos:</span> <span class="sm-v">{{ r.padecimientos_cronicos || formatArrayOrString(r.enfermedades_personales) }}</span></div>
+              <div><span class="sm-k">Medicamentos actuales:</span> <span class="sm-v">{{ r.medicamentos_actuales || r.toma_medicamento || '—' }}</span></div>
+              <div><span class="sm-k">Hospitalizaciones / Cirugías:</span> <span class="sm-v">{{ r.hospitalizaciones || r.hospitalizado_o_cirugia || '—' }}</span></div>
+              <div><span class="sm-k">Traumatismos:</span> <span class="sm-v">{{ r.traumatismos || r.traumatismo_grave || '—' }}</span></div>
+              <div><span class="sm-k">Transfusiones:</span> <span class="sm-v">{{ r.transfusiones || r.transfusion_sanguinea || '—' }}</span></div>
+              <div><span class="sm-k">Inmunizaciones:</span> <span class="sm-v">{{ r.inmunizaciones || formatArrayOrString(r.vacunas_ultimo_anio) }}</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Antecedentes No Patológicos, Heredofamiliares y Estudios -->
+        <div class="col-md-6">
+          <div class="sm-clinical-card h-100">
+            <h6 class="sm-clinical-title">4. Hábitos, Heredofamiliares y Estudios</h6>
+            <div class="sm-kv-grid">
+              <div><span class="sm-k">Heredofamiliares:</span> <span class="sm-v">{{ r.antecedentes_familiares || formatArrayOrString(r.enfermedades_familiares) }}</span></div>
+              <div><span class="sm-k">Tabaquismo / Alcohol:</span> <span class="sm-v">{{ r.tabaquismo || r.fuma || '—' }} | {{ r.alcoholismo || r.alcohol || '—' }}</span></div>
+              <div><span class="sm-k">Toxicomanías:</span> <span class="sm-v">{{ r.drogas_narrativa || r.drogadiccion || r.drogas || '—' }}</span></div>
+              <div><span class="sm-k">Alimentación y Actividad:</span> <span class="sm-v">{{ r.dieta || r.alimentacion || '—' }} | {{ r.actividades || r.actividad_fisica || '—' }}</span></div>
+              <div><span class="sm-k">Estudios de laboratorio:</span> <span class="sm-v">{{ r.estudios_resumen || formatArrayOrString(r.estudios_laboratorio) }}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notas de Revisión Médica -->
+      <div class="mb-2">
+        <label class="form-label small fw-bold text-secondary">
+          Notas de revisión clínica / Motivo de rechazo o cancelación
+        </label>
+        <textarea
+          class="form-control"
+          rows="2"
+          placeholder="Observaciones del médico revisor (se anexan al expediente y al resumen enviado a NetSuite)..."
+          [(ngModel)]="notasRevisionInput"></textarea>
+      </div>
+
+      <div *ngIf="selectedItem.error_message" class="p-2 rounded border bg-light small text-dark mt-2">
+        <strong>Detalle técnico de último intento NetSuite:</strong> {{ selectedItem.error_message }}
+      </div>
+    </div>
+
+    <div class="sm-modal-footer justify-content-between">
+      <div class="d-flex gap-2">
+        <button
+          *ngIf="selectedItem.estado === 'pendiente' || selectedItem.estado === 'en_revision'"
+          type="button"
+          class="btn sm-btn-outline"
+          [disabled]="isProcessingAction"
+          (click)="cancelItem(selectedItem)">
+          <i class="bi bi-slash-circle me-1"></i> Cancelar liga
+        </button>
+
+        <button
+          *ngIf="selectedItem.estado === 'rechazado' || selectedItem.estado === 'cancelado' || selectedItem.estado === 'expirado' || selectedItem.estado === 'sincronizado'"
+          type="button"
+          class="btn sm-btn-outline"
+          [disabled]="isProcessingAction"
+          (click)="reopenItem(selectedItem)">
+          <i class="bi bi-arrow-counterclockwise me-1"></i> Reabrir para revisión
+        </button>
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="button" class="btn sm-btn-outline" (click)="closeDetailModal()">
+          Cerrar
+        </button>
+
+        <button
+          *ngIf="selectedItem.estado === 'en_revision'"
+          type="button"
+          class="btn sm-btn-outline"
+          [disabled]="isProcessingAction"
+          (click)="rejectCurrent()">
+          Rechazar cuestionario
+        </button>
+
+        <button
+          *ngIf="selectedItem.estado === 'en_revision'"
+          type="button"
+          class="btn sm-btn-primary"
+          [disabled]="isProcessingAction"
+          (click)="approveAndSync()">
+          <span *ngIf="isProcessingAction" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!isProcessingAction" class="bi bi-cloud-check me-1"></i>
+          Aprobar y sincronizar a NetSuite
+        </button>
       </div>
     </div>
   </div>

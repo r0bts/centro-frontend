@@ -80,7 +80,10 @@ export class AuthService {
       this.rolesSubject.next(roles);
 
       if (isAuthenticated && this.getRefreshToken()) {
-        this.refreshToken().subscribe({ error: () => {} });
+        // Diferir fuera del constructor para evitar NG0200 (dependencia circular con authInterceptor -> inject(AuthService))
+        setTimeout(() => {
+          this.refreshToken().subscribe({ error: () => {} });
+        }, 0);
       }
     }
   }
@@ -158,7 +161,9 @@ export class AuthService {
         }
       }),
       catchError(error => {
-        this.logoutImmediately();
+        if (!this.hasValidToken() || error?.status === 401 || error?.status === 400) {
+          this.logoutImmediately();
+        }
         return throwError(() => error);
       })
     );

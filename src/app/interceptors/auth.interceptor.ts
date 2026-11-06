@@ -9,6 +9,11 @@ let refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
 
+  // Endpoints públicos sin token ni redirección 401
+  if (req.url.includes('/api/public/')) {
+    return next(req);
+  }
+
   // Agregar token de autenticación si está disponible
   const authToken = authService.getAccessToken();
   
