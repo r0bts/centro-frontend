@@ -86,6 +86,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/institutional-events/pages/event-landing-page/event-landing-page').then(m => m.EventLandingPageComponent),
     // Sin canActivate — accesible sin sesión
   },
+  // ── Ruta PÚBLICA: Formulario de Pago de Inscripción KarloPay (Sin AuthGuard / Sin Login) ──
+  {
+    path: 'pagos/inscripcion/:token',
+    loadComponent: () => import('./features/institutional-events/pages/event-payment-checkout-page/event-payment-checkout-page').then(m => m.EventPaymentCheckoutPageComponent),
+    // Sin canActivate — accesible directamente por los socios desde su correo o whatsapp
+  },
   {
     path: 'eventos',
     loadChildren: () => import('./features/institutional-events/institutional-events.routes').then(m => m.INSTITUTIONAL_EVENTS_ROUTES),
