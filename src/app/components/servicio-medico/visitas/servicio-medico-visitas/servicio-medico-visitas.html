@@ -1,21 +1,24 @@
-<div class="container-fluid bg-light min-vh-100 p-0">
+<div class="container-fluid sm-page min-vh-100 p-0">
   <app-content-menu></app-content-menu>
   
-  <div class="p-4 p-md-5">
+  <div class="sm-container px-3 px-md-4 py-4">
     
-    <!-- Back button -->
-    <button class="btn btn-link text-decoration-none text-muted mb-4 p-0 d-flex align-items-center" [routerLink]="['/servicio-medico/dashboard']">
-      <i class="bi bi-arrow-left me-2"></i> Volver al Dashboard
-    </button>
-    
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
       <div>
-        <h3 class="fw-bold text-dark mb-1">Visitas Médicas</h3>
-        <p class="text-muted mb-0">Bandeja de consultas del día y signos vitales.</p>
+        <h4 class="fw-bold text-dark mb-1">Visitas Médicas</h4>
+        <p class="text-muted small mb-0">Bandeja de consultas del día y signos vitales.</p>
       </div>
-      <button class="btn btn-primary" (click)="nuevaVisita()">
-        <i class="bi bi-plus-lg me-2"></i>Nueva Visita
-      </button>
+      <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn sm-btn-primary" (click)="nuevaVisita()">
+          <i class="bi bi-plus-lg me-1"></i> Nueva Visita
+        </button>
+        <button type="button" class="btn sm-btn-outline" (click)="aplicarFiltros()" [disabled]="isLoadingConsultas" title="Actualizar">
+          <i class="bi bi-arrow-clockwise" [class.spin-icon]="isLoadingConsultas"></i>
+        </button>
+        <a [routerLink]="['/servicio-medico/dashboard']" class="btn sm-btn-outline">
+          <i class="bi bi-arrow-left me-1"></i> Inicio
+        </a>
+      </div>
     </div>
 
     <!-- Filtros -->

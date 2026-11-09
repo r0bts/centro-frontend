@@ -1,3 +1,57 @@
+.sm-page {
+  background: var(--neutral-50, #f6f6f6);
+}
+
+.sm-container {
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.spin-icon {
+  display: inline-block;
+  animation: smSpin 0.9s linear infinite;
+}
+
+@keyframes smSpin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.sm-btn-primary {
+  background: var(--primary-color, #406eba);
+  color: #ffffff;
+  border: 1px solid var(--primary-color, #406eba);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--border-global, 20px);
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-dark, #1d3d79);
+    color: #ffffff;
+    border-color: var(--primary-dark, #1d3d79);
+  }
+}
+
+.sm-btn-outline {
+  background: #ffffff;
+  color: var(--neutral-800, #373737);
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--border-global, 20px);
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--neutral-50, #f6f6f6);
+    color: var(--primary-color, #406eba);
+    border-color: var(--primary-color, #406eba);
+  }
+}
+
 .custom-card {
   border-radius: 16px;
   overflow: hidden;

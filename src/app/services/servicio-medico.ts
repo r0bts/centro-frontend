@@ -9,6 +9,8 @@ import { Observable } from 'rxjs';
 export class ServicioMedicoService {
   private apiUrl = `${environment.apiUrl}/expedientes`;
   private sociosMedicalUrl = `${environment.apiUrl}/socios-medical`;
+  private preregistrosUrl = `${environment.apiUrl}/preregistros`;
+  private publicCuestionarioUrl = `${environment.apiUrl}/public/cuestionario`;
 
   constructor(private http: HttpClient) { }
 
@@ -70,6 +72,7 @@ export class ServicioMedicoService {
       if (filters.medico) params.push(`medico=${filters.medico}`);
       if (filters.search) params.push(`search=${filters.search}`);
       if (filters.patient_type) params.push(`patient_type=${filters.patient_type}`);
+      if (filters.limit) params.push(`limit=${filters.limit}`);
     }
 
     const queryString = params.length > 0 ? `?${params.join('&')}` : '';
@@ -129,5 +132,83 @@ export class ServicioMedicoService {
    */
   getLocations(): Observable<any> {
     return this.http.get(`${environment.apiUrl}/locations?limit=1000&search=medico`);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // PREREGISTROS Y CUESTIONARIOS MÉDICOS (ADMIN + PÚBLICO)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  getPreregistros(estado?: string, search?: string): Observable<any> {
+    const params: string[] = [];
+    if (estado) params.push(`estado=${encodeURIComponent(estado)}`);
+    if (search) params.push(`search=${encodeURIComponent(search)}`);
+    const qs = params.length > 0 ? `?${params.join('&')}` : '';
+    return this.http.get(`${this.preregistrosUrl}${qs}`);
+  }
+
+  generatePreregistro(payload: any): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/generate`, payload);
+  }
+
+  approvePreregistro(id: number | string, payload: { notas_revision?: string } = {}): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/${id}/approve`, payload);
+  }
+
+  rejectPreregistro(id: number | string, payload: { notas_revision: string }): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/${id}/reject`, payload);
+  }
+
+  cancelPreregistro(id: number | string, payload: { notas_revision?: string } = {}): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/${id}/cancel`, payload);
+  }
+
+  reopenPreregistro(id: number | string, payload: { notas_revision?: string } = {}): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/${id}/reopen`, payload);
+  }
+
+  resendPreregistroEmail(id: number | string): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/${id}/resend-email`, {});
+  }
+
+  linkProspectoPreregistro(id: number | string, payload: { socio_id?: number; empleado_id?: number }): Observable<any> {
+    return this.http.post(`${this.preregistrosUrl}/${id}/link-prospecto`, payload);
+  }
+
+  getProspectosExternos(search: string = ''): Observable<any> {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.http.get(`${this.preregistrosUrl}/prospectos-externos${qs}`);
+  }
+
+  getPublicCuestionario(token: string): Observable<any> {
+    return this.http.get(`${this.publicCuestionarioUrl}/${encodeURIComponent(token)}`);
+  }
+
+  savePublicConsent(
+    token: string,
+    payload: {
+      consent_step?: 'privacy' | 'sensitive' | 'all';
+      consent_status: 'accepted' | 'privacy_accepted' | 'rejected';
+      privacy_notice_accepted?: boolean;
+      sensitive_consent_accepted?: boolean;
+      source_url?: string;
+    }
+  ): Observable<any> {
+    return this.http.post(`${this.publicCuestionarioUrl}/${encodeURIComponent(token)}/consent`, payload);
+  }
+
+  savePublicDraft(token: string, respuestas: any): Observable<any> {
+    return this.http.post(`${this.publicCuestionarioUrl}/${encodeURIComponent(token)}/draft`, { respuestas });
+  }
+
+  submitPublicCuestionario(token: string, respuestas: any): Observable<any> {
+    return this.http.post(`${this.publicCuestionarioUrl}/${encodeURIComponent(token)}/submit`, { respuestas });
+  }
+
+  getQuestionnaireSettings(): Observable<any> {
+    return this.http.get(`${this.preregistrosUrl}/settings`);
+  }
+
+  updateQuestionnaireSettings(payload: any): Observable<any> {
+    return this.http.put(`${this.preregistrosUrl}/settings`, payload);
   }
 }

@@ -1,69 +1,688 @@
-<div class="container-fluid bg-light min-vh-100 p-0">
-  <!-- Menú Superior -->
+<div class="sm-dashboard-page min-vh-100">
+  <!-- Menú Superior Institucional -->
   <app-content-menu></app-content-menu>
-  
-  <div class="p-4 p-md-5">
-    <!-- Encabezado -->
-    <div class="mb-5">
-      <h2 class="fw-bold text-dark mb-2">Bienvenido(a) al Portal de Servicio Médico</h2>
-      <p class="text-muted" style="max-width: 800px;">Plataforma institucional para gestión de historia clínica, visitas médicas, inventario de medicinas y reportería trimestral, integrada con NetSuite.</p>
-    </div>
-    
-    <!-- Grid de Tarjetas -->
-    <div class="row g-4">
-      
-      <!-- Tarjeta: Expedientes Externos -->
-      <div class="col-md-6 col-lg-4" *ngIf="hasAccess('expediente_externo')">
-        <div class="card h-100 border hover-shadow cursor-pointer custom-card" role="button" tabindex="0" (click)="navigateTo('escaner')">
-          <div class="card-body p-4">
-            <div class="icon-wrapper mb-3">
-               <i class="bi bi-person-badge"></i>
+
+  <main class="sm-container px-3 px-md-4 px-xl-5 pb-5">
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         1. ENCABEZADO SOBRIO Y LIMPIO
+         ═══════════════════════════════════════════════════════════════════ -->
+    <header class="d-flex flex-wrap align-items-end justify-content-between gap-3 mb-4 pt-2">
+      <div *ngIf="isLoadingDashboard" aria-hidden="true">
+        <div class="sm-skeleton mb-2" style="width: 310px; height: 28px; border-radius: 8px;"></div>
+        <div class="sm-skeleton sm-sk-line" style="width: 520px; max-width: 85vw;"></div>
+      </div>
+
+      <div *ngIf="!isLoadingDashboard" class="sm-content-reveal">
+        <h2 class="fw-bold text-dark mb-1">Portal de Servicio Médico</h2>
+        <p class="text-muted mb-0">
+          Gestión de historia clínica para socios, colaboradores y externos, visitas médicas y sincronización con NetSuite.
+        </p>
+      </div>
+
+      <div *ngIf="isLoadingDashboard" class="sm-skeleton sm-sk-btn" aria-hidden="true"></div>
+
+      <button
+        *ngIf="!isLoadingDashboard"
+        type="button"
+        class="btn btn-white border btn-sm rounded-pill px-3 d-inline-flex align-items-center gap-2 text-secondary bg-white sm-content-reveal"
+        (click)="loadDashboardData()"
+        [disabled]="isLoadingDashboard">
+        <i class="bi bi-arrow-clockwise" [class.spin-icon]="isLoadingDashboard"></i>
+        <span>Actualizar</span>
+      </button>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         2. MÓDULOS Y EXPEDIENTES (CON ESQUELETO INICIAL)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <section class="mb-4">
+      <!-- ESQUELETO DE TARJETAS DE MÓDULOS -->
+      <div class="row g-3" *ngIf="isLoadingDashboard" aria-hidden="true">
+        <div class="col-12 col-md-6 col-xl-4" *ngFor="let i of [1, 2, 3]">
+          <div class="sm-module-card h-100 pe-none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-skeleton sm-sk-icon"></div>
+              <div class="sm-skeleton sm-sk-pill" style="width: 110px;"></div>
             </div>
-            <h5 class="fw-bold text-dark mb-2">Expedientes · Externos</h5>
-            <p class="text-muted mb-0 fs-6">Visitantes, invitados y participantes de curso de verano. (Escáner QR)</p>
+            <div class="sm-skeleton sm-sk-title mb-2" style="width: 65%;"></div>
+            <div class="sm-skeleton sm-sk-line mb-2" style="width: 95%;"></div>
+            <div class="sm-skeleton sm-sk-line mb-3" style="width: 75%;"></div>
+            <div class="sm-mod-footer mt-auto">
+              <div class="sm-skeleton sm-sk-line" style="width: 45%;"></div>
+              <div class="sm-skeleton sm-sk-circle-xs"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6" *ngFor="let i of [4, 5]">
+          <div class="sm-module-card h-100 pe-none">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-skeleton sm-sk-icon"></div>
+              <div class="sm-skeleton sm-sk-pill" style="width: 120px;"></div>
+            </div>
+            <div class="sm-skeleton sm-sk-title mb-2" style="width: 55%;"></div>
+            <div class="sm-skeleton sm-sk-line mb-2" style="width: 90%;"></div>
+            <div class="sm-skeleton sm-sk-line mb-3" style="width: 60%;"></div>
+            <div class="sm-mod-footer mt-auto">
+              <div class="sm-skeleton sm-sk-line" style="width: 40%;"></div>
+              <div class="sm-skeleton sm-sk-circle-xs"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Tarjeta Ilustrativa: Expedientes Socios -->
-      <div class="col-md-6 col-lg-4" *ngIf="hasAccess('expediente_socio')">
-        <div class="card h-100 border hover-shadow cursor-pointer custom-card" role="button" tabindex="0" (click)="navigateTo('socios')">
-          <div class="card-body p-4">
-            <div class="icon-wrapper mb-3">
-               <i class="bi bi-file-earmark-person"></i>
+      <!-- TARJETAS REALES DE MÓDULOS -->
+      <div class="row g-3 sm-content-reveal" *ngIf="!isLoadingDashboard">
+        <!-- 1. Expedientes Socios -->
+        <div class="col-12 col-md-6 col-xl-4" *ngIf="hasAccess('expediente_socio')">
+          <div
+            class="sm-module-card h-100"
+            role="button"
+            tabindex="0"
+            (click)="openSpotlight('socio')">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-mod-icon">
+                <i class="bi bi-file-earmark-person"></i>
+              </div>
+              <span class="sm-mod-tag">Titulares y Beneficiarios</span>
             </div>
-            <h5 class="fw-bold text-dark mb-2">Expedientes · Socios</h5>
-            <p class="text-muted mb-0 fs-6">Búsqueda de socios, datos generales y consultas SOAP.</p>
+            <h5 class="sm-mod-title">Expedientes · Socios</h5>
+            <p class="sm-mod-desc">
+              Búsqueda por número de acción, nombre o carnet digital QR y consultas SOAP.
+            </p>
+            <div class="sm-mod-footer">
+              <span>Abrir directorio de socios</span>
+              <i class="bi bi-arrow-right"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Expedientes Colaboradores -->
+        <div class="col-12 col-md-6 col-xl-4" *ngIf="hasAccess('expediente_socio') || hasAccess('visitas_medicas')">
+          <div
+            class="sm-module-card h-100"
+            role="button"
+            tabindex="0"
+            (click)="openSpotlight('colaborador')">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-mod-icon">
+                <i class="bi bi-person-workspace"></i>
+              </div>
+              <span class="sm-mod-tag">Personal Interno</span>
+            </div>
+            <h5 class="sm-mod-title">Expedientes · Colaboradores</h5>
+            <p class="sm-mod-desc">
+              Atención médica laboral para empleados y staff del club por número de nómina o nombre.
+            </p>
+            <div class="sm-mod-footer">
+              <span>Buscar colaborador</span>
+              <i class="bi bi-arrow-right"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Expedientes Externos -->
+        <div class="col-12 col-md-6 col-xl-4" *ngIf="hasAccess('expediente_externo')">
+          <div
+            class="sm-module-card h-100"
+            role="button"
+            tabindex="0"
+            (click)="openSpotlight('externo')">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-mod-icon">
+                <i class="bi bi-qr-code-scan"></i>
+              </div>
+              <span class="sm-mod-tag">Escáner QR</span>
+            </div>
+            <h5 class="sm-mod-title">Expedientes · Externos</h5>
+            <p class="sm-mod-desc">
+              Visitantes, invitados y participantes de Curso de Verano mediante lectura QR.
+            </p>
+            <div class="sm-mod-footer">
+              <span>Iniciar lector QR</span>
+              <i class="bi bi-arrow-right"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Visitas Médicas -->
+        <div class="col-12 col-md-6" *ngIf="hasAccess('visitas_medicas')">
+          <div
+            class="sm-module-card h-100"
+            role="button"
+            tabindex="0"
+            (click)="navigateTo('visitas')">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-mod-icon">
+                <i class="bi bi-heart-pulse"></i>
+              </div>
+              <div class="d-flex gap-2">
+                <span *ngIf="consultasAbiertas.length > 0" class="sm-mod-tag">
+                  {{ consultasAbiertas.length }} abiertas
+                </span>
+                <span class="sm-mod-tag">Triage + SOAP</span>
+              </div>
+            </div>
+            <h5 class="sm-mod-title">Visitas Médicas y Signos Vitales</h5>
+            <p class="sm-mod-desc">
+              Bandeja operativa del día para médicos y enfermería: control de consultas abiertas, signos vitales, descargo de insumos y envío a NetSuite.
+            </p>
+            <div class="sm-mod-footer">
+              <span>Ir a la bandeja de consultas</span>
+              <i class="bi bi-arrow-right"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. Preregistros y Cuestionarios -->
+        <div class="col-12 col-md-6" *ngIf="hasAccess('preregistros_medicos')">
+          <div
+            class="sm-module-card h-100"
+            role="button"
+            tabindex="0"
+            (click)="navigateTo('preregistros')">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div class="sm-mod-icon">
+                <i class="bi bi-clipboard2-check"></i>
+              </div>
+              <span class="sm-mod-tag">Sincronización NetSuite</span>
+            </div>
+            <h5 class="sm-mod-title">Preregistros y Cuestionarios</h5>
+            <p class="sm-mod-desc">
+              Revisión de cuestionarios médicos enviados por socios y tutores pendientes de validación por asistentes o médicos antes de sincronizar.
+            </p>
+            <div class="sm-mod-footer">
+              <span>Revisar bandeja de preregistros</span>
+              <i class="bi bi-arrow-right"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         3. CONSULTAS + PROTOCOLO POR ROL (CON ESQUELETO SHIMMER)
+         ═══════════════════════════════════════════════════════════════════ -->
+    <section class="row g-4 align-items-start">
+      <!-- Consultas -->
+      <div class="col-12 col-xl-8">
+        <div class="sm-panel-card">
+          <div class="sm-panel-header">
+            <!-- ESQUELETO DEL ENCABEZADO DE CONSULTAS -->
+            <div *ngIf="isLoadingDashboard" aria-hidden="true">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div>
+                  <div class="sm-skeleton sm-sk-title mb-2" style="width: 140px;"></div>
+                  <div class="sm-skeleton sm-sk-line" style="width: 340px; max-width: 80vw;"></div>
+                </div>
+                <div class="d-flex gap-2">
+                  <div class="sm-skeleton" style="width: 135px; height: 32px; border-radius: 8px;"></div>
+                  <div class="sm-skeleton" style="width: 68px; height: 32px; border-radius: 8px;"></div>
+                  <div class="sm-skeleton" style="width: 82px; height: 32px; border-radius: 8px;"></div>
+                </div>
+              </div>
+
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-2 border-top">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <div class="sm-skeleton sm-sk-line" style="width: 85px;"></div>
+                  <div class="sm-skeleton sm-sk-pill" style="width: 58px; height: 24px;"></div>
+                  <div class="sm-skeleton sm-sk-pill" style="width: 64px; height: 24px;"></div>
+                  <div class="sm-skeleton sm-sk-pill" style="width: 102px; height: 24px;"></div>
+                  <div class="sm-skeleton sm-sk-pill" style="width: 130px; height: 24px;"></div>
+                </div>
+                <div class="sm-skeleton sm-sk-line" style="width: 135px;"></div>
+              </div>
+            </div>
+
+            <!-- ENCABEZADO REAL DE CONSULTAS -->
+            <div *ngIf="!isLoadingDashboard" class="sm-content-reveal">
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div>
+                  <h5 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                    <i class="bi bi-clipboard2-pulse text-secondary"></i>
+                    <span>Consultas</span>
+                  </h5>
+                  <p class="text-muted small mb-0">
+                    Seguimiento continuo entre Enfermería/Asistente (Triage) y Médico en turno
+                  </p>
+                </div>
+
+                <!-- Tabs de Estado -->
+                <div class="sm-queue-tabs">
+                  <button
+                    type="button"
+                    class="sm-q-tab"
+                    [class.active]="activeQueueTab === 'abiertas'"
+                    (click)="activeQueueTab = 'abiertas'">
+                    En Sala / Abiertas
+                    <span class="sm-q-count">{{ consultasAbiertas.length }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sm-q-tab"
+                    [class.active]="activeQueueTab === 'hoy'"
+                    (click)="activeQueueTab = 'hoy'">
+                    Hoy
+                    <span class="sm-q-count">{{ consultasHoy.length }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="sm-q-tab"
+                    [class.active]="activeQueueTab === 'recientes'"
+                    (click)="activeQueueTab = 'recientes'">
+                    Recientes
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sub-filtro por tipo de paciente -->
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-2 border-top">
+                <div class="d-flex align-items-center gap-1 flex-wrap">
+                  <span class="text-muted small me-1">Filtrar paciente:</span>
+                  <button
+                    type="button"
+                    class="sm-filter-chip"
+                    [class.active]="patientTypeFilter === 'todos'"
+                    (click)="patientTypeFilter = 'todos'">
+                    Todos
+                  </button>
+                  <button
+                    type="button"
+                    class="sm-filter-chip"
+                    [class.active]="patientTypeFilter === 'socio'"
+                    (click)="patientTypeFilter = 'socio'">
+                    Socios
+                  </button>
+                  <button
+                    type="button"
+                    class="sm-filter-chip"
+                    [class.active]="patientTypeFilter === 'colaborador'"
+                    (click)="patientTypeFilter = 'colaborador'">
+                    Colaboradores
+                  </button>
+                  <button
+                    type="button"
+                    class="sm-filter-chip"
+                    [class.active]="patientTypeFilter === 'externo'"
+                    (click)="patientTypeFilter = 'externo'">
+                    Externos / Invitados
+                  </button>
+                </div>
+
+                <a
+                  *ngIf="hasAccess('visitas_medicas')"
+                  routerLink="/servicio-medico/visitas"
+                  class="small fw-semibold text-decoration-none text-secondary">
+                  Ver historial completo <i class="bi bi-arrow-up-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="sm-panel-body">
+            <!-- ESQUELETO DE FILAS DE CONSULTA -->
+            <div *ngIf="isLoadingDashboard" class="sm-queue-list" aria-hidden="true">
+              <div *ngFor="let row of skeletonRows" class="sm-queue-item pe-none">
+                <div class="d-flex align-items-center gap-3 min-w-0 flex-grow-1">
+                  <!-- Avatar Esqueleto -->
+                  <div class="sm-skeleton sm-sk-avatar"></div>
+
+                  <!-- Líneas de Datos Esqueleto -->
+                  <div class="min-w-0 flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <div class="sm-skeleton sm-sk-line" style="width: 190px; height: 15px;"></div>
+                      <div class="sm-skeleton sm-sk-pill" style="width: 75px; height: 18px;"></div>
+                      <div class="sm-skeleton sm-sk-pill" style="width: 65px; height: 18px;"></div>
+                    </div>
+                    <div class="sm-skeleton sm-sk-line mb-2" style="width: 62%; height: 12px;"></div>
+                    <div class="d-flex gap-3">
+                      <div class="sm-skeleton sm-sk-line-sm" style="width: 95px;"></div>
+                      <div class="sm-skeleton sm-sk-line-sm" style="width: 115px;"></div>
+                      <div class="sm-skeleton sm-sk-line-sm d-none d-sm-block" style="width: 130px;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Botones Esqueleto -->
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                  <div class="sm-skeleton sm-sk-pill" style="width: 68px; height: 24px;"></div>
+                  <div class="sm-skeleton sm-sk-btn"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Estado Vacío -->
+            <div *ngIf="!isLoadingDashboard && displayedQueue.length === 0" class="text-center py-5 px-3 sm-content-reveal">
+              <div class="sm-empty-circle mx-auto mb-3">
+                <i class="bi bi-clipboard2"></i>
+              </div>
+              <h6 class="fw-bold text-dark mb-1">
+                {{ activeQueueTab === 'abiertas' ? 'No hay pacientes en espera / consultas abiertas' : 'Sin consultas registradas en este filtro' }}
+              </h6>
+              <p class="text-muted small mb-0">
+                Selecciona uno de los módulos superiores para abrir un expediente o registrar una visita.
+              </p>
+            </div>
+
+            <!-- Lista Real de Consultas -->
+            <div *ngIf="!isLoadingDashboard && displayedQueue.length > 0" class="sm-queue-list sm-content-reveal">
+              <div
+                *ngFor="let c of displayedQueue"
+                class="sm-queue-item"
+                (click)="abrirConsultaExistente(c)">
+                <div class="d-flex align-items-center gap-3 min-w-0 flex-grow-1">
+                  <!-- Avatar Iniciales Neutro -->
+                  <div class="sm-avatar-fallback">
+                    {{ getInitials(c.patient_name || 'Paciente') }}
+                  </div>
+
+                  <!-- Datos del Paciente y Consulta -->
+                  <div class="min-w-0 flex-grow-1">
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                      <span class="fw-bold text-dark text-truncate">
+                        {{ c.patient_name || 'Paciente #' + c.patient_token }}
+                      </span>
+                      <span class="sm-patient-badge">
+                        {{ getPatientTypeLabel(c) }}
+                      </span>
+                      <span class="sm-credential-badge">
+                        #{{ c.patient_credential || c.patient_token }}
+                      </span>
+                    </div>
+
+                    <div class="text-dark small fw-medium text-truncate mb-1">
+                      {{ c.diagnostico || 'En valoración / Toma de signos vitales (Triage)' }}
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3 text-muted" style="font-size: 0.78rem;">
+                      <span>
+                        <i class="bi bi-clock me-1"></i>{{ c.created | date:'dd MMM, HH:mm' }}
+                      </span>
+                      <span>
+                        <i class="bi bi-geo-alt me-1"></i>{{ getLocationName(c.ubicacion_netsuite) }}
+                      </span>
+                      <span *ngIf="c.medico_name">
+                        <i class="bi bi-person-badge me-1"></i>{{ c.medico_name }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Estado y Botón de Acción -->
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-auto">
+                  <span class="sm-status-pill">
+                    {{ c.status === 'abierta' ? 'Abierta' : 'Enviada a NS' }}
+                  </span>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-dark rounded-pill px-3 fw-medium text-nowrap"
+                    (click)="$event.stopPropagation(); abrirConsultaExistente(c)">
+                    {{ c.status === 'abierta' ? 'Continuar' : 'Ver' }}
+                    <i class="bi bi-arrow-right ms-1"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Tarjeta: Visitas médicas -->
-      <div class="col-md-6 col-lg-4" *ngIf="hasAccess('visitas_medicas')">
-        <div class="card h-100 border hover-shadow cursor-pointer custom-card" role="button" tabindex="0" (click)="navigateTo('visitas')">
-          <div class="card-body p-4">
-            <div class="icon-wrapper mb-3">
-               <i class="bi bi-heart-pulse"></i>
+      <!-- Columna Derecha: Protocolo por Rol en Servicio Médico -->
+      <div class="col-12 col-xl-4">
+        <div class="sm-panel-card">
+          <div class="sm-panel-header border-0 pb-0">
+            <div *ngIf="isLoadingDashboard" aria-hidden="true">
+              <div class="sm-skeleton sm-sk-title mb-2" style="width: 240px;"></div>
+              <div class="sm-skeleton sm-sk-line" style="width: 170px;"></div>
             </div>
-            <h5 class="fw-bold text-dark mb-2">Visitas médicas</h5>
-            <p class="text-muted mb-0 fs-6">Bandeja de consultas del día y signos vitales.</p>
+            <div *ngIf="!isLoadingDashboard" class="sm-content-reveal">
+              <h6 class="fw-bold text-dark mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-people text-secondary"></i>
+                <span>Protocolo por Rol en Servicio Médico</span>
+              </h6>
+              <p class="text-muted small mb-0">Flujo coordinado de atención clínica</p>
+            </div>
+          </div>
+          <div class="sm-panel-body pt-3">
+            <!-- Esqueleto Protocolo -->
+            <div *ngIf="isLoadingDashboard" aria-hidden="true">
+              <div class="sm-step-box mb-3">
+                <div class="sm-skeleton sm-sk-pill mb-2" style="width: 140px; height: 22px;"></div>
+                <div class="sm-skeleton sm-sk-line mb-2" style="width: 95%;"></div>
+                <div class="sm-skeleton sm-sk-line" style="width: 80%;"></div>
+              </div>
+              <div class="sm-step-box">
+                <div class="sm-skeleton sm-sk-pill mb-2" style="width: 120px; height: 22px;"></div>
+                <div class="sm-skeleton sm-sk-line mb-2" style="width: 92%;"></div>
+                <div class="sm-skeleton sm-sk-line" style="width: 75%;"></div>
+              </div>
+            </div>
+
+            <!-- Contenido Real Protocolo -->
+            <div *ngIf="!isLoadingDashboard" class="sm-content-reveal">
+              <div class="sm-step-box mb-3">
+                <span class="sm-step-badge">1. Asistente / Enfermería</span>
+                <p class="small text-muted mb-0 mt-2">
+                  Identifica si el paciente es <strong>Socio</strong>, <strong>Colaborador</strong> o <strong>Externo</strong>, registra signos vitales e insumos y guarda la consulta como <em>Abierta</em>.
+                </p>
+              </div>
+              <div class="sm-step-box">
+                <span class="sm-step-badge">2. Médico en Turno</span>
+                <p class="small text-muted mb-0 mt-2">
+                  Toma al paciente desde la sección de <em>Consultas</em>, completa interrogatorio SOAP, diagnóstico CIE y cierra la consulta para sincronizar con <strong>NetSuite</strong>.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
-      <!-- Tarjeta: Preregistros -->
-      <div class="col-md-6 col-lg-4" *ngIf="hasAccess('preregistros_medicos')">
-        <div class="card h-100 border hover-shadow cursor-pointer custom-card" role="button" tabindex="0" (click)="navigateTo('preregistros')">
-          <div class="card-body p-4">
-            <div class="icon-wrapper mb-3">
-               <i class="bi bi-clipboard-check"></i>
-            </div>
-            <h5 class="fw-bold text-dark mb-2">Preregistros</h5>
-            <p class="text-muted mb-0 fs-6">Cuestionarios enviados por socios pendientes de revisión y sincronización a NetSuite.</p>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       BUSCADOR TIPO SPOTLIGHT iOS (SOCIOS · COLABORADORES · EXTERNOS)
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div class="sm-spotlight-backdrop" *ngIf="showSpotlight" (click)="closeSpotlight()">
+    <div
+      class="sm-spotlight-dialog"
+      [class.is-dragging]="isDraggingSpotlight"
+      [style.transform]="'translate3d(' + spotlightOffsetX + 'px, ' + spotlightOffsetY + 'px, 0)'"
+      (click)="$event.stopPropagation()">
+
+      <!-- Selector de categoría estilo píldora iOS (Barra arrastrable) -->
+      <div
+        class="sm-spotlight-topbar"
+        title="Arrastra para mover por la pantalla (doble clic para centrar)"
+        (mousedown)="startSpotlightDrag($event)"
+        (dblclick)="resetSpotlightPosition()">
+        <div class="d-flex align-items-center gap-2">
+          <span class="sm-spot-drag-grip" aria-hidden="true">
+            <i class="bi bi-grip-vertical"></i>
+          </span>
+          <div class="sm-spotlight-segmented">
+            <button
+              type="button"
+              class="sm-spot-seg-btn"
+              [class.active]="spotlightMode === 'socio'"
+              (click)="switchSpotlightMode('socio')">
+              <i class="bi bi-file-earmark-person"></i>
+              <span>Socios</span>
+            </button>
+            <button
+              type="button"
+              class="sm-spot-seg-btn"
+              [class.active]="spotlightMode === 'colaborador'"
+              (click)="switchSpotlightMode('colaborador')">
+              <i class="bi bi-person-workspace"></i>
+              <span>Colaboradores</span>
+            </button>
+            <button
+              type="button"
+              class="sm-spot-seg-btn"
+              [class.active]="spotlightMode === 'externo'"
+              (click)="switchSpotlightMode('externo')">
+              <i class="bi bi-qr-code-scan"></i>
+              <span>Externos</span>
+            </button>
           </div>
         </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <button
+            *ngIf="spotlightOffsetX !== 0 || spotlightOffsetY !== 0"
+            type="button"
+            class="sm-spot-esc-btn"
+            title="Volver a la posición centrada por defecto"
+            (click)="resetSpotlightPosition()">
+            <i class="bi bi-fullscreen-exit me-1"></i>Centrar
+          </button>
+          <button type="button" class="sm-spot-esc-btn" (click)="closeSpotlight()">
+            <span>ESC</span>
+          </button>
+        </div>
       </div>
-      
+
+      <!-- Barra principal de búsqueda tipo Spotlight -->
+      <div class="sm-spotlight-searchbar">
+        <i class="bi bi-search sm-spot-search-icon"></i>
+        <input
+          #spotlightInput
+          type="text"
+          class="sm-spot-input"
+          [placeholder]="spotlightPlaceholder"
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="onSearchInput($event)" />
+
+        <button
+          *ngIf="searchTerm"
+          type="button"
+          class="sm-spot-clear-btn"
+          title="Limpiar"
+          (click)="clearSpotlightSearch()">
+          <i class="bi bi-x-circle-fill"></i>
+        </button>
+
+        <button
+          *ngIf="spotlightMode === 'socio' || spotlightMode === 'externo'"
+          type="button"
+          class="sm-spot-qr-btn"
+          [class.active]="isSpotlightCameraOpen"
+          title="Escanear código QR con cámara"
+          (click)="toggleSpotlightCamera()">
+          <i class="bi bi-qr-code-scan"></i>
+          <span class="d-none d-sm-inline">Cámara QR</span>
+        </button>
+      </div>
+
+      <!-- Visor de cámara QR opcional dentro de Spotlight -->
+      <div class="sm-spotlight-camera" *ngIf="isSpotlightCameraOpen">
+        <div id="sm-spotlight-qr-reader" class="mx-auto" style="max-width: 320px; border-radius: 14px; overflow: hidden;"></div>
+        <div *ngIf="spotlightCameraError" class="text-muted small text-center mt-2">
+          {{ spotlightCameraError }}
+        </div>
+      </div>
+
+      <!-- Cuerpo de resultados de Spotlight -->
+      <div class="sm-spotlight-body">
+
+        <!-- Estado inicial sin búsqueda (Socios / Colaboradores) -->
+        <div *ngIf="!hasSearched && !isSearching && unifiedResults.length === 0" class="sm-spotlight-hint">
+          <div class="sm-spot-hint-icon">
+            <i class="bi" [ngClass]="spotlightMode === 'socio' ? 'bi-file-earmark-person' : (spotlightMode === 'colaborador' ? 'bi-person-workspace' : 'bi-qr-code-scan')"></i>
+          </div>
+          <div class="sm-spot-hint-text" *ngIf="spotlightMode === 'socio'">
+            Escribe el <strong>número de acción</strong>, <strong>nombre</strong>, <strong>apellido</strong> o <strong>correo</strong> del socio, o escanea su carnet digital.
+          </div>
+          <div class="sm-spot-hint-text" *ngIf="spotlightMode === 'colaborador'">
+            Escribe cualquier <strong>nombre</strong>, <strong>apellido</strong>, <strong>correo</strong> o <strong>número de empleado</strong> para abrir su expediente.
+          </div>
+          <div class="sm-spot-hint-text" *ngIf="spotlightMode === 'externo'">
+            Escanea el <strong>código QR</strong> del visitante / Curso de Verano o busca por nombre en el directorio de externos.
+          </div>
+        </div>
+
+        <!-- Skeleton de búsqueda -->
+        <div *ngIf="isSearching" class="sm-spotlight-list">
+          <div class="sm-spot-item pe-none" *ngFor="let s of [1, 2, 3]">
+            <div class="d-flex align-items-center gap-3 w-100">
+              <div class="sm-skeleton sm-sk-avatar"></div>
+              <div class="flex-grow-1">
+                <div class="sm-skeleton sm-sk-line mb-2" style="width: 48%;"></div>
+                <div class="sm-skeleton sm-sk-line-sm" style="width: 32%;"></div>
+              </div>
+              <div class="sm-skeleton sm-sk-pill" style="width: 90px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sin coincidencias -->
+        <div *ngIf="hasSearched && !isSearching && unifiedResults.length === 0" class="sm-spotlight-empty">
+          <p class="mb-2">No se encontraron expedientes para <strong>"{{ searchTerm }}"</strong>.</p>
+          <button
+            *ngIf="spotlightMode === 'externo' && searchTerm.trim()"
+            type="button"
+            class="btn btn-sm rounded-pill px-3 sm-spot-action-btn"
+            (click)="openDirectQrToken(searchTerm)">
+            Abrir token QR "{{ searchTerm }}" <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+
+        <!-- Lista de resultados -->
+        <div *ngIf="!isSearching && unifiedResults.length > 0" class="sm-spotlight-list">
+          <div
+            *ngFor="let item of unifiedResults; let idx = index"
+            class="sm-spot-item"
+            [class.selected]="idx === spotlightSelectedIndex"
+            (mouseenter)="spotlightSelectedIndex = idx"
+            (click)="abrirExpediente(item)">
+            <div class="d-flex align-items-center gap-3 min-w-0">
+              <div class="sm-spot-avatar">
+                {{ getInitials(item.name) }}
+              </div>
+              <div class="min-w-0">
+                <div class="sm-spot-name text-truncate">
+                  {{ item.name }}
+                  <span *ngIf="item.email" class="sm-spot-email"> · {{ item.email }}</span>
+                </div>
+                <div class="sm-spot-sub text-truncate">{{ item.subtitle }}</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-shrink-0">
+              <span class="sm-spot-badge">{{ item.badge }}</span>
+              <i class="bi bi-arrow-return-left sm-spot-enter-icon"></i>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie de atajos tipo Spotlight -->
+      <div class="sm-spotlight-footer">
+        <div class="d-flex align-items-center gap-3">
+          <span><kbd>↑</kbd> <kbd>↓</kbd> Navegar</span>
+          <span><kbd>↵</kbd> Abrir expediente</span>
+          <span><kbd>ESC</kbd> Cerrar</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <a
+            *ngIf="spotlightMode === 'socio'"
+            routerLink="/servicio-medico/socios"
+            class="sm-spot-full-link"
+            (click)="closeSpotlight()">
+            Vista completa <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+          <a
+            *ngIf="spotlightMode === 'externo'"
+            routerLink="/servicio-medico/escaner"
+            class="sm-spot-full-link"
+            (click)="closeSpotlight()">
+            Escáner completo <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>

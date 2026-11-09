@@ -78,6 +78,13 @@ export class AuthService {
       this.permissionsSubject.next(permissions);
       this.modulesSubject.next(modules);
       this.rolesSubject.next(roles);
+
+      if (isAuthenticated && this.getRefreshToken()) {
+        // Diferir fuera del constructor para evitar NG0200 (dependencia circular con authInterceptor -> inject(AuthService))
+        setTimeout(() => {
+          this.refreshToken().subscribe({ error: () => {} });
+        }, 0);
+      }
     }
   }
 
@@ -154,7 +161,9 @@ export class AuthService {
         }
       }),
       catchError(error => {
-        this.logoutImmediately();
+        if (!this.hasValidToken() || error?.status === 401 || error?.status === 400) {
+          this.logoutImmediately();
+        }
         return throwError(() => error);
       })
     );
@@ -361,6 +370,11 @@ export class AuthService {
    * @returns true si el permiso está granted, false en caso contrario
    */
   hasPermission(submoduleName: string, permissionName: string): boolean {
+    const roles = this.rolesSubject.getValue();
+    if (roles && roles.some(r => r.name === 'super_admin')) {
+      return true;
+    }
+
     const permissions = this.permissionsSubject.getValue();
     
     // Buscar en todos los módulos

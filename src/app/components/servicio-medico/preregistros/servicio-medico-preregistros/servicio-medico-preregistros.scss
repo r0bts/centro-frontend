@@ -1,0 +1,560 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   PREREGISTROS Y CUESTIONARIOS MÉDICOS — SERVICIO MÉDICO
+   Diseño clínico neutro (monocromático) con Skeleton Shimmer UX
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:host {
+  --sm-bg: var(--neutral-50, #f6f6f6);
+  --sm-surface: #ffffff;
+  --sm-border: var(--neutral-200, #d0d0d0);
+  --sm-text: var(--neutral-900, #141414);
+  --sm-muted: var(--neutral-600, #727272);
+  display: block;
+}
+
+.sm-prereg-page {
+  background: var(--sm-bg);
+}
+
+.sm-container {
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.spin-icon {
+  display: inline-block;
+  animation: smSpin 0.9s linear infinite;
+}
+
+@keyframes smSpin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── SKELETON SHIMMER & REVEAL ──────────────────────────────────────────── */
+.sm-skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: #e2e8f0;
+  background-image: linear-gradient(
+    90deg,
+    #e2e8f0 0px,
+    #f1f5f9 50%,
+    #e2e8f0 100%
+  );
+  background-size: 200% 100%;
+  animation: smShimmer 1.35s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes smShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.sm-sk-title {
+  height: 18px;
+  border-radius: 6px;
+}
+
+.sm-sk-line {
+  height: 12px;
+  border-radius: 6px;
+}
+
+.sm-sk-line-sm {
+  height: 10px;
+  border-radius: 5px;
+}
+
+.sm-sk-pill {
+  height: 22px;
+  border-radius: 999px;
+}
+
+.sm-sk-btn {
+  height: 32px;
+  border-radius: 8px;
+}
+
+.sm-content-reveal {
+  animation: smFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes smFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── BOTONES INSTITUCIONALES CENTRO LIBANÉS ─────────────────────────────── */
+.sm-btn-primary {
+  background: var(--primary-color, #406eba);
+  color: #ffffff;
+  border: 1px solid var(--primary-color, #406eba);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--border-global, 20px);
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--primary-dark, #1d3d79);
+    color: #ffffff;
+    border-color: var(--primary-dark, #1d3d79);
+  }
+}
+
+.sm-btn-outline {
+  background: #ffffff;
+  color: var(--neutral-800, #373737);
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--border-global, 20px);
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    background: var(--neutral-50, #f6f6f6);
+    color: var(--primary-color, #406eba);
+    border-color: var(--primary-color, #406eba);
+  }
+}
+
+/* ── BARRA DE PESTAÑAS TIPO PÍLDORA CON ANIMACIÓN SLIDE ────────────────── */
+.sm-tabs-bar {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 0.2rem;
+  background: var(--neutral-100, #e8e8e8);
+  padding: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.sm-tab-glider {
+  position: absolute;
+  top: 0.28rem;
+  bottom: 0.28rem;
+  left: 0;
+  background: var(--primary-color, #406eba);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(64, 110, 186, 0.28);
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sm-tab-btn {
+  position: relative;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  color: var(--neutral-700, #5b5b5b);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.42rem 0.95rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+
+  &:hover:not(.active) {
+    color: var(--neutral-900, #141414);
+  }
+
+  &.active {
+    color: #ffffff;
+
+    .sm-tab-count {
+      background: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+    }
+  }
+}
+
+.sm-tab-count {
+  background: rgba(0, 0, 0, 0.08);
+  color: var(--neutral-800, #373737);
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.08rem 0.44rem;
+  border-radius: 999px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sm-slide-in-right {
+  animation: smSlideFromRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.sm-slide-in-left {
+  animation: smSlideFromLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@keyframes smSlideFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes smSlideFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sm-search-mini {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: #ffffff;
+  border: 1px solid var(--neutral-200, #d0d0d0);
+  border-radius: var(--border-global, 20px);
+  padding: 0.38rem 0.9rem;
+  min-width: 260px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus-within {
+    border-color: var(--primary-color, #406eba);
+    box-shadow: 0 0 0 3px rgba(64, 110, 186, 0.15);
+  }
+
+  input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.82rem;
+    color: #1e293b;
+    width: 100%;
+  }
+
+  .btn-clear {
+    border: none;
+    background: transparent;
+    color: #64748b;
+    padding: 0;
+    line-height: 1;
+  }
+}
+
+/* ── PANEL Y FILAS DE PREREGISTROS ──────────────────────────────────────── */
+.sm-panel-card {
+  border-radius: 14px;
+  border: 1px solid var(--sm-border) !important;
+}
+
+.sm-prereg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sm-prereg-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  min-height: 68px;
+  padding: 0.85rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+}
+
+.sm-skeleton-row {
+  cursor: default;
+  pointer-events: none;
+}
+
+.sm-role-chip {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.sm-cred-chip {
+  font-size: 0.7rem;
+  font-weight: 400;
+  padding: 0.14rem 0.5rem;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.sm-prereg-meta {
+  font-size: 0.76rem;
+  color: #64748b;
+}
+
+.sm-error-inline {
+  color: #475569;
+  font-weight: 600;
+}
+
+.sm-prereg-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.sm-action-btn {
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 0.28rem 0.65rem;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+}
+
+.sm-state-pill {
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 0.24rem 0.65rem;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.sm-empty-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+/* ── MODALES ────────────────────────────────────────────────────────────── */
+.sm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1055;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.sm-modal-dialog {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.16);
+}
+
+.sm-modal-xl {
+  max-width: 980px;
+}
+
+.sm-modal-header {
+  padding: 1.15rem 1.4rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.sm-modal-body {
+  padding: 1.25rem 1.4rem;
+  overflow-y: auto;
+}
+
+.sm-modal-footer {
+  padding: 0.95rem 1.4rem;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── SELECTOR DE DESTINATARIO EN MODAL ──────────────────────────────────── */
+.sm-recipient-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sm-rec-tab {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.42rem 0.75rem;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  &:hover {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  &.active {
+    background: var(--primary-color, #406eba);
+    color: #ffffff;
+    border-color: var(--primary-color, #406eba);
+  }
+}
+
+.sm-dropdown-results {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  max-height: 210px;
+  overflow-y: auto;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.sm-dropdown-item {
+  padding: 0.55rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.sm-selected-entity-box {
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.sm-info-banner {
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.78rem;
+}
+
+.sm-link-box {
+  padding: 0.95rem 1.1rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+/* ── TARJETAS DE REVISIÓN CLÍNICA ───────────────────────────────────────── */
+.sm-clinical-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  background: #ffffff;
+}
+
+.sm-clinical-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.sm-kv-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+
+  .sm-k {
+    color: #64748b;
+    font-weight: 600;
+    margin-right: 0.25rem;
+  }
+
+  .sm-v {
+    color: #1e293b;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .sm-prereg-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sm-prereg-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
