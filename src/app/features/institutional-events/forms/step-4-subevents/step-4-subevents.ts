@@ -25,8 +25,20 @@ export class Step4SubeventsComponent {
 
   get subeventos() { return this.state.subeventsArray.controls; }
 
-  accessMeta(tipo: string) { return this.accessTypeMeta[tipo as AccessType]; }
-  statusMeta(status: string) { return this.subeventStatusMeta[status as SubeventStatus]; }
+  accessMeta(tipo: string) {
+    return this.accessTypeMeta[tipo as AccessType] ?? {
+      label: tipo === 'members_only' ? 'Socios Activos' : (tipo || 'Sin definir'),
+      icon: 'bi-question-circle',
+      desc: '',
+    };
+  }
+
+  statusMeta(status: string) {
+    return this.subeventStatusMeta[status as SubeventStatus] ?? {
+      label: status || 'Sin definir',
+      badgeClass: 'bg-secondary-subtle text-secondary-emphasis border-secondary-subtle',
+    };
+  }
 
   abrirModal(index: number | null): void {
     this.editIndex.set(index);

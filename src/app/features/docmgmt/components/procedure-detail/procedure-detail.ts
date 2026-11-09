@@ -72,43 +72,36 @@ export class ProcedureDetailComponent implements OnInit {
           }
           
           if (this.procedure?.docmgmt_procedure_permissions) {
-            const hasDepts = this.procedure.docmgmt_procedure_permissions.some((p: any) => p.permission_type === 'department');
-            if (hasDepts) {
-              this.departmentLimitsService.getDepartments().subscribe((res: any) => {
-                const depts = res.data;
-                this.procedure!.docmgmt_procedure_permissions!.forEach((p: any) => {
-                  if (p.permission_type === 'department') {
-                    const dept = depts.find((d: any) => d.department_id === p.department_id);
-                    p.displayName = dept ? dept.department_name : 'Depto ' + p.department_id;
-                  }
-                });
-                this.cdr.detectChanges();
-              });
-            }
-            
             this.procedure.docmgmt_procedure_permissions.forEach((p: any) => {
+              if (p.displayName) {
+                // Ya resuelto directamente y con precisión por el backend
+                return;
+              }
+
               if (p.permission_type === 'department') {
-                p.displayName = 'Cargando...';
+                p.displayName = p.department_name || ('Depto ' + p.department_id);
               } else if (p.permission_type === 'user') {
-                p.displayName = 'Cargando...';
-                if (p.user_id) {
-                  this.userService.getUserById(p.user_id.toString()).subscribe({
-                    next: (resUser: any) => {
-                      if (resUser && resUser.user) {
-                        p.displayName = `${resUser.user.firstName || ''} ${resUser.user.lastName || ''}`.trim() || resUser.user.username;
-                      } else {
-                        p.displayName = 'Usuario ' + p.user_id;
-                      }
-                      this.cdr.detectChanges();
-                    },
-                    error: () => {
-                      p.displayName = 'Usuario ' + p.user_id;
-                      this.cdr.detectChanges();
-                    }
-                  });
-                }
+                p.displayName = p.user_name || ('Usuario ' + p.user_id);
               }
             });
+
+            // Si por alguna razón vino sin resolver del backend (por ej. cache), intentar resolver de respaldo
+            const unresolvedDepts = this.procedure.docmgmt_procedure_permissions.filter((p: any) => p.permission_type === 'department' && p.displayName.startsWith('Depto '));
+            if (unresolvedDepts.length > 0) {
+              this.docmgmtService.getDepartments().subscribe({
+                next: (res: any) => {
+                  const depts = res.data?.departments || res.departments || [];
+                  unresolvedDepts.forEach((p: any) => {
+                    const dept = depts.find((d: any) => Number(d.id) === Number(p.department_id) || Number(d.department_id) === Number(p.department_id));
+                    if (dept) {
+                      p.displayName = dept.name || dept.department_name || ('Depto ' + p.department_id);
+                    }
+                  });
+                  this.cdr.detectChanges();
+                },
+                error: () => {}
+              });
+            }
           }
         } else {
           this.error = 'Procedimiento no encontrado.';
