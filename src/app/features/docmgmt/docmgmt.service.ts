@@ -61,7 +61,7 @@ export class DocmgmtService {
 
   // Master Data
   getDepartments(): Observable<{departments: any[]}> {
-    return this.http.get<{departments: any[]}>(`${this.apiUrl}/departments`);
+    return this.http.get<{departments: any[]}>(`${this.apiUrl}/departments?limit=1000`);
   }
 
   getUsers(): Observable<{users: any[]}> {

@@ -71,18 +71,17 @@ export class AccessManagementComponent implements OnInit {
   }
 
   loadDepartments() {
-    this.deptLimitsService.getDepartments().subscribe({
-      next: (res) => {
-        if (res.success) {
-          this.departments = res.data.map(d => ({
-            id: d.department_id,
-            name: d.department_name,
-            icon: 'bi-building',
-            selected: false,
-            original: false,
-            permId: null
-          }));
-        }
+    this.docmgmtService.getDepartments().subscribe({
+      next: (res: any) => {
+        const depts = res.data?.departments || res.departments || res.data || [];
+        this.departments = depts.map((d: any) => ({
+          id: d.id || d.department_id,
+          name: d.name || d.department_name,
+          icon: 'bi-building',
+          selected: false,
+          original: false,
+          permId: null
+        }));
         
         // After loading departments, load the procedure
         if (this.procedureId) {
@@ -97,6 +96,7 @@ export class AccessManagementComponent implements OnInit {
       error: () => {
         this.error = 'Error al cargar departamentos.';
         this.loading = false;
+        this.cdr.detectChanges();
       }
     });
   }
@@ -132,22 +132,36 @@ export class AccessManagementComponent implements OnInit {
   mapPermissions() {
     this.originalPermissions.forEach(p => {
       if (p.permission_type === 'department') {
-        const dept = this.departments.find(d => d.id === p.department_id);
-        if (dept) {
+        let dept = this.departments.find(d => Number(d.id) === Number(p.department_id));
+        if (!dept) {
+          dept = {
+            id: p.department_id,
+            name: p.displayName || (p as any).department_name || ('Depto ' + p.department_id),
+            icon: 'bi-building',
+            selected: true,
+            original: true,
+            permId: p.id || null
+          };
+          this.departments.push(dept);
+        } else {
           dept.selected = true;
           dept.original = true;
           dept.permId = p.id || null;
+          if (p.displayName || (p as any).department_name) {
+            dept.name = p.displayName || (p as any).department_name;
+          }
         }
       } else if (p.permission_type === 'user') {
+        const initialName = p.displayName || (p as any).user_name || null;
         const userObj = {
           id: p.user_id,
-          name: 'Cargando...', // Placeholder until fetched
+          name: initialName || 'Cargando...',
           permId: p.id,
           original: true
         };
         this.selectedUsers.push(userObj);
         
-        if (p.user_id) {
+        if (!initialName && p.user_id) {
           this.userService.getUserById(p.user_id.toString()).subscribe({
             next: (res: any) => {
               if (res && res.user) {

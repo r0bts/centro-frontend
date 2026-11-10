@@ -126,7 +126,7 @@
                   <button *ngIf="canEdit" class="btn btn-sm btn-outline-secondary btn-table-action" title="Editar" [routerLink]="['/docmgmt', proc.id, 'edit']">
                     <i class="bi bi-pencil"></i>
                   </button>
-                  <button *ngIf="canEdit" class="btn btn-sm btn-outline-secondary btn-table-action" title="Accesos" [routerLink]="['/docmgmt', proc.id]" [queryParams]="{ access: 1 }">
+                  <button *ngIf="canEdit" class="btn btn-sm btn-outline-secondary btn-table-action" title="Accesos" (click)="openAccessModal(proc)">
                     <i class="bi bi-shield-lock"></i>
                   </button>
                   <button *ngIf="canDelete" class="btn btn-sm btn-outline-danger btn-table-action" title="Eliminar" (click)="confirmDelete(proc)">
@@ -179,3 +179,9 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Modal de Gestión de Accesos ── -->
+  <app-access-management *ngIf="selectedProcedureIdForAccess"
+                         [procedureId]="selectedProcedureIdForAccess"
+                         (close)="closeAccessModal($event)">
+  </app-access-management>

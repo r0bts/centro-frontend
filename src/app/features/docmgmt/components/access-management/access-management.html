@@ -4,8 +4,8 @@
   </div>
 </div>
 
-<div class="wizard-overlay" style="align-items:flex-start;padding-top:6vh;" *ngIf="!loading && procedure">
-  <div class="access-modal-box">
+<div class="wizard-overlay" style="align-items:flex-start;padding-top:6vh;" *ngIf="!loading && procedure" (click)="$event.stopPropagation()">
+  <div class="access-modal-box" (click)="$event.stopPropagation()">
     <div class="access-modal-header">
       <div>
         <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock me-2 text-primary"></i>Gestión de accesos</h5>
