@@ -106,9 +106,9 @@
 
       @if (form.has_matrix_pricing) {
         <div class="row g-3 mb-3">
-          <div class="col-12 col-lg-6">
+          <div class="col-12">
             <label class="form-label fw-semibold small text-uppercase text-muted">
-              Tipo de servicio de NetSuite <span class="text-danger">*</span>
+              Tipo de servicio / producto de NetSuite <span class="text-danger">*</span>
             </label>
             <ng-select
               [items]="nsServices()"
@@ -157,53 +157,9 @@
                 <i class="bi bi-exclamation-triangle me-1"></i>{{ nsError() }}
               </div>
             }
-            <!--
-              Advertencia legacy del ns_item_id (comentada por decisión del user 2026-09-13,
-              mismo criterio que en step-3-access): la validación sigue activa por
-              `[class.is-invalid]` y por `guardar()`, pero no se muestra el mensaje.
-
-            @if (legacyItemInvalid()) {
-              <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small">
-                <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                El servicio NetSuite asignado a este subevento (id
-                <strong>{{ form.ns_item_id }}</strong>)
-                no está disponible en el catálogo de vendibles. Puede estar inactivo o ser un ítem
-                de compra. Selecciona otro servicio para poder guardar.
-              </div>
-            }
-            -->
             @if (submitted && !form.ns_item_id) {
               <div class="invalid-feedback d-block">Selecciona un servicio de NetSuite.</div>
             }
-          </div>
-
-          <!-- Tipo de venta (custbody_cl_tipo_venta) del subevento — override opcional -->
-          <div class="col-12 col-lg-6">
-            <label class="form-label fw-semibold small text-uppercase text-muted">
-              Tipo de venta (NetSuite)
-            </label>
-            <ng-select
-              [items]="state.saleTypes()"
-              [(ngModel)]="form.sale_type_id"
-              name="sub_sale_type_id"
-              bindLabel="name"
-              bindValue="id"
-              placeholder="Buscar tipo de venta…"
-              notFoundText="Sin resultados"
-              loadingText="Cargando…"
-              [loading]="state.loadingSaleTypes()"
-              [searchable]="true"
-              [clearable]="true">
-            </ng-select>
-            <!--
-              Nota de ayuda del sale_type_id del subevento (comentada por
-              decisión del user 2026-09-13, mismo criterio que en step-3-access).
-
-            <div class="form-text">
-              Se envía como <code>custbody_cl_tipo_venta</code> en la Orden de Venta
-              del subevento. Si se deja vacío, hereda el tipo de venta del evento.
-            </div>
-            -->
           </div>
         </div>
 
