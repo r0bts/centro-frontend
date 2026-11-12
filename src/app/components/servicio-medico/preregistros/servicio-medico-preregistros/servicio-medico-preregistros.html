@@ -349,12 +349,19 @@
 
       <!-- Vigencia en horas -->
       <hr class="my-3" />
-      <div class="row align-items-center">
-        <div class="col-md-6">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
           <label class="form-label small fw-semibold text-secondary mb-1">Vigencia del enlace (horas)</label>
           <input type="number" class="form-control" min="1" max="720" [(ngModel)]="genVigenciaHoras" />
         </div>
-        <div class="col-md-6 pt-3">
+        <div class="col-md-7" *ngIf="genTipo === 'empleado' || genTipo === 'prospecto_empleado'">
+          <label class="form-label small fw-semibold text-secondary mb-1">Formato a enviar al colaborador</label>
+          <select class="form-select" [(ngModel)]="genQuestionnaireVariant">
+            <option value="completo">Historia Clínica General</option>
+            <option value="pvme_nom036">Vigilancia NOM-036 (Anexo B Nórdico + Acuse Anexo C)</option>
+          </select>
+        </div>
+        <div class="col-md-7 pt-2" *ngIf="genTipo !== 'empleado' && genTipo !== 'prospecto_empleado'">
           <span class="text-muted small">
             Variante asignada: <strong>{{ genTipo === 'externo' ? 'Simplificado de Evento' : 'Historia Clínica Completa' }}</strong>
           </span>

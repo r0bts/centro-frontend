@@ -1,4 +1,4 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://centro.ddev.site/api' // URL to your local CakePHP backend (ddev)
+  apiUrl: 'https://ecosistema-centro.ddev.site/api'
 };

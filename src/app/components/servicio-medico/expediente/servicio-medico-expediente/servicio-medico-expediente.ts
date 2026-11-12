@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef, Directive, ElementRef, HostListener, AfterViewInit, OnDestroy, Optional } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Directive, ElementRef, HostListener, AfterViewInit, OnDestroy, Optional, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { NgModel } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -73,13 +73,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ServicioMedicoService } from '../../../../services/servicio-medico';
 import { AuthService } from '../../../../services/auth.service';
 import { ContentMenu } from '../../../content-menu/content-menu';
+import { ServicioMedicoPvmeComponent } from '../pvme-nom036/servicio-medico-pvme';
 import { finalize } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-servicio-medico-expediente',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, TextFieldModule, AutosizeDirective],
+  imports: [CommonModule, FormsModule, ContentMenu, TextFieldModule, AutosizeDirective, ServicioMedicoPvmeComponent],
   templateUrl: './servicio-medico-expediente.html',
   styleUrl: './servicio-medico-expediente.scss'
 })
@@ -113,8 +114,99 @@ export class ServicioMedicoExpediente implements OnInit {
   
   errorProfile: string = '';
   
-  // Tab control: 'expediente' o 'nueva_consulta'
+  // Tab control: 'expediente', 'historial', 'pvme', 'nueva_consulta', 'editar_consulta'
   activeTab: string = 'expediente';
+  isPvmeEditorOpen: boolean = false;
+  tabSlideDirection: 'forward' | 'backward' = 'forward';
+  @ViewChild('tabsContainer') tabsContainerRef?: ElementRef<HTMLElement>;
+  gliderLeft: number = 8;
+  gliderWidth: number = 0;
+  gliderReady: boolean = false;
+  private readonly tabOrder: string[] = ['expediente', 'historial', 'pvme', 'nueva_consulta', 'editar_consulta'];
+  private touchStartX: number = 0;
+  private touchStartY: number = 0;
+  private touchIgnore: boolean = false;
+
+  get isFullWidthCapture(): boolean {
+    return (
+      this.activeTab === 'nueva_consulta' ||
+      this.activeTab === 'editar_consulta' ||
+      (this.activeTab === 'pvme' && this.isPvmeEditorOpen)
+    );
+  }
+
+  onPvmeEditorModeChange(isOpen: boolean): void {
+    this.isPvmeEditorOpen = isOpen;
+    this.cdr.detectChanges();
+    if (!isOpen) {
+      setTimeout(() => this.updateTabGlider(), 20);
+    }
+  }
+
+  @HostListener('window:resize')
+  onViewportResize(): void {
+    this.updateTabGlider();
+  }
+
+  updateTabGlider(): void {
+    const ul = this.tabsContainerRef?.nativeElement;
+    if (!ul) return;
+    const activeLi = ul.querySelector('li.nav-item.active') as HTMLElement | null;
+    if (activeLi && activeLi.offsetWidth > 0) {
+      this.gliderLeft = activeLi.offsetLeft;
+      this.gliderWidth = activeLi.offsetWidth;
+      this.gliderReady = true;
+      this.cdr.detectChanges();
+    }
+  }
+
+  setTab(nextTab: string, tabEl?: HTMLElement): void {
+    if (nextTab === this.activeTab) return;
+    const prevIdx = this.tabOrder.indexOf(this.activeTab);
+    const nextIdx = this.tabOrder.indexOf(nextTab);
+    const direction: 'forward' | 'backward' = (nextIdx === -1 || prevIdx === -1 || nextIdx >= prevIdx) ? 'forward' : 'backward';
+    this.tabSlideDirection = direction;
+
+    this.activeTab = nextTab;
+    this.cdr.detectChanges();
+    setTimeout(() => this.updateTabGlider(), 0);
+
+    if (tabEl && typeof tabEl.scrollIntoView === 'function') {
+      tabEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }
+
+  onTabTouchStart(event: TouchEvent): void {
+    const target = event.target as HTMLElement | null;
+    if (target && target.closest('input, textarea, select, button, canvas, .table-responsive, .pvme-sig-modal')) {
+      this.touchIgnore = true;
+      return;
+    }
+    this.touchIgnore = false;
+    if (event.touches && event.touches.length === 1) {
+      this.touchStartX = event.touches[0].clientX;
+      this.touchStartY = event.touches[0].clientY;
+    }
+  }
+
+  onTabTouchEnd(event: TouchEvent): void {
+    if (this.touchIgnore || !event.changedTouches || event.changedTouches.length === 0) return;
+    const dx = event.changedTouches[0].clientX - this.touchStartX;
+    const dy = event.changedTouches[0].clientY - this.touchStartY;
+
+    if (Math.abs(dx) < 65 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+
+    const isEmpleado = !!(this.medicalProfile?.is_empleado || this.medicalProfile?.patient_type === 'empleado');
+    const availableTabs = isEmpleado ? ['expediente', 'historial', 'pvme'] : ['expediente', 'historial'];
+    const currentIdx = availableTabs.indexOf(this.activeTab);
+    if (currentIdx === -1) return;
+
+    if (dx < 0 && currentIdx < availableTabs.length - 1) {
+      this.setTab(availableTabs[currentIdx + 1]);
+    } else if (dx > 0 && currentIdx > 0) {
+      this.setTab(availableTabs[currentIdx - 1]);
+    }
+  }
 
   nuevaConsultaData: any = {};
   
@@ -159,8 +251,14 @@ export class ServicioMedicoExpediente implements OnInit {
       const source = params.get('source');
       if (source === 'visitas') {
         this.backButtonText = 'Regresar a Visitas';
+      } else if (source === 'dashboard') {
+        this.backButtonText = 'Regresar al Portal';
       } else {
         this.backButtonText = 'Regresar al Escáner';
+      }
+      const tab = params.get('tab');
+      if (tab === 'pvme') {
+        this.activeTab = 'pvme';
       }
     });
   }
@@ -389,12 +487,14 @@ export class ServicioMedicoExpediente implements OnInit {
     const type = this.route.snapshot.queryParamMap.get('type');
     const request$ = type === 'socio' 
       ? this.servicioMedico.getSocioMedicalProfile(this.token)
-      : this.servicioMedico.getMedicalProfileByQr(this.token);
+      : this.servicioMedico.getMedicalProfileByQr(this.token, type || undefined);
 
     request$
       .pipe(finalize(() => {
         this.isLoadingProfile = false;
         this.cdr.detectChanges();
+        setTimeout(() => this.updateTabGlider(), 20);
+        setTimeout(() => this.updateTabGlider(), 150);
       }))
       .subscribe({
         next: (res: any) => {
@@ -412,7 +512,8 @@ export class ServicioMedicoExpediente implements OnInit {
 
   loadConsultas() {
     this.isLoadingConsultas = true;
-    this.servicioMedico.getConsultas(this.token)
+    const type = this.route.snapshot.queryParamMap.get('type');
+    this.servicioMedico.getConsultas(this.token, type ? { patient_type: type } : undefined)
       .pipe(finalize(() => {
         setTimeout(() => {
           this.isLoadingConsultas = false;
@@ -439,25 +540,30 @@ export class ServicioMedicoExpediente implements OnInit {
   }
 
   goBack() {
+    const source = this.route.snapshot.queryParamMap.get('source');
+    if (source === 'dashboard') {
+      this.router.navigate(['/servicio-medico/dashboard']);
+      return;
+    }
+    if (source === 'visitas') {
+      this.router.navigate(['/servicio-medico/visitas']);
+      return;
+    }
+
     const type = this.route.snapshot.queryParamMap.get('type');
     if (type === 'socio') {
       this.router.navigate(['/servicio-medico/socios']);
       return;
     }
 
-    const source = this.route.snapshot.queryParamMap.get('source');
-    if (source === 'visitas') {
-      this.router.navigate(['/servicio-medico/visitas']);
-    } else {
-      this.router.navigate(['/servicio-medico/escaner']);
-    }
+    this.router.navigate(['/servicio-medico/escaner']);
   }
 
   guardarDatosGenerales() {
     this.isSavingProfile = true;
-    const type = this.route.snapshot.queryParamMap.get('type');
+    const type = this.route.snapshot.queryParamMap.get('type') || this.medicalProfile?.patient_type;
     
-            let payload: any = {
+    let payload: any = {
       blood_type: this.medicalProfile.blood_type,
       allergies: this.medicalProfile.allergies,
       antecedentes_enfermedades: this.medicalProfile.antecedentes_enfermedades,
@@ -477,6 +583,9 @@ export class ServicioMedicoExpediente implements OnInit {
       payload.id = this.token;
     } else {
       payload.token = this.token;
+      if (type) {
+        payload.type = type;
+      }
     }
 
     const request$ = type === 'socio'
@@ -574,7 +683,7 @@ export class ServicioMedicoExpediente implements OnInit {
     this.consultaEditId = null;
     this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
     this.enfermeraSearchTerm = '';
-    this.activeTab = 'nueva_consulta';
+    this.setTab('nueva_consulta');
     this.loadProducts();
   }
 
@@ -677,12 +786,12 @@ export class ServicioMedicoExpediente implements OnInit {
     };
     this.medicoSearchTerm = this.getMedicoName(this.nuevaConsultaData.medico_user_id);
     this.enfermeraSearchTerm = this.getEnfermeraName(this.nuevaConsultaData.enfermera_user_id);
-    this.activeTab = 'editar_consulta';
+    this.setTab('editar_consulta');
     this.loadProducts();
   }
 
   cancelarConsulta() {
-    this.activeTab = 'expediente';
+    this.setTab('expediente');
   }
 
   getDefaultConsultaData() {

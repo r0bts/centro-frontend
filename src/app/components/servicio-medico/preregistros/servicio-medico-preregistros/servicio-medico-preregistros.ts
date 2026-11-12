@@ -59,6 +59,7 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
   isGenerating: boolean = false;
   genTipo: DestinatarioType = 'socio';
   genVigenciaHoras: number = 72;
+  genQuestionnaireVariant: 'completo' | 'pvme_nom036' = 'completo';
 
   // Buscador de Socio / Colaborador para Generar
   entitySearchTerm: string = '';
@@ -321,6 +322,7 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
     this.genTipoExterno = 'invitado';
     this.genResponsableNombre = '';
     this.genNotas = '';
+    this.genQuestionnaireVariant = 'completo';
     this.generatedResult = null;
 
     if (tipo === 'externo') {
@@ -382,7 +384,7 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
           name: s.nombreCompleto,
           credential: `Acción #${s.numeroHumano || s.id}`,
           subtitle: s.parentesco || 'Socio',
-          email: ''
+          email: s.email || ''
         }));
       } else if (this.genTipo === 'empleado') {
         const users = Array.isArray(res) ? res : [];
@@ -430,6 +432,7 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
         return;
       }
       payload.empleado_id = this.selectedEntity.id;
+      payload.questionnaire_variant = this.genQuestionnaireVariant;
     } else if (this.genTipo === 'prospecto_socio' || this.genTipo === 'prospecto_empleado') {
       if (!this.genNombre.trim() || !this.genEmail.trim()) {
         Swal.fire('Atención', 'Nombre completo y correo electrónico son obligatorios.', 'warning');
@@ -438,6 +441,9 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
       payload.nombre = this.genNombre.trim();
       payload.telefono = this.genTelefono.trim();
       payload.notas = this.genNotas.trim();
+      if (this.genTipo === 'prospecto_empleado') {
+        payload.questionnaire_variant = this.genQuestionnaireVariant;
+      }
     } else if (this.genTipo === 'externo') {
       if (this.externoMode === 'existente') {
         if (!this.selectedProspectoId) {

@@ -35,10 +35,10 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
   private draftSubject = new Subject<void>();
   private draftSub?: Subscription;
 
-  // Catálogos Exactos del Cuestionario de Historia Clínica (Centro Libanés)
-  readonly parentescos = ['Padre', 'Madre', 'Abuelo(a)', 'Hijo(a)', 'Hermano(a)', 'Esposo(a)', 'Otro'];
-  readonly gruposSanguineos = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-  readonly enfermedadesActualesCat = [
+  // Catálogos Exactos del Cuestionario de Historia Clínica (Centro Libanés) — actualizables desde settings
+  parentescos: string[] = ['Padre', 'Madre', 'Abuelo(a)', 'Hijo(a)', 'Hermano(a)', 'Esposo(a)', 'Otro'];
+  gruposSanguineos: string[] = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  enfermedadesActualesCat: string[] = [
     'Cardiovasculares',
     'Crónicas',
     'Dermatológicas',
@@ -50,14 +50,14 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Salud mental',
     'Otras'
   ];
-  readonly tratamientosCat = [
+  tratamientosCat: string[] = [
     'Farmacológicos',
     'Menores',
     'Preventivos',
     'Terapias',
     'Otras'
   ];
-  readonly enfermedadesPersonalesCat = [
+  enfermedadesPersonalesCat: string[] = [
     'Ninguna',
     'Cáncer (benigno, maligno, mama, cervicouterino, próstata)',
     'Cardiopatías (HTA, isquémica, ECV, IC, reumática, congénita, miocardiopatía, arritmias, endocarditis, pericarditis)',
@@ -70,7 +70,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Trastornos psiquiátricos (depresión, TDAH, ansiedad)',
     'Otras'
   ];
-  readonly alergiasCat = [
+  alergiasCat: string[] = [
     'Ninguna',
     'Alergias a medicamentos',
     'Alergias a picaduras de insectos',
@@ -79,7 +79,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Alergias respiratorias',
     'Otras'
   ];
-  readonly enfermedadesFamiliaresCat = [
+  enfermedadesFamiliaresCat: string[] = [
     'Ninguna',
     'Cáncer',
     'Cardiopatías',
@@ -92,7 +92,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Trastornos psiquiátricos',
     'Otras'
   ];
-  readonly frecuenciasConsumoCat = [
+  frecuenciasConsumoCat: string[] = [
     'Nunca',
     'Rara vez (menos de una vez al año)',
     'Ocasionalmente (1–3 veces al año)',
@@ -101,7 +101,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Diario o casi diario',
     'Otras'
   ];
-  readonly frecuenciasActividadFisicaCat = [
+  frecuenciasActividadFisicaCat: string[] = [
     'Nunca',
     'Rara vez (menos de una vez al mes)',
     'Ocasionalmente (1–2 veces por mes)',
@@ -109,7 +109,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Frecuentemente (3–5 veces por semana)',
     'Diario o casi diario'
   ];
-  readonly alimentacionCat = [
+  alimentacionCat: string[] = [
     'Muy buena – Dieta balanceada, rica en frutas, verduras, proteínas y baja en procesados',
     'Buena – Alimentación generalmente saludable, con algunos excesos ocasionales',
     'Regular – Alimentación poco balanceada, consumo frecuente de alimentos procesados',
@@ -117,7 +117,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Muy mala – Alimentación desordenada, con omisión de comidas o consumo excesivo de comida chatarra',
     'Bajo supervisión nutricional – Sigue un plan alimenticio indicado por un profesional'
   ];
-  readonly vacunasCat = [
+  vacunasCat: string[] = [
     'Ninguna',
     'COVID-19',
     'Hepatitis B',
@@ -127,7 +127,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Tétanos y Difteria (Td o Tdap)',
     'Otras'
   ];
-  readonly mascotasCat = [
+  mascotasCat: string[] = [
     'Ave (perico, canario, loro, etc.)',
     'Cerdo miniatura',
     'Conejo',
@@ -140,7 +140,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Tortuga',
     'Otras'
   ];
-  readonly estudiosCat = [
+  estudiosCat: string[] = [
     'No',
     'Biometría hemática (hemograma completo)',
     'Examen general de orina (EGO)',
@@ -154,25 +154,25 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     'Química sanguínea',
     'Otras'
   ];
-  readonly tiposSeguroCat = [
+  tiposSeguroCat: string[] = [
     'Seguro de Gastos Médicos Mayores',
     'Seguro de Gastos Médicos Menores',
     'Seguro público (IMSS, ISSSTE)',
     'Otro'
   ];
-  readonly motivosVisitaCat = [
+  motivosVisitaCat: string[] = [
     'Actualización de datos',
     'Registro nuevo de información médica'
   ];
 
   // Catálogos del Cuestionario de Evento Simplificado (Externos / Curso de Verano)
-  readonly alergiasSimplificadoCat = [
+  alergiasSimplificadoCat: string[] = [
     'Medicamentos',
     'Alimentos',
     'Picaduras de insectos',
     'Otra'
   ];
-  readonly sintomasSimplificadoCat = [
+  sintomasSimplificadoCat: string[] = [
     'Ninguno',
     'Conjuntivitis (ojos rojos con secreción)',
     'Diarrea',
@@ -187,6 +187,12 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
 
   // Configuración dinámica de textos legales y variantes
   settings: any = {
+    header_privacy_title: 'Aviso Integral de Privacidad',
+    header_consent_title: 'Aviso de privacidad y consentimiento',
+    questionnaire_main_title: 'Cuestionario de Historia Clínica',
+    simplified_main_title: 'Cuestionario de Salud — Invitado a Evento',
+    pvme_main_title: 'Vigilancia Médica NOM-036-1-STPS-2018 (Anexo B y Anexo C)',
+    institution_subtitle: 'Centro Libanés A.C. · Servicio Médico',
     privacy_notice_title: 'AVISO INTEGRAL DE PRIVACIDAD PARA ASPIRANTES Y COLABORADORES DE CENTRO LIBANÉS, A.C.',
     privacy_notice_subtitle: 'Antes de otorgar tu consentimiento, lee con atención el Aviso Integral de Privacidad.',
     privacy_notice_checkbox: 'He leído y acepto el presente Aviso Integral de Privacidad de Centro Libanés, A.C.',
@@ -196,15 +202,52 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     sensitive_consent_subtitle: 'Lee con atención el siguiente texto. Para continuar con el cuestionario médico debes otorgar tu consentimiento expreso.',
     sensitive_consent_checkbox: 'He leído y acepto los términos antes descritos, otorgando mi consentimiento expreso para el tratamiento de mis datos personales sensibles de salud.',
     sensitive_consent_html: '',
+    sec1_title: '1. Datos personales',
+    sec1_subtitle: 'Información básica de identificación.',
+    sec2_title: '2. Estado de salud actual',
+    sec2_q_enfermo: '¿Actualmente se encuentra enfermo?*',
+    sec3_title: '3. Antecedentes personales',
+    sec3_q_enfermedades: '¿Ha tenido o tiene alguna de las siguientes enfermedades?*',
+    sec3_q_medicamento: '¿Tomas algún medicamento?',
+    sec3_q_hospitalizado: '¿Ha sido hospitalizado o intervenido quirúrgicamente?*',
+    sec3_q_traumatismo: '¿Has tenido algún traumatismo grave que requiera férulas o yeso?*',
+    sec3_q_alergias: 'Seleccione si cuenta con una condición de alergia*',
+    sec3_q_transfusion: '¿Alguna vez ha tenido una transfusión sanguínea?*',
+    sec4_title: '4. Antecedentes familiares',
+    sec4_subtitle: 'Solo familiares directos: padres, hermanos o abuelos.',
+    sec4_q_familiares: '¿Hay antecedentes familiares de enfermedades hereditarias o crónicas?',
+    sec5_title: '5. Hábitos y estilo de vida',
+    sec6_title: '6. Estudios de laboratorio',
+    sec6_q_estudios: '¿Cuenta con estudios de laboratorio recientes?',
+    sec7_title: '7. Información complementaria',
+    sec7_notas_hint: 'Por favor escriba alguna otra información relevante de su salud que no contemplamos en este cuestionario.',
+    footer_submit_note: 'Al enviar, tu información será revisada por el equipo médico antes de tu cita.',
+    footer_submit_btn: 'Enviar cuestionario',
     simplified_disclaimer_title: 'Leyenda de responsabilidad y compromiso',
     simplified_disclaimer_text: 'Conscientes de que la salud y el bienestar de los participantes es una prioridad compartida, declaro que la información proporcionada en este cuestionario es verdadera, completa y basada en el estado real de salud. Entiendo que omitir o proporcionar información incorrecta puede poner en riesgo la salud propia y la de los demás participantes y del personal del evento. Me comprometo a informar cualquier cambio en el estado de salud y a no acudir al evento cuando presente signos o síntomas de enfermedad, con el objetivo de prevenir la propagación de virus y bacterias y contribuir a un entorno seguro para todos.',
     simplified_disclaimer_checkbox: 'Declaro que la información es verdadera y acepto la responsabilidad descrita.',
+    pvme_anexo_c_title: '3. Anexo C · Información de Riesgos por Manejo Manual de Cargas',
+    pvme_anexo_c_html: '',
+    pvme_anexo_c_checkbox: 'Manifiesto que recibí por escrito y me fue explicada la información sobre el peso máximo que puedo cargar según mi sexo y edad (Tabla 1 de la NOM-036-1-STPS-2018), los riesgos a la salud, las medidas de prevención, prohibiciones y ayudas mecánicas disponibles, y que me comprometo a aplicarlas y reportar cualquier molestia al Servicio Médico.',
     thank_you_title: '¡Gracias!',
     thank_you_message: 'Recibimos tu información. El equipo médico la revisará antes de tu cita. Si necesitas ajustar algo, comunícate con el Servicio Médico al ext. 3921.',
     simplified_thank_you_message: 'Recibimos la información. El Servicio Médico la revisará antes del evento.'
   };
 
   showBirthdateEditor: boolean = false;
+
+  readonly nordicRegionsCat: { key: string; label: string }[] = [
+    { key: 'cuello', label: 'Cuello' },
+    { key: 'hombro_derecho', label: 'Hombro derecho' },
+    { key: 'hombro_izquierdo', label: 'Hombro izquierdo' },
+    { key: 'codo_antebrazo', label: 'Codo o antebrazo' },
+    { key: 'muneca_mano', label: 'Muñeca o mano' },
+    { key: 'espalda_alta', label: 'Espalda alta (dorsal)' },
+    { key: 'espalda_baja', label: 'Espalda baja (lumbar)' },
+    { key: 'cadera_muslo', label: 'Cadera o muslo' },
+    { key: 'rodilla', label: 'Rodilla' },
+    { key: 'tobillo_pie', label: 'Tobillo o pie' }
+  ];
 
   // Modelo de Respuestas JSONB
   r: any = {
@@ -215,6 +258,35 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     contacto_emergencia_parentesco: 'Padre',
     contacto_emergencia_telefono: '',
     grupo_sanguineo: 'O+',
+
+    // Campos exclusivos de Vigilancia NOM-036 (Anexo B + Anexo C)
+    anexo_b: {
+      fecha: new Date().toISOString().slice(0, 10),
+      regiones: [
+        { key: 'cuello', label: 'Cuello', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'hombro_derecho', label: 'Hombro derecho', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'hombro_izquierdo', label: 'Hombro izquierdo', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'codo_antebrazo', label: 'Codo o antebrazo', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'muneca_mano', label: 'Muñeca o mano', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'espalda_alta', label: 'Espalda alta (dorsal)', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'espalda_baja', label: 'Espalda baja (lumbar)', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'cadera_muslo', label: 'Cadera o muslo', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'rodilla', label: 'Rodilla', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 },
+        { key: 'tobillo_pie', label: 'Tobillo o pie', molestia_12m: 'No', impidio_trabajo: 'No', molestia_7d: 'No', intensidad: 0 }
+      ],
+      atribuye_actividad: '',
+      ha_recibido_tratamiento: ''
+    },
+    anexo_c: {
+      turno: 'Matutino',
+      area: '',
+      puesto: '',
+      actividad_1: '',
+      actividad_2: '',
+      actividad_3: '',
+      que_manipula: '',
+      acepta_acuse_riesgos: false
+    },
 
     // Campos exclusivos de CuestionarioEventoSimplificado (externo)
     responsable_nombre: '',
@@ -339,6 +411,63 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
         this.preregistroData = d;
         if (d.settings && typeof d.settings === 'object') {
           this.settings = { ...this.settings, ...d.settings };
+          if (['socio', 'prospecto_socio', 'externo'].includes(d.tipo_destinatario)) {
+            if (d.settings.sensitive_consent_socio_title) {
+              this.settings.sensitive_consent_title = d.settings.sensitive_consent_socio_title;
+            }
+            if (d.settings.sensitive_consent_socio_subtitle) {
+              this.settings.sensitive_consent_subtitle = d.settings.sensitive_consent_socio_subtitle;
+            }
+            if (d.settings.sensitive_consent_socio_checkbox) {
+              this.settings.sensitive_consent_checkbox = d.settings.sensitive_consent_socio_checkbox;
+            }
+            const currentConsentHtml = String(this.settings.sensitive_consent_html || '');
+            if (
+              currentConsentHtml.includes('Aspirantes y Colaboradores') ||
+              currentConsentHtml.includes('médica ocupacional')
+            ) {
+              this.settings.sensitive_consent_html = d.settings.sensitive_consent_socio_html || '';
+            }
+          }
+          if (Array.isArray(d.settings.cat_parentescos) && d.settings.cat_parentescos.length > 0) {
+            this.parentescos = d.settings.cat_parentescos;
+          }
+          if (Array.isArray(d.settings.cat_enfermedades_actuales) && d.settings.cat_enfermedades_actuales.length > 0) {
+            this.enfermedadesActualesCat = d.settings.cat_enfermedades_actuales;
+          }
+          if (Array.isArray(d.settings.cat_tratamientos) && d.settings.cat_tratamientos.length > 0) {
+            this.tratamientosCat = d.settings.cat_tratamientos;
+          }
+          if (Array.isArray(d.settings.cat_enfermedades_personales) && d.settings.cat_enfermedades_personales.length > 0) {
+            this.enfermedadesPersonalesCat = d.settings.cat_enfermedades_personales;
+          }
+          if (Array.isArray(d.settings.cat_alergias) && d.settings.cat_alergias.length > 0) {
+            this.alergiasCat = d.settings.cat_alergias;
+          }
+          if (Array.isArray(d.settings.cat_enfermedades_familiares) && d.settings.cat_enfermedades_familiares.length > 0) {
+            this.enfermedadesFamiliaresCat = d.settings.cat_enfermedades_familiares;
+          }
+          if (Array.isArray(d.settings.cat_vacunas) && d.settings.cat_vacunas.length > 0) {
+            this.vacunasCat = d.settings.cat_vacunas;
+          }
+          if (Array.isArray(d.settings.cat_mascotas) && d.settings.cat_mascotas.length > 0) {
+            this.mascotasCat = d.settings.cat_mascotas;
+          }
+          if (Array.isArray(d.settings.cat_estudios) && d.settings.cat_estudios.length > 0) {
+            this.estudiosCat = d.settings.cat_estudios;
+          }
+          if (Array.isArray(d.settings.cat_tipos_seguro) && d.settings.cat_tipos_seguro.length > 0) {
+            this.tiposSeguroCat = d.settings.cat_tipos_seguro;
+          }
+          if (Array.isArray(d.settings.cat_motivos_visita) && d.settings.cat_motivos_visita.length > 0) {
+            this.motivosVisitaCat = d.settings.cat_motivos_visita;
+          }
+          if (Array.isArray(d.settings.cat_alergias_simplificado) && d.settings.cat_alergias_simplificado.length > 0) {
+            this.alergiasSimplificadoCat = d.settings.cat_alergias_simplificado;
+          }
+          if (Array.isArray(d.settings.cat_sintomas_simplificado) && d.settings.cat_sintomas_simplificado.length > 0) {
+            this.sintomasSimplificadoCat = d.settings.cat_sintomas_simplificado;
+          }
         }
         this.privacyNoticeRead = !!d.privacy_notice_accepted;
         this.sensitiveConsentRead = !!d.sensitive_consent_accepted;
@@ -406,8 +535,38 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     return appliesTo.includes(t);
   }
 
+  get isSocioRecipient(): boolean {
+    const t = this.preregistroData?.tipo_destinatario;
+    return !t || ['socio', 'prospecto_socio', 'externo'].includes(t);
+  }
+
+  get recipientRoleBadge(): string {
+    const t = this.preregistroData?.tipo_destinatario;
+    const cred = this.preregistroData?.credencial_destinatario || '';
+    if (t === 'socio') {
+      return cred ? `Socio · ${cred}` : 'Socio';
+    }
+    if (t === 'prospecto_socio') {
+      return 'Prospecto a Socio';
+    }
+    if (t === 'empleado') {
+      return cred ? `Colaborador · ${cred}` : 'Colaborador';
+    }
+    if (t === 'prospecto_empleado') {
+      return 'Prospecto a Colaborador';
+    }
+    if (t === 'externo') {
+      return 'Invitado / Participante';
+    }
+    return cred;
+  }
+
   get isSimplifiedVariant(): boolean {
     return this.preregistroData?.questionnaire_variant === 'evento_simplificado';
+  }
+
+  get isPvmeVariant(): boolean {
+    return this.preregistroData?.questionnaire_variant === 'pvme_nom036';
   }
 
   get isNombreReadonly(): boolean {
@@ -646,7 +805,20 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
 
     const nombre = (this.r.nombre_completo || '').trim();
 
-    if (this.isSimplifiedVariant) {
+    if (this.isPvmeVariant) {
+      if (!nombre) {
+        Swal.fire('Campo requerido', 'Por favor ingresa tu nombre completo.', 'warning');
+        return;
+      }
+      if (!this.r.anexo_c?.acepta_acuse_riesgos) {
+        Swal.fire(
+          'Acuse de información requerido',
+          'Debes confirmar la casilla de acuse de recibo de información de riesgos por manejo manual de cargas (Anexo C · NOM-036-1-STPS-2018).',
+          'warning'
+        );
+        return;
+      }
+    } else if (this.isSimplifiedVariant) {
       if (!nombre) {
         Swal.fire('Campo requerido', 'Nombre es obligatorio', 'warning');
         return;

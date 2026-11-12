@@ -71,6 +71,8 @@ export interface SocioMembresia {
   parentesco: string;
   /** condicion_adm.name (ej. "Activo", "Baja", "Suspendido", "Fallecido") */
   condicionAdministrativa: string;
+  /** socios.email */
+  email?: string;
   /** URL de foto del socio (futuro) */
   fotoUrl: string | null;
   /** Estado de acceso y regla que aplica */
@@ -111,6 +113,7 @@ export interface SocioRaw {
   edad: number | null;
   parentesco: string;
   condicion_administrativa: string;
+  email?: string;
   foto_url: string | null;
   acceso: AccesoRaw;
 }

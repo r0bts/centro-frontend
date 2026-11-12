@@ -73,6 +73,7 @@ export class MembresiaService {
                 edad:                    s.edad,
                 parentesco:              s.parentesco,
                 condicionAdministrativa: s.condicion_administrativa,
+                email:                   s.email || '',
                 fotoUrl:                 s.foto_url,
                 acceso: {
                   cumple:       s.acceso.cumple,
