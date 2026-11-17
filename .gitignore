@@ -49,3 +49,4 @@ set-env.js
 
 # Proxy config — cada desarrollador apunta a su DDEV local
 proxy.conf.json
+src/environments/environment.development.ts
