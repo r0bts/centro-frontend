@@ -37,11 +37,12 @@ export class ServicioMedicoService {
   }
 
   /**
-   * Obtiene la información médica asociada a un QR del curso de verano (u otra entidad).
-   * @param qrToken El token leído desde el código QR
+   * Obtiene la información médica asociada a un QR del curso de verano, colaborador u otra entidad.
+   * @param qrToken El token leído desde el código QR o número de empleado
+   * @param type Tipo opcional ('empleado', 'externo', etc.)
    */
-  getMedicalProfileByQr(qrToken: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/get-medical-profile`, { token: qrToken });
+  getMedicalProfileByQr(qrToken: string, type?: string): Observable<any> {
+    return this.http.post(`${this.apiUrl}/get-medical-profile`, { token: qrToken, type });
   }
 
   /**
@@ -210,5 +211,39 @@ export class ServicioMedicoService {
 
   updateQuestionnaireSettings(payload: any): Observable<any> {
     return this.http.put(`${this.preregistrosUrl}/settings`, payload);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // VIGILANCIA MÉDICA MUSCULOESQUELÉTICA (NOM-036-1-STPS-2018 · PVME)
+  // Anexos A, B y C para Colaboradores
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  getPvmeEvaluations(token: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/pvme?token=${encodeURIComponent(token)}`);
+  }
+
+  savePvmeEvaluation(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/pvme`, payload);
+  }
+
+  deletePvmeEvaluation(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/pvme/${id}`);
+  }
+
+  getPvmeConfig(token?: string): Observable<any> {
+    const qs = token ? `?token=${encodeURIComponent(token)}` : '';
+    return this.http.get(`${this.apiUrl}/pvme-config${qs}`);
+  }
+
+  savePvmePuestoConfig(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/pvme-config/puesto`, payload);
+  }
+
+  deletePvmePuestoConfig(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/pvme-config/puesto/${id}`);
+  }
+
+  savePvmeEmpleadoConfig(payload: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/pvme-config/empleado`, payload);
   }
 }

@@ -188,3 +188,142 @@
     background-color: #cbd5e1;
   }
 }
+
+/* ── Tabs Deslizables Estilo Instagram (Pill Glider + Slide Track) ── */
+.swipeable-tabs.ig-tabs {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ig-tab-glider {
+    position: absolute;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    left: 0;
+    background: #212529;
+    border-radius: 50rem;
+    z-index: 1;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+
+    @media (prefers-reduced-motion: no-preference) {
+      transition:
+        transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+
+  .nav-item {
+    position: relative;
+    z-index: 2;
+    scroll-snap-align: center;
+    flex-shrink: 0;
+
+    .nav-link {
+      background: transparent !important;
+      color: #475569;
+      transition: color 0.25s ease;
+
+      &.active {
+        color: #ffffff !important;
+      }
+    }
+  }
+
+  &:not(.glider-ready) .nav-item .nav-link.active {
+    background: #212529 !important;
+    color: #ffffff !important;
+  }
+}
+
+/* ── Animación de Deslizamiento Direccional entre Pestañas ── */
+.tab-panels-viewport {
+  overflow-x: clip;
+}
+
+@keyframes slide-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-to-left {
+  to {
+    opacity: 0;
+    transform: translateX(-36px);
+  }
+}
+
+@keyframes slide-to-right {
+  to {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+}
+
+.tab-panel-slide {
+  &.tab-slide-forward {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: slide-from-right 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+
+  &.tab-slide-backward {
+    @media (prefers-reduced-motion: no-preference) {
+      animation: slide-from-left 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+::view-transition-group(root) {
+  animation: 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+  }
+}
+
+html:active-view-transition-type(forward)::view-transition-old(root) {
+  animation-name: slide-to-left;
+}
+
+html:active-view-transition-type(forward)::view-transition-new(root) {
+  animation-name: slide-from-right;
+}
+
+html:active-view-transition-type(backward)::view-transition-old(root) {
+  animation-name: slide-to-right;
+}
+
+html:active-view-transition-type(backward)::view-transition-new(root) {
+  animation-name: slide-from-left;
+}

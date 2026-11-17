@@ -558,3 +558,41 @@
     justify-content: flex-end;
   }
 }
+
+/* ── OFFCANVAS XXL DE CONFIGURACIÓN DE FORMULARIOS Y AVISOS ─────────────── */
+.sm-config-offcanvas-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2050;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+  overscroll-behavior: contain;
+}
+
+.sm-config-offcanvas-drawer {
+  width: 72vw;
+  min-width: 960px;
+  max-width: 1380px;
+  height: 100vh;
+  background: #ffffff;
+  box-shadow: -12px 0 38px rgba(15, 23, 42, 0.22);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  animation: smDrawerSlideIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+
+  @media (max-width: 1024px) {
+    width: 100vw;
+    min-width: 100vw;
+  }
+}
+
+@keyframes smDrawerSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}

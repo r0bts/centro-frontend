@@ -303,6 +303,17 @@ export class ConfiguracionComponent implements OnInit {
       ]);
     }
 
+    // Para cuestionarios_medicos: permitir a administradores y personal de Servicio Médico
+    if (sectionId === 'cuestionarios_medicos') {
+      return (
+        this.authService.hasPermission('cuestionarios_medicos', 'view') ||
+        this.authService.hasPermission('roles_permisos', 'view') ||
+        this.authService.hasPermission('preregistros_medicos', 'view') ||
+        this.authService.hasPermission('visitas_medicas', 'view') ||
+        this.authService.hasPermission('expediente_socio', 'view')
+      );
+    }
+
     // Verificar permiso de 'view' como mínimo
     const hasAccess = this.authService.hasPermission(submodule, 'view');
     

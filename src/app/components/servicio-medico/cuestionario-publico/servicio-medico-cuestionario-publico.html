@@ -14,16 +14,24 @@
           <div>
             <h4 class="fw-bold text-dark mb-0">
               <ng-container *ngIf="consentStatus !== 'accepted' && consentStep === 1 && !isSubmitted && !errorState">
-                Aviso Integral de Privacidad
+                {{ settings.header_privacy_title || 'Aviso Integral de Privacidad' }}
               </ng-container>
               <ng-container *ngIf="consentStatus !== 'accepted' && consentStep === 2 && !isSubmitted && !errorState">
-                Aviso de privacidad y consentimiento
+                {{ settings.header_consent_title || 'Aviso de privacidad y consentimiento' }}
               </ng-container>
               <ng-container *ngIf="consentStatus === 'accepted' || isSubmitted || errorState">
-                {{ isSimplifiedVariant ? 'Cuestionario de Salud — Invitado a evento' : 'Cuestionario de Historia Clínica' }}
+                {{ isPvmeVariant ? (settings.pvme_main_title || 'Vigilancia Médica NOM-036-1-STPS-2018 (Anexo B y Anexo C)') : (isSimplifiedVariant ? (settings.simplified_main_title || 'Cuestionario de Salud — Invitado a evento') : (settings.questionnaire_main_title || 'Cuestionario de Historia Clínica')) }}
               </ng-container>
             </h4>
-            <div class="cq-subtitle">Centro Libanés A.C. · Servicio Médico</div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-1">
+              <span class="cq-subtitle">{{ settings.institution_subtitle || 'Centro Libanés A.C. · Servicio Médico' }}</span>
+              <span
+                *ngIf="!isLoading && !errorState && recipientRoleBadge"
+                class="badge rounded-pill bg-light text-dark border px-2 py-1"
+                style="font-size: 0.75rem; font-weight: 600;">
+                {{ recipientRoleBadge }}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -260,7 +268,26 @@
       </p>
 
       <div class="cq-legal-scroll mb-3" *ngIf="settings.sensitive_consent_html" [innerHTML]="settings.sensitive_consent_html"></div>
-      <div class="cq-legal-scroll mb-3" *ngIf="!settings.sensitive_consent_html">
+      <div class="cq-legal-scroll mb-3" *ngIf="!settings.sensitive_consent_html && isSocioRecipient">
+        <p>Declaro que previamente se me puso a disposición el Aviso de Privacidad para Socios, Usuarios e Invitados de Centro Libanés, A.C., y que conozco el alcance, contenido y finalidades del tratamiento de mis datos personales y datos personales sensibles.</p>
+
+        <p>Asimismo, otorgo mi consentimiento expreso para que Centro Libanés, A.C., a través del personal del Servicio Médico y/o personal clínico estrictamente autorizado, recabe, utilice, almacene, conserve y trate los datos personales sensibles relacionados con mi estado de salud, antecedentes médicos, padecimientos, alergias, medicamentos, historial clínico, contacto de emergencia y demás información médica contenida en el presente cuestionario, exclusivamente para finalidades relacionadas con:</p>
+
+        <p class="mb-2">
+          1. Integración, actualización y administración de mi expediente clínico en el Servicio Médico de Centro Libanés.<br />
+          2. Valoración médica preventiva y orientación de salud para la práctica segura de actividades deportivas, físicas, culturales, recreativas y sociales dentro de las instalaciones del Club.<br />
+          3. Prevención, primeros auxilios y atención oportuna de emergencias o eventualidades médicas dentro de las instalaciones de Centro Libanés.<br />
+          4. Coordinación con servicios médicos de urgencia, ambulancias, hospitales o contactos de emergencia designados por el titular en caso de ser necesario.<br />
+          5. Implementación de medidas preventivas, sanitarias y de protección civil en beneficio de los Socios, Usuarios e Invitados, conforme al Aviso de Privacidad aplicable.
+        </p>
+
+        <p>Centro Libanés, A.C., se obliga a tratar la información médica y sensible proporcionada bajo estrictas medidas de confidencialidad y secreto profesional, así como de seguridad administrativa, técnica y física, limitando su consulta únicamente al personal médico y clínico autorizado.</p>
+
+        <p>Asimismo, se hace constar que los datos personales sensibles recabados mediante el presente cuestionario serán tratados bajo criterios de licitud, necesidad, proporcionalidad y minimización de datos, solicitándose únicamente aquella información razonablemente necesaria para las finalidades médicas, preventivas y de atención de emergencias antes descritas, sin que en ningún caso sea utilizada para fines discriminatorios o contrarios a la dignidad de las personas.</p>
+
+        <p class="mb-0">Entiendo que puedo ejercer en cualquier momento mis derechos de Acceso, Rectificación, Cancelación y Oposición (ARCO), así como revocar mi consentimiento, mediante solicitud dirigida al correo electrónico <strong>avisodeprivacidad&#64;centrolibanes.org.mx</strong> conforme a los mecanismos establecidos en el Aviso de Privacidad de Centro Libanés, A.C.</p>
+      </div>
+      <div class="cq-legal-scroll mb-3" *ngIf="!settings.sensitive_consent_html && !isSocioRecipient">
         <p>Declaro que previamente se me puso a disposición el Aviso Integral de Privacidad para Aspirantes y Colaboradores de Centro Libanés, A.C., y que conozco el alcance, contenido y finalidades del tratamiento de mis datos personales y datos personales sensibles.</p>
 
         <p>Asimismo, otorgo mi consentimiento expreso para que Centro Libanés, A.C., a través del personal médico y/o personal estrictamente autorizado, recabe, utilice, almacene, conserve y trate los datos personales sensibles relacionados con mi estado de salud, antecedentes médicos, padecimientos, historial clínico, información de emergencia y demás información médica contenida en el presente cuestionario, exclusivamente para finalidades relacionadas con:</p>
@@ -320,7 +347,7 @@
       <!-- ═════════════════════════════════════════════════════════════════════
            VARIANTE A: CUESTIONARIO DE HISTORIA CLÍNICA COMPLETO (SOCIOS / COLABORADORES / PROSPECTOS)
            ═════════════════════════════════════════════════════════════════════ -->
-      <ng-container *ngIf="!isSimplifiedVariant">
+      <ng-container *ngIf="!isSimplifiedVariant && !isPvmeVariant">
 
       <!-- 1. DATOS PERSONALES -->
       <div class="cq-card p-4 mb-3">
@@ -1193,7 +1220,7 @@
 
       <!-- 7. INFORMACIÓN COMPLEMENTARIA -->
       <div class="cq-card p-4 mb-4">
-        <h6 class="cq-section-title mb-3">7. Información complementaria</h6>
+        <h6 class="cq-section-title mb-3">{{ settings.sec7_title || '7. Información complementaria' }}</h6>
         <div class="row g-3">
           <div class="col-12">
             <label class="form-label small fw-semibold d-block">¿Cuenta con seguro médico? *</label>
@@ -1633,14 +1660,178 @@
 
       </ng-container>
 
+      <!-- ═════════════════════════════════════════════════════════════════════
+           VARIANTE C: VIGILANCIA NOM-036-1-STPS-2018 (ANEXO B NÓRDICO + ACUSE ANEXO C)
+           ═════════════════════════════════════════════════════════════════════ -->
+      <ng-container *ngIf="isPvmeVariant">
+
+        <!-- TARJETA 1: IDENTIFICACIÓN DEL TRABAJADOR -->
+        <div class="cq-card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <h6 class="cq-section-title mb-0">1. Datos del Colaborador</h6>
+            <span class="badge bg-dark">SST – PRO – PVME – 01 · NOM-036-1-STPS-2018</span>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">Nombre completo*</label>
+              <input
+                type="text"
+                class="form-control"
+                name="pvme_nombre_completo"
+                [(ngModel)]="r.nombre_completo"
+                [readonly]="isNombreReadonly"
+                (ngModelChange)="triggerDraftSave()"
+                required />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Puesto actual</label>
+              <input
+                type="text"
+                class="form-control"
+                name="pvme_puesto"
+                [(ngModel)]="r.anexo_c.puesto"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label small fw-semibold">Área / Departamento</label>
+              <input
+                type="text"
+                class="form-control"
+                name="pvme_area"
+                [(ngModel)]="r.anexo_c.area"
+                (ngModelChange)="triggerDraftSave()" />
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 2: ANEXO B · CUESTIONARIO NÓRDICO MUSCULOESQUELÉTICO -->
+        <div class="cq-card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div>
+              <h6 class="cq-section-title mb-0">2. Anexo B · Cuestionario Nórdico Musculoesquelético</h6>
+              <p class="text-muted small mb-0">Adaptación de Kuorinka et al. (1987) · Regla SMD-PVME-17</p>
+            </div>
+          </div>
+
+          <div class="alert alert-secondary py-2 px-3 small mb-3">
+            <strong>Instrucciones:</strong> Marque <strong>Sí</strong> o <strong>No</strong> en cada región del cuerpo según haya tenido molestias (dolor, ardor, entumecimiento, hormigueo o limitación de movimiento). Escala de intensidad: <strong>0</strong> = sin molestia · <strong>1–3</strong> = leve · <strong>4–6</strong> = moderada · <strong>7–10</strong> = severa.
+          </div>
+
+          <div class="table-responsive mb-3">
+            <table class="table table-bordered align-middle small mb-0">
+              <thead class="table-dark text-center">
+                <tr>
+                  <th class="text-start">Región anatómica</th>
+                  <th>¿Molestias últimos 12 meses?</th>
+                  <th>¿Impidió hacer su trabajo habitual?</th>
+                  <th>¿Molestias últimos 7 días?</th>
+                  <th style="width: 120px;">Intensidad (0–10)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let reg of r.anexo_b?.regiones; let idx = index">
+                  <td class="fw-semibold">{{ idx + 1 }}. {{ reg.label }}</td>
+                  <td class="text-center">
+                    <select class="form-select form-select-sm" [name]="'pvme_m12_' + reg.key" [(ngModel)]="reg.molestia_12m"
+                      (ngModelChange)="reg.molestia_12m === 'No' ? (reg.impidio_trabajo = 'No') : null; reg.molestia_12m === 'No' ? (reg.molestia_7d = 'No') : null; reg.molestia_12m === 'No' ? (reg.intensidad = 0) : null; triggerDraftSave()">
+                      <option value="No">No</option>
+                      <option value="Si">Sí</option>
+                    </select>
+                  </td>
+                  <td class="text-center">
+                    <select class="form-select form-select-sm" [name]="'pvme_imp_' + reg.key" [(ngModel)]="reg.impidio_trabajo" [disabled]="reg.molestia_12m === 'No'" (ngModelChange)="triggerDraftSave()">
+                      <option value="No">No</option>
+                      <option value="Si">Sí</option>
+                    </select>
+                  </td>
+                  <td class="text-center">
+                    <select class="form-select form-select-sm" [name]="'pvme_m7_' + reg.key" [(ngModel)]="reg.molestia_7d" [disabled]="reg.molestia_12m === 'No'" (ngModelChange)="triggerDraftSave()">
+                      <option value="No">No</option>
+                      <option value="Si">Sí</option>
+                    </select>
+                  </td>
+                  <td>
+                    <input type="number" min="0" max="10" class="form-control form-control-sm text-center" [name]="'pvme_int_' + reg.key" [(ngModel)]="reg.intensidad" [disabled]="reg.molestia_12m === 'No'" (ngModelChange)="triggerDraftSave()" />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">
+                ¿Atribuye alguna de las molestias declaradas a una actividad específica de su puesto? ¿Cuál?
+              </label>
+              <textarea class="form-control" rows="2" name="pvme_atribuye" [(ngModel)]="r.anexo_b.atribuye_actividad" (ngModelChange)="triggerDraftSave()"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label small fw-semibold">
+                ¿Ha recibido atención médica, rehabilitación o incapacidad por alguna de estas molestias? ¿Cuál y cuándo?
+              </label>
+              <textarea class="form-control" rows="2" name="pvme_tratamiento" [(ngModel)]="r.anexo_b.ha_recibido_tratamiento" (ngModelChange)="triggerDraftSave()"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- TARJETA 3: ANEXO C · INFORMACIÓN DE RIESGOS POR MANEJO MANUAL DE CARGAS Y ACUSE -->
+        <div class="cq-card p-4 mb-3">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+            <div>
+              <h6 class="cq-section-title mb-0">{{ settings.pvme_anexo_c_title || '3. Anexo C · Información de Riesgos por Manejo Manual de Cargas' }}</h6>
+              <p class="text-muted small mb-0">SST – ANX – C – 01 · Numerales 11 y 6.7 de la NOM-036-1-STPS-2018</p>
+            </div>
+          </div>
+
+          <div class="cq-legal-scroll mb-3 small" *ngIf="settings.pvme_anexo_c_html" [innerHTML]="settings.pvme_anexo_c_html"></div>
+          <div class="cq-legal-scroll mb-3 small" *ngIf="!settings.pvme_anexo_c_html">
+            <p class="fw-bold mb-1">1. Límites máximos de carga individual (Tabla 1 de la NOM-036-1-STPS-2018):</p>
+            <p class="mb-2">
+              • Hombres de 18 a 45 años: <strong>25 kg</strong> · Hombres mayores de 45 años: <strong>20 kg</strong><br>
+              • Mujeres de 18 a 45 años: <strong>20 kg</strong> · Mujeres mayores de 45 años: <strong>15 kg</strong><br>
+              • Trabajadoras durante la gestación: <strong>10 kg</strong> · Menores de 18 años: <strong>7 kg</strong>
+            </p>
+            <p class="fw-bold mb-1">2. Riesgos a la salud por manejo manual de cargas:</p>
+            <p class="mb-2">
+              Lumbalgia aguda y crónica, síndrome del manguito rotador, tendinitis bicipital, epicondilitis, tenosinovitis de De Quervain, síndrome del túnel del carpo, gonalgia, esguinces de tobillo y fatiga muscular.
+            </p>
+            <p class="fw-bold mb-1">3. Prohibiciones absolutas y técnica segura:</p>
+            <p class="mb-2">
+              • Prohibido cargar de forma individual objetos que superen su límite personal de masa.<br>
+              • Prohibido levantar cargas por encima del nivel de los hombros (120 cm) o desde el nivel del piso con la espalda doblada.<br>
+              • Prohibido girar el tronco mientras sostiene una carga: mueva primero los pies.<br>
+              • Durante el embarazo y las primeras 10 semanas posparto queda prohibido cargar más de 10 kg, realizar cargas repetitivas o empujar/jalar.
+            </p>
+            <p class="fw-bold mb-1">4. Ayudas mecánicas disponibles en Centro Libanés:</p>
+            <p class="mb-0">
+              Polipasto eléctrico H-LIFT de 500 kg (Salón Baalbek), Patín hidráulico NOVAL de 3 toneladas (Almacén General) y 8 diablos de carga de 200 kg. <em>El elevador GENIE es exclusivo para elevación de personal y NO debe usarse como montacargas.</em>
+            </p>
+          </div>
+
+          <label class="cq-checkbox-box mb-2" for="chkPvmeAcuse">
+            <input
+              class="form-check-input m-0"
+              type="checkbox"
+              id="chkPvmeAcuse"
+              name="pvme_acepta_acuse"
+              [(ngModel)]="r.anexo_c.acepta_acuse_riesgos"
+              (ngModelChange)="triggerDraftSave()" />
+            <span class="small fw-semibold text-dark">
+              {{ settings.pvme_anexo_c_checkbox || 'Manifiesto que recibí por escrito y me fue explicada la información sobre el peso máximo que puedo cargar según mi sexo y edad (Tabla 1 de la NOM-036-1-STPS-2018), los riesgos a la salud, las medidas de prevención, prohibiciones y ayudas mecánicas disponibles, y que me comprometo a aplicarlas y reportar cualquier molestia al Servicio Médico.' }}
+            </span>
+          </label>
+        </div>
+
+      </ng-container>
+
       <!-- TEXTO INFORMATIVO Y BOTÓN DE ENVÍO DEFINITIVO -->
       <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5">
         <p class="text-muted small mb-0">
-          {{ isSimplifiedVariant ? 'Al enviar, la información será revisada por el Servicio Médico.' : 'Al enviar, tu información será revisada por el equipo médico antes de tu cita.' }}
+          {{ isSimplifiedVariant ? 'Al enviar, la información será revisada por el Servicio Médico.' : (settings.footer_submit_note || 'Al enviar, tu información será revisada por el equipo médico antes de tu cita.') }}
         </p>
         <button type="submit" class="btn cq-btn-primary px-4 py-2" [disabled]="isSubmitting">
           <span *ngIf="isSubmitting" class="spinner-border spinner-border-sm me-2"></span>
-          {{ isSubmitting ? 'Enviando…' : 'Enviar cuestionario' }}
+          {{ isSubmitting ? 'Enviando…' : (settings.footer_submit_btn || 'Enviar cuestionario') }}
         </button>
       </div>
 

@@ -110,13 +110,32 @@ export class ContentMenu implements OnInit, AfterViewInit, OnDestroy {
     this.menuItems.set(navItems);
 
     // Gear items: si el módulo tiene children los usamos, si es item simple lo envolvemos
+    let gearList: MenuItem[] = [];
     if (configItem?.children && configItem.children.length > 0) {
-      this.gearItems.set(configItem.children);
+      gearList = [...configItem.children];
     } else if (configItem) {
-      this.gearItems.set([configItem]);
-    } else {
-      this.gearItems.set([]);
+      gearList = [configItem];
     }
+
+    // Asegurar que Consentimientos Médicos aparezca en el engranaje de Configuración para Admin / Servicio Médico
+    const canConfigMedical =
+      this.authService.hasPermission('cuestionarios_medicos', 'view') ||
+      this.authService.hasPermission('roles_permisos', 'view') ||
+      this.authService.hasPermission('preregistros_medicos', 'view') ||
+      this.authService.hasPermission('visitas_medicas', 'view') ||
+      this.authService.hasPermission('expediente_socio', 'view');
+
+    if (canConfigMedical && !gearList.some(g => g.id === 'cuestionarios_medicos' || g.route === '/configuracion/cuestionarios-medicos')) {
+      gearList.push({
+        id: 'cuestionarios_medicos',
+        label: 'Consentimientos Médicos',
+        icon: 'bi-file-earmark-medical',
+        route: '/configuracion/cuestionarios-medicos',
+        active: false
+      });
+    }
+
+    this.gearItems.set(gearList);
   }
 
   // ── Estados activos ──────────────────────────

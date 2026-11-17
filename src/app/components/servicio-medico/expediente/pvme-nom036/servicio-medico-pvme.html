@@ -1,0 +1,1450 @@
+<div class="pvme-container">
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- TARJETA PRINCIPAL DE VIGILANCIA NOM-036 (SIEMPRE VISIBLE EN EL FONDO)     -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <div class="card glass-card border-0 rounded-4 mb-4">
+
+    <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <h5 class="fw-bold mb-0 text-dark">
+          <i class="bi bi-shield-check text-primary me-2"></i>Vigilancia NOM-036
+        </h5>
+        <span class="badge rounded-pill"
+          [ngClass]="{
+            'bg-secondary-subtle text-secondary': empleadoPvmeConfig.nivel_riesgo === 'fuera',
+            'bg-success-subtle text-success': empleadoPvmeConfig.nivel_riesgo === 'bajo',
+            'bg-warning-subtle text-warning-emphasis': empleadoPvmeConfig.nivel_riesgo === 'medio',
+            'bg-danger-subtle text-danger': empleadoPvmeConfig.nivel_riesgo === 'alto' || empleadoPvmeConfig.nivel_riesgo === 'muy_alto'
+          }">
+          Riesgo: {{ empleadoPvmeConfig.nivel_riesgo === 'fuera' ? 'Fuera de exp.' : (empleadoPvmeConfig.nivel_riesgo === 'muy_alto' ? 'Muy alto' : (empleadoPvmeConfig.nivel_riesgo | titlecase)) }}
+        </span>
+        <button
+          type="button"
+          class="btn btn-sm btn-link text-decoration-none p-0 ms-1 small fw-semibold"
+          (click)="showEmpleadoConfigDrawer = !showEmpleadoConfigDrawer">
+          <i class="bi bi-gear me-1"></i>{{ showEmpleadoConfigDrawer ? 'Ocultar ajuste' : 'Ajustar riesgo' }}
+        </button>
+      </div>
+
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <button
+          type="button"
+          class="btn custom-btn-outline btn-sm rounded-pill px-3 py-1 fw-semibold"
+          [disabled]="isGeneratingLink"
+          (click)="enviarEnlacePrevioColaborador()">
+          <span *ngIf="isGeneratingLink" class="spinner-border spinner-border-sm me-1"></span>
+          <i *ngIf="!isGeneratingLink" class="bi bi-send-check me-1 text-primary"></i>
+          Enviar Tamizaje
+        </button>
+
+        <button
+          type="button"
+          class="btn custom-btn-primary btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm"
+          (click)="iniciarNuevaValoracion()">
+          <i class="bi bi-plus-circle me-1"></i>Nueva Valoración
+        </button>
+      </div>
+    </div>
+
+    <div class="card-body p-3">
+
+      <!-- Panel desplegable para ajustar riesgo y formatos de la persona (oculto por defecto) -->
+      <div *ngIf="showEmpleadoConfigDrawer" class="p-3 rounded-3 border mb-3 bg-light">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-bold small text-dark">
+            <i class="bi bi-sliders me-1 text-primary"></i>Nivel de riesgo y formatos aplicables al colaborador
+          </span>
+          <button
+            type="button"
+            class="btn btn-primary btn-sm rounded-pill px-3 fw-semibold"
+            [disabled]="isSavingConfig"
+            (click)="guardarConfiguracionColaborador()">
+            <span *ngIf="isSavingConfig" class="spinner-border spinner-border-sm me-1"></span>
+            <i *ngIf="!isSavingConfig" class="bi bi-check2 me-1"></i>Guardar
+          </button>
+        </div>
+
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Puesto</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="empleadoPvmeConfig.puesto" placeholder="Ej. Auxiliar General">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label small text-muted mb-1">Área</label>
+            <input type="text" class="form-control form-control-sm" [(ngModel)]="empleadoPvmeConfig.area" placeholder="Ej. SISTEMAS">
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label small text-primary fw-semibold mb-1">Nivel de riesgo</label>
+            <select class="form-select form-select-sm fw-semibold" [(ngModel)]="empleadoPvmeConfig.nivel_riesgo">
+              <option value="fuera">Fuera de exp.</option>
+              <option value="bajo">Bajo</option>
+              <option value="medio">Medio</option>
+              <option value="alto">Alto</option>
+              <option value="muy_alto">Muy alto</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Sexo (Tabla 1)</label>
+            <select class="form-select form-select-sm" [(ngModel)]="empleadoPvmeConfig.sexo">
+              <option value="">Sin especificar</option>
+              <option value="Masculino">Masculino (M)</option>
+              <option value="Femenino">Femenino (F)</option>
+            </select>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label small text-muted mb-1">Turno</label>
+            <select class="form-select form-select-sm" [(ngModel)]="empleadoPvmeConfig.turno">
+              <option value="Matutino">Matutino</option>
+              <option value="Vespertino">Vespertino</option>
+              <option value="Mixto">Mixto</option>
+              <option value="Nocturno">Nocturno</option>
+            </select>
+          </div>
+
+          <div class="col-12 pt-1">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <span class="small text-muted fw-semibold">Formatos que aplican:</span>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="cfgApB" [(ngModel)]="empleadoPvmeConfig.aplica_anexo_b">
+                <label class="form-check-label small" for="cfgApB">Anexo B (Cuestionario Nórdico)</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="cfgApA" [(ngModel)]="empleadoPvmeConfig.aplica_anexo_a">
+                <label class="form-check-label small" for="cfgApA">Anexo A (Cédula Médica)</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" id="cfgApC" [(ngModel)]="empleadoPvmeConfig.aplica_anexo_c">
+                <label class="form-check-label small" for="cfgApC">Anexo C (Información de Riesgos)</label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filas compactas de formatos -->
+      <div class="d-flex flex-column gap-2 mb-3">
+        <div *ngIf="empleadoPvmeConfig.aplica_anexo_b" class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3 bg-light rounded-3 shadow-sm">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary-subtle text-primary rounded-pill">Anexo B</span>
+            <span class="fw-bold text-dark small">Cuestionario Nórdico Musculoesquelético</span>
+            <span class="text-muted small d-none d-md-inline">· Tamizaje de 10 regiones y escala EVA</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_b')">
+              Capturar
+            </button>
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_b')">
+              <i class="bi bi-printer"></i>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="empleadoPvmeConfig.aplica_anexo_a" class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3 bg-light rounded-3 shadow-sm">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-success-subtle text-success rounded-pill">Anexo A</span>
+            <span class="fw-bold text-dark small">Cédula de Valoración Médica</span>
+            <span class="text-muted small d-none d-md-inline">· Exploración física, límite Tabla 1 y aptitud</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_a')">
+              Capturar
+            </button>
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_a')">
+              <i class="bi bi-printer"></i>
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="empleadoPvmeConfig.aplica_anexo_c" class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3 bg-light rounded-3 shadow-sm">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill">Anexo C</span>
+            <span class="fw-bold text-dark small">Información de Riesgos por Manejo de Cargas</span>
+            <span class="text-muted small d-none d-md-inline">· Constancia de peso máximo y acuse firmado</span>
+          </div>
+          <div class="d-flex align-items-center gap-1">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_c')">
+              Capturar
+            </button>
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_c')">
+              <i class="bi bi-printer"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Enlaces previos si existen -->
+      <div *ngIf="preregistrosPvme.length > 0" class="mb-3 py-1 px-3 rounded-3 bg-light border d-flex flex-wrap justify-content-between align-items-center gap-2 small">
+        <span>
+          <i class="bi bi-link-45deg text-primary me-1"></i>
+          Último tamizaje enviado: <strong>{{ preregistrosPvme[0].created | date:'dd/MM/yyyy HH:mm' }}</strong>
+        </span>
+        <span class="badge rounded-pill"
+          [ngClass]="{
+            'bg-warning-subtle text-warning-emphasis': preregistrosPvme[0].estatus === 'pendiente',
+            'bg-info-subtle text-info-emphasis': preregistrosPvme[0].estatus === 'respondido',
+            'bg-success-subtle text-success': preregistrosPvme[0].estatus === 'aprobado'
+          }">
+          {{ preregistrosPvme[0].estatus | uppercase }}
+        </span>
+      </div>
+
+      <!-- Historial compacto integrado en la misma tarjeta -->
+      <div class="border-top pt-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-bold small text-secondary text-uppercase" style="letter-spacing: 0.4px; font-size: 0.75rem;">
+            <i class="bi bi-clock-history me-1"></i>Valoraciones Registradas ({{ evaluations.length }})
+          </span>
+        </div>
+
+        <div *ngIf="isLoading" class="p-3 text-center text-muted small">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          Cargando valoraciones...
+        </div>
+
+        <div *ngIf="!isLoading && evaluations.length === 0" class="text-center py-3 bg-light rounded-3 border border-dashed">
+          <span class="text-muted small">Sin valoraciones NOM-036 registradas para este colaborador.</span>
+        </div>
+
+        <div *ngIf="!isLoading && evaluations.length > 0" class="table-responsive">
+          <table class="table table-sm table-hover align-middle mb-0 small">
+            <thead class="table-light text-muted">
+              <tr>
+                <th>Folio</th>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Riesgo</th>
+                <th>Límite</th>
+                <th>Conclusión</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of evaluations">
+                <td class="fw-bold text-primary">{{ item.folio }}</td>
+                <td>{{ item.fecha_valoracion | date:'dd/MM/yyyy' }}</td>
+                <td class="text-capitalize">{{ item.tipo_valoracion?.replace('_', ' ') }}</td>
+                <td>
+                  <span class="badge bg-light text-dark border text-uppercase">{{ item.nivel_riesgo }}</span>
+                </td>
+                <td>
+                  <strong>{{ item.limite_masa_determinado_kg || item.limite_masa_nominal_kg || 25 }} kg</strong>
+                </td>
+                <td>
+                  <span class="fw-semibold">{{ getConclusionLabel(item.conclusion) }}</span>
+                </td>
+                <td>
+                  <span class="badge border" [ngClass]="getEstadoBadge(item.estado).css">
+                    {{ getEstadoBadge(item.estado).label }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  <div class="btn-group btn-group-sm">
+                    <button class="btn btn-light border fw-semibold" title="Abrir valoración" (click)="abrirValoracion(item, 'anexo_a')">
+                      Abrir
+                    </button>
+                    <button class="btn btn-light border" title="Imprimir Anexo A" (click)="abrirValoracion(item, 'anexo_a', false); imprimirFormatoOficial('anexo_a')">A</button>
+                    <button class="btn btn-light border" title="Imprimir Anexo B" (click)="abrirValoracion(item, 'anexo_b', false); imprimirFormatoOficial('anexo_b')">B</button>
+                    <button class="btn btn-light border" title="Imprimir Anexo C" (click)="abrirValoracion(item, 'anexo_c', false); imprimirFormatoOficial('anexo_c')">C</button>
+                    <button
+                      *ngIf="item.estado !== 'cerrada_firmada'"
+                      class="btn btn-light border text-danger"
+                      title="Eliminar borrador"
+                      (click)="eliminarBorrador(item)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- OFFCANVAS / CANVAS A MITAD DE PANTALLA (FORMULARIOS OFICIALES COMPLETOS)  -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="viewMode === 'editor'" class="pvme-offcanvas-backdrop" (click)="volverAlHistorial()">
+    <div class="pvme-offcanvas-drawer" (click)="$event.stopPropagation()">
+
+      <!-- Cabecera fija del Canvas lateral -->
+      <div class="pvme-offcanvas-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <div class="nav nav-pills gap-1">
+            <button
+              type="button"
+              class="nav-link btn-sm py-1 px-3 d-flex align-items-center gap-2"
+              [class.active]="activeAnexo === 'anexo_b'"
+              (click)="activeAnexo = 'anexo_b'">
+              <span><strong>Anexo B</strong> · Cuestionario Nórdico</span>
+              <span *ngIf="regionesPositivas12m.length > 0" class="badge bg-danger rounded-pill">{{ regionesPositivas12m.length }}</span>
+            </button>
+
+            <button
+              type="button"
+              class="nav-link btn-sm py-1 px-3 d-flex align-items-center gap-2"
+              [class.active]="activeAnexo === 'anexo_a'"
+              (click)="activeAnexo = 'anexo_a'">
+              <span><strong>Anexo A</strong> · Cédula Médica</span>
+            </button>
+
+            <button
+              type="button"
+              class="nav-link btn-sm py-1 px-3 d-flex align-items-center gap-2"
+              [class.active]="activeAnexo === 'anexo_c'"
+              (click)="sincronizarAnexoAconAnexoC(); activeAnexo = 'anexo_c'">
+              <span><strong>Anexo C</strong> · Información de Riesgos</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <button type="button" class="btn btn-light border btn-sm rounded-pill px-3" (click)="imprimirFormatoOficial(activeAnexo)">
+            <i class="bi bi-printer me-1"></i>Imprimir
+          </button>
+
+          <button
+            type="button"
+            class="btn custom-btn-primary btn-sm rounded-pill px-3 fw-bold"
+            [disabled]="isSaving"
+            (click)="guardarValoracion()">
+            <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-1"></span>
+            <i *ngIf="!isSaving" class="bi bi-floppy me-1"></i>Guardar
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-light border btn-sm rounded-circle d-flex align-items-center justify-content-center"
+            style="width: 32px; height: 32px;"
+            title="Cerrar"
+            (click)="volverAlHistorial()">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cuerpo desplazable del Canvas con los 3 formatos oficiales completos -->
+      <div class="pvme-offcanvas-body">
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- DOCUMENTO 1: ANEXO B · CUESTIONARIO NÓRDICO MUSCULOESQUELÉTICO       -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <div *ngIf="activeAnexo === 'anexo_b'" class="pvme-doc-sheet">
+          <div class="pvme-doc-meta">SST – PRO – PVME – 01 · v2.0 rev 03 · 24 / 09 / 2026</div>
+          <div class="pvme-doc-title">ANEXO B · CUESTIONARIO NÓRDICO MUSCULOESQUELÉTICO</div>
+          <div class="pvme-doc-subtitle">
+            Instrumento de tamizaje. Marque una casilla por columna y por región. Este cuestionario orienta la exploración; no constituye un diagnóstico. Los diez renglones cubren las nueve regiones anatómicas del cuestionario, con el hombro desglosado por lado.
+          </div>
+
+          <div class="pvme-donde-vive-box">
+            <strong>DÓNDE VIVE</strong> EXPEDIENTE CLÍNICO, exclusivamente. Se archiva junto con la cédula del Anexo A, cinco años. Es el documento más sensible del protocolo: recoge síntomas referidos por el trabajador. Nunca se entrega, ni completo ni resumido, al jefe de área ni a Recursos Humanos. Regla SMD-PVME-17.
+          </div>
+
+          <!-- Tabla de identificación del Anexo B organizada en 2 filas amplias -->
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 16%;">No. de empleado</td>
+                <td style="width: 22%;">
+                  <input type="text" class="form-control form-control-sm fw-semibold" [(ngModel)]="anexoB.no_empleado">
+                </td>
+                <td class="cell-label" style="width: 18%;">Nombre del trabajador</td>
+                <td style="width: 44%;">
+                  <input type="text" class="form-control form-control-sm fw-semibold" [(ngModel)]="anexoB.nombre">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Fecha de aplicación</td>
+                <td>
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="anexoB.fecha">
+                </td>
+                <td class="cell-label">Folio de la cédula</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm bg-light fw-semibold" [value]="anexoA.folio || 'Por asignar al guardar'" readonly>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Tabla oficial de las 10 regiones anatómicas -->
+          <table class="pvme-official-table">
+            <thead>
+              <tr>
+                <th style="width: 24%;">Región anatómica</th>
+                <th class="text-center" style="width: 20%;">¿Molestia en los últimos 12 meses?</th>
+                <th class="text-center" style="width: 20%;">¿Le impidió hacer su trabajo?</th>
+                <th class="text-center" style="width: 20%;">¿Molestia en los últimos 7 días?</th>
+                <th class="text-center" style="width: 16%;">Intensidad (0 a 10)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let reg of anexoB.regiones" [class.table-warning]="reg.molestia_12m === 'Si'">
+                <td class="fw-bold">{{ reg.label }}</td>
+
+                <td
+                  class="pvme-switch-td"
+                  [class.is-positive-td]="reg.molestia_12m === 'Si'"
+                  (click)="reg.molestia_12m = reg.molestia_12m === 'Si' ? 'No' : 'Si'; reg.molestia_12m === 'No' && (reg.impidio_trabajo = 'No') && (reg.molestia_7d = 'No') && (reg.intensidad = 0)">
+                  <div class="form-check form-switch pvme-switch-label mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      tabindex="-1"
+                      [checked]="reg.molestia_12m === 'Si'">
+                    <span class="switch-state-text" [class.is-active]="reg.molestia_12m === 'Si'">
+                      {{ reg.molestia_12m === 'Si' ? 'Sí' : 'No' }}
+                    </span>
+                  </div>
+                </td>
+
+                <td
+                  class="pvme-switch-td"
+                  [class.is-positive-td]="reg.impidio_trabajo === 'Si'"
+                  (click)="reg.impidio_trabajo = reg.impidio_trabajo === 'Si' ? 'No' : 'Si'; reg.impidio_trabajo === 'Si' && (reg.molestia_12m = 'Si')">
+                  <div class="form-check form-switch pvme-switch-label mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      tabindex="-1"
+                      [checked]="reg.impidio_trabajo === 'Si'">
+                    <span class="switch-state-text" [class.is-active]="reg.impidio_trabajo === 'Si'">
+                      {{ reg.impidio_trabajo === 'Si' ? 'Sí' : 'No' }}
+                    </span>
+                  </div>
+                </td>
+
+                <td
+                  class="pvme-switch-td"
+                  [class.is-positive-td]="reg.molestia_7d === 'Si'"
+                  (click)="reg.molestia_7d = reg.molestia_7d === 'Si' ? 'No' : 'Si'; reg.molestia_7d === 'Si' && (reg.molestia_12m = 'Si')">
+                  <div class="form-check form-switch pvme-switch-label mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      tabindex="-1"
+                      [checked]="reg.molestia_7d === 'Si'">
+                    <span class="switch-state-text" [class.is-active]="reg.molestia_7d === 'Si'">
+                      {{ reg.molestia_7d === 'Si' ? 'Sí' : 'No' }}
+                    </span>
+                  </div>
+                </td>
+
+                <td>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    class="form-control form-control-sm text-center fw-bold"
+                    [(ngModel)]="reg.intensidad"
+                    placeholder="0 - 10">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Dos preguntas complementarias del cuestionario oficial -->
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 38%;">¿Atribuye la molestia a alguna actividad de su trabajo? ¿A cuál?</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoB.atribuye_actividad" placeholder="Especifique si atribuye la molestia a alguna tarea y cuál">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">¿Ha recibido tratamiento por esta molestia?</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoB.ha_recibido_tratamiento" placeholder="Especifique si ha recibido atención médica, medicamentos o fisioterapia">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Recuadro oficial CÓMO SE LEE ESTE CUESTIONARIO -->
+          <div class="pvme-donde-vive-box">
+            <div class="fw-bold text-uppercase mb-1" style="color: #1b365d;">CÓMO SE LEE ESTE CUESTIONARIO</div>
+            <div class="mb-1"><strong>Positivo a 7 días CON interferencia:</strong> explore obligatoriamente esa región y asiéntelo. La conclusión no puede ser “apto sin restricción” sin que la cédula diga por qué.</div>
+            <div class="mb-1"><strong>Positivo a 12 meses SIN molestia actual:</strong> es antecedente. Se explora y se anota; por sí solo no restringe.</div>
+            <div><strong>Dos o más regiones positivas a 12 meses en el mismo trabajador, o dos o más trabajadores del mismo puesto positivos en la misma región:</strong> se revisa la evaluación ergonómica del puesto. Es la regla SMD-PVME-15 y es la vía por la que la vigilancia médica corrige la evaluación de riesgo, y no sólo la registra.</div>
+          </div>
+
+          <!-- Firmas homologadas de Anexo B -->
+          <div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <div class="pvme-sig-card">
+                <div>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm mb-2 text-center fw-semibold bg-white"
+                    [(ngModel)]="anexoB.nombre"
+                    placeholder="Nombre del trabajador"
+                    readonly>
+
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoB_trabajador', 'Firma del Trabajador — Anexo B')">
+                    <img *ngIf="anexoB.firma_trabajador_data" [src]="anexoB.firma_trabajador_data" alt="Firma trabajador">
+                    <span *ngIf="!anexoB.firma_trabajador_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+
+                  <div class="border-top border-dark pt-1 small fw-bold text-dark">Firma del trabajador</div>
+                  <div class="text-muted" style="font-size: 0.74rem;">Trabajador evaluado</div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoB_trabajador', 'Firma del Trabajador — Anexo B')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoB.firma_trabajador_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoB.firma_trabajador_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoB.firma_trabajador_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <div class="pvme-sig-card">
+                <div>
+                  <div class="dropdown w-100 position-relative mb-2" [class.show]="activeDoctoraDropdown === 'anexoB'">
+                    <div
+                      class="pvme-chosen-trigger"
+                      [class.is-placeholder]="!anexoB.aplico_nombre"
+                      [class.is-open]="activeDoctoraDropdown === 'anexoB'"
+                      (click)="toggleDoctoraDropdown('anexoB', $event)">
+                      <span class="text-truncate">{{ anexoB.aplico_nombre || 'Seleccionar doctora que aplicó...' }}</span>
+                      <i class="bi bi-chevron-down position-absolute top-50 end-0 translate-middle-y me-2 text-muted small"></i>
+                    </div>
+                    <div *ngIf="activeDoctoraDropdown === 'anexoB'" class="dropdown-menu w-100 shadow-lg border d-block text-start p-2" style="position: absolute; top: 100%; left: 0; z-index: 2050;" (click)="$event.stopPropagation()">
+                      <div class="position-relative mb-2">
+                        <input
+                          id="pvme-chosen-search-anexoB"
+                          type="text"
+                          class="form-control form-control-sm ps-4"
+                          [(ngModel)]="doctoraSearchTerm"
+                          (blur)="closeDoctoraDropdownDelayed()"
+                          placeholder="Buscar doctora...">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2 text-muted small"></i>
+                      </div>
+                      <ul class="list-unstyled mb-0" style="max-height: 200px; overflow-y: auto;">
+                        <li>
+                          <a class="dropdown-item py-1 px-2 small text-danger fst-italic border-bottom rounded-1" href="javascript:void(0)" (mousedown)="selectDoctora('anexoB', null)">
+                            Ninguna / Quitar selección
+                          </a>
+                        </li>
+                        <li *ngFor="let med of filteredDoctoras">
+                          <a class="dropdown-item py-1 px-2 small fw-medium text-dark border-bottom rounded-1" href="javascript:void(0)" (mousedown)="selectDoctora('anexoB', med)">
+                            <i class="bi bi-person-badge text-primary me-1"></i>{{ med.first_name }} {{ med.last_name }}
+                          </a>
+                        </li>
+                        <li *ngIf="filteredDoctoras.length === 0">
+                          <span class="dropdown-item text-muted small py-1 px-2">Sin resultados</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoB_aplico', 'Firma de quien aplicó — Anexo B')">
+                    <img *ngIf="anexoB.firma_aplico_data" [src]="anexoB.firma_aplico_data" alt="Firma aplicó">
+                    <span *ngIf="!anexoB.firma_aplico_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+
+                  <div class="border-top border-dark pt-1 small fw-bold text-dark">Aplicó (nombre y firma)</div>
+                  <div class="text-muted" style="font-size: 0.74rem;">Personal del Servicio Médico</div>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoB_aplico', 'Firma de quien aplicó — Anexo B')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoB.firma_aplico_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoB.firma_aplico_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoB.firma_aplico_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <span class="small text-muted">Documento clínico · expediente del trabajador · regla SMD-PVME-17</span>
+            <button type="button" class="btn btn-dark btn-sm rounded-pill px-4 fw-semibold" (click)="activeAnexo = 'anexo_a'">
+              Continuar a Anexo A (Cédula Médica) <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- DOCUMENTO 2: ANEXO A · CÉDULA DE VALORACIÓN MÉDICA                  -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <div *ngIf="activeAnexo === 'anexo_a'" class="pvme-doc-sheet">
+          <div class="pvme-doc-meta">SST – PRO – PVME – 01 · v2.0 rev 03 · 24 / 09 / 2026</div>
+          <div class="pvme-doc-title">ANEXO A · CÉDULA DE VALORACIÓN MÉDICA MUSCULOESQUELÉTICA</div>
+          <div class="pvme-doc-subtitle">
+            Documento clínico. Se resguarda en el expediente del trabajador; al expediente de SST sólo se traslada la conclusión.
+          </div>
+
+          <div class="pvme-donde-vive-box">
+            <strong>DÓNDE VIVE</strong> EXPEDIENTE CLÍNICO, exclusivamente. Resguardo del Servicio Médico, cinco años (numeral 9.4). No se entrega copia al jefe de área ni a Recursos Humanos. De esta cédula sólo salen la conclusión de aptitud, el límite de masa y las medidas, por la vía del Anexo D. Regla SMD-PVME-17.
+          </div>
+
+          <!-- Tabla oficial de identificación de Anexo A -->
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 10%;">Folio</td>
+                <td style="width: 14%;">
+                  <input type="text" class="form-control form-control-sm bg-light fw-bold" [value]="anexoA.folio || 'Por asignar'" readonly>
+                </td>
+                <td class="cell-label" style="width: 8%;">Fecha</td>
+                <td style="width: 15%;">
+                  <input type="date" class="form-control form-control-sm" [(ngModel)]="anexoA.fecha">
+                </td>
+                <td class="cell-label" style="width: 13%;">Tipo de valoración</td>
+                <td colspan="3">
+                  <div class="d-flex flex-wrap gap-1">
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.tipo_valoracion === 'inicial'" (click)="anexoA.tipo_valoracion = 'inicial'">Inicial</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.tipo_valoracion === 'periodica'" (click)="anexoA.tipo_valoracion = 'periodica'">Periódica</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.tipo_valoracion === 'reincorporacion'" (click)="anexoA.tipo_valoracion = 'reincorporacion'">Reincorporación</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.tipo_valoracion === 'cambio_puesto'" (click)="anexoA.tipo_valoracion = 'cambio_puesto'">Cambio de puesto</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.tipo_valoracion === 'a_demanda'" (click)="anexoA.tipo_valoracion = 'a_demanda'">A demanda</button>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="cell-label">No. de empleado</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.no_empleado">
+                </td>
+                <td class="cell-label">Nombre</td>
+                <td colspan="2">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.nombre">
+                </td>
+                <td class="cell-label" style="width: 7%;">Edad</td>
+                <td style="width: 10%;">
+                  <input type="number" class="form-control form-control-sm" [(ngModel)]="anexoA.edad" (ngModelChange)="calcularLimiteNominalTabla1()">
+                </td>
+                <td style="width: 18%;">
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="fw-bold small me-1">Sexo:</span>
+                    <select class="form-select form-select-sm" [(ngModel)]="anexoA.sexo" (ngModelChange)="calcularLimiteNominalTabla1()">
+                      <option value="">--</option>
+                      <option value="Masculino">M</option>
+                      <option value="Femenino">F</option>
+                    </select>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td class="cell-label">Turno</td>
+                <td>
+                  <select class="form-select form-select-sm" [(ngModel)]="anexoA.turno">
+                    <option value="Matutino">Matutino</option>
+                    <option value="Vespertino">Vespertino</option>
+                    <option value="Mixto">Mixto</option>
+                    <option value="Nocturno">Nocturno</option>
+                  </select>
+                </td>
+                <td class="cell-label">Puesto</td>
+                <td colspan="2">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.puesto">
+                </td>
+                <td class="cell-label">Área</td>
+                <td colspan="2">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.area">
+                </td>
+              </tr>
+
+              <tr>
+                <td class="cell-label">Antigüedad</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.antiguedad" placeholder="Ej. 3 años">
+                </td>
+                <td class="cell-label">Nivel de riesgo</td>
+                <td colspan="3">
+                  <div class="d-flex flex-wrap gap-1">
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.nivel_riesgo === 'fuera'" (click)="anexoA.nivel_riesgo = 'fuera'">Fuera</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.nivel_riesgo === 'muy_alto'" (click)="anexoA.nivel_riesgo = 'muy_alto'">Muy alto</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.nivel_riesgo === 'alto'" (click)="anexoA.nivel_riesgo = 'alto'">Alto</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.nivel_riesgo === 'medio'" (click)="anexoA.nivel_riesgo = 'medio'">Medio</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.nivel_riesgo === 'bajo'" (click)="anexoA.nivel_riesgo = 'bajo'">Bajo</button>
+                  </div>
+                </td>
+                <td class="cell-label">Folio de visita médica</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.folio_visita_medica" placeholder="Si originó en molestia">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- BLOQUE I -->
+          <div class="pvme-bloque-heading">BLOQUE I · APARTADOS 1 A 3 — LOS LLENA EL MÉDICO QUE PRACTICA LA VALORACIÓN</div>
+          <div class="pvme-doc-subtitle">
+            Somatometría, antecedentes y exploración física dirigida. No son actuaciones reservadas: las practica cualquier médico del Servicio Médico que haya acreditado la capacitación de este protocolo.
+          </div>
+
+          <!-- 1. Somatometría -->
+          <div class="pvme-apartado-heading">1. Somatometría</div>
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label">Peso (kg)</td>
+                <td>
+                  <input type="number" step="0.1" class="form-control form-control-sm" [(ngModel)]="anexoA.peso_kg" (ngModelChange)="calcularImc()">
+                </td>
+                <td class="cell-label">Talla (m)</td>
+                <td>
+                  <input type="number" step="0.01" class="form-control form-control-sm" [(ngModel)]="anexoA.talla_m" (ngModelChange)="calcularImc()" placeholder="1.70">
+                </td>
+                <td class="cell-label">IMC</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm bg-light fw-bold" [(ngModel)]="anexoA.imc" readonly>
+                </td>
+                <td class="cell-label">T/A</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.ta" placeholder="120/80">
+                </td>
+                <td class="cell-label">Frecuencia cardiaca</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.fc" placeholder="72 lpm">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 2. Antecedentes -->
+          <div class="pvme-apartado-heading">2. Antecedentes</div>
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 34%;">Puestos previos con manejo de cargas</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.puestos_previos_cargas">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Antecedentes patológicos relevantes (columna, articulares, reumáticos, quirúrgicos)</td>
+                <td>
+                  <textarea class="form-control form-control-sm" rows="2" [(ngModel)]="anexoA.antecedentes_patologicos_relevantes"></textarea>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Incapacidades previas por causa musculoesquelética</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.incapacidades_previas_me">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Condición de gestación o puerperio declarada por la trabajadora (regla SMD-PVME-14)</td>
+                <td>
+                  <div class="d-flex flex-wrap align-items-center gap-2">
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.condicion_gestacion === 'no_aplica'" (click)="anexoA.condicion_gestacion = 'no_aplica'; onCondicionGestacionChange()">No aplica</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.condicion_gestacion === 'no'" (click)="anexoA.condicion_gestacion = 'no'; onCondicionGestacionChange()">No</button>
+                    <button type="button" class="pvme-option-pill" [class.active]="anexoA.condicion_gestacion === 'gestacion'" (click)="anexoA.condicion_gestacion = 'gestacion'; onCondicionGestacionChange()">Sí — fecha probable de parto o parto:</button>
+                    <input
+                      type="date"
+                      class="form-control form-control-sm"
+                      style="width: 165px;"
+                      [(ngModel)]="anexoA.fecha_parto"
+                      [disabled]="anexoA.condicion_gestacion !== 'gestacion' && anexoA.condicion_gestacion !== 'posparto'">
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 3. Exploración física dirigida -->
+          <div class="pvme-apartado-heading">3. Exploración física dirigida</div>
+          <table class="pvme-official-table">
+            <thead>
+              <tr>
+                <th style="width: 24%;">Región</th>
+                <th class="text-center" style="width: 22%;">Hallazgo</th>
+                <th style="width: 54%;">Observaciones y maniobras</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let exp of anexoA.exploracion" [class.table-warning]="isExploracionObligatoria(exp.nordicKey) || exp.hallazgo === 'Alterado'">
+                <td class="fw-bold">
+                  {{ exp.label }}
+                  <span *ngIf="isExploracionObligatoria(exp.nordicKey)" class="badge bg-danger ms-1" style="font-size: 0.65rem;">+ Nórdico</span>
+                </td>
+                <td
+                  class="pvme-switch-td"
+                  [class.is-positive-td]="exp.hallazgo === 'Alterado'"
+                  (click)="exp.hallazgo = exp.hallazgo === 'Alterado' ? 'Normal' : 'Alterado'">
+                  <div class="form-check form-switch pvme-switch-label mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      tabindex="-1"
+                      [checked]="exp.hallazgo === 'Alterado'">
+                    <span class="switch-state-text" [class.is-active]="exp.hallazgo === 'Alterado'" [class.is-normal]="exp.hallazgo !== 'Alterado'">
+                      {{ exp.hallazgo === 'Alterado' ? 'Alterado' : 'Normal' }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="exp.observaciones"
+                    [placeholder]="exp.guia">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- BLOQUE II -->
+          <div class="pvme-bloque-heading">BLOQUE II · APARTADOS 4 Y 5 — LOS LLENA ÚNICAMENTE LA MÉDICA DESIGNADA</div>
+          <div class="pvme-doc-subtitle">
+            Determinación del límite de masa aplicable y de la aptitud física. Son actuaciones reservadas por la nota al pie de la Tabla 1 y por el numeral 9.5. Esta cédula NO se cierra, NO se archiva y NO se asienta como valoración practicada en el Anexo D mientras estos dos apartados estén sin llenar y sin firma.
+          </div>
+
+          <!-- 4. Límite de masa aplicable a este trabajador -->
+          <div class="pvme-apartado-heading">4. Límite de masa aplicable a este trabajador</div>
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 28%;">Límite nominal de la Tabla 1</td>
+                <td style="width: 18%;">
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control fw-bold" [(ngModel)]="anexoA.limite_nominal_kg">
+                    <span class="input-group-text">kg</span>
+                  </div>
+                </td>
+                <td class="text-muted small">
+                  Por sexo y grupo de edad: 7 kg menores de 18; 20 kg mujeres 18–45; 25 kg hombres 18–45; 15 kg mujeres mayores de 45; 20 kg hombres mayores de 45.
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Límite que determina esta valoración</td>
+                <td>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control fw-bold border-primary" [(ngModel)]="anexoA.limite_determinado_kg" (ngModelChange)="sincronizarAnexoAconAnexoC()">
+                    <span class="input-group-text">kg</span>
+                  </div>
+                </td>
+                <td class="text-muted small">
+                  Para mayores de 45 años la nota de la Tabla 1 remite a esta valoración, que puede determinar un valor menor o mayor al nominal. Si es distinto del nominal, asentar la razón clínica.
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Razón del ajuste</td>
+                <td colspan="2">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.razon_ajuste" placeholder="Asentar la razón clínica si el límite determinado es distinto al nominal">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 5. Conclusión -->
+          <div class="pvme-apartado-heading">5. Conclusión</div>
+          <div class="p-3 border rounded mb-2 bg-white">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'apto_sin_restriccion'" (click)="anexoA.conclusion = 'apto_sin_restriccion'">
+                Apto sin restricción
+              </button>
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'apto_con_recomendaciones'" (click)="anexoA.conclusion = 'apto_con_recomendaciones'">
+                Apto con recomendaciones
+              </button>
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'apto_restriccion_temporal'" (click)="anexoA.conclusion = 'apto_restriccion_temporal'">
+                Apto con restricción temporal
+              </button>
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'requiere_estudio_especializado'" (click)="anexoA.conclusion = 'requiere_estudio_especializado'">
+                Requiere estudio o valoración especializada
+              </button>
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'no_apto_temporal'" (click)="anexoA.conclusion = 'no_apto_temporal'">
+                No apto temporal para el puesto
+              </button>
+            </div>
+            <div *ngIf="anexoA.conclusion === 'apto_restriccion_temporal'" class="d-flex align-items-center gap-2 mt-2 pt-2 border-top small">
+              <span class="fw-bold">Vigencia de restricción temporal hasta:</span>
+              <input
+                type="date"
+                class="form-control form-control-sm"
+                style="width: 170px;"
+                [(ngModel)]="anexoA.vigencia_restriccion_hasta">
+            </div>
+          </div>
+
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 34%;">Recomendaciones al puesto</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.recomendaciones_puesto">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Restricciones vinculantes (peso, frecuencia, maniobra)</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.restricciones_vinculantes">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Periodo de recuperación, si procede (numeral 9.5)</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoA.periodo_recuperacion">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Fecha de próxima valoración</td>
+                <td>
+                  <input type="date" class="form-control form-control-sm" style="max-width: 200px;" [(ngModel)]="anexoA.fecha_proxima_valoracion" (ngModelChange)="sincronizarAnexoAconAnexoC()">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 3 Bloques Oficiales Homologados de Firma de Anexo A -->
+          <div class="row g-3 mt-2">
+            <!-- Firma 1: Médico que practica la valoración -->
+            <div class="col-md-4">
+              <div class="pvme-sig-card small">
+                <div>
+                  <div class="dropdown w-100 position-relative mb-1" [class.show]="activeDoctoraDropdown === 'anexoA'">
+                    <div
+                      class="pvme-chosen-trigger"
+                      [class.is-placeholder]="!anexoA.medico_valorador_nombre"
+                      [class.is-open]="activeDoctoraDropdown === 'anexoA'"
+                      (click)="toggleDoctoraDropdown('anexoA', $event)">
+                      <span class="text-truncate">{{ anexoA.medico_valorador_nombre || 'Seleccionar doctora...' }}</span>
+                      <i class="bi bi-chevron-down position-absolute top-50 end-0 translate-middle-y me-2 text-muted small"></i>
+                    </div>
+                    <div *ngIf="activeDoctoraDropdown === 'anexoA'" class="dropdown-menu w-100 shadow-lg border d-block text-start p-2" style="position: absolute; top: 100%; left: 0; z-index: 2050;" (click)="$event.stopPropagation()">
+                      <div class="position-relative mb-2">
+                        <input
+                          id="pvme-chosen-search-anexoA"
+                          type="text"
+                          class="form-control form-control-sm ps-4"
+                          [(ngModel)]="doctoraSearchTerm"
+                          (blur)="closeDoctoraDropdownDelayed()"
+                          placeholder="Buscar doctora...">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2 text-muted small"></i>
+                      </div>
+                      <ul class="list-unstyled mb-0" style="max-height: 200px; overflow-y: auto;">
+                        <li>
+                          <a class="dropdown-item py-1 px-2 small text-danger fst-italic border-bottom rounded-1" href="javascript:void(0)" (mousedown)="selectDoctora('anexoA', null)">
+                            Ninguna / Quitar selección
+                          </a>
+                        </li>
+                        <li *ngFor="let med of filteredDoctoras">
+                          <a class="dropdown-item py-1 px-2 small fw-medium text-dark border-bottom rounded-1" href="javascript:void(0)" (mousedown)="selectDoctora('anexoA', med)">
+                            <i class="bi bi-person-badge text-primary me-1"></i>{{ med.first_name }} {{ med.last_name }}
+                          </a>
+                        </li>
+                        <li *ngIf="filteredDoctoras.length === 0">
+                          <span class="dropdown-item text-muted small py-1 px-2">Sin resultados</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="row g-1 mb-2">
+                    <div class="col-6">
+                      <input type="text" class="form-control form-control-sm text-center" [(ngModel)]="anexoA.medico_valorador_cedula" placeholder="Cédula prof.">
+                    </div>
+                    <div class="col-6">
+                      <input type="date" class="form-control form-control-sm" [(ngModel)]="anexoA.fecha_bloque1">
+                    </div>
+                  </div>
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoA_medico_valorador', 'Firma del Médico Valorador — Anexo A')">
+                    <img *ngIf="anexoA.firma_medico_valorador_data" [src]="anexoA.firma_medico_valorador_data" alt="Firma médico">
+                    <span *ngIf="!anexoA.firma_medico_valorador_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+                  <div class="border-top border-dark pt-1 fw-bold text-dark">Médico que practica la valoración</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">Responde por los apartados 1 a 3</div>
+                </div>
+                <div class="d-flex justify-content-center gap-1 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoA_medico_valorador', 'Firma del Médico Valorador — Anexo A')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoA.firma_medico_valorador_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoA.firma_medico_valorador_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoA.firma_medico_valorador_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Firma 2: Firma del trabajador (enterado del resultado) -->
+            <div class="col-md-4">
+              <div class="pvme-sig-card small">
+                <div>
+                  <input type="text" class="form-control form-control-sm mb-1 text-center fw-semibold bg-white" [(ngModel)]="anexoA.nombre" readonly>
+                  <input type="text" class="form-control form-control-sm mb-1 text-center bg-white text-muted" [value]="'Empleado #' + anexoA.no_empleado" readonly>
+                  <div class="mb-2">
+                    <input type="date" class="form-control form-control-sm text-center" [(ngModel)]="anexoA.fecha_firma_trabajador">
+                  </div>
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoA_trabajador', 'Firma del Trabajador — Anexo A')">
+                    <img *ngIf="anexoA.firma_trabajador_data" [src]="anexoA.firma_trabajador_data" alt="Firma trabajador">
+                    <span *ngIf="!anexoA.firma_trabajador_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+                  <div class="border-top border-dark pt-1 fw-bold text-dark">Firma del trabajador</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">(enterado del resultado)</div>
+                </div>
+                <div class="d-flex justify-content-center gap-1 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoA_trabajador', 'Firma del Trabajador — Anexo A')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoA.firma_trabajador_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoA.firma_trabajador_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoA.firma_trabajador_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Firma 3: Dra. Gloria Blaza Enciso Medina (Médica designada) -->
+            <div class="col-md-4">
+              <div class="pvme-sig-card small">
+                <div>
+                  <input type="text" class="form-control form-control-sm mb-1 text-center fw-semibold bg-white" value="Dra. Gloria Blaza Enciso Medina · Céd. 3838313" readonly>
+                  <div class="d-flex gap-1 mb-1">
+                    <button type="button" class="pvme-option-pill flex-fill py-1 px-2" style="font-size: 0.7rem;" [class.active]="anexoA.modalidad_determinacion === 'personalmente'" (click)="anexoA.modalidad_determinacion = 'personalmente'">
+                      Practiqué personalmente
+                    </button>
+                    <button type="button" class="pvme-option-pill flex-fill py-1 px-2" style="font-size: 0.7rem;" [class.active]="anexoA.modalidad_determinacion === 'sobre_cedula'" (click)="anexoA.modalidad_determinacion = 'sobre_cedula'">
+                      Sobre cédula médica
+                    </button>
+                  </div>
+                  <div class="mb-2">
+                    <input type="date" class="form-control form-control-sm text-center" [(ngModel)]="anexoA.fecha_determinacion">
+                  </div>
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoA_medica_designada', 'Firma Médica Designada (Dra. Gloria Blaza Enciso Medina)')">
+                    <img *ngIf="anexoA.firma_medica_designada_data" [src]="anexoA.firma_medica_designada_data" alt="Firma médica designada">
+                    <span *ngIf="!anexoA.firma_medica_designada_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+                  <div class="border-top border-dark pt-1 fw-bold text-dark">Médica designada (renglón D-081)</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">Determina y responde por los apartados 4 y 5</div>
+                </div>
+                <div class="d-flex justify-content-center gap-1 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoA_medica_designada', 'Firma Médica Designada (Dra. Gloria Blaza Enciso Medina)')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoA.firma_medica_designada_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoA.firma_medica_designada_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoA.firma_medica_designada_data = ''; anexoA.medica_designada_firmado = false">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center text-muted small mt-3 fst-italic">
+            Sin la firma de la médica designada la cédula está incompleta y la valoración no puede asentarse como practicada.
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+            <span class="small text-muted">Documento clínico · expediente del trabajador · regla SMD-PVME-17</span>
+            <button type="button" class="btn btn-dark btn-sm rounded-pill px-4 fw-semibold" (click)="sincronizarAnexoAconAnexoC(); activeAnexo = 'anexo_c'">
+              Continuar a Anexo C (Información de Riesgos) <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <!-- DOCUMENTO 3: ANEXO C · INFORMACIÓN DE RIESGOS POR MANEJO DE CARGAS  -->
+        <!-- ═══════════════════════════════════════════════════════════════════ -->
+        <div *ngIf="activeAnexo === 'anexo_c'" class="pvme-doc-sheet">
+          <div class="pvme-doc-meta">ANEXO C · información de riesgos · SST – ANX – C – 01 · 24 / 09 / 2026</div>
+          <div class="pvme-doc-title">ANEXO C INFORMACIÓN DE RIESGOS POR MANEJO MANUAL DE CARGAS</div>
+          <div class="d-flex flex-wrap align-items-center gap-2 pvme-doc-subtitle">
+            <span>SST – ANX – C – 01 · Formato</span>
+            <input type="text" class="form-control form-control-sm text-center d-inline-block" style="width: 65px;" [(ngModel)]="anexoC.formato_num" placeholder="___">
+            <span>de</span>
+            <input type="text" class="form-control form-control-sm text-center d-inline-block" style="width: 65px;" [(ngModel)]="anexoC.formato_total">
+            <span>· ORIGINAL: expediente de SST</span>
+          </div>
+
+          <!-- Tabla superior de identificación Anexo C -->
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 18%;">No. de empleado</td>
+                <td style="width: 32%;">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.no_empleado">
+                </td>
+                <td class="cell-label" style="width: 18%;">Turno</td>
+                <td style="width: 32%;">
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.turno">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Trabajador</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.trabajador">
+                </td>
+                <td class="cell-label">Área</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.area">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Puesto</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.puesto">
+                </td>
+                <td class="cell-label">Nivel de riesgo del puesto</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.nivel_riesgo">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 1 El peso máximo que usted puede manejar -->
+          <div class="pvme-apartado-heading">1 El peso máximo que usted puede manejar</div>
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 34%;">Grupo que le corresponde en la Tabla 1</td>
+                <td>
+                  <select class="form-select form-select-sm" [(ngModel)]="anexoC.grupo_tabla1">
+                    <option value="Hombres de 18 a 45 años (25 kg)">Hombres de 18 a 45 años (25 kg)</option>
+                    <option value="Hombres mayores de 45 años (20 kg)">Hombres mayores de 45 años (20 kg)</option>
+                    <option value="Mujeres de 18 a 45 años (20 kg)">Mujeres de 18 a 45 años (20 kg)</option>
+                    <option value="Mujeres mayores de 45 años (15 kg)">Mujeres mayores de 45 años (15 kg)</option>
+                    <option value="Trabajadoras durante la gestación (10 kg)">Trabajadoras durante la gestación (10 kg)</option>
+                    <option value="Menores de 18 años (7 kg)">Menores de 18 años (7 kg)</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">SU LÍMITE DE MASA</td>
+                <td>
+                  <div class="input-group input-group-sm" style="max-width: 180px;">
+                    <input type="number" class="form-control fw-bold" [(ngModel)]="anexoC.limite_masa_kg">
+                    <span class="input-group-text fw-bold">kg</span>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Masa mayor que se maneja en su puesto</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.masa_mayor_puesto_kg" placeholder="Ej. Garrafón 20 kg / Costal 25 kg">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Situación de su puesto frente a su límite</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.situacion_frente_limite">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 2 Las actividades de su puesto que implican manejo de cargas -->
+          <div class="pvme-apartado-heading">2 Las actividades de su puesto que implican manejo de cargas</div>
+          <div class="d-flex flex-column gap-2 mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <span>●</span>
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.actividad_1" placeholder="Actividad 1 de manejo manual de cargas">
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span>●</span>
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.actividad_2" placeholder="Actividad 2 de manejo manual de cargas">
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span>●</span>
+              <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.actividad_3" placeholder="Actividad 3 de manejo manual de cargas">
+            </div>
+          </div>
+
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 34%;">Qué manipula</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.que_manipula" placeholder="Cajas, mobiliario, insumos...">
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Tipo de esfuerzo</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.tipo_esfuerzo">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 3 Qué le puede pasar a su salud -->
+          <div class="pvme-apartado-heading">3 Qué le puede pasar a su salud</div>
+          <p class="small text-dark mb-3" style="line-height: 1.5;">
+            El manejo manual de cargas sin la técnica y las medidas adecuadas produce trastornos musculoesqueléticos: dolor y lesión de la espalda baja, lesiones de disco, dolor de cuello, lesiones del hombro, codo de tenista, síndrome del túnel del carpo y hernias. Se desarrollan de forma gradual, por acumulación a lo largo de meses o años, y no necesariamente a partir de un solo esfuerzo. Por eso la molestia se reporta cuando aparece, no cuando ya impide trabajar.
+          </p>
+
+          <!-- 4 Cómo se previene -->
+          <div class="pvme-apartado-heading">4 Cómo se previene</div>
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 28%;">Técnica</td>
+                <td>
+                  <div>Acerque la carga al cuerpo antes de levantarla.</div>
+                  <div>Flexione las rodillas, no la cintura. Espalda recta, fuerza con las piernas.</div>
+                  <div>No gire el tronco con la carga en las manos: mueva los pies.</div>
+                  <div>Baje la carga de forma controlada, flexionando de nuevo las rodillas.</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Está prohibido</td>
+                <td>
+                  <div>Manejar cargas por encima de sus <strong>{{ anexoC.limite_masa_kg || '___' }} kg</strong> sin ayuda mecánica o sin el número de personas establecido.</div>
+                  <div>Realizar en solitario las maniobras que el Procedimiento reserva a dos o más personas.</div>
+                  <div>Manipular cargas con postura forzada, sobre piso mojado o con fatiga excesiva.</div>
+                  <div>Transportar cargas inestables sin asegurarlas.</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Ayudas mecánicas de la unidad</td>
+                <td>
+                  <div>Polipasto eléctrico de cadena H-LIFT de 500 kg: uno en almacén y otro en calle de servicio.</div>
+                  <div>Patín hidráulico NOVAL de 3 toneladas: taller de mantenimiento. Es el que se usa para deslizar la rejilla de agua sin levantarla.</div>
+                  <div>Ocho diablos de 200 kg distribuidos en áreas diversas.</div>
+                  <div>La plataforma GENIE NO es ayuda para cargas: eleva personas, 136 kg y un solo ocupante.</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">La que le corresponde usar a usted</td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="anexoC.ayuda_mecanica_corresponde">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- 5 Su vigilancia a la salud -->
+          <div class="pvme-apartado-heading">5 Su vigilancia a la salud</div>
+          <table class="pvme-official-table">
+            <tbody>
+              <tr>
+                <td class="cell-label" style="width: 34%;">Su valoración está programada para</td>
+                <td>
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <input type="date" class="form-control form-control-sm" style="width: 150px;" [(ngModel)]="anexoC.cita_fecha">
+                    <span>·</span>
+                    <input type="time" class="form-control form-control-sm" style="width: 115px;" [(ngModel)]="anexoC.cita_hora">
+                    <span class="fw-bold">h · Sede:</span>
+                    <select class="form-select form-select-sm" style="width: 240px;" [(ngModel)]="anexoC.cita_sede">
+                      <option value="Club Sede Hermes">Club Sede Hermes</option>
+                      <option value="Unidad Deportiva Alfredo Atala">Unidad Deportiva Alfredo «Fredy» Atala</option>
+                    </select>
+                  </div>
+                  <div class="text-muted small">Es una valoración musculoesquelética, no un examen general. Dura alrededor de 30 minutos.</div>
+                </td>
+              </tr>
+              <tr>
+                <td class="cell-label">Siguiente valoración</td>
+                <td>
+                  <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                    <input type="date" class="form-control form-control-sm" style="width: 150px;" [(ngModel)]="anexoC.siguiente_valoracion_fecha">
+                  </div>
+                  <div class="text-muted small">La periodicidad depende del nivel de riesgo de su puesto. Se adelanta si cambia su puesto, su carga o su estado de salud.</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p class="small text-dark mb-3" style="line-height: 1.45;">
+            <strong>No espere a su cita.</strong> Si presenta dolor, molestia, hormigueo o pérdida de fuerza que atribuya a su trabajo, acuda al Servicio Médico el mismo día. Reportarlo a tiempo es lo que permite corregir la tarea antes de que la lesión se establezca, y no tiene ninguna consecuencia sobre su empleo.
+          </p>
+
+          <!-- 6 Acuse de recibo -->
+          <div class="pvme-apartado-heading">6 Acuse de recibo</div>
+          <p class="small text-dark mb-3" style="line-height: 1.45;">
+            Declaro que se me informó el peso máximo que puedo manejar conforme a la Tabla 1 de la NOM-036-1-STPS-2018, el nivel de riesgo de mi puesto, las actividades de mi puesto que implican manejo de cargas, los daños que la exposición puede ocasionar a mi salud, las medidas de prevención y prohibiciones aplicables, y la fecha de mi valoración médica; y que se me dio oportunidad de preguntar.
+          </p>
+
+          <div class="row g-3 mt-1">
+            <!-- Firma 1: Trabajador -->
+            <div class="col-md-4">
+              <div class="pvme-sig-card small">
+                <div>
+                  <input type="text" class="form-control form-control-sm mb-2 text-center fw-semibold bg-white" [(ngModel)]="anexoC.trabajador" readonly>
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoC_trabajador', 'Firma del Trabajador — Anexo C')">
+                    <img *ngIf="anexoC.firma_trabajador_data" [src]="anexoC.firma_trabajador_data" alt="Firma trabajador Anexo C">
+                    <span *ngIf="!anexoC.firma_trabajador_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+                  <div class="border-top border-dark pt-1 fw-bold text-dark">Firma del trabajador</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">Acuse de recibo</div>
+                </div>
+                <div class="d-flex justify-content-center gap-1 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoC_trabajador', 'Firma del Trabajador — Anexo C')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoC.firma_trabajador_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoC.firma_trabajador_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoC.firma_trabajador_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Firma 2: Informó -->
+            <div class="col-md-4">
+              <div class="pvme-sig-card small">
+                <div>
+                  <div class="dropdown w-100 position-relative mb-2" [class.show]="activeDoctoraDropdown === 'anexoC'">
+                    <div
+                      class="pvme-chosen-trigger"
+                      [class.is-placeholder]="!anexoC.informo_nombre_cargo"
+                      [class.is-open]="activeDoctoraDropdown === 'anexoC'"
+                      (click)="toggleDoctoraDropdown('anexoC', $event)">
+                      <span class="text-truncate">{{ anexoC.informo_nombre_cargo || 'Seleccionar doctora que informó...' }}</span>
+                      <i class="bi bi-chevron-down position-absolute top-50 end-0 translate-middle-y me-2 text-muted small"></i>
+                    </div>
+                    <div *ngIf="activeDoctoraDropdown === 'anexoC'" class="dropdown-menu w-100 shadow-lg border d-block text-start p-2" style="position: absolute; top: 100%; left: 0; z-index: 2050;" (click)="$event.stopPropagation()">
+                      <div class="position-relative mb-2">
+                        <input
+                          id="pvme-chosen-search-anexoC"
+                          type="text"
+                          class="form-control form-control-sm ps-4"
+                          [(ngModel)]="doctoraSearchTerm"
+                          (blur)="closeDoctoraDropdownDelayed()"
+                          placeholder="Buscar doctora...">
+                        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-2 text-muted small"></i>
+                      </div>
+                      <ul class="list-unstyled mb-0" style="max-height: 200px; overflow-y: auto;">
+                        <li>
+                          <a class="dropdown-item py-1 px-2 small text-danger fst-italic border-bottom rounded-1" href="javascript:void(0)" (mousedown)="selectDoctora('anexoC', null)">
+                            Ninguna / Quitar selección
+                          </a>
+                        </li>
+                        <li *ngFor="let med of filteredDoctoras">
+                          <a class="dropdown-item py-1 px-2 small fw-medium text-dark border-bottom rounded-1" href="javascript:void(0)" (mousedown)="selectDoctora('anexoC', med)">
+                            <i class="bi bi-person-badge text-primary me-1"></i>{{ med.first_name }} {{ med.last_name }}
+                          </a>
+                        </li>
+                        <li *ngIf="filteredDoctoras.length === 0">
+                          <span class="dropdown-item text-muted small py-1 px-2">Sin resultados</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoC_informo', 'Firma de quien informó — Anexo C')">
+                    <img *ngIf="anexoC.firma_informo_data" [src]="anexoC.firma_informo_data" alt="Firma quien informó">
+                    <span *ngIf="!anexoC.firma_informo_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+                  <div class="border-top border-dark pt-1 fw-bold text-dark">Informó</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">Nombre, cargo y firma</div>
+                </div>
+                <div class="d-flex justify-content-center gap-1 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoC_informo', 'Firma de quien informó — Anexo C')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoC.firma_informo_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoC.firma_informo_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoC.firma_informo_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Firma 3: Testigo — jefe de área -->
+            <div class="col-md-4">
+              <div class="pvme-sig-card small">
+                <div>
+                  <div class="row g-1 mb-2">
+                    <div class="col-7">
+                      <input type="text" class="form-control form-control-sm text-center fw-semibold" [(ngModel)]="anexoC.testigo_jefe_nombre" placeholder="Nombre jefe de área">
+                    </div>
+                    <div class="col-5">
+                      <input type="date" class="form-control form-control-sm" [(ngModel)]="anexoC.fecha_acuse">
+                    </div>
+                  </div>
+                  <div class="pvme-sig-preview-box" (click)="openSignaturePad('anexoC_testigo', 'Firma Testigo / Jefe de Área — Anexo C')">
+                    <img *ngIf="anexoC.firma_testigo_data" [src]="anexoC.firma_testigo_data" alt="Firma testigo">
+                    <span *ngIf="!anexoC.firma_testigo_data" class="text-muted small opacity-75">
+                      <i class="bi bi-pen me-1"></i>Clic para firmar
+                    </span>
+                  </div>
+                  <div class="border-top border-dark pt-1 fw-bold text-dark">Testigo — jefe de área</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">Fecha: {{ anexoC.fecha_acuse || '____/____/____' }}</div>
+                </div>
+                <div class="d-flex justify-content-center gap-1 mt-2">
+                  <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3" (click)="openSignaturePad('anexoC_testigo', 'Firma Testigo / Jefe de Área — Anexo C')">
+                    <i class="bi bi-pen me-1"></i>{{ anexoC.firma_testigo_data ? 'Cambiar firma' : 'Firmar en pantalla' }}
+                  </button>
+                  <button *ngIf="anexoC.firma_testigo_data" type="button" class="btn btn-xs btn-outline-danger rounded-pill" (click)="anexoC.firma_testigo_data = ''">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+            <span class="small text-muted">ORIGINAL: expediente de SST · COPIA: trabajador · el jefe de área firma como testigo y no conserva ejemplar · regla SMD-PVME-17</span>
+            <button type="button" class="btn custom-btn-primary btn-sm rounded-pill px-4 fw-bold" (click)="guardarValoracion()">
+              <i class="bi bi-floppy me-1"></i>Guardar Valoración Completa
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL DE FIRMA DIGITAL EN PANTALLA (CANVAS)                               -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="signatureModalOpen" class="pvme-sig-backdrop">
+    <div class="pvme-sig-modal card shadow-lg border-0">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
+        <span class="fw-semibold small"><i class="bi bi-pen me-2"></i>{{ signatureTargetTitle }}</span>
+        <button type="button" class="btn-close btn-close-white btn-sm" (click)="closeSignaturePad()"></button>
+      </div>
+      <div class="card-body text-center">
+        <p class="text-muted small mb-2">Dibuje la firma dentro del recuadro utilizando el mouse, lápiz óptico o pantalla táctil:</p>
+        <div class="border rounded bg-white d-inline-block shadow-sm">
+          <canvas
+            id="pvmeSignatureCanvas"
+            width="520"
+            height="190"
+            style="touch-action: none; cursor: crosshair; max-width: 100%;"
+            (mousedown)="startSigDraw($event)"
+            (mousemove)="moveSigDraw($event)"
+            (mouseup)="endSigDraw()"
+            (mouseleave)="endSigDraw()"
+            (touchstart)="startSigDraw($event)"
+            (touchmove)="moveSigDraw($event)"
+            (touchend)="endSigDraw()">
+          </canvas>
+        </div>
+      </div>
+      <div class="card-footer bg-light d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearSignatureCanvas()">
+          <i class="bi bi-eraser me-1"></i>Borrar trazo
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light btn-sm border" (click)="closeSignaturePad()">Cancelar</button>
+          <button type="button" class="btn btn-primary btn-sm fw-semibold" (click)="applySignatureCanvas()">
+            <i class="bi bi-check2 me-1"></i>Aplicar Firma
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -18,7 +18,7 @@
     </div>
 
     <!-- Expediente Layout -->
-    <div *ngIf="!isLoadingProfile && medicalProfile" class="row">
+    <div *ngIf="!isLoadingProfile && medicalProfile" class="row g-3">
       
       <!-- LEFT COL: Perfil Fijo -->
       <div class="col-lg-4 col-xl-3 mb-4">
@@ -78,20 +78,22 @@
             </div>
 
             <div class="d-flex align-items-center mb-3 text-muted">
-              <i class="bi bi-person-hearts me-3 fs-5 text-primary"></i>
+              <i class="bi me-3 fs-5 text-primary" [ngClass]="medicalProfile.is_empleado ? 'bi-briefcase' : 'bi-person-hearts'"></i>
               <div>
-                <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Responsable</small>
+                <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">
+                  {{ medicalProfile.is_empleado ? 'Área / Puesto' : 'Responsable' }}
+                </small>
                 <span class="fw-medium text-dark">{{ medicalProfile.responsable || 'N/A' }}</span>
               </div>
             </div>
 
             <div class="d-flex align-items-center text-muted">
-              <i class="bi bi-person-bounding-box me-3 fs-5" [ngStyle]="{'color': medicalProfile.is_socio ? 'var(--primary-color)' : '#d97706'}"></i>
-                            <div>
+              <i class="bi bi-person-bounding-box me-3 fs-5" [ngStyle]="{'color': (medicalProfile.is_socio || medicalProfile.is_empleado) ? 'var(--primary-color)' : '#d97706'}"></i>
+              <div>
                 <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 1px;">Identificación</small>
                 <span class="rounded"
-                      [ngClass]="medicalProfile.is_socio ? 'badge-socio' : 'badge-invitado'">
-                  {{ medicalProfile.is_socio ? 'Socio' : 'Invitado' }}
+                      [ngClass]="(medicalProfile.is_socio || medicalProfile.is_empleado) ? 'badge-socio' : 'badge-invitado'">
+                  {{ medicalProfile.is_socio ? 'Socio' : (medicalProfile.is_empleado ? ('Colaborador #' + (medicalProfile.number_employee || token)) : 'Invitado') }}
                 </span>
               </div>
             </div>
@@ -114,134 +116,169 @@
       </div>
 
       <!-- RIGHT COL: Tabs y Contenido -->
-      <div class="col-lg-8 col-xl-9">
+      <div class="col-lg-8 col-xl-9"
+           [class.tab-panels-viewport]="!isFullWidthCapture"
+           (touchstart)="onTabTouchStart($event)"
+           (touchend)="onTabTouchEnd($event)">
         
-        <!-- Tabs de Navegación -->
-        <ul class="nav nav-pills mb-4 p-2 bg-white rounded-4 shadow-sm d-inline-flex flex-wrap gap-2">
-          <li class="nav-item">
-            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 transition-all text-nowrap" 
-                    [class.active]="activeTab === 'expediente'" 
-                    [class.bg-dark]="activeTab === 'expediente'"
-                    (click)="activeTab = 'expediente'">
+        <!-- Tabs de Navegación Deslizables (Estilo Instagram Segmented Slider) -->
+        <ul #tabsContainer class="nav nav-pills swipeable-tabs ig-tabs mb-4 p-2 bg-white rounded-4 shadow-sm d-inline-flex flex-nowrap gap-1 max-w-100" [class.glider-ready]="gliderReady" role="tablist">
+          <span class="ig-tab-glider"
+                *ngIf="gliderReady"
+                [style.transform]="'translate3d(' + gliderLeft + 'px, 0, 0)'"
+                [style.width.px]="gliderWidth"></span>
+
+          <li class="nav-item" [class.active]="activeTab === 'expediente'">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 text-nowrap"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'expediente'"
+                    [class.active]="activeTab === 'expediente'"
+                    (click)="setTab('expediente', $any($event.currentTarget))">
               <i class="bi bi-folder2-open me-2"></i> Datos Generales
             </button>
           </li>
-          <li class="nav-item">
-            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 transition-all text-nowrap" 
-                    [class.active]="activeTab === 'nueva_consulta'"
-                    [class.bg-dark]="activeTab === 'nueva_consulta'"
-                    (click)="iniciarNuevaConsulta()">
+          <li class="nav-item" [class.active]="activeTab === 'historial'">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 text-nowrap"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'historial'"
+                    [class.active]="activeTab === 'historial'"
+                    (click)="setTab('historial', $any($event.currentTarget))">
+              <i class="bi bi-clock-history me-2"></i> Historial de Atenciones
+            </button>
+          </li>
+          <li class="nav-item" *ngIf="medicalProfile?.is_empleado || medicalProfile?.patient_type === 'empleado'" [class.active]="activeTab === 'pvme'">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 text-nowrap"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'pvme'"
+                    [class.active]="activeTab === 'pvme'"
+                    (click)="setTab('pvme', $any($event.currentTarget))">
+              <i class="bi bi-shield-check me-2"></i> Vigilancia NOM-036
+            </button>
+          </li>
+          <li class="nav-item active" *ngIf="activeTab === 'nueva_consulta'">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 text-nowrap active"
+                    role="tab"
+                    aria-selected="true">
               <i class="bi bi-plus-circle me-2"></i> Nueva Consulta
             </button>
           </li>
-          <li class="nav-item" *ngIf="isEditingConsulta">
-            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 transition-all text-nowrap" 
+          <li class="nav-item" *ngIf="isEditingConsulta" [class.active]="activeTab === 'editar_consulta'">
+            <button class="nav-link rounded-pill fw-semibold px-3 px-sm-4 text-nowrap"
+                    role="tab"
+                    [attr.aria-selected]="activeTab === 'editar_consulta'"
                     [class.active]="activeTab === 'editar_consulta'"
-                    [class.bg-dark]="activeTab === 'editar_consulta'"
-                    (click)="activeTab = 'editar_consulta'">
+                    (click)="setTab('editar_consulta', $any($event.currentTarget))">
               <i class="bi bi-pencil-fill me-2"></i> Editar Consulta
             </button>
           </li>
         </ul>
 
-        <!-- VISTA EXPEDIENTE -->
-        <div *ngIf="activeTab === 'expediente'" class="fade show">
+        <!-- VISTA EXPEDIENTE (DATOS GENERALES) -->
+        <div *ngIf="activeTab === 'expediente'"
+             class="tab-panel-slide"
+             [ngClass]="tabSlideDirection === 'forward' ? 'tab-slide-forward' : 'tab-slide-backward'">
           
           <!-- Datos Generales -->
           <div class="card glass-card border-0 rounded-4 mb-4">
             <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clipboard2-pulse text-primary me-2"></i> Ficha Clínica del Paciente</h5>
-              <div *ngIf="medicalProfile.is_socio" class="d-flex align-items-center gap-2">
-                <small class="text-muted">
-                  Última sinc. NetSuite: 
-                  <strong>{{ medicalProfile.ns_last_sync ? (medicalProfile.ns_last_sync | date:'dd/MM/yyyy HH:mm') : 'Nunca' }}</strong>
-                </small>
-                <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center" 
-                        (click)="syncFromNetSuite()" [disabled]="isSyncingNetSuite">
-                  <i class="bi" [ngClass]="isSyncingNetSuite ? 'bi-arrow-repeat spinner-icon me-1' : 'bi-cloud-download me-1'"></i>
-                  {{ isSyncingNetSuite ? 'Sincronizando...' : 'Actualizar de NetSuite' }}
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <ng-container *ngIf="medicalProfile.is_socio">
+                  <small class="text-muted">
+                    Última sinc. NetSuite: 
+                    <strong>{{ medicalProfile.ns_last_sync ? (medicalProfile.ns_last_sync | date:'dd/MM/yyyy HH:mm') : 'Nunca' }}</strong>
+                  </small>
+                  <button class="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center" 
+                          (click)="syncFromNetSuite()" [disabled]="isSyncingNetSuite">
+                    <i class="bi" [ngClass]="isSyncingNetSuite ? 'bi-arrow-repeat spinner-icon me-1' : 'bi-cloud-download me-1'"></i>
+                    {{ isSyncingNetSuite ? 'Sincronizando...' : 'Actualizar de NetSuite' }}
+                  </button>
+                </ng-container>
+                <button class="btn custom-btn-outline btn-sm rounded-pill px-3 py-1 fw-bold d-flex align-items-center" 
+                        (click)="iniciarNuevaConsulta()">
+                  <i class="bi bi-plus-circle me-2 text-primary"></i> Nueva Consulta
                 </button>
               </div>
             </div>
-            <div class="card-body p-3 p-md-4">
+            <div class="card-body p-3">
               
-              <div class="row g-3">
-                                                <!-- ACORDEON DE ANTECEDENTES -->
+              <div class="row g-2">
+                <!-- ACORDEON DE ANTECEDENTES -->
                 <div class="accordion" id="accordionFichaClinica">
                   
                   <!-- Patológicos -->
-                  <div class="accordion-item border-0 bg-light mb-3 rounded-3 shadow-sm">
+                  <div class="accordion-item border-0 bg-light mb-2 rounded-3 shadow-sm">
                     <h2 class="accordion-header">
-                      <button class="accordion-button bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePatologicos">
+                      <button class="accordion-button py-2 px-3 bg-transparent fw-bold text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePatologicos">
                         <i class="bi bi-heart-pulse text-danger me-2"></i> Antecedentes Patológicos
                       </button>
                     </h2>
                     <div id="collapsePatologicos" class="accordion-collapse collapse show" data-bs-parent="#accordionFichaClinica">
-                      <div class="accordion-body pt-2 pb-0">
-                        <div class="d-flex flex-column gap-3 ms-md-2 ps-md-4">
+                      <div class="accordion-body pt-1 pb-2 px-3">
+                        <div class="d-flex flex-column gap-1 ps-md-2">
                           
                           <!-- Enfermedades -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-activity text-danger me-2"></i> Enfermedades</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.antecedentes_enfermedades"></textarea>
                             </div>
                           </div>
 
                           <!-- Hospitalizaciones -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-hospital text-primary me-2"></i> Hospitalizaciones</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.antecedentes_hospitalizaciones"></textarea>
                             </div>
                           </div>
 
                           <!-- Cirugías -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-bandaid text-success me-2"></i> Cirugías</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.antecedentes_cirugias"></textarea>
                             </div>
                           </div>
 
                           <!-- Traumatismos/Heridas -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-person-bounding-box text-warning me-2"></i> Traumatismos/Heridas</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.antecedentes_traumatismos"></textarea>
                             </div>
                           </div>
 
                           <!-- Transfusiones sanguíneas -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-droplet-fill text-danger me-2"></i> Transfusiones sanguíneas</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.antecedentes_transfusiones"></textarea>
                             </div>
                           </div>
 
                           <!-- Inmunizaciones & Vacunas -->
-                          <div class="row align-items-center pb-1">
+                          <div class="row g-2 align-items-center">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-shield-plus text-info me-2"></i> Inmunizaciones & Vacunas</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.antecedentes_inmunizaciones"></textarea>
                             </div>
                           </div>
@@ -252,56 +289,56 @@
                   </div>
 
                   <!-- No Patológicos -->
-                  <div class="accordion-item border-0 bg-light mb-3 rounded-3 shadow-sm">
+                  <div class="accordion-item border-0 bg-light mb-2 rounded-3 shadow-sm">
                     <h2 class="accordion-header">
-                      <button class="accordion-button bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNoPatologicos">
+                      <button class="accordion-button py-2 px-3 bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNoPatologicos">
                         <i class="bi bi-person-walking text-success me-2"></i> Antecedentes No Patológicos
                       </button>
                     </h2>
                     <div id="collapseNoPatologicos" class="accordion-collapse collapse" data-bs-parent="#accordionFichaClinica">
-                      <div class="accordion-body pt-2 pb-0">
-                        <div class="d-flex flex-column gap-3 ms-md-2 ps-md-4">
+                      <div class="accordion-body pt-1 pb-2 px-3">
+                        <div class="d-flex flex-column gap-1 ps-md-2">
                           
                           <!-- Estilo de Vida -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-cup-hot text-primary me-2"></i> Estilo de Vida</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.nopat_estilo_vida"></textarea>
                             </div>
                           </div>
 
                           <!-- Dieta -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-apple text-success me-2"></i> Dieta</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.nopat_dieta"></textarea>
                             </div>
                           </div>
 
                           <!-- Actividades -->
-                          <div class="row align-items-center border-bottom pb-2">
+                          <div class="row g-2 align-items-center border-bottom pb-1">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-bicycle text-warning me-2"></i> Actividades</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.nopat_actividades"></textarea>
                             </div>
                           </div>
 
                           <!-- Higiene Personal -->
-                          <div class="row align-items-center pb-1">
+                          <div class="row g-2 align-items-center">
                             <div class="col-md-3">
                               <label class="form-label fw-bold text-dark small mb-0"><i class="bi bi-stars text-info me-2"></i> Higiene Personal</label>
                             </div>
                             <div class="col-md-9">
-                              <textarea class="form-control premium-textarea py-2" appAutosize rows="1" style="white-space: pre-wrap;"
+                              <textarea class="form-control premium-textarea py-1" appAutosize rows="1" style="white-space: pre-wrap;"
                                         [(ngModel)]="medicalProfile.nopat_higiene"></textarea>
                             </div>
                           </div>
@@ -312,16 +349,16 @@
                   </div>
 
                   <!-- Laboratorio -->
-                  <div class="accordion-item border-0 bg-light mb-2 rounded-3 shadow-sm">
+                  <div class="accordion-item border-0 bg-light mb-1 rounded-3 shadow-sm">
                     <h2 class="accordion-header">
-                      <button class="accordion-button bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLab">
+                      <button class="accordion-button py-2 px-3 bg-transparent fw-bold text-dark shadow-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLab">
                         <i class="bi bi-file-earmark-medical text-secondary me-2"></i> Estudios de laboratorio
                       </button>
                     </h2>
                     <div id="collapseLab" class="accordion-collapse collapse" data-bs-parent="#accordionFichaClinica">
-                      <div class="accordion-body pt-2">
-                        <div class="ms-md-2 ps-md-4">
-                          <textarea class="form-control premium-textarea py-2 w-100" appAutosize rows="1" style="white-space: pre-wrap;"
+                      <div class="accordion-body pt-1 pb-2 px-3">
+                        <div class="ps-md-2">
+                          <textarea class="form-control premium-textarea py-1 w-100" appAutosize rows="1" style="white-space: pre-wrap;"
                                     [(ngModel)]="medicalProfile.medical_notes" placeholder="Describa los estudios recientes..."></textarea>
                         </div>
                       </div>
@@ -331,7 +368,7 @@
                 </div>
 
               </div>
-              <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+              <div class="d-flex flex-wrap justify-content-end gap-2 mt-3 pt-2 border-top">
                 <button class="btn custom-btn-primary px-4 px-sm-5 py-2" 
                         (click)="guardarDatosGenerales()" [disabled]="isSavingProfile">
                   <span *ngIf="isSavingProfile" class="spinner-border spinner-border-sm me-2"></span>
@@ -340,11 +377,19 @@
               </div>
             </div>
           </div>
+        </div>
 
+        <!-- VISTA HISTORIAL DE ATENCIONES -->
+        <div *ngIf="activeTab === 'historial'"
+             class="tab-panel-slide"
+             [ngClass]="tabSlideDirection === 'forward' ? 'tab-slide-forward' : 'tab-slide-backward'">
           <!-- Historial de Consultas -->
           <div class="card glass-card border-0 rounded-4 overflow-hidden">
-            <div class="card-header bg-transparent border-bottom px-3 px-md-4 py-3 d-flex justify-content-between align-items-center">
+            <div class="card-header bg-transparent border-bottom px-3 px-md-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clock-history text-primary me-2"></i> Historial de Atenciones</h5>
+              <button class="btn custom-btn-primary btn-sm rounded-pill px-3 py-1 fw-bold shadow-sm" (click)="iniciarNuevaConsulta()">
+                <i class="bi bi-plus-circle me-1"></i> Nueva Consulta
+              </button>
             </div>
             
             <div class="card-body p-0">
@@ -405,7 +450,9 @@
         </div>
 
         <!-- VISTA NUEVA CONSULTA / EDITAR CONSULTA -->
-        <div *ngIf="activeTab === 'nueva_consulta' || activeTab === 'editar_consulta'" class="fade show position-relative pb-5">
+        <div *ngIf="activeTab === 'nueva_consulta' || activeTab === 'editar_consulta'"
+             class="tab-panel-slide position-relative pb-5"
+             [ngClass]="tabSlideDirection === 'forward' ? 'tab-slide-forward' : 'tab-slide-backward'">
           
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4 gap-3">
             <div>
@@ -814,6 +861,20 @@
             </div>
           </div>
 
+        </div>
+
+        <!-- VISTA VIGILANCIA MÉDICA NOM-036 (PVME) · EMPLEADOS -->
+        <div *ngIf="activeTab === 'pvme'"
+             [class.tab-panel-slide]="!isFullWidthCapture"
+             [ngClass]="!isFullWidthCapture ? (tabSlideDirection === 'forward' ? 'tab-slide-forward' : 'tab-slide-backward') : ''">
+          <app-servicio-medico-pvme
+            [token]="token"
+            [medicalProfile]="medicalProfile"
+            [medicos]="medicos"
+            [consultas]="consultas"
+            [locations]="locations"
+            (editorModeChange)="onPvmeEditorModeChange($event)">
+          </app-servicio-medico-pvme>
         </div>
 
       </div>
