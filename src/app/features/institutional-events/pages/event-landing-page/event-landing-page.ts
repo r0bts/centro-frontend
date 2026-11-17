@@ -78,6 +78,15 @@ export class EventLandingPageComponent implements OnInit {
 
   readonly accessTypeMeta = ACCESS_TYPE_META;
 
+  readonly isEventFull = computed(() => {
+    const ev = this.event();
+    return !!(ev && ev.max_capacity && ev.max_capacity > 0 && (ev.current_attendee_count ?? 0) >= ev.max_capacity);
+  });
+
+  isSubeventFull(sub: InstitutionalEventSubevent): boolean {
+    return !!(sub.max_capacity && sub.max_capacity > 0 && (sub.current_attendee_count ?? 0) >= sub.max_capacity);
+  }
+
   canAccessSubevent(sub: InstitutionalEventSubevent): boolean {
     if (this.esSocio()) {
       return true; // Asumimos que el socio tiene acceso a 'members', 'patron', 'public', etc.
@@ -87,7 +96,7 @@ export class EventLandingPageComponent implements OnInit {
   }
 
   readonly canRegisterOnline = computed(() => {
-    return this.allowMembers() || this.allowPublic();
+    return (this.allowMembers() || this.allowPublic()) && !this.isEventFull();
   });
 
   readonly accessLabel = computed(() => {
@@ -268,6 +277,13 @@ export class EventLandingPageComponent implements OnInit {
     if (s.has(id)) {
       s.delete(id);
     } else {
+      if (this.isSubeventFull(sub)) {
+        this.alertMessage.set({
+          title: 'Cupo agotado',
+          text: `El módulo "${sub.name}" ha alcanzado su cupo máximo de ${sub.max_capacity} asistentes.`
+        });
+        return;
+      }
       s.add(id);
     }
     this.selectedSubevents.set(s);
