@@ -2,13 +2,68 @@
   <app-content-menu></app-content-menu>
   
   <div class="p-3 p-md-5">
+    <div class="d-flex justify-content-end mb-3">
+      <a routerLink="/servicio-medico/dashboard" class="btn btn-light border shadow-sm rounded-pill px-3 fw-medium text-dark">
+        <i class="bi bi-arrow-left me-1"></i> Inicio
+      </a>
+    </div>
     
 
 
-    <!-- Cargando -->
-    <div *ngIf="isLoadingProfile" class="d-flex justify-content-center my-5">
-      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-        <span class="visually-hidden">Cargando...</span>
+    <!-- Cargando (Skeleton) -->
+    <div *ngIf="isLoadingProfile" class="row g-3">
+      <!-- LEFT COL Skeleton -->
+      <div class="col-lg-4 col-xl-3 mb-4">
+        <div class="card glass-card rounded-4 border-0">
+          <div class="p-4 text-center rounded-top-4">
+            <div class="sm-skeleton rounded-circle mx-auto mb-3" style="width: 120px; height: 120px;"></div>
+            <div class="sm-skeleton mx-auto mb-2" style="width: 75%; height: 24px;"></div>
+            <div class="sm-skeleton rounded-pill mx-auto mt-2" style="width: 110px; height: 28px;"></div>
+          </div>
+          <div class="card-body p-4">
+            <div class="d-flex align-items-center mb-3" *ngFor="let item of [1,2,3,4]">
+              <div class="sm-skeleton rounded me-3 flex-shrink-0" style="width: 24px; height: 24px;"></div>
+              <div class="flex-grow-1">
+                <div class="sm-skeleton mb-1" style="width: 60px; height: 10px;"></div>
+                <div class="sm-skeleton" style="width: 140px; height: 16px;"></div>
+              </div>
+            </div>
+            <hr class="my-3 opacity-10">
+            <div class="mb-3">
+              <div class="sm-skeleton mb-2" style="width: 110px; height: 14px;"></div>
+              <div class="sm-skeleton rounded-3" style="width: 100%; height: 38px;"></div>
+            </div>
+            <div>
+              <div class="sm-skeleton mb-2" style="width: 80px; height: 14px;"></div>
+              <div class="sm-skeleton rounded-3" style="width: 100%; height: 54px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COL Skeleton -->
+      <div class="col-lg-8 col-xl-9">
+        <div class="d-flex gap-2 mb-3">
+          <div class="sm-skeleton rounded-pill" style="width: 155px; height: 42px;"></div>
+          <div class="sm-skeleton rounded-pill" style="width: 185px; height: 42px;"></div>
+          <div class="sm-skeleton rounded-pill" style="width: 165px; height: 42px;"></div>
+        </div>
+        <div class="card glass-card rounded-4 border-0 p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="sm-skeleton" style="width: 240px; height: 24px;"></div>
+            <div class="sm-skeleton rounded-pill" style="width: 145px; height: 36px;"></div>
+          </div>
+          <div class="sm-skeleton mb-3" style="width: 210px; height: 20px;"></div>
+          <div class="d-flex align-items-center gap-3 mb-3" *ngFor="let row of [1,2,3,4,5,6]">
+            <div class="sm-skeleton" style="width: 170px; height: 16px; flex-shrink: 0;"></div>
+            <div class="sm-skeleton rounded-3 flex-grow-1" style="height: 38px;"></div>
+          </div>
+          <div class="sm-skeleton mb-2 mt-3" style="width: 100%; height: 44px;"></div>
+          <div class="sm-skeleton mb-4" style="width: 100%; height: 44px;"></div>
+          <div class="d-flex justify-content-end">
+            <div class="sm-skeleton rounded-3" style="width: 210px; height: 42px;"></div>
+          </div>
+        </div>
       </div>
     </div>
 

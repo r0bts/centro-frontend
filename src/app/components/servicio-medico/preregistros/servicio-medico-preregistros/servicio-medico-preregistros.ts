@@ -157,8 +157,14 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
   // ═══════════════════════════════════════════════════════════════════════════
   // CARGA Y FILTRADO DE BANDEJA
   // ═══════════════════════════════════════════════════════════════════════════
+  private static cachedItems: any[] | null = null;
+
   loadPreregistros(silent: boolean = false): void {
-    if (!silent) {
+    if (!silent && ServicioMedicoPreregistros.cachedItems) {
+      this.allItems = ServicioMedicoPreregistros.cachedItems;
+      this.isLoading = false;
+      silent = true;
+    } else if (!silent) {
       this.syncSkeletonRowsWithActiveTab();
       this.isLoading = true;
     }
@@ -175,6 +181,7 @@ export class ServicioMedicoPreregistros implements OnInit, AfterViewInit, OnDest
       .subscribe(res => {
         if (res?.success && res.data) {
           this.allItems = Array.isArray(res.data.items) ? res.data.items : [];
+          ServicioMedicoPreregistros.cachedItems = this.allItems;
           if (res.data.counts) {
             this.counts = {
               en_revision: res.data.counts.en_revision || 0,

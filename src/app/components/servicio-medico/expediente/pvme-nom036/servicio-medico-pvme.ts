@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, SimpleChanges, ChangeDetectorRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
@@ -40,6 +40,18 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
 
   isLoading: boolean = false;
   isSaving: boolean = false;
+  savedAnexos: { anexo_b: boolean; anexo_c: boolean; anexo_a: boolean } = {
+    anexo_b: false,
+    anexo_c: false,
+    anexo_a: false
+  };
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.viewMode === 'editor') {
+      this.volverAlHistorial();
+    }
+  }
   isGeneratingLink: boolean = false;
   isSavingConfig: boolean = false;
   isSavingPuestoCat: boolean = false;
@@ -413,10 +425,24 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
           if (res?.success && res?.data) {
             this.evaluations = Array.isArray(res.data.evaluations) ? res.data.evaluations : [];
             this.preregistrosPvme = Array.isArray(res.data.preregistros_pvme) ? res.data.preregistros_pvme : [];
+            this.syncSavedAnexosFromLatest();
           }
         },
         error: (err) => console.error('Error al cargar valoraciones PVME:', err)
       });
+  }
+
+  private syncSavedAnexosFromLatest(): void {
+    const latest = this.evaluations?.[0];
+    if (!latest) return;
+    const b = latest.anexo_b;
+    const c = latest.anexo_c;
+    const a = latest.anexo_a;
+    this.savedAnexos = {
+      anexo_b: Boolean(b && (b.firma_trabajador_data || b.firma_aplico_data)),
+      anexo_c: Boolean(c && (c.firma_trabajador_data || c.firma_informo_data || c.firma_testigo_data)),
+      anexo_a: Boolean(a && (a.firma_medico_valorador_data || a.firma_trabajador_data || a.firma_medica_designada_data))
+    };
   }
 
   initBlankForms(): void {
@@ -1029,6 +1055,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
           if (res?.success) {
             this.currentEvalId = res.data?.id || this.currentEvalId;
             this.currentEstado = res.data?.estado || targetEstado;
+            this.savedAnexos[this.activeAnexo] = true;
             if (res.data?.folio) {
               this.anexoA.folio = res.data.folio;
               this.anexoB.folio_cedula = res.data.folio;

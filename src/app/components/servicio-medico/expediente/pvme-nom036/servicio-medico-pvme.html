@@ -128,13 +128,21 @@
 
       <!-- Filas compactas de formatos -->
       <div class="d-flex flex-column gap-2 mb-3">
-        <div *ngIf="empleadoPvmeConfig.aplica_anexo_b" class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3 bg-light rounded-3 shadow-sm">
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-primary-subtle text-primary rounded-pill">Anexo B</span>
-            <span class="fw-bold text-dark small">Cuestionario Nórdico Musculoesquelético</span>
-            <span class="text-muted small d-none d-md-inline">· Tamizaje de 10 regiones y escala EVA</span>
+        <div *ngIf="empleadoPvmeConfig.aplica_anexo_b" class="d-flex justify-content-between align-items-center gap-3 py-2 px-3 bg-light rounded-3 border border-light-subtle">
+          <div class="d-flex align-items-center gap-3 min-w-0">
+            <span class="badge bg-primary-subtle text-primary rounded-pill flex-shrink-0 px-2 py-1">Anexo B</span>
+            <div class="min-w-0">
+              <div class="fw-semibold text-dark small text-truncate">Cuestionario Nórdico Musculoesquelético</div>
+              <div class="text-muted text-truncate" style="font-size: 0.78rem;">Tamizaje de 10 regiones y escala EVA</div>
+            </div>
           </div>
-          <div class="d-flex align-items-center gap-1">
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <span *ngIf="savedAnexos.anexo_b" class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
+              <i class="bi bi-check-circle-fill me-1"></i>Guardado
+            </span>
+            <span *ngIf="!savedAnexos.anexo_b" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
+              <i class="bi bi-clock me-1"></i>Pendiente
+            </span>
             <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_b')">
               Capturar
             </button>
@@ -144,33 +152,49 @@
           </div>
         </div>
 
-        <div *ngIf="empleadoPvmeConfig.aplica_anexo_a" class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3 bg-light rounded-3 shadow-sm">
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-success-subtle text-success rounded-pill">Anexo A</span>
-            <span class="fw-bold text-dark small">Cédula de Valoración Médica</span>
-            <span class="text-muted small d-none d-md-inline">· Exploración física, límite Tabla 1 y aptitud</span>
+        <div *ngIf="empleadoPvmeConfig.aplica_anexo_c" class="d-flex justify-content-between align-items-center gap-3 py-2 px-3 bg-light rounded-3 border border-light-subtle">
+          <div class="d-flex align-items-center gap-3 min-w-0">
+            <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill flex-shrink-0 px-2 py-1">Anexo C</span>
+            <div class="min-w-0">
+              <div class="fw-semibold text-dark small text-truncate">Información de Riesgos por Manejo de Cargas</div>
+              <div class="text-muted text-truncate" style="font-size: 0.78rem;">Constancia de peso máximo y acuse firmado</div>
+            </div>
           </div>
-          <div class="d-flex align-items-center gap-1">
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_a')">
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <span *ngIf="savedAnexos.anexo_c" class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
+              <i class="bi bi-check-circle-fill me-1"></i>Guardado
+            </span>
+            <span *ngIf="!savedAnexos.anexo_c" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
+              <i class="bi bi-clock me-1"></i>Pendiente
+            </span>
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_c')">
               Capturar
             </button>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_a')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_c')">
               <i class="bi bi-printer"></i>
             </button>
           </div>
         </div>
 
-        <div *ngIf="empleadoPvmeConfig.aplica_anexo_c" class="d-flex flex-wrap justify-content-between align-items-center gap-2 py-2 px-3 bg-light rounded-3 shadow-sm">
-          <div class="d-flex align-items-center gap-2">
-            <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill">Anexo C</span>
-            <span class="fw-bold text-dark small">Información de Riesgos por Manejo de Cargas</span>
-            <span class="text-muted small d-none d-md-inline">· Constancia de peso máximo y acuse firmado</span>
+        <div *ngIf="empleadoPvmeConfig.aplica_anexo_a" class="d-flex justify-content-between align-items-center gap-3 py-2 px-3 bg-light rounded-3 border border-light-subtle">
+          <div class="d-flex align-items-center gap-3 min-w-0">
+            <span class="badge bg-success-subtle text-success rounded-pill flex-shrink-0 px-2 py-1">Anexo A</span>
+            <div class="min-w-0">
+              <div class="fw-semibold text-dark small text-truncate">Cédula de Valoración Médica</div>
+              <div class="text-muted text-truncate" style="font-size: 0.78rem;">Exploración física, límite Tabla 1 y aptitud</div>
+            </div>
           </div>
-          <div class="d-flex align-items-center gap-1">
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_c')">
+          <div class="d-flex align-items-center gap-2 flex-shrink-0">
+            <span *ngIf="savedAnexos.anexo_a" class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
+              <i class="bi bi-check-circle-fill me-1"></i>Guardado
+            </span>
+            <span *ngIf="!savedAnexos.anexo_a" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
+              <i class="bi bi-clock me-1"></i>Pendiente
+            </span>
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_a')">
               Capturar
             </button>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_c')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_a')">
               <i class="bi bi-printer"></i>
             </button>
           </div>
@@ -245,12 +269,12 @@
                 </td>
                 <td class="text-end">
                   <div class="btn-group btn-group-sm">
-                    <button class="btn btn-light border fw-semibold" title="Abrir valoración" (click)="abrirValoracion(item, 'anexo_a')">
+                    <button class="btn btn-light border fw-semibold" title="Abrir valoración" (click)="abrirValoracion(item, 'anexo_b')">
                       Abrir
                     </button>
-                    <button class="btn btn-light border" title="Imprimir Anexo A" (click)="abrirValoracion(item, 'anexo_a', false); imprimirFormatoOficial('anexo_a')">A</button>
-                    <button class="btn btn-light border" title="Imprimir Anexo B" (click)="abrirValoracion(item, 'anexo_b', false); imprimirFormatoOficial('anexo_b')">B</button>
-                    <button class="btn btn-light border" title="Imprimir Anexo C" (click)="abrirValoracion(item, 'anexo_c', false); imprimirFormatoOficial('anexo_c')">C</button>
+                    <button class="btn btn-light border" title="Abrir Anexo B" (click)="abrirValoracion(item, 'anexo_b')">B</button>
+                    <button class="btn btn-light border" title="Abrir Anexo C" (click)="abrirValoracion(item, 'anexo_c')">C</button>
+                    <button class="btn btn-light border" title="Abrir Anexo A" (click)="abrirValoracion(item, 'anexo_a')">A</button>
                     <button
                       *ngIf="item.estado !== 'cerrada_firmada'"
                       class="btn btn-light border text-danger"
@@ -285,15 +309,8 @@
               [class.active]="activeAnexo === 'anexo_b'"
               (click)="activeAnexo = 'anexo_b'">
               <span><strong>Anexo B</strong> · Cuestionario Nórdico</span>
+              <i *ngIf="savedAnexos.anexo_b" class="bi bi-check-circle-fill text-success" title="Guardado"></i>
               <span *ngIf="regionesPositivas12m.length > 0" class="badge bg-danger rounded-pill">{{ regionesPositivas12m.length }}</span>
-            </button>
-
-            <button
-              type="button"
-              class="nav-link btn-sm py-1 px-3 d-flex align-items-center gap-2"
-              [class.active]="activeAnexo === 'anexo_a'"
-              (click)="activeAnexo = 'anexo_a'">
-              <span><strong>Anexo A</strong> · Cédula Médica</span>
             </button>
 
             <button
@@ -302,6 +319,16 @@
               [class.active]="activeAnexo === 'anexo_c'"
               (click)="sincronizarAnexoAconAnexoC(); activeAnexo = 'anexo_c'">
               <span><strong>Anexo C</strong> · Información de Riesgos</span>
+              <i *ngIf="savedAnexos.anexo_c" class="bi bi-check-circle-fill text-success" title="Guardado"></i>
+            </button>
+
+            <button
+              type="button"
+              class="nav-link btn-sm py-1 px-3 d-flex align-items-center gap-2"
+              [class.active]="activeAnexo === 'anexo_a'"
+              (click)="activeAnexo = 'anexo_a'">
+              <span><strong>Anexo A</strong> · Cédula Médica</span>
+              <i *ngIf="savedAnexos.anexo_a" class="bi bi-check-circle-fill text-success" title="Guardado"></i>
             </button>
           </div>
         </div>
@@ -317,7 +344,7 @@
             [disabled]="isSaving"
             (click)="guardarValoracion()">
             <span *ngIf="isSaving" class="spinner-border spinner-border-sm me-1"></span>
-            <i *ngIf="!isSaving" class="bi bi-floppy me-1"></i>Guardar
+            <i *ngIf="!isSaving" class="bi bi-floppy me-1"></i>Guardar {{ activeAnexo === 'anexo_b' ? 'Anexo B' : activeAnexo === 'anexo_a' ? 'Anexo A' : 'Anexo C' }}
           </button>
 
           <button
