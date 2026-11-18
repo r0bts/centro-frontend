@@ -4,6 +4,22 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 import { ServicioMedicoService } from '../../../../services/servicio-medico';
+import {
+  AREAS_EXPLORACION,
+  MANIOBRAS_CATALOG,
+  ManiobraCaptura,
+  ManiobraCatalogItem,
+  ManiobraPosicion,
+  NordicSugerencia,
+  RESUMEN_16_REGIONES,
+  calcularMediaPrension,
+  calcularResumenSugerido,
+  calcularSugerenciaNordico,
+  clasificarPrension,
+  evaluarManiobraAlterada,
+  getOpcionesManiobra,
+  tieneCapturaManiobra
+} from './anexo-a-catalog';
 
 export interface NordicRegionRow {
   key: string;
@@ -18,8 +34,10 @@ export interface ExploracionRegionRow {
   key: string;
   label: string;
   nordicKey: string;
-  guia: string;
-  hallazgo: 'Normal' | 'Alterado' | '';
+  guia?: string;
+  sugerido?: 'Sin evaluar' | 'Normal' | 'Alterado';
+  hallazgo: 'Sin evaluar' | 'Normal' | 'Alterado' | '';
+  manual?: boolean;
   observaciones: string;
 }
 
@@ -101,6 +119,15 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
   viewMode: 'historial' | 'editor' = 'historial';
   // Sub-pestaña dentro del editor: 'anexo_b' | 'anexo_a' | 'anexo_c'
   activeAnexo: 'anexo_b' | 'anexo_a' | 'anexo_c' = 'anexo_b';
+
+  // Estado guiado de Exploración Física (Anexo A)
+  readonly areasExploracion = AREAS_EXPLORACION;
+  readonly posicionesExploracion: ManiobraPosicion[] = ['De pie', 'Sentado', 'Decúbito supino', 'Decúbito prono'];
+  exploracionFilterMode: 'area' | 'posicion' = 'area';
+  selectedArea: string = 'Marcha y neurológico';
+  selectedPosicion: ManiobraPosicion = 'De pie';
+  exploracionSearch: string = '';
+  showOmitidas: boolean = true;
 
   currentEvalId: number | null = null;
   currentEstado: 'borrador' | 'tamizaje_completado' | 'bloque1_completado' | 'cerrada_firmada' = 'borrador';
@@ -500,15 +527,23 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
       incapacidades_previas_me: '',
       condicion_gestacion: 'no_aplica',
       fecha_parto: '',
-      // Bloque I - 3. Exploración física dirigida
-      exploracion: this.exploracionRegionsCatalog.map(r => ({
+      // Bloque I - 3. Exploración física dirigida (16 renglones resumen + 162 maniobras)
+      exploracion: RESUMEN_16_REGIONES.map(r => ({
         key: r.key,
         label: r.label,
         nordicKey: r.nordicKey,
-        guia: r.guia,
-        hallazgo: 'Normal',
+        sugerido: 'Sin evaluar',
+        hallazgo: 'Sin evaluar',
+        manual: false,
         observaciones: ''
       })),
+      maniobras: {} as Record<string, ManiobraCaptura>,
+      secciones_cerradas: {
+        datos: false,
+        exploracion: false,
+        bloque2: false,
+        cierre: false
+      },
       // Bloque II - 4. Límite de masa
       limite_nominal_kg: 25,
       limite_determinado_kg: 25,
@@ -651,7 +686,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     }
 
     if (item.anexo_a && typeof item.anexo_a === 'object') {
-      const mergedExp = this.exploracionRegionsCatalog.map(cat => {
+      const mergedExp = RESUMEN_16_REGIONES.map(cat => {
         const found = Array.isArray(item.anexo_a.exploracion)
           ? item.anexo_a.exploracion.find((r: any) => r.key === cat.key)
           : null;
@@ -659,12 +694,26 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
           key: cat.key,
           label: cat.label,
           nordicKey: cat.nordicKey,
-          guia: cat.guia,
-          hallazgo: 'Normal',
+          sugerido: 'Sin evaluar',
+          hallazgo: 'Sin evaluar',
+          manual: false,
           observaciones: ''
         };
       });
-      this.anexoA = { ...this.anexoA, ...item.anexo_a, folio: item.folio || item.anexo_a.folio, exploracion: mergedExp };
+      this.anexoA = {
+        ...this.anexoA,
+        ...item.anexo_a,
+        folio: item.folio || item.anexo_a.folio,
+        exploracion: mergedExp,
+        maniobras: item.anexo_a.maniobras || {},
+        secciones_cerradas: {
+          datos: false,
+          exploracion: false,
+          bloque2: false,
+          cierre: false,
+          ...(item.anexo_a.secciones_cerradas || {})
+        }
+      };
     }
 
     if (item.anexo_c && typeof item.anexo_c === 'object') {
@@ -1289,6 +1338,234 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     this.cdr.detectChanges();
   }
 
+  // ── Exploración Física Guiada (Anexo A · 162 maniobras) ───────────────────
+
+  getFilteredManiobras(): ManiobraCatalogItem[] {
+    const q = (this.exploracionSearch || '').trim().toLowerCase();
+    return MANIOBRAS_CATALOG.filter(m => {
+      if (!q) {
+        if (this.exploracionFilterMode === 'area' && m.area !== this.selectedArea) return false;
+        if (this.exploracionFilterMode === 'posicion' && m.posicion !== this.selectedPosicion) return false;
+      } else {
+        const match = m.id.toLowerCase().includes(q) || m.nombre.toLowerCase().includes(q) || m.area.toLowerCase().includes(q);
+        if (!match) return false;
+      }
+      if (!this.showOmitidas && this.getManiobraCaptura(m.id).omitida) return false;
+      return true;
+    });
+  }
+
+  getAreaStats(area: string): { total: number; capturadas: number; alteradas: number; omitidas: number } {
+    const items = MANIOBRAS_CATALOG.filter(m => m.area === area);
+    let capturadas = 0;
+    let alteradas = 0;
+    let omitidas = 0;
+    for (const m of items) {
+      const c = this.getManiobraCaptura(m.id);
+      if (c.omitida) omitidas++;
+      const ev = evaluarManiobraAlterada(m, c, this.anexoA.edad, this.anexoA.sexo);
+      if (ev !== 'sin_evaluar') capturadas++;
+      if (ev === 'alterado') alteradas++;
+    }
+    return { total: items.length, capturadas, alteradas, omitidas };
+  }
+
+  getManiobraCaptura(id: string): ManiobraCaptura {
+    if (!this.anexoA.maniobras) this.anexoA.maniobras = {};
+    if (!this.anexoA.maniobras[id]) {
+      this.anexoA.maniobras[id] = { hallazgos: [], tomas: [null, null, null], dolor: 0, observaciones: '', omitida: false };
+    }
+    return this.anexoA.maniobras[id];
+  }
+
+  getOpcionesManiobra(item: ManiobraCatalogItem): string[] {
+    return getOpcionesManiobra(item);
+  }
+
+  getManiobraEstado(item: ManiobraCatalogItem): 'alterado' | 'normal' | 'sin_evaluar' {
+    return evaluarManiobraAlterada(item, this.getManiobraCaptura(item.id), this.anexoA.edad, this.anexoA.sexo);
+  }
+
+  getSugerenciaNordico(item: ManiobraCatalogItem): NordicSugerencia {
+    return calcularSugerenciaNordico(item.nordicRegion, item.lado, this.anexoB);
+  }
+
+  getSugerenciaBadge(sug: NordicSugerencia): { label: string; css: string } {
+    switch (sug) {
+      case 'siempre': return { label: 'Siempre se explora', css: 'bg-primary-subtle text-primary' };
+      case 'obligatoria': return { label: 'Obligatoria (Nórdico)', css: 'bg-danger-subtle text-danger' };
+      case 'molestia_actual': return { label: 'Molestia actual', css: 'bg-warning-subtle text-warning-emphasis' };
+      case 'antecedente': return { label: 'Antecedente 12m', css: 'bg-info-subtle text-info-emphasis' };
+      default: return { label: 'Sin molestia', css: 'bg-light text-muted border' };
+    }
+  }
+
+  setManiobraResultado(item: ManiobraCatalogItem, res: 'Positivo' | 'Negativo' | 'Normal' | 'Anormal' | 'No realizada'): void {
+    const c = this.getManiobraCaptura(item.id);
+    c.resultado = c.resultado === res ? '' : res;
+    if (c.resultado !== 'Positivo' && c.resultado !== 'Anormal') {
+      c.hallazgos = [];
+    }
+    c.omitida = false;
+    this.recalcularResumen();
+  }
+
+  setManiobraRango(item: ManiobraCatalogItem, rango: string): void {
+    const c = this.getManiobraCaptura(item.id);
+    c.rango = c.rango === rango ? '' : rango;
+    c.omitida = false;
+    this.recalcularResumen();
+  }
+
+  toggleManiobraHallazgo(item: ManiobraCatalogItem, opcion: string): void {
+    const c = this.getManiobraCaptura(item.id);
+    if (!c.hallazgos) c.hallazgos = [];
+    const idx = c.hallazgos.indexOf(opcion);
+    if (idx >= 0) c.hallazgos.splice(idx, 1);
+    else c.hallazgos.push(opcion);
+    c.omitida = false;
+    this.recalcularResumen();
+  }
+
+  hasHallazgo(item: ManiobraCatalogItem, opcion: string): boolean {
+    const c = this.getManiobraCaptura(item.id);
+    return Array.isArray(c.hallazgos) && c.hallazgos.includes(opcion);
+  }
+
+  setManiobraDolor(item: ManiobraCatalogItem, dolor: number): void {
+    const c = this.getManiobraCaptura(item.id);
+    c.dolor = Math.max(0, Math.min(10, Number(dolor) || 0));
+    c.omitida = false;
+    this.recalcularResumen();
+  }
+
+  toggleOmitirManiobra(item: ManiobraCatalogItem): void {
+    if (!item.omitible) return;
+    const c = this.getManiobraCaptura(item.id);
+    if (!c.omitida && tieneCapturaManiobra(item, c)) return;
+    c.omitida = !c.omitida;
+    this.recalcularResumen();
+  }
+
+  canOmitirManiobra(item: ManiobraCatalogItem): boolean {
+    if (!item.omitible) return false;
+    const c = this.getManiobraCaptura(item.id);
+    return c.omitida || !tieneCapturaManiobra(item, c);
+  }
+
+  omitirRegionesSinMolestia(): void {
+    let count = 0;
+    for (const m of MANIOBRAS_CATALOG) {
+      if (!m.omitible) continue;
+      const sug = this.getSugerenciaNordico(m);
+      if (sug === 'sin_molestia') {
+        const c = this.getManiobraCaptura(m.id);
+        if (!tieneCapturaManiobra(m, c) && !c.omitida) {
+          c.omitida = true;
+          count++;
+        }
+      }
+    }
+    this.recalcularResumen();
+    if (count > 0) {
+      Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `${count} maniobras omitidas según Nórdico`, showConfirmButton: false, timer: 2200 });
+    }
+  }
+
+  marcarAreaNormal(): void {
+    const visibles = this.getFilteredManiobras().filter(m => !this.getManiobraCaptura(m.id).omitida);
+    let count = 0;
+    for (const m of visibles) {
+      const c = this.getManiobraCaptura(m.id);
+      if (tieneCapturaManiobra(m, c)) continue;
+
+      if (m.tipo === 'positivo_negativo') {
+        c.resultado = 'Negativo';
+        count++;
+      } else if (m.tipo === 'normal_anormal') {
+        c.resultado = 'Normal';
+        count++;
+      } else if (m.tipo === 'rango' && m.rangoReferencia) {
+        c.rango = m.rangoReferencia;
+        c.hallazgos = ['Arco completo'];
+        count++;
+      } else if (m.tipo === 'hallazgos') {
+        const ops = getOpcionesManiobra(m);
+        const normalOp = ops.find(op =>
+          op.startsWith('Sin ') || op.startsWith('Normal') || op.startsWith('Arco completo')
+        );
+        if (normalOp) {
+          c.hallazgos = [normalOp];
+          count++;
+        }
+      }
+    }
+    this.recalcularResumen();
+    if (count > 0) {
+      Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `${count} maniobras marcadas como normales`, showConfirmButton: false, timer: 2000 });
+    }
+  }
+
+  limpiarAreaActual(): void {
+    const visibles = this.getFilteredManiobras();
+    for (const m of visibles) {
+      if (this.anexoA.maniobras?.[m.id]) {
+        this.anexoA.maniobras[m.id] = { hallazgos: [], tomas: [null, null, null], dolor: 0, observaciones: '', omitida: false };
+      }
+    }
+    this.recalcularResumen();
+  }
+
+  getMedicionDiff(item: ManiobraCatalogItem): number | null {
+    const c = this.getManiobraCaptura(item.id);
+    if (c.medicion1 == null || c.medicion2 == null) return null;
+    return Math.round((Number(c.medicion2) - Number(c.medicion1)) * 10) / 10;
+  }
+
+  getPrensionMedia(item: ManiobraCatalogItem): number | null {
+    return calcularMediaPrension(this.getManiobraCaptura(item.id).tomas);
+  }
+
+  getPrensionClasificacion(item: ManiobraCatalogItem): 'Débil' | 'Normal' | 'Fuerte' | null {
+    return clasificarPrension(this.getPrensionMedia(item), this.anexoA.edad, this.anexoA.sexo);
+  }
+
+  recalcularResumen(): void {
+    const sugerido = calcularResumenSugerido(this.anexoA.maniobras || {}, this.anexoA.edad, this.anexoA.sexo);
+    if (!Array.isArray(this.anexoA.exploracion)) return;
+    for (const row of this.anexoA.exploracion) {
+      const sug = sugerido[row.key] || 'Sin evaluar';
+      row.sugerido = sug;
+      if (!row.manual) {
+        row.hallazgo = sug;
+      }
+    }
+  }
+
+  onResumenManualChange(row: ExploracionRegionRow): void {
+    row.manual = true;
+  }
+
+  cerrarSeccionAnexoA(sec: 'datos' | 'exploracion' | 'bloque2' | 'cierre'): void {
+    if (!this.anexoA.secciones_cerradas) {
+      this.anexoA.secciones_cerradas = { datos: false, exploracion: false, bloque2: false, cierre: false };
+    }
+    this.anexoA.secciones_cerradas[sec] = true;
+    if (sec === 'exploracion' && (!this.anexoA.secciones_cerradas.bloque2 || !this.anexoA.firma_medica_designada_data)) {
+      this.currentEstado = 'bloque1_completado';
+    }
+  }
+
+  reabrirSeccionAnexoA(sec: 'datos' | 'exploracion' | 'bloque2' | 'cierre'): void {
+    if (!this.anexoA.secciones_cerradas) return;
+    this.anexoA.secciones_cerradas[sec] = false;
+  }
+
+  isPendienteDraGloria(): boolean {
+    const sc = this.anexoA?.secciones_cerradas;
+    return Boolean(sc?.exploracion && (!sc?.bloque2 || !this.anexoA?.firma_medica_designada_data));
+  }
+
   // ── Etiquetas legibles ────────────────────────────────────────────────────
 
   getConclusionLabel(code: string): string {
@@ -1306,8 +1583,10 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     switch (estado) {
       case 'cerrada_firmada':
         return { label: 'Cerrada y Firmada (Médica Designada)', css: 'bg-success-subtle text-success border-success-subtle' };
+      case 'pendiente_dra_gloria':
+        return { label: 'Pendiente · Dra. Gloria', css: 'bg-warning-subtle text-warning-emphasis border-warning-subtle' };
       case 'bloque1_completado':
-        return { label: 'Bloque I Completo · Pendiente Médica Designada', css: 'bg-warning-subtle text-warning-emphasis border-warning-subtle' };
+        return { label: 'Pendiente · Dra. Gloria', css: 'bg-warning-subtle text-warning-emphasis border-warning-subtle' };
       case 'tamizaje_completado':
         return { label: 'Tamizaje Nórdico Recibido', css: 'bg-info-subtle text-info-emphasis border-info-subtle' };
       default:

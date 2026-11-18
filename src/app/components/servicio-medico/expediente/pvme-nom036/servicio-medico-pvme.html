@@ -794,44 +794,326 @@
             </tbody>
           </table>
 
-          <!-- 3. Exploración física dirigida -->
-          <div class="pvme-apartado-heading">3. Exploración física dirigida</div>
+          <!-- 3. Exploración física dirigida (162 maniobras guiadas + Resumen 16 renglones) -->
+          <div class="pvme-apartado-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span>3. Exploración física dirigida (Catálogo de 162 maniobras)</span>
+            <div class="d-flex align-items-center gap-2">
+              <span *ngIf="anexoA.secciones_cerradas?.exploracion" class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-lock-fill me-1"></i>Exploración cerrada
+              </span>
+              <button
+                *ngIf="!anexoA.secciones_cerradas?.exploracion"
+                type="button"
+                class="btn btn-xs btn-outline-success rounded-pill px-3"
+                (click)="cerrarSeccionAnexoA('exploracion')">
+                <i class="bi bi-check2-circle me-1"></i>Cerrar Exploración
+              </button>
+              <button
+                *ngIf="anexoA.secciones_cerradas?.exploracion"
+                type="button"
+                class="btn btn-xs btn-outline-secondary rounded-pill px-3"
+                (click)="reabrirSeccionAnexoA('exploracion')">
+                <i class="bi bi-unlock me-1"></i>Reabrir
+              </button>
+            </div>
+          </div>
+
+          <!-- Barra de herramientas guiada -->
+          <div class="card border bg-white mb-3 p-3 rounded-3 shadow-sm">
+            <!-- Fila 1: Modo de agrupación + Buscador -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 pb-2 mb-2 border-bottom">
+              <div class="btn-group btn-group-sm" role="group">
+                <button
+                  type="button"
+                  class="btn"
+                  [class.btn-primary]="exploracionFilterMode === 'area'"
+                  [class.btn-outline-secondary]="exploracionFilterMode !== 'area'"
+                  (click)="exploracionFilterMode = 'area'">
+                  Por Área (10)
+                </button>
+                <button
+                  type="button"
+                  class="btn"
+                  [class.btn-primary]="exploracionFilterMode === 'posicion'"
+                  [class.btn-outline-secondary]="exploracionFilterMode !== 'posicion'"
+                  (click)="exploracionFilterMode = 'posicion'">
+                  Por Posición (4)
+                </button>
+              </div>
+
+              <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch mb-0 small">
+                  <input class="form-check-input" type="checkbox" id="showOmitidasSwitch" [(ngModel)]="showOmitidas">
+                  <label class="form-check-label text-muted" for="showOmitidasSwitch">Mostrar omitidas</label>
+                </div>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  style="width: 220px;"
+                  [(ngModel)]="exploracionSearch"
+                  placeholder="Buscar ID o maniobra...">
+              </div>
+            </div>
+
+            <!-- Fila 2: Tabs de Área o Posición -->
+            <div *ngIf="exploracionFilterMode === 'area' && !exploracionSearch" class="d-flex flex-wrap gap-1 pb-2 mb-2 border-bottom">
+              <button
+                *ngFor="let area of areasExploracion"
+                type="button"
+                class="btn btn-sm rounded-2 px-2 py-1"
+                [class.btn-dark]="selectedArea === area"
+                [class.btn-light]="selectedArea !== area"
+                [class.border]="selectedArea !== area"
+                (click)="selectedArea = area">
+                {{ area }}
+                <span class="badge ms-1" [class.bg-danger]="getAreaStats(area).alteradas > 0" [class.bg-secondary]="getAreaStats(area).alteradas === 0">
+                  {{ getAreaStats(area).capturadas }}/{{ getAreaStats(area).total }}
+                </span>
+              </button>
+            </div>
+
+            <div *ngIf="exploracionFilterMode === 'posicion' && !exploracionSearch" class="d-flex flex-wrap gap-1 pb-2 mb-2 border-bottom">
+              <button
+                *ngFor="let pos of posicionesExploracion"
+                type="button"
+                class="btn btn-sm rounded-2 px-3 py-1"
+                [class.btn-dark]="selectedPosicion === pos"
+                [class.btn-light]="selectedPosicion !== pos"
+                [class.border]="selectedPosicion !== pos"
+                (click)="selectedPosicion = pos">
+                {{ pos }}
+              </button>
+            </div>
+
+            <!-- Fila 3: Acciones rápidas -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <span class="small text-muted">
+                Mostrando <strong>{{ getFilteredManiobras().length }}</strong> maniobras
+              </span>
+              <div class="d-flex flex-wrap align-items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-success"
+                  (click)="marcarAreaNormal()"
+                  title="Marca como normales todas las maniobras sin captura de la vista actual">
+                  <i class="bi bi-check-all me-1"></i>Marcar vista normal
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-secondary"
+                  (click)="limpiarAreaActual()"
+                  title="Limpia las capturas de la vista actual">
+                  <i class="bi bi-eraser me-1"></i>Limpiar
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm btn-outline-warning"
+                  (click)="omitirRegionesSinMolestia()">
+                  <i class="bi bi-magic me-1"></i>Omitir sin molestia (Nórdico)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista de maniobras filtradas -->
+          <div class="d-flex flex-column gap-2 mb-4">
+            <div
+              *ngFor="let m of getFilteredManiobras()"
+              class="card border shadow-none"
+              [class.border-danger]="getManiobraEstado(m) === 'alterado'"
+              [class.border-success]="getManiobraEstado(m) === 'normal'"
+              [class.opacity-50]="getManiobraCaptura(m.id).omitida">
+              <div class="card-body p-2 p-md-3">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+                  <div>
+                    <span class="badge bg-secondary-subtle text-dark font-monospace me-1">{{ m.id }}</span>
+                    <strong class="me-2">{{ m.nombre }}</strong>
+                    <span class="badge bg-light text-muted border me-1">{{ m.posicion }}</span>
+                    <span *ngIf="m.lado !== '—'" class="badge bg-light text-dark border me-1">{{ m.lado }}</span>
+                    <span class="badge {{ getSugerenciaBadge(getSugerenciaNordico(m)).css }}">
+                      {{ getSugerenciaBadge(getSugerenciaNordico(m)).label }}
+                    </span>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span
+                      *ngIf="getManiobraCaptura(m.id).omitida"
+                      class="badge bg-secondary">Omitida</span>
+                    <span
+                      *ngIf="!getManiobraCaptura(m.id).omitida && getManiobraEstado(m) === 'alterado'"
+                      class="badge bg-danger">Alterado</span>
+                    <span
+                      *ngIf="!getManiobraCaptura(m.id).omitida && getManiobraEstado(m) === 'normal'"
+                      class="badge bg-success">Normal</span>
+                    <button
+                      *ngIf="canOmitirManiobra(m)"
+                      type="button"
+                      class="btn btn-xs btn-outline-secondary"
+                      (click)="toggleOmitirManiobra(m)">
+                      {{ getManiobraCaptura(m.id).omitida ? 'Restaurar' : 'Omitir' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div *ngIf="!getManiobraCaptura(m.id).omitida">
+                  <!-- Tipo: Positivo / Negativo -->
+                  <div *ngIf="m.tipo === 'positivo_negativo'" class="mb-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button type="button" class="btn" [class.btn-danger]="getManiobraCaptura(m.id).resultado === 'Positivo'" [class.btn-outline-secondary]="getManiobraCaptura(m.id).resultado !== 'Positivo'" (click)="setManiobraResultado(m, 'Positivo')">Positivo</button>
+                      <button type="button" class="btn" [class.btn-success]="getManiobraCaptura(m.id).resultado === 'Negativo'" [class.btn-outline-secondary]="getManiobraCaptura(m.id).resultado !== 'Negativo'" (click)="setManiobraResultado(m, 'Negativo')">Negativo</button>
+                      <button type="button" class="btn" [class.btn-secondary]="getManiobraCaptura(m.id).resultado === 'No realizada'" [class.btn-outline-secondary]="getManiobraCaptura(m.id).resultado !== 'No realizada'" (click)="setManiobraResultado(m, 'No realizada')">No realizada</button>
+                    </div>
+                    <div *ngIf="getManiobraCaptura(m.id).resultado === 'Positivo' && getOpcionesManiobra(m).length > 0" class="d-flex flex-wrap gap-2 mt-2">
+                      <label *ngFor="let op of getOpcionesManiobra(m)" class="form-check form-check-inline small mb-0">
+                        <input class="form-check-input" type="checkbox" [checked]="hasHallazgo(m, op)" (change)="toggleManiobraHallazgo(m, op)">
+                        <span class="form-check-label">{{ op }}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Tipo: Normal / Anormal -->
+                  <div *ngIf="m.tipo === 'normal_anormal'" class="mb-2">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <button type="button" class="btn" [class.btn-success]="getManiobraCaptura(m.id).resultado === 'Normal'" [class.btn-outline-secondary]="getManiobraCaptura(m.id).resultado !== 'Normal'" (click)="setManiobraResultado(m, 'Normal')">Normal</button>
+                      <button type="button" class="btn" [class.btn-danger]="getManiobraCaptura(m.id).resultado === 'Anormal'" [class.btn-outline-secondary]="getManiobraCaptura(m.id).resultado !== 'Anormal'" (click)="setManiobraResultado(m, 'Anormal')">Anormal</button>
+                      <button type="button" class="btn" [class.btn-secondary]="getManiobraCaptura(m.id).resultado === 'No realizada'" [class.btn-outline-secondary]="getManiobraCaptura(m.id).resultado !== 'No realizada'" (click)="setManiobraResultado(m, 'No realizada')">No realizada</button>
+                    </div>
+                    <div *ngIf="getManiobraCaptura(m.id).resultado === 'Anormal' && getOpcionesManiobra(m).length > 0" class="d-flex flex-wrap gap-2 mt-2">
+                      <label *ngFor="let op of getOpcionesManiobra(m)" class="form-check form-check-inline small mb-0">
+                        <input class="form-check-input" type="checkbox" [checked]="hasHallazgo(m, op)" (change)="toggleManiobraHallazgo(m, op)">
+                        <span class="form-check-label">{{ op }}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Tipo: Rango (botones) -->
+                  <div *ngIf="m.tipo === 'rango'" class="mb-2">
+                    <div class="small text-muted mb-1">Referencia: <strong>{{ m.referencia }}</strong></div>
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                      <button
+                        *ngFor="let r of m.rangos"
+                        type="button"
+                        class="btn btn-sm"
+                        [class.btn-success]="getManiobraCaptura(m.id).rango === r && r === m.rangoReferencia"
+                        [class.btn-danger]="getManiobraCaptura(m.id).rango === r && r !== m.rangoReferencia"
+                        [class.btn-outline-success]="getManiobraCaptura(m.id).rango !== r && r === m.rangoReferencia"
+                        [class.btn-outline-secondary]="getManiobraCaptura(m.id).rango !== r && r !== m.rangoReferencia"
+                        (click)="setManiobraRango(m, r)">
+                        {{ r }}
+                      </button>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <label *ngFor="let op of getOpcionesManiobra(m)" class="form-check form-check-inline small mb-0">
+                        <input class="form-check-input" type="checkbox" [checked]="hasHallazgo(m, op)" (change)="toggleManiobraHallazgo(m, op)">
+                        <span class="form-check-label">{{ op }}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Tipo: Sólo hallazgos -->
+                  <div *ngIf="m.tipo === 'hallazgos'" class="mb-2">
+                    <div class="d-flex flex-wrap gap-2">
+                      <label *ngFor="let op of getOpcionesManiobra(m)" class="form-check form-check-inline small mb-0">
+                        <input class="form-check-input" type="checkbox" [checked]="hasHallazgo(m, op)" (change)="toggleManiobraHallazgo(m, op)">
+                        <span class="form-check-label">{{ op }}</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Tipo: Medición en cm (Expansión torácica / Schober) -->
+                  <div *ngIf="m.tipo === 'medicion_cm'" class="mb-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-auto">
+                        <label class="small text-muted me-1">{{ m.id === 'DP-27' ? 'Inspiración normal (cm):' : 'Posición erecta (cm):' }}</label>
+                        <input type="number" step="0.1" class="form-control form-control-sm d-inline-block" style="width: 90px;" [(ngModel)]="getManiobraCaptura(m.id).medicion1" (ngModelChange)="recalcularResumen()">
+                      </div>
+                      <div class="col-auto">
+                        <label class="small text-muted me-1">{{ m.id === 'DP-27' ? 'Inspiración forzada (cm):' : 'Flexión máxima (cm):' }}</label>
+                        <input type="number" step="0.1" class="form-control form-control-sm d-inline-block" style="width: 90px;" [(ngModel)]="getManiobraCaptura(m.id).medicion2" (ngModelChange)="recalcularResumen()">
+                      </div>
+                      <div class="col-auto" *ngIf="getMedicionDiff(m) !== null">
+                        <span class="badge" [class.bg-success]="(getMedicionDiff(m) ?? 0) >= 5" [class.bg-danger]="(getMedicionDiff(m) ?? 0) < 5">
+                          Diferencia: {{ getMedicionDiff(m) }} cm ({{ (getMedicionDiff(m) ?? 0) >= 5 ? '≥ 5 cm Normal' : '< 5 cm Alterado' }})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tipo: Fuerza de prensión (3 tomas en kg) -->
+                  <div *ngIf="m.tipo === 'prension_kg'" class="mb-2">
+                    <div class="row g-2 align-items-center">
+                      <div class="col-auto">
+                        <label class="small text-muted me-1">Toma 1 (kg):</label>
+                        <input type="number" step="0.1" class="form-control form-control-sm d-inline-block" style="width: 80px;" [(ngModel)]="getManiobraCaptura(m.id).tomas![0]" (ngModelChange)="recalcularResumen()">
+                      </div>
+                      <div class="col-auto">
+                        <label class="small text-muted me-1">Toma 2 (kg):</label>
+                        <input type="number" step="0.1" class="form-control form-control-sm d-inline-block" style="width: 80px;" [(ngModel)]="getManiobraCaptura(m.id).tomas![1]" (ngModelChange)="recalcularResumen()">
+                      </div>
+                      <div class="col-auto">
+                        <label class="small text-muted me-1">Toma 3 (kg):</label>
+                        <input type="number" step="0.1" class="form-control form-control-sm d-inline-block" style="width: 80px;" [(ngModel)]="getManiobraCaptura(m.id).tomas![2]" (ngModelChange)="recalcularResumen()">
+                      </div>
+                      <div class="col-auto" *ngIf="getPrensionMedia(m) !== null">
+                        <span class="badge bg-info-subtle text-dark border me-1">Media: {{ getPrensionMedia(m) }} kg</span>
+                        <span
+                          *ngIf="getPrensionClasificacion(m)"
+                          class="badge"
+                          [class.bg-danger]="getPrensionClasificacion(m) === 'Débil'"
+                          [class.bg-success]="getPrensionClasificacion(m) === 'Normal'"
+                          [class.bg-primary]="getPrensionClasificacion(m) === 'Fuerte'">
+                          {{ getPrensionClasificacion(m) }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Dolor (0-10) y Observaciones -->
+                  <div class="row g-2 align-items-center mt-1 pt-1 border-top">
+                    <div class="col-auto d-flex align-items-center gap-1">
+                      <span class="small text-muted">Dolor (0–10):</span>
+                      <input type="number" min="0" max="10" class="form-control form-control-sm" style="width: 64px;" [ngModel]="getManiobraCaptura(m.id).dolor" (ngModelChange)="setManiobraDolor(m, $event)">
+                    </div>
+                    <div class="col">
+                      <input type="text" class="form-control form-control-sm" [(ngModel)]="getManiobraCaptura(m.id).observaciones" placeholder="Observaciones de la maniobra...">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumen de 16 renglones por región y lado -->
+          <div class="pvme-apartado-heading">Resumen de Exploración Física (16 renglones por región y lado)</div>
           <table class="pvme-official-table">
             <thead>
               <tr>
-                <th style="width: 24%;">Región</th>
-                <th class="text-center" style="width: 22%;">Hallazgo</th>
-                <th style="width: 54%;">Observaciones y maniobras</th>
+                <th style="width: 26%;">Región y lado</th>
+                <th class="text-center" style="width: 16%;">Sugerencia sistema</th>
+                <th class="text-center" style="width: 20%;">Estado final (Médica)</th>
+                <th style="width: 38%;">Observaciones</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let exp of anexoA.exploracion" [class.table-warning]="isExploracionObligatoria(exp.nordicKey) || exp.hallazgo === 'Alterado'">
-                <td class="fw-bold">
-                  {{ exp.label }}
-                  <span *ngIf="isExploracionObligatoria(exp.nordicKey)" class="badge bg-danger ms-1" style="font-size: 0.65rem;">+ Nórdico</span>
-                </td>
-                <td
-                  class="pvme-switch-td"
-                  [class.is-positive-td]="exp.hallazgo === 'Alterado'"
-                  (click)="exp.hallazgo = exp.hallazgo === 'Alterado' ? 'Normal' : 'Alterado'">
-                  <div class="form-check form-switch pvme-switch-label mb-0">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      role="switch"
-                      tabindex="-1"
-                      [checked]="exp.hallazgo === 'Alterado'">
-                    <span class="switch-state-text" [class.is-active]="exp.hallazgo === 'Alterado'" [class.is-normal]="exp.hallazgo !== 'Alterado'">
-                      {{ exp.hallazgo === 'Alterado' ? 'Alterado' : 'Normal' }}
-                    </span>
-                  </div>
+              <tr *ngFor="let exp of anexoA.exploracion" [class.table-warning]="exp.hallazgo === 'Alterado'">
+                <td class="fw-bold">{{ exp.label }}</td>
+                <td class="text-center">
+                  <span
+                    class="badge"
+                    [class.bg-danger]="exp.sugerido === 'Alterado'"
+                    [class.bg-success]="exp.sugerido === 'Normal'"
+                    [class.bg-secondary]="!exp.sugerido || exp.sugerido === 'Sin evaluar'">
+                    {{ exp.sugerido || 'Sin evaluar' }}
+                  </span>
                 </td>
                 <td>
-                  <input
-                    type="text"
-                    class="form-control form-control-sm"
-                    [(ngModel)]="exp.observaciones"
-                    [placeholder]="exp.guia">
+                  <select class="form-select form-select-sm" [(ngModel)]="exp.hallazgo" (ngModelChange)="onResumenManualChange(exp)">
+                    <option value="Sin evaluar">Sin evaluar</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Alterado">Alterado</option>
+                  </select>
+                </td>
+                <td>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="exp.observaciones" placeholder="Observaciones de la región...">
                 </td>
               </tr>
             </tbody>
