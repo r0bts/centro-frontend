@@ -60,6 +60,9 @@ export class ServicioMedicoDashboard implements OnInit, OnDestroy {
   private initialOffsetY: number = 0;
 
   // Datos Operativos
+  private static cachedConsultas: any[] | null = null;
+  private static cachedLocations: any[] | null = null;
+
   isLoadingDashboard: boolean = true;
   skeletonRows: number[] = [1, 2, 3, 4];
   consultas: any[] = [];
@@ -121,33 +124,49 @@ export class ServicioMedicoDashboard implements OnInit, OnDestroy {
   }
 
   loadDashboardData(): void {
-    this.isLoadingDashboard = true;
+    if (ServicioMedicoDashboard.cachedConsultas) {
+      this.consultas = ServicioMedicoDashboard.cachedConsultas;
+      this.locations = ServicioMedicoDashboard.cachedLocations || [];
+      this.isLoadingDashboard = false;
+      this.updateActiveQueueTab();
+    } else {
+      this.isLoadingDashboard = true;
+    }
 
-    forkJoin({
-      consultas: this.servicioMedico.getConsultas('', { limit: 60 }).pipe(catchError(() => of({ success: false, data: [] }))),
-      locations: this.servicioMedico.getLocations().pipe(catchError(() => of({ success: false, data: [] })))
-    })
+    this.servicioMedico.getConsultas('', { limit: 60 })
       .pipe(
+        catchError(() => of({ success: false, data: [] })),
         finalize(() => {
           this.isLoadingDashboard = false;
           this.cdr.detectChanges();
         })
       )
       .subscribe(res => {
-        if (res.consultas?.success && Array.isArray(res.consultas.data)) {
-          this.consultas = res.consultas.data;
+        if (res?.success && Array.isArray(res.data)) {
+          this.consultas = res.data;
+          ServicioMedicoDashboard.cachedConsultas = res.data;
         }
-        if (res.locations?.success) {
-          const allLocs = res.locations.data?.locations || res.locations.data;
-          this.locations = Array.isArray(allLocs) ? allLocs : [];
-        }
+        this.updateActiveQueueTab();
+      });
 
-        if (this.consultasAbiertas.length === 0) {
-          this.activeQueueTab = this.consultasHoy.length > 0 ? 'hoy' : 'recientes';
-        } else {
-          this.activeQueueTab = 'abiertas';
+    this.servicioMedico.getLocations()
+      .pipe(catchError(() => of({ success: false, data: [] })))
+      .subscribe(res => {
+        if (res?.success) {
+          const allLocs = res.data?.locations || res.data;
+          this.locations = Array.isArray(allLocs) ? allLocs : [];
+          ServicioMedicoDashboard.cachedLocations = this.locations;
+          this.cdr.detectChanges();
         }
       });
+  }
+
+  private updateActiveQueueTab(): void {
+    if (this.consultasAbiertas.length === 0) {
+      this.activeQueueTab = this.consultasHoy.length > 0 ? 'hoy' : 'recientes';
+    } else {
+      this.activeQueueTab = 'abiertas';
+    }
   }
 
   // ── Arrastrar y fijar posición del Spotlight en pantalla ──────────────────

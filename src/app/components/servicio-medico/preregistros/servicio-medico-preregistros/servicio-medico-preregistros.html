@@ -569,7 +569,13 @@
           <div class="sm-clinical-card h-100">
             <h6 class="sm-clinical-title">4. Hábitos, Heredofamiliares y Estudios</h6>
             <div class="sm-kv-grid">
-              <div><span class="sm-k">Heredofamiliares:</span> <span class="sm-v">{{ r.antecedentes_familiares || formatArrayOrString(r.enfermedades_familiares) }}</span></div>
+              <div>
+                <span class="sm-k">Heredofamiliares:</span>
+                <span class="sm-v">{{ r.antecedentes_familiares || formatArrayOrString(r.enfermedades_familiares) }}</span>
+                <span *ngIf="selectedItem?.tipo_persona === 'socio' || selectedItem?.tipo_persona === 'prospecto_socio'" class="badge bg-light text-muted border ms-2" style="font-size: 0.7rem;" title="Para socios, los heredofamiliares solo se guardan en el expediente local y no se sincronizan a NetSuite">
+                  <i class="bi bi-info-circle me-1"></i>Solo expediente local (no mapeado en NetSuite)
+                </span>
+              </div>
               <div><span class="sm-k">Tabaquismo / Alcohol:</span> <span class="sm-v">{{ r.tabaquismo || r.fuma || '—' }} | {{ r.alcoholismo || r.alcohol || '—' }}</span></div>
               <div><span class="sm-k">Toxicomanías:</span> <span class="sm-v">{{ r.drogas_narrativa || r.drogadiccion || r.drogas || '—' }}</span></div>
               <div><span class="sm-k">Alimentación y Actividad:</span> <span class="sm-v">{{ r.dieta || r.alimentacion || '—' }} | {{ r.actividades || r.actividad_fisica || '—' }}</span></div>

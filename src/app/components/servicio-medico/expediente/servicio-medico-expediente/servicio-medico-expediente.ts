@@ -69,7 +69,7 @@ export class AutosizeDirective implements AfterViewInit, OnDestroy {
 
 import { TextFieldModule } from '@angular/cdk/text-field';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ServicioMedicoService } from '../../../../services/servicio-medico';
 import { AuthService } from '../../../../services/auth.service';
 import { ContentMenu } from '../../../content-menu/content-menu';
@@ -80,7 +80,7 @@ import Swal from 'sweetalert2';
 @Component({
   selector: 'app-servicio-medico-expediente',
   standalone: true,
-  imports: [CommonModule, FormsModule, ContentMenu, TextFieldModule, AutosizeDirective, ServicioMedicoPvmeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ContentMenu, TextFieldModule, AutosizeDirective, ServicioMedicoPvmeComponent],
   templateUrl: './servicio-medico-expediente.html',
   styleUrl: './servicio-medico-expediente.scss'
 })

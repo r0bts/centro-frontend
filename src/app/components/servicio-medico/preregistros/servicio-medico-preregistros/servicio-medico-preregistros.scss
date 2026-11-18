@@ -83,7 +83,7 @@
 }
 
 .sm-content-reveal {
-  animation: smFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: smFadeIn 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes smFadeIn {
@@ -207,11 +207,11 @@
 }
 
 .sm-slide-in-right {
-  animation: smSlideFromRight 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: smSlideFromRight 0.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .sm-slide-in-left {
-  animation: smSlideFromLeft 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: smSlideFromLeft 0.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 @keyframes smSlideFromRight {
@@ -580,7 +580,7 @@
   box-shadow: -12px 0 38px rgba(15, 23, 42, 0.22);
   overflow-y: auto;
   overscroll-behavior: contain;
-  animation: smDrawerSlideIn 0.26s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: smDrawerSlideIn 0.15s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 
   @media (max-width: 1024px) {
     width: 100vw;

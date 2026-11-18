@@ -7,13 +7,23 @@
         </h5>
         <p class="text-muted mb-0 small">Sincroniza catálogos y consulta una vista previa tabular por cada card.</p>
       </div>
-      <button class="btn btn-primary" *ngIf="canSync('sync')" (click)="syncAll()">
-        Sincronizar Todo
-      </button>
+      <div class="d-flex align-items-center gap-2">
+        <div class="btn-group btn-group-sm" role="group">
+          <button type="button" class="btn" [class.btn-dark]="activeTab === 'catalogos'" [class.btn-outline-secondary]="activeTab !== 'catalogos'" (click)="activeTab = 'catalogos'">
+            Catálogos
+          </button>
+          <button type="button" class="btn" [class.btn-dark]="activeTab === 'mapeo_medico'" [class.btn-outline-secondary]="activeTab !== 'mapeo_medico'" (click)="activeTab = 'mapeo_medico'">
+            Mapeo de campos (Servicio Médico)
+          </button>
+        </div>
+        <button class="btn btn-primary" *ngIf="activeTab === 'catalogos' && canSync('sync')" (click)="syncAll()">
+          Sincronizar Todo
+        </button>
+      </div>
     </div>
   </div>
 
-  <div class="card-body">
+  <div class="card-body" *ngIf="activeTab === 'catalogos'">
     <div class="alert alert-info mb-4" role="alert">
       <strong>Configuración de Integración NetSuite</strong>
       <p class="mb-0 mt-2">El icono de ojo despliega la información local sincronizada del catálogo seleccionado.</p>
@@ -182,6 +192,50 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="card-body" *ngIf="activeTab === 'mapeo_medico'">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <div>
+        <h6 class="mb-1">Mapeo de campos a NetSuite — Servicio Médico</h6>
+        <p class="text-muted small mb-0">Configura los IDs de campos en NetSuite para Socios (<code>customer</code>) y Empleados (<code>employee</code>). Si un campo queda vacío, no se envía.</p>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resetMedicalMapping()">
+          <i class="bi bi-arrow-counterclockwise me-1"></i>Restaurar por defecto
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" (click)="saveMedicalMapping()">
+          <i class="bi bi-save me-1"></i>Guardar mapeo
+        </button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="min-width: 180px;">Campo / Sufijo</th>
+            <th style="min-width: 240px;">Campo NetSuite (Socio)</th>
+            <th style="min-width: 240px;">Campo NetSuite (Empleado)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of medicalMappingRows">
+            <td>
+              <div class="fw-semibold font-monospace small">{{ row.sufijo }}</div>
+              <div class="text-muted" style="font-size: 0.72rem;">{{ row.seccion }} · <span class="badge bg-light text-dark border">{{ row.tipo }}</span></div>
+              <div class="text-muted text-truncate" style="font-size: 0.72rem; max-width: 220px;" [title]="row.origen">Origen: {{ row.origen }}</div>
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm font-monospace" style="min-width: 230px;" [(ngModel)]="row.socioCampo" placeholder="(sin mapear)">
+            </td>
+            <td>
+              <input type="text" class="form-control form-control-sm font-monospace" style="min-width: 230px;" [(ngModel)]="row.empleadoCampo" placeholder="(sin mapear)">
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

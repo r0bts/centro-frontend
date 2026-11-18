@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
 import { NetsuiteSyncService, SyncResponse } from '../../../services/netsuite-sync.service';
 import { AuthService } from '../../../services/auth.service';
@@ -42,11 +43,82 @@ interface CatalogCardConfig {
 @Component({
   selector: 'app-netsuite-sync',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './netsuite-sync.html',
   styleUrls: ['./netsuite-sync.scss']
 })
 export class NetsuiteSyncComponent implements OnInit {
+  activeTab: 'catalogos' | 'mapeo_medico' = 'catalogos';
+
+  medicalMappingRows: {
+    seccion: string;
+    sufijo: string;
+    origen: string;
+    socioCampo: string;
+    empleadoCampo: string;
+    tipo: string;
+  }[] = [];
+
+  private readonly DEFAULT_MEDICAL_MAPPING = [
+    // 4.1 Antecedentes patológicos
+    { seccion: 'Antecedentes patológicos', sufijo: 'enfermedades', origen: 'enfermedades || padecimientos_cronicos', socioCampo: 'custentity_cl_antecedentes_1', empleadoCampo: 'custentity_cl_antecedentes_1', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'hospitalizaciones', origen: 'hospitalizaciones', socioCampo: 'custentity_cl_antecedentes_2', empleadoCampo: 'custentity_cl_antecedentes_2', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'cirugias', origen: 'cirugias_previas', socioCampo: 'custentity_cl_antecedentes_3', empleadoCampo: 'custentity_cl_antecedentes_3', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'traumatismos', origen: 'traumatismos', socioCampo: 'custentity_cl_antecedentes_4', empleadoCampo: 'custentity_cl_antecedentes_4', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'transfusiones', origen: 'transfusiones', socioCampo: 'custentity_cl_antecedentes_5', empleadoCampo: 'custentity_cl_antecedentes_5', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'inmunizaciones', origen: 'inmunizaciones', socioCampo: 'custentity_cl_antecedentes_6', empleadoCampo: 'custentity_cl_antecedentes_6', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'historia_psiquiatrica', origen: 'historia_psiquiatrica', socioCampo: 'custentity_cl_antecedentes_7', empleadoCampo: 'custentity_cl_antecedentes_7', tipo: 'string' },
+    { seccion: 'Antecedentes patológicos', sufijo: 'alergias', origen: 'alergias', socioCampo: 'custentity_cl_antecedentes_8', empleadoCampo: 'custentity_cl_antecedentes_8', tipo: 'string' },
+    // 4.2 Antecedentes no patológicos
+    { seccion: 'Antecedentes no patológicos', sufijo: 'tabaquismo', origen: 'tabaquismo', socioCampo: 'custentity_cl_nopatologicos_1', empleadoCampo: 'custentity_cl_nopatologicos_1', tipo: 'boolean (toBool)' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'alcoholismo', origen: 'alcoholismo', socioCampo: 'custentity_cl_nopatologicos_2', empleadoCampo: 'custentity_cl_nopatologicos_2', tipo: 'boolean (toBool)' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'drogadiccion', origen: 'drogadiccion', socioCampo: 'custentity_cl_nopatologicos_3', empleadoCampo: 'custentity_cl_nopatologicos_3', tipo: 'boolean (toBool)' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'drogas', origen: 'drogas_narrativa || drogas_cuales', socioCampo: 'custentity_cl_nopatologicos_4', empleadoCampo: 'custentity_cl_nopatologicos_4', tipo: 'string' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'estilo_vida', origen: 'estilo_vida', socioCampo: 'custentity_cl_nopatologicos_5', empleadoCampo: 'custentity_cl_nopatologicos_5', tipo: 'string' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'higiene_personal', origen: 'higiene_personal', socioCampo: 'custentity_cl_nopatologicos_6', empleadoCampo: 'custentity_cl_nopatologicos_6', tipo: 'string' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'dieta', origen: 'dieta', socioCampo: 'custentity_cl_nopatologicos_7', empleadoCampo: 'custentity_cl_nopatologicos_7', tipo: 'string' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'grupo_sanguineo', origen: 'grupo_sanguineo', socioCampo: 'custentity_cl_nopatologicos_8', empleadoCampo: 'custentity_cl_nopatologicos_8', tipo: 'string' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'educacion_actividades', origen: 'educacion_actividades', socioCampo: '', empleadoCampo: 'custentity_cl_nopatologicos_8', tipo: 'string' },
+    { seccion: 'Antecedentes no patológicos', sufijo: 'actividades', origen: 'actividades', socioCampo: 'custentity_cl_nopatologicos_10', empleadoCampo: 'custentity_cl_nopatologicos_10', tipo: 'string' },
+    // 4.3 Datos generales
+    { seccion: 'Datos generales', sufijo: 'contacto_emergencia', origen: 'contacto_emergencia_nombre', socioCampo: 'custentity_cl_general_3', empleadoCampo: 'custentity_cl_general_3', tipo: 'string' },
+    { seccion: 'Datos generales', sufijo: 'contacto_emergencia_tel', origen: 'contacto_emergencia_telefono', socioCampo: 'custentity_cl_general_5', empleadoCampo: 'custentity_cl_general_5', tipo: 'string' },
+    { seccion: 'Datos generales', sufijo: 'resumen_clinico', origen: 'motivo_visita | notas_adicionales | estudios_resumen', socioCampo: 'custentity_cl_general_6', empleadoCampo: 'custentity_cl_general_6', tipo: 'string (máx 300)' },
+    { seccion: 'Datos generales', sufijo: 'cuenta_seguro_medico', origen: 'cuenta_seguro_medico', socioCampo: 'custentity_cl_general_7', empleadoCampo: 'custentity_cl_general_7', tipo: 'boolean' },
+    // 4.4 Heredofamiliares (solo empleados)
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_cancer', origen: 'enfermedades_familiares (cáncer)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_1', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_dm', origen: 'enfermedades_familiares (diabetes)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_2', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_htn', origen: 'enfermedades_familiares (hipertensión)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_3', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_infarto', origen: 'enfermedades_familiares (infarto)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_4', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_obesidad', origen: 'enfermedades_familiares (obesidad)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_5', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_tb', origen: 'enfermedades_familiares (tuberculosis)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_6', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_epoc', origen: 'enfermedades_familiares (epoc)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_7', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_avc', origen: 'enfermedades_familiares (avc/evc)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_8', tipo: 'boolean' },
+    { seccion: 'Heredofamiliares (solo empleados)', sufijo: 'hf_sx', origen: 'enfermedades_familiares (síndrome)', socioCampo: '', empleadoCampo: 'custentity_cl_heredofamiliares_9', tipo: 'boolean' }
+  ];
+
+  loadMedicalMapping(): void {
+    try {
+      const saved = localStorage.getItem('netsuite_medical_field_mapping_v1');
+      if (saved) {
+        this.medicalMappingRows = JSON.parse(saved);
+        return;
+      }
+    } catch { /* ignore */ }
+    this.medicalMappingRows = this.DEFAULT_MEDICAL_MAPPING.map(r => ({ ...r }));
+  }
+
+  saveMedicalMapping(): void {
+    localStorage.setItem('netsuite_medical_field_mapping_v1', JSON.stringify(this.medicalMappingRows));
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Mapeo a NetSuite guardado', showConfirmButton: false, timer: 2000 });
+  }
+
+  resetMedicalMapping(): void {
+    this.medicalMappingRows = this.DEFAULT_MEDICAL_MAPPING.map(r => ({ ...r }));
+    localStorage.setItem('netsuite_medical_field_mapping_v1', JSON.stringify(this.medicalMappingRows));
+    Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Mapeo restaurado a valores por defecto', showConfirmButton: false, timer: 2000 });
+  }
+
   syncStatus: { [key: string]: SyncStatus } = {
     users: {
       type: 'users',
@@ -422,6 +494,7 @@ export class NetsuiteSyncComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadMedicalMapping();
     console.log('✅ NetsuiteSyncComponent initialized');
     console.log('🔗 Conectado a endpoints reales de NetSuite');
     this.loadSyncStatus();
