@@ -238,7 +238,7 @@
             <div class="card-header bg-transparent border-bottom px-4 py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <h5 class="fw-bold text-dark mb-0"><i class="bi bi-clipboard2-pulse text-primary me-2"></i> Ficha Clínica del Paciente</h5>
               <div class="d-flex align-items-center flex-wrap gap-2">
-                <ng-container *ngIf="medicalProfile.is_socio">
+                <ng-container *ngIf="medicalProfile">
                   <small class="text-muted">
                     Última sinc. NetSuite: 
                     <strong>{{ medicalProfile.ns_last_sync ? (medicalProfile.ns_last_sync | date:'dd/MM/yyyy HH:mm') : 'Nunca' }}</strong>

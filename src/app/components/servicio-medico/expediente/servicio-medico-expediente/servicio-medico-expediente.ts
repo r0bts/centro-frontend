@@ -613,7 +613,7 @@ export class ServicioMedicoExpediente implements OnInit {
   }
 
   syncFromNetSuite() {
-    if (!this.medicalProfile?.is_socio || !this.token) return;
+    if (!this.token) return;
     
     this.isSyncingNetSuite = true;
     this.servicioMedico.syncSocioHealth(this.token)
