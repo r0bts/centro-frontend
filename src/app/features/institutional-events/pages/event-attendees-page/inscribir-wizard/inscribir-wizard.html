@@ -313,7 +313,20 @@
                            [checked]="isSubeventoSeleccionado(m, sv.id!)"
                            [disabled]="!isSubeventoDisponible(sv, m.access_type_selected) || (m.alreadyEnrolled && m.existingSubeventIds.includes(sv.id!))"
                            (change)="toggleSubevento(m, sv.id!)" />
-                    <span class="flex-grow-1">{{ sv.name }}</span>
+                    <span class="flex-grow-1">
+                      {{ sv.name }}
+                      @if (sv.max_capacity && sv.max_capacity > 0) {
+                        @if (isSubeventFull(sv)) {
+                          <span class="badge bg-warning text-dark ms-1" style="font-size:0.7rem;">
+                            Cupo lleno ({{ sv.current_attendee_count ?? 0 }}/{{ sv.max_capacity }})
+                          </span>
+                        } @else {
+                          <span class="badge bg-light text-muted border ms-1" style="font-size:0.7rem;">
+                            {{ (sv.max_capacity - (sv.current_attendee_count ?? 0)) }} disponibles
+                          </span>
+                        }
+                      }
+                    </span>
                     @if (event.has_cost) {
                       <span class="text-muted small">
                         +${{ resolveSubeventCostPublic(sv, m.access_type_selected) | number:'1.2-2' }}
@@ -398,6 +411,33 @@
           }
         </table>
       </div>
+
+      @if (willOverbookEvent()) {
+        <div class="alert alert-warning d-flex align-items-center mb-3 py-2 px-3 shadow-sm border border-warning" style="font-size:0.88rem;">
+          <i class="bi bi-exclamation-triangle-fill fs-4 me-2 text-warning flex-shrink-0"></i>
+          <div>
+            <strong>Aviso de Sobrecupo General:</strong> El evento superará su cupo máximo 
+            ({{ event.current_attendee_count ?? 0 }} inscritos de {{ event.max_capacity }} permitidos). 
+            Se registrará como <strong>sobrecupo administrativo autorizado</strong>.
+          </div>
+        </div>
+      }
+
+      @if (overbookedSubeventsList().length > 0) {
+        <div class="alert alert-warning mb-3 py-2 px-3 shadow-sm border border-warning" style="font-size:0.88rem;">
+          <div class="d-flex align-items-center mb-1">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2 text-warning flex-shrink-0"></i>
+            <strong>Aviso de Sobrecupo en Subeventos:</strong>
+          </div>
+          <ul class="mb-0 ps-4">
+            @for (item of overbookedSubeventsList(); track item.name) {
+              <li>
+                <strong>{{ item.name }}</strong>: superará el cupo ({{ item.current }} de {{ item.capacity }} permitidos).
+              </li>
+            }
+          </ul>
+        </div>
+      }
 
       @if (generaOrdenNS()) {
         <div class="wz-alert wz-alert--info mb-3">

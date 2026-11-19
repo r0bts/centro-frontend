@@ -7,11 +7,12 @@ import { finalize } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../services/auth.service';
 import { ContentMenu } from '../../../../components/content-menu/content-menu';
+import { AccessManagementComponent } from '../access-management/access-management';
 
 @Component({
   selector: 'app-procedure-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ContentMenu],
+  imports: [CommonModule, RouterModule, FormsModule, ContentMenu, AccessManagementComponent],
   templateUrl: './procedure-list.html',
   styleUrls: ['./procedure-list.scss']
 })
@@ -23,6 +24,8 @@ export class ProcedureListComponent implements OnInit {
   canAdd = false;
   canEdit = false;
   canDelete = false;
+
+  selectedProcedureIdForAccess: number | null = null;
 
   procedures: DocmgmtProcedure[] = [];
   loading = false;
@@ -117,6 +120,19 @@ export class ProcedureListComponent implements OnInit {
       p.name.toLowerCase().includes(term) || 
       (p.description && p.description.toLowerCase().includes(term))
     );
+  }
+
+  openAccessModal(proc: DocmgmtProcedure) {
+    if (proc && proc.id) {
+      this.selectedProcedureIdForAccess = proc.id;
+    }
+  }
+
+  closeAccessModal(saved: boolean) {
+    this.selectedProcedureIdForAccess = null;
+    if (saved) {
+      this.loadProcedures();
+    }
   }
 
   getInitials(name: string): string {

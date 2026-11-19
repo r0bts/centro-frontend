@@ -49,27 +49,7 @@ export class MenuService {
       }
     }
 
-    // Ensure Gestión Documental is accessible even without submodule permissions (for assigned procedures)
-    const hasDocmgmt = menuItems.some(item => item.id === 'gestion_documental');
-    if (!hasDocmgmt) {
-      menuItems.push({
-        id: 'gestion_documental',
-        label: 'Gestión Documental',
-        icon: 'folder_open',
-        isParent: true,
-        isExpanded: false,
-        active: false,
-        children: [
-          {
-            id: 'procedimientos',
-            label: 'Procedimientos',
-            icon: 'description',
-            route: '/docmgmt',
-            active: false
-          }
-        ]
-      });
-    }
+
 
     return menuItems;
   }

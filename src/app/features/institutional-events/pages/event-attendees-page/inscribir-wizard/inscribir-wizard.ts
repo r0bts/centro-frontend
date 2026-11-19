@@ -131,6 +131,39 @@ export class InscribirWizardComponent implements OnDestroy {
     this.batchResults().filter(r => r.status === 'error').length
   );
 
+  // ── Control de cupo y sobrecupo ───────────────────────────────────────────
+  readonly isEventFull = computed(() => {
+    return !!(this.event.max_capacity && this.event.max_capacity > 0 && 
+              (this.event.current_attendee_count ?? 0) >= this.event.max_capacity);
+  });
+
+  readonly willOverbookEvent = computed(() => {
+    if (!this.event.max_capacity || this.event.max_capacity <= 0) return false;
+    const current = this.event.current_attendee_count ?? 0;
+    const adding = this.miembrosActivos().filter(m => !m.alreadyEnrolled).length;
+    return (current + adding) > this.event.max_capacity;
+  });
+
+  readonly overbookedSubeventsList = computed(() => {
+    const list: { name: string; capacity: number; current: number }[] = [];
+    for (const sv of this.subevents()) {
+      if (!sv.max_capacity || sv.max_capacity <= 0) continue;
+      const current = sv.current_attendee_count ?? 0;
+      // count newly selected members for this subevent
+      const adding = this.miembrosActivos().filter(m => 
+        m.selectedSubeventIds.includes(sv.id!) && !m.existingSubeventIds.includes(sv.id!)
+      ).length;
+      if (current + adding > sv.max_capacity) {
+        list.push({ name: sv.name, capacity: sv.max_capacity, current: current + adding });
+      }
+    }
+    return list;
+  });
+
+  isSubeventFull(sv: InstitutionalEventSubevent): boolean {
+    return !!(sv.max_capacity && sv.max_capacity > 0 && (sv.current_attendee_count ?? 0) >= sv.max_capacity);
+  }
+
   constructor(
     private svc: InstitutionalEventsService,
     private guestsSvc: SocioGuestsService

@@ -1,0 +1,180 @@
+<div class="checkout-container">
+  <div class="checkout-card">
+    <!-- Header -->
+    <div class="checkout-header">
+      <div class="logo-box">
+        <span class="badge-org">Centro Libanés</span>
+      </div>
+      <h2>Finalizar Pago de Inscripción</h2>
+      <p class="subtitle">Ingresa los datos de tu tarjeta bancaria para confirmar tu lugar en el evento.</p>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading()" class="state-box">
+      <div class="spinner"></div>
+      <p>Cargando información de tu inscripción...</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div *ngIf="errorMsg() && !loading()" class="alert-box alert-error">
+      <span class="alert-icon">⚠️</span>
+      <div>
+        <strong>Atención</strong>
+        <p>{{ errorMsg() }}</p>
+      </div>
+    </div>
+
+    <!-- Success Screen -->
+    <div *ngIf="paymentSuccess() && !loading()" class="state-box success-screen">
+      <div class="success-icon">✓</div>
+      <h3>¡Pago Aprobado y Confirmado!</h3>
+      <p class="success-text">{{ successMsg() }}</p>
+      
+      <div class="success-receipt" *ngIf="session() as s">
+        <div class="receipt-row">
+          <span>Evento:</span>
+          <strong>{{ s.event_name }}</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Asistente:</span>
+          <strong>{{ s.customer_name }}</strong>
+        </div>
+        <div class="receipt-row">
+          <span>Monto Pagado:</span>
+          <strong class="text-green">${{ s.total_amount | number:'1.2-2' }} MXN</strong>
+        </div>
+        <div class="receipt-row" *ngIf="authCode()">
+          <span>Autorización Bancaria:</span>
+          <code>{{ authCode() }}</code>
+        </div>
+      </div>
+
+      <div class="success-next-steps">
+        <p>🎉 Hemos enviado tu <strong>código QR de acceso</strong> a tu correo electrónico registrado.</p>
+        <p class="small-text">Por favor revisa tu bandeja de entrada o spam para descargar tu pase.</p>
+      </div>
+    </div>
+
+    <!-- Checkout Form -->
+    <div *ngIf="session() as s" [hidden]="loading() || paymentSuccess()">
+      <!-- Resumen de Orden -->
+      <div class="order-summary">
+        <div class="summary-header">
+          <span class="summary-title">Resumen de Inscripción</span>
+          <span class="order-tag" *ngIf="s.so_ids && s.so_ids.length">Orden(es) NetSuite: #{{ s.so_ids.join(', #') }}</span>
+        </div>
+        
+        <div class="summary-body">
+          <div class="item-row">
+            <div>
+              <div class="item-name">{{ s.event_name }}</div>
+              <div class="item-desc">Inscripción para: {{ s.customer_name }}</div>
+            </div>
+            <div class="item-price">${{ s.total_amount | number:'1.2-2' }} MXN</div>
+          </div>
+          
+          <div class="total-row">
+            <span>Total a pagar</span>
+            <span class="total-amount">${{ s.total_amount | number:'1.2-2' }} <small>MXN</small></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulario de Tarjeta -->
+      <form class="payment-form" (ngSubmit)="submitPayment()">
+        <div class="form-section-title">
+          <span>Datos de la Tarjeta</span>
+          <div class="card-icons">
+            <span class="tag-card">VISA</span>
+            <span class="tag-card">Mastercard</span>
+            <span class="tag-card">AMEX</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Tipo de Tarjeta</label>
+          <div class="method-selector">
+            <button type="button" 
+                    [class.active]="methodPayment === 'credit'" 
+                    (click)="methodPayment = 'credit'">
+              Crédito
+            </button>
+            <button type="button" 
+                    [class.active]="methodPayment === 'debit'" 
+                    (click)="methodPayment = 'debit'">
+              Débito
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="cardNumber">Número de Tarjeta</label>
+          <input id="cardNumber" 
+                 type="text" 
+                 placeholder="0000 0000 0000 0000" 
+                 [value]="cardNumber"
+                 (input)="onCardNumberInput($event)"
+                 maxlength="16"
+                 autocomplete="cc-number" 
+                 required />
+        </div>
+
+        <div class="form-group">
+          <label for="cardHolder">Nombre del Titular (como aparece en la tarjeta)</label>
+          <input id="cardHolder" 
+                 type="text" 
+                 placeholder="NOMBRE APELLIDO" 
+                 [(ngModel)]="cardHolder" 
+                 name="cardHolder"
+                 autocomplete="cc-name" 
+                 required />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-half">
+            <label>Vencimiento (MM / AAAA)</label>
+            <div class="exp-inputs">
+              <input type="text" 
+                     placeholder="MM" 
+                     [value]="expMonth"
+                     (input)="onExpMonthInput($event)"
+                     maxlength="2" 
+                     required />
+              <span class="slash">/</span>
+              <input type="text" 
+                     placeholder="AAAA" 
+                     [value]="expYear"
+                     (input)="onExpYearInput($event)"
+                     maxlength="4" 
+                     required />
+            </div>
+          </div>
+
+          <div class="form-group col-half">
+            <label for="cvv">Código CVV</label>
+            <input id="cvv" 
+                   type="password" 
+                   placeholder="123" 
+                   [value]="cvv"
+                   (input)="onCvvInput($event)"
+                   maxlength="4" 
+                   autocomplete="cc-csc" 
+                   required />
+          </div>
+        </div>
+
+        <div class="security-notice">
+          <span class="lock-icon">🔒</span>
+          <span>Transacción cifrada y procesada de forma segura por pasarela bancaria KarloPay.</span>
+        </div>
+
+        <button type="submit" 
+                class="btn-submit" 
+                [disabled]="processingPayment()">
+          <span *ngIf="!processingPayment()">Pagar ${{ s.total_amount | number:'1.2-2' }} MXN</span>
+          <span *ngIf="processingPayment()">Procesando con el banco...</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

@@ -768,9 +768,9 @@ export class EventFormStateService {
           cost: s.cost || 0,
           // ns_item_id se envía solo si el subevento tiene costo; si es 0 se limpia.
           ns_item_id: (s.cost && Number(s.cost) > 0) ? (s.ns_item_id ?? null) : null,
-          // sale_type_id: override del sale_type del evento padre. Se conserva
-          // aunque el subevento no tenga costo (clasifica la SO en NS).
-          sale_type_id: s.sale_type_id ?? null,
+          // sale_type_id: el subevento siempre hereda el tipo de venta del evento principal
+          // para garantizar que NetSuite genere una única Orden de Venta consolidada.
+          sale_type_id: access.sale_type_id ?? null,
           // access_type (deprecated): primer elemento del array múltiple.
           access_type: at[0] ?? null,
           // access_types[] (fuente de verdad, mapa 15 §8).
