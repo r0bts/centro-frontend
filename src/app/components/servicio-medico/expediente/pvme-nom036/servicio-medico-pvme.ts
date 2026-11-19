@@ -1102,12 +1102,13 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
       .subscribe({
         next: (res: any) => {
           if (res?.success) {
-            this.currentEvalId = res.data?.id || this.currentEvalId;
-            this.currentEstado = res.data?.estado || targetEstado;
+            const savedRecord = res.data || res.evaluation || res;
+            this.currentEvalId = savedRecord?.id ?? this.currentEvalId;
+            this.currentEstado = savedRecord?.estado || targetEstado;
             this.savedAnexos[this.activeAnexo] = true;
-            if (res.data?.folio) {
-              this.anexoA.folio = res.data.folio;
-              this.anexoB.folio_cedula = res.data.folio;
+            if (savedRecord?.folio) {
+              this.anexoA.folio = savedRecord.folio;
+              this.anexoB.folio_cedula = savedRecord.folio;
             }
             Swal.fire({
               toast: true,
