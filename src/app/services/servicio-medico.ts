@@ -32,8 +32,8 @@ export class ServicioMedicoService {
   /**
    * Sincroniza el perfil de salud de un solo socio con NetSuite
    */
-  syncSocioHealth(socioId: string | number): Observable<any> {
-    return this.http.post(`${environment.apiUrl}/socios/sync-health/${socioId}`, {});
+  syncSocioHealth(socioId: string | number, type?: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/socios/sync-health/${socioId}`, { type });
   }
 
   /**
