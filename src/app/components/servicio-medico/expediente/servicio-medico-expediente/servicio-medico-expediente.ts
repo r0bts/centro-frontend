@@ -616,7 +616,7 @@ export class ServicioMedicoExpediente implements OnInit {
     if (!this.token) return;
     
     this.isSyncingNetSuite = true;
-    this.servicioMedico.syncSocioHealth(this.token, this.type)
+    this.servicioMedico.syncSocioHealth(this.token, this.medicalProfile?.patient_type)
       .pipe(finalize(() => {
         this.isSyncingNetSuite = false;
         this.cdr.detectChanges();
