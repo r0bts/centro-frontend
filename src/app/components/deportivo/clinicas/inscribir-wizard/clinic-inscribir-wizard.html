@@ -1,0 +1,340 @@
+<div class="wz-overlay"></div>
+<div class="wz-modal" (click)="$event.stopPropagation()">
+
+  <!-- Cabecera -->
+  <div class="wz-header">
+    <div class="wz-header__left">
+      <div class="wz-header__icon"><i class="bi bi-person-plus-fill"></i></div>
+      <div>
+        <span class="wz-header__title">Inscripción de Socios al Paquete</span>
+        <span class="wz-course-chip">{{ clinic.name }}</span>
+      </div>
+    </div>
+    <button class="wz-close" aria-label="Cerrar" (click)="cerrarModal()">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <!-- Indicador de pasos (Exclusivo Socios) -->
+  <div class="wz-steps">
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'search'"
+         [class.wz-step--done]="paso() === 'family' || paso() === 'confirm' || paso() === 'done'">
+      <div class="wz-step__bubble">
+        @if (paso() === 'family' || paso() === 'confirm' || paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 1 }
+      </div>
+      <span class="wz-step__label">Buscar Socio</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'family' || paso() === 'confirm' || paso() === 'done'"></div>
+
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'family'"
+         [class.wz-step--done]="paso() === 'confirm' || paso() === 'done'">
+      <div class="wz-step__bubble">
+        @if (paso() === 'confirm' || paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 2 }
+      </div>
+      <span class="wz-step__label">Familia</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'confirm' || paso() === 'done'"></div>
+
+    <div class="wz-step"
+         [class.wz-step--active]="paso() === 'confirm'"
+         [class.wz-step--done]="paso() === 'done'">
+      <div class="wz-step__bubble">
+        @if (paso() === 'done') { <i class="bi bi-check-lg"></i> } @else { 3 }
+      </div>
+      <span class="wz-step__label">Confirmar</span>
+    </div>
+    <div class="wz-step-track" [class.wz-step-track--done]="paso() === 'done'"></div>
+
+    <div class="wz-step" [class.wz-step--active]="paso() === 'done'">
+      <div class="wz-step__bubble">4</div>
+      <span class="wz-step__label">Listo</span>
+    </div>
+  </div>
+
+  <!-- Alerta de Error / Validación -->
+  <div *ngIf="alertMessage()" class="px-4 pt-3 pb-0">
+    <div class="alert alert-dismissible fade show mb-0"
+         [class.alert-danger]="alertMessage()?.type === 'error'"
+         [class.alert-warning]="alertMessage()?.type === 'warning'"
+         [class.alert-success]="alertMessage()?.type === 'success'"
+         [class.alert-info]="alertMessage()?.type === 'info'">
+      <strong>{{ alertMessage()?.title }}:</strong> {{ alertMessage()?.text }}
+      <button type="button" class="btn-close" (click)="alertMessage.set(null)"></button>
+    </div>
+  </div>
+
+  <!-- Cuerpo del Wizard -->
+  <div class="wz-body">
+
+    <!-- ══════════════════════════ PASO 1: BUSCAR SOCIO ══════════════════════════ -->
+    <div *ngIf="paso() === 'search'">
+      <div class="wz-step-header">
+        <div class="wz-section-title">
+          <i class="bi bi-search"></i> Buscar Socio del Club
+        </div>
+      </div>
+      <p class="wz-hint">
+        Busca por número de acción/membresía o apellidos. Al seleccionar al socio se desglosará automáticamente su grupo familiar para elegir a los alumnos.
+      </p>
+
+      <div class="wz-search-field">
+        <i class="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Ej. 10423 o Alcántara..."
+          [ngModel]="searchTerm()"
+          (ngModelChange)="onSearchInput($event)"
+          autofocus
+        />
+        <div *ngIf="buscando()" class="wz-search-spinner"></div>
+      </div>
+
+      <!-- Resultados de búsqueda -->
+      <div *ngIf="resultados().length > 0" class="wz-results">
+        <div
+          *ngFor="let r of resultados()"
+          class="wz-result-card"
+          (click)="seleccionarSocio(r)"
+        >
+          <div class="wz-result-card__avatar">{{ r.fullname.charAt(0) }}</div>
+          <div class="wz-result-card__info">
+            <span class="wz-result-card__name">{{ r.fullname }}</span>
+            <span class="wz-result-card__meta">
+              No. Membresía: {{ r.entityid }}
+              <span *ngIf="r.family && r.family.length > 1" class="ms-1 text-primary">
+                · <i class="bi bi-people-fill"></i> {{ r.family.length }} en membresía
+              </span>
+            </span>
+          </div>
+          <i class="bi bi-chevron-right wz-result-card__arrow"></i>
+        </div>
+      </div>
+
+      <div *ngIf="searchTerm().length >= 2 && !buscando() && resultados().length === 0" class="wz-no-results">
+        <i class="bi bi-person-x"></i>
+        <p>No se encontraron socios activos con "{{ searchTerm() }}"</p>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ PASO 2: FAMILIA / ALUMNOS ══════════════════════ -->
+    <div *ngIf="paso() === 'family'">
+      <div class="wz-step-header">
+        <button class="wz-back-btn" (click)="volver()"><i class="bi bi-arrow-left"></i></button>
+        <div class="wz-section-title">
+          <i class="bi bi-people-fill"></i> Seleccionar Alumnos (Grupo Familiar)
+        </div>
+      </div>
+      <p class="wz-hint">
+        Marca los miembros de la familia que tomarán la clínica. Cada inscripción contempla el paquete completo de sesiones cerradas.
+      </p>
+
+      <div class="wz-family-grid">
+        <div
+          *ngFor="let m of pendingMembers()"
+          class="wz-family-card"
+          [class.wz-card-selected]="m.selected"
+          [class.wz-card-enrolled]="m.alreadyEnrolled"
+        >
+          <div class="wz-card-header" (click)="toggleMiembro(m)">
+            <div class="d-flex align-items-center gap-2">
+              <input
+                class="form-check-input wz-check"
+                type="checkbox"
+                [checked]="m.selected"
+                [disabled]="m.alreadyEnrolled"
+                (change)="toggleMiembro(m)"
+                (click)="$event.stopPropagation()"
+              />
+              <div class="flex-grow-1">
+                <div class="fw-semibold lh-sm text-dark">{{ m.fullname }}</div>
+                <div class="text-muted" style="font-size:0.75rem">No. {{ m.entityid }}</div>
+              </div>
+            </div>
+
+            <div class="d-flex gap-1 mt-1 ms-4 align-items-center flex-wrap">
+              <span class="wz-chip wz-chip--blue">{{ m.parentesco }}</span>
+              <span *ngIf="m.is_titular" class="wz-chip" style="background:#1e293b;color:#fff">
+                <i class="bi bi-star-fill me-1"></i>Titular de la cuenta
+              </span>
+              <span *ngIf="m.alreadyEnrolled" class="wz-chip wz-chip--green">
+                <i class="bi bi-check-circle-fill me-1"></i>Ya inscrito en esta clínica
+              </span>
+              <span *ngIf="!m.alreadyEnrolled && m.selected" class="ms-auto fw-bold text-primary">
+                ${{ (m.coupon_code ? 0 : m.price) | number:'1.2-2' }} MXN
+              </span>
+            </div>
+
+            <!-- Campo opcional de cupón por alumno -->
+            <div *ngIf="m.selected" class="ms-4 mt-2" (click)="$event.stopPropagation()">
+              <div class="input-group input-group-sm" style="max-width: 280px;">
+                <span class="input-group-text bg-light text-muted" style="font-size: 0.72rem;">Cupón / Excepción</span>
+                <input
+                  type="text"
+                  class="form-control text-uppercase"
+                  style="font-size: 0.75rem;"
+                  placeholder="Opcional (Ej. CUP-88FA21)"
+                  [(ngModel)]="m.coupon_code"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen acumulado -->
+      <div class="wz-running-total mt-3">
+        <span class="text-muted">Alumnos seleccionados: <strong>{{ miembrosActivos().length }}</strong></span>
+        <span class="fw-bold fs-5 text-dark">Total: ${{ totalPaquete() | number:'1.2-2' }} MXN</span>
+      </div>
+
+      <div class="wz-footer">
+        <button class="wz-btn wz-btn--ghost" (click)="volver()">
+          <i class="bi bi-arrow-left"></i> Cambiar Socio
+        </button>
+        <button class="wz-btn wz-btn--primary" [disabled]="miembrosActivos().length === 0" (click)="avanzarAConfirm()">
+          Continuar a Confirmación <i class="bi bi-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ PASO 3: CONFIRMAR & PAGO ════════════════════════ -->
+    <div *ngIf="paso() === 'confirm'">
+      <div class="wz-step-header">
+        <button class="wz-back-btn" [disabled]="guardando()" (click)="volver()">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <div class="wz-section-title">
+          <i class="bi bi-clipboard-check"></i> Resumen de Inscripción & Facturación
+        </div>
+      </div>
+      <p class="wz-hint">Revisa el padrón de alumnos y selecciona el método de cobro.</p>
+
+      <!-- Tabla Resumen -->
+      <div class="table-responsive mb-3">
+        <table class="table table-sm table-bordered align-middle">
+          <thead class="table-light">
+            <tr style="font-size: 0.8rem;">
+              <th>Alumno / Socio</th>
+              <th>Parentesco</th>
+              <th>Cupón Aplicado</th>
+              <th class="text-end">Importe</th>
+            </tr>
+          </thead>
+          <tbody style="font-size: 0.85rem;">
+            <tr *ngFor="let m of miembrosActivos()">
+              <td>
+                <div class="fw-semibold text-dark">{{ m.fullname }}</div>
+                <div class="text-muted small">No. {{ m.entityid }}</div>
+              </td>
+              <td><span class="wz-chip wz-chip--blue">{{ m.parentesco }}</span></td>
+              <td>
+                <span *ngIf="m.coupon_code" class="badge bg-warning-subtle text-dark border">
+                  {{ m.coupon_code }} (Sobrecupo $0)
+                </span>
+                <span *ngIf="!m.coupon_code" class="text-muted small">—</span>
+              </td>
+              <td class="text-end fw-semibold text-dark">
+                ${{ (m.coupon_code ? 0 : m.price) | number:'1.2-2' }}
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="table-secondary fw-bold">
+              <td colspan="3" class="text-end">Total a pagar:</td>
+              <td class="text-end">${{ totalPaquete() | number:'1.2-2' }} MXN</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Alerta de Sobrecupo -->
+      <div *ngIf="willOverbook()" class="alert alert-warning py-2 px-3 mb-3 small d-flex align-items-center gap-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5 text-warning flex-shrink-0"></i>
+        <div>
+          <strong>Aviso de Cupo:</strong> La clínica alcanzará o superará su cupo máximo ({{ clinic.current_enrolled_count }} inscritos de {{ clinic.max_capacity }} permitidos).
+        </div>
+      </div>
+
+      <!-- Formulario de Cobro & Orden NetSuite -->
+      <div class="p-3 bg-light rounded-3 border mb-3">
+        <h6 class="fw-bold small text-dark mb-2">
+          <i class="bi bi-credit-card me-1 text-primary"></i>Configuración de Cobro & NetSuite
+        </h6>
+
+        <div class="row g-2 mb-2">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Canal / Método de Pago</label>
+            <select class="form-select form-select-sm" [ngModel]="paymentMethod()" (ngModelChange)="paymentMethod.set($event)">
+              <option value="karlo_pay">Karlo Pay (Enlace por Correo & Pasarela)</option>
+              <option value="cash">Efectivo en Caja / Recepción</option>
+              <option value="terminal">Tarjeta en Terminal Física</option>
+              <option value="transfer">Transferencia Bancaria (SPEI)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Correo de Contacto (NetSuite / Tickets)</label>
+            <input type="email" class="form-control form-control-sm" [ngModel]="billingEmail()" (ngModelChange)="billingEmail.set($event)" />
+          </div>
+        </div>
+
+        <div class="form-check form-switch mt-2" *ngIf="paymentMethod() === 'karlo_pay'">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="chkSendLink"
+            [ngModel]="sendPaymentLink()"
+            (ngModelChange)="sendPaymentLink.set($event)"
+          />
+          <label class="form-check-label small fw-semibold text-dark" for="chkSendLink">
+            Generar orden en NetSuite y enviar enlace de pago Karlo Pay inmediatamente al socio
+          </label>
+        </div>
+      </div>
+
+      <div class="wz-footer">
+        <button class="wz-btn wz-btn--ghost" [disabled]="guardando()" (click)="volver()">
+          <i class="bi bi-arrow-left"></i> Modificar Alumnos
+        </button>
+        <button class="wz-btn wz-btn--success" [disabled]="guardando()" (click)="confirmarInscripcion()">
+          <span *ngIf="guardando()" class="spinner-border spinner-border-sm me-1"></span>
+          Confirmar e Inscribir
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════ PASO 4: ÉXITO ══════════════════════════════════ -->
+    <div *ngIf="paso() === 'done'" class="wz-done">
+      <div class="wz-done__icon wz-done__icon--success">
+        <i class="bi bi-check-lg"></i>
+      </div>
+      <div class="wz-done__title">¡Inscripción Exitosa!</div>
+      <p class="wz-done__subtitle">
+        Se han registrado los alumnos correctamente a la clínica <strong>{{ clinic.name }}</strong>.
+      </p>
+
+      <div *ngIf="nsSoId()" class="badge bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2 mb-3 fs-6">
+        <i class="bi bi-receipt me-1"></i> Orden NetSuite Creada: #{{ nsSoId() }}
+      </div>
+
+      <div class="wz-batch-results mb-4">
+        <div *ngFor="let r of batchResults()" class="wz-batch-row wz-batch-row--ok">
+          <i class="bi bi-check-circle-fill text-success wz-batch-row__icon"></i>
+          <div class="wz-batch-row__info">
+            <span class="wz-batch-row__name">{{ r.full_name }}</span>
+            <span class="wz-batch-row__meta text-muted">
+              Pase QR generado y boleto enviado a {{ billingEmail() }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button class="wz-btn wz-btn--primary px-4" (click)="cerrarModal()">
+        Finalizar y Ver Padrón
+      </button>
+    </div>
+
+  </div>
+
+</div>

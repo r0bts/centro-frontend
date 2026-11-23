@@ -1,0 +1,497 @@
+.clinicas-page-wrapper {
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 65px);
+}
+
+.page-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+
+// ── KPI Strip (Replica exacta de Eventos Institucionales) ─────────────────────
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+
+  .kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px 18px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f5f9;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .kpi-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .kpi-body {
+      display: flex;
+      flex-direction: column;
+
+      .kpi-value {
+        font-size: 1.55rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: #0f172a;
+      }
+
+      .kpi-label {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #64748b;
+        margin-top: 2px;
+      }
+    }
+
+    &.kpi-blue   { .kpi-icon { background: #eff6ff; color: #2563eb; } }
+    &.kpi-green  { .kpi-icon { background: #f0fdf4; color: #16a34a; } }
+    &.kpi-yellow { .kpi-icon { background: #fefce8; color: #ca8a04; } }
+    &.kpi-teal   { .kpi-icon { background: #f0fdfa; color: #0d9488; } }
+  }
+}
+
+// ── Tabla Principal ──────────────────────────────────────────────────────────
+.clinica-avatar-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.clinica-name {
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.25;
+  font-size: 0.88rem;
+}
+
+.clinica-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.att-avatar {
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+// ── Botones de Acción de Fila (Estilo Eventos Institucionales) ───────────────
+.btn-table-action {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  &.btn-sub:hover {
+    background: #f0fdf4;
+    color: #0d9488;
+    border-color: #99f6e4;
+  }
+
+  &.btn-view:hover {
+    background: #f8fafc;
+    color: #3b82f6;
+    border-color: #93c5fd;
+  }
+
+  &.btn-edit:hover {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+
+  &.btn-enroll:hover {
+    background: #ecfdf5;
+    color: #059669;
+    border-color: #a7f3d0;
+  }
+
+  &.btn-qr:hover {
+    background: #f5f3ff;
+    color: #7c3aed;
+    border-color: #ddd6fe;
+  }
+
+  &.btn-delete:hover {
+    background: #fef2f2;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+}
+
+// ── Modales Bootstrap Scrollable Enhancements ─────────────────────────────────
+.modal-dialog-scrollable {
+  .modal-body {
+    max-height: calc(85vh - 130px);
+    overflow-y: auto;
+  }
+}
+
+// ── ng-select Estilo Bootstrap Institucional ──────────────────────────────────
+::ng-deep .custom-sm-select.ng-select {
+  .ng-select-container {
+    min-height: 38px !important;
+    border-radius: 6px !important;
+    border: 1px solid #dee2e6 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    font-size: 0.875rem !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+    &:hover {
+      border-color: #cbd5e1 !important;
+    }
+  }
+
+  &.ng-select-focused > .ng-select-container,
+  &.ng-select-opened > .ng-select-container {
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  }
+
+  &.ng-select-disabled > .ng-select-container {
+    background-color: #f1f5f9 !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed !important;
+    opacity: 0.85;
+
+    .ng-value-label {
+      color: #64748b !important;
+    }
+  }
+
+  .ng-value-container {
+    padding-left: 0.75rem !important;
+    padding-top: 0 !important;
+    font-size: 0.875rem !important;
+    color: #212529 !important;
+  }
+
+  .ng-placeholder {
+    color: #6c757d !important;
+    font-size: 0.875rem !important;
+  }
+
+  .ng-input > input {
+    font-size: 0.875rem !important;
+    padding-left: 0.75rem !important;
+  }
+
+  .ng-dropdown-panel {
+    border-radius: 6px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #e2e8f0 !important;
+    font-size: 0.875rem !important;
+    z-index: 1060 !important;
+
+    .ng-option {
+      padding: 8px 12px !important;
+      line-height: 1.4 !important;
+
+      &.ng-option-highlighted {
+        background-color: #eff6ff !important;
+        color: #1d4ed8 !important;
+      }
+      &.ng-option-selected {
+        background-color: #e0f2fe !important;
+        font-weight: 600 !important;
+      }
+    }
+  }
+}
+
+// ── ng-select compacto para la barra de filtros del Card Header ───────────────
+::ng-deep .filter-select.ng-select {
+  .ng-select-container {
+    min-height: 31px !important;
+    height: 31px !important;
+    border-radius: 6px !important;
+    border: 1px solid #dee2e6 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+    font-size: 0.8125rem !important;
+    transition: border-color 0.15s ease-in-out;
+
+    &:hover {
+      border-color: #cbd5e1 !important;
+    }
+  }
+
+  &.ng-select-focused > .ng-select-container,
+  &.ng-select-opened > .ng-select-container {
+    border-color: #86b7fe !important;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.2) !important;
+  }
+
+  .ng-value-container {
+    padding-left: 0.5rem !important;
+    padding-top: 0 !important;
+    font-size: 0.8125rem !important;
+    color: #334155 !important;
+  }
+
+  .ng-placeholder {
+    color: #64748b !important;
+    font-size: 0.8125rem !important;
+  }
+
+  .ng-input > input {
+    font-size: 0.8125rem !important;
+    padding-left: 0.5rem !important;
+  }
+
+  .ng-dropdown-panel {
+    border-radius: 6px !important;
+    font-size: 0.8125rem !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid #cbd5e1 !important;
+    z-index: 1050 !important;
+
+    .ng-option {
+      padding: 6px 10px !important;
+    }
+  }
+}
+
+// ── Escáner QR Pantalla Completa & Viewfinder (UX Check-in en Campo) ─────────
+.scanner-fullscreen-container {
+  position: relative;
+  background: #090d16;
+  border-radius: 1rem;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid #1e293b;
+}
+
+.scanner-viewfinder {
+  position: relative;
+  width: min(320px, 80vw);
+  height: min(320px, 80vw);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    border-color: #22c55e;
+    border-style: solid;
+  }
+  &::before {
+    top: -2px; left: -2px;
+    border-width: 4px 0 0 4px;
+    border-top-left-radius: 20px;
+  }
+  &::after {
+    bottom: -2px; right: -2px;
+    border-width: 0 4px 4px 0;
+    border-bottom-right-radius: 20px;
+  }
+}
+
+.scan-laser-line {
+  position: absolute;
+  width: 100%;
+  height: 3px;
+  background: #22c55e;
+  box-shadow: 0 0 16px #22c55e;
+  animation: scanLaser 2s infinite ease-in-out;
+}
+
+@keyframes scanLaser {
+  0% { top: 6%; opacity: 0.8; }
+  50% { top: 92%; opacity: 1; }
+  100% { top: 6%; opacity: 0.8; }
+}
+
+.scanner-overlay-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 1rem;
+}
+
+.scanner-top-badge {
+  position: absolute;
+  top: 20px;
+  z-index: 20;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 50rem;
+  font-size: 0.82rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+// ── Componente ng-chosen / Selector de Días de Cupón ─────────────────────────
+.ng-chosen-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  background: #ffffff;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover, &:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+}
+
+.ng-chosen-tag {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// ── Calendario Simple de Selección de Días (Cupón con Sobrecupo) ─────────────
+.simple-calendar-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+
+.cal-header-day {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748b;
+  padding: 4px 0;
+  text-transform: uppercase;
+}
+
+.cal-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  position: relative;
+  user-select: none;
+
+  &:hover:not(.disabled) {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+
+  &.available {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+
+    &::after {
+      content: '';
+      width: 4px;
+      height: 4px;
+      background: #3b82f6;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 3px;
+    }
+  }
+
+  &.selected {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+    border-color: #1d4ed8 !important;
+
+    &::after {
+      background: #ffffff !important;
+    }
+  }
+
+  &.disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+    background: transparent;
+  }
+}
+
+
+

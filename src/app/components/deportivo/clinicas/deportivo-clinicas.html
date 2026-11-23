@@ -1,0 +1,1282 @@
+<div class="clinicas-page-wrapper">
+  
+  <!-- Alertas Globales de Feedback -->
+  <div *ngIf="successMessage()" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>{{ successMessage() }}
+    <button type="button" class="btn-close" (click)="successMessage.set(null)"></button>
+  </div>
+
+  <div *ngIf="errorMessage()" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ errorMessage() }}
+    <button type="button" class="btn-close" (click)="errorMessage.set(null)"></button>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- VISTA 1: LISTADO PRINCIPAL DE CLÍNICAS                                       -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'listado'" class="view-section">
+
+    <!-- Encabezado de Página -->
+    <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div>
+        <h4 class="mb-0 fw-bold">
+          <i class="bi bi-award-fill me-2 text-primary"></i>Clínicas Deportivas
+        </h4>
+        <small class="text-muted">Gestión de cursos intensivos, paquetes calendarizados cerrados y sustituciones</small>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" (click)="loadClinics()">
+          <i class="bi bi-arrow-clockwise"></i>
+          <span class="d-none d-md-inline">Actualizar</span>
+        </button>
+        <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm" (click)="openCreateModal()">
+          <i class="bi bi-plus-lg"></i>
+          <span>Nueva clínica</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Strip (Replica visual de Eventos Institucionales) -->
+    <div class="kpi-strip">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="bi bi-award"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ kpis().total }}</span>
+          <span class="kpi-label">Total Clínicas</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="bi bi-broadcast"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ kpis().enCurso }}</span>
+          <span class="kpi-label">En Curso</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-yellow">
+        <div class="kpi-icon"><i class="bi bi-hourglass-split"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ kpis().proximas }}</span>
+          <span class="kpi-label">Próximas</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-teal">
+        <div class="kpi-icon"><i class="bi bi-people"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ kpis().totalCupo }}</span>
+          <span class="kpi-label">Cupo Total Ofrecido</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card con Tabla de Clínicas -->
+    <div class="card shadow-sm border-0">
+
+      <!-- Card Header: Búsqueda y Filtros Alineados -->
+      <div class="card-header bg-white border-bottom py-3 px-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+          <h5 class="card-title mb-0 fw-semibold" style="font-size: 0.95rem;">
+            <i class="bi bi-list-ul me-2 text-primary"></i>Catálogo de Clínicas
+          </h5>
+          <span class="text-muted small">
+            Mostrando {{ filteredClinics().length }} de {{ clinics().length }} clínicas
+          </span>
+        </div>
+
+        <div class="row g-2 align-items-center">
+          <!-- Búsqueda texto -->
+          <div class="col-12 col-md-4">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white border-end-0 text-muted">
+                <i class="bi bi-search"></i>
+              </span>
+              <input
+                type="text"
+                class="form-control border-start-0 ps-0"
+                placeholder="Buscar clínica, profesor o descripción..."
+                [ngModel]="searchTerm()"
+                (ngModelChange)="searchTerm.set($event)"
+              />
+            </div>
+          </div>
+
+          <!-- Filtro de Disciplina con Búsqueda Integrada (ng-select) -->
+          <div class="col-6 col-md-3">
+            <ng-select
+              class="filter-select w-100"
+              [items]="actividades()"
+              bindLabel="nombre"
+              bindValue="id"
+              [searchable]="true"
+              [clearable]="true"
+              placeholder="Todas las disciplinas"
+              [ngModel]="selectedActivity()"
+              (ngModelChange)="selectedActivity.set($event || '')">
+            </ng-select>
+          </div>
+
+          <!-- Filtro de Sede -->
+          <div class="col-6 col-md-3">
+            <select
+              class="form-select form-select-sm"
+              [ngModel]="selectedLocation()"
+              (ngModelChange)="selectedLocation.set($event)"
+            >
+              <option value="">Todas las sedes</option>
+              <option *ngFor="let loc of locations()" [value]="loc.id">
+                {{ loc.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Filtro de Estado -->
+          <div class="col-12 col-md-2">
+            <select
+              class="form-select form-select-sm"
+              [ngModel]="selectedStatus()"
+              (ngModelChange)="selectedStatus.set($event)"
+            >
+              <option value="">Todos los estados</option>
+              <option value="upcoming">Próxima</option>
+              <option value="ongoing">En curso</option>
+              <option value="finished">Finalizada</option>
+              <option value="cancelled">Cancelada</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabla de Clínicas -->
+      <div class="card-body p-0">
+        <!-- Spinner -->
+        <div *ngIf="isLoading()" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando clínicas...</span>
+          </div>
+          <p class="mt-2 text-muted small">Cargando catálogo de clínicas deportivas...</p>
+        </div>
+
+        <!-- Sin Resultados -->
+        <div *ngIf="!isLoading() && filteredClinics().length === 0" class="text-center py-5">
+          <i class="bi bi-calendar-x fs-1 text-muted d-block mb-2"></i>
+          <h6 class="fw-semibold text-dark">No se encontraron clínicas</h6>
+          <p class="text-muted small mb-3">Intenta ajustando los filtros o registra una nueva clínica deportiva.</p>
+          <button class="btn btn-sm btn-primary" (click)="openCreateModal()">
+            <i class="bi bi-plus-lg me-1"></i> Nueva clínica
+          </button>
+        </div>
+
+        <!-- Tabla -->
+        <div *ngIf="!isLoading() && filteredClinics().length > 0" class="table-responsive">
+          <table class="table table-hover table-sm align-middle mb-0">
+            <thead class="table-light sticky-top">
+              <tr style="font-size: 0.78rem;">
+                <th class="ps-3" style="min-width: 240px">Clínica & Disciplina</th>
+                <th style="min-width: 170px">Profesor / Instructor</th>
+                <th style="min-width: 140px">Sede & Área</th>
+                <th style="min-width: 140px">Periodo (Fechas)</th>
+                <th class="text-center" style="min-width: 90px">Cupo</th>
+                <th class="text-center" style="min-width: 110px">Precio Paquete</th>
+                <th style="min-width: 110px">Estado</th>
+                <th class="text-center" style="width: 180px">Acciones</th>
+              </tr>
+            </thead>
+            <tbody style="font-size: 0.83rem;">
+              <tr *ngFor="let c of filteredClinics()">
+                <!-- Clínica & Actividad -->
+                <td class="ps-3 py-2.5">
+                  <div class="d-flex align-items-center gap-2.5">
+                    <div
+                      class="clinica-avatar-icon"
+                      [style.background]="getActivityBg(c.actividade?.nombre)"
+                    >
+                      <i class="bi" [class]="getActivityIcon(c.actividade?.nombre)"></i>
+                    </div>
+                    <div>
+                      <div class="clinica-name">{{ c.name }}</div>
+                      <div class="clinica-meta">
+                        <span class="badge bg-light text-secondary border me-1" style="font-size: 0.68rem;">
+                          {{ c.actividade?.nombre || 'Deporte' }}
+                        </span>
+                        <span *ngIf="c.venue_details" class="text-muted" style="font-size: 0.72rem;">
+                          · {{ c.venue_details }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Instructor (Titular o Sustituto Temporal) -->
+                <td>
+                  <div *ngIf="getActiveSubstitution(c)?.substitute_instructor as subProf" class="d-flex align-items-center gap-2">
+                    <div class="att-avatar bg-warning text-dark border border-warning" style="width: 28px; height: 28px; font-size: 0.72rem;" title="Instructor Sustituto Temporal">
+                      {{ subProf.first_name.charAt(0) }}{{ subProf.last_name.charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="fw-semibold text-dark small d-flex align-items-center gap-1">
+                        {{ subProf.first_name }} {{ subProf.last_name }}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style="font-size: 0.65rem;">
+                          <i class="bi bi-clock-history me-1"></i>Sustituto
+                        </span>
+                      </div>
+                      <div class="text-muted text-decoration-line-through" style="font-size: 0.7rem;">
+                        Titular: {{ c.instructor?.first_name }} {{ c.instructor?.last_name }}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div *ngIf="!getActiveSubstitution(c)?.substitute_instructor" class="d-flex align-items-center gap-2">
+                    <div class="att-avatar bg-primary text-white" style="width: 28px; height: 28px; font-size: 0.72rem;">
+                      {{ c.instructor?.first_name?.charAt(0) }}{{ c.instructor?.last_name?.charAt(0) }}
+                    </div>
+                    <div>
+                      <div class="fw-semibold text-dark small">
+                        {{ c.instructor?.first_name }} {{ c.instructor?.last_name }}
+                      </div>
+                      <div class="text-muted" style="font-size: 0.7rem;">Instructor Titular</div>
+                    </div>
+                  </div>
+                </td>
+
+                <!-- Sede y Área -->
+                <td>
+                  <div class="small fw-semibold text-dark">{{ c.location?.name || 'Sede' }}</div>
+                  <div *ngIf="getActiveSubstitution(c)?.substitute_area as subArea">
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle d-inline-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                      <i class="bi bi-geo-alt-fill text-info"></i> {{ subArea.name }}
+                    </span>
+                    <div class="text-muted text-decoration-line-through" style="font-size: 0.68rem;">
+                      Base: {{ c.area?.name || 'Área General' }}
+                    </div>
+                  </div>
+                  <div *ngIf="!getActiveSubstitution(c)?.substitute_area" class="text-muted" style="font-size: 0.72rem;">
+                    {{ c.area?.name || 'Área General' }}
+                  </div>
+                </td>
+
+                <!-- Periodo -->
+                <td>
+                  <div class="small fw-semibold text-dark">{{ c.start_date }}</div>
+                  <div class="text-muted" style="font-size: 0.72rem;">al {{ c.end_date }}</div>
+                </td>
+
+                <!-- Cupo Regular -->
+                <td class="text-center">
+                  <span class="badge bg-light text-dark border px-2 py-1">
+                    {{ c.current_enrolled_count }} / {{ c.max_capacity }}
+                  </span>
+                </td>
+
+                <!-- Precio Paquete -->
+                <td class="text-center">
+                  <span class="fw-bold text-dark small">${{ formatPrice(c.price) }} MXN</span>
+                </td>
+
+                <!-- Estado -->
+                <td>
+                  <span class="badge border px-2 py-1 small" [class]="getStatusBadgeClass(c.status)">
+                    <i class="bi bi-circle-fill me-1" style="font-size: .4rem;"></i>
+                    {{ getStatusLabel(c.status) }}
+                  </span>
+                </td>
+
+                <!-- Acciones (5 Botones Exactos del Mockup) -->
+                <td class="text-center">
+                  <div class="d-flex justify-content-center gap-1">
+                    <!-- 1. Ir a Vista Completa de Inscripciones / Alumnos -->
+                    <button
+                      class="btn-table-action btn-enroll"
+                      title="Ver Padrón de Inscritos"
+                      (click)="irAInscritos(c)"
+                    >
+                      <i class="bi bi-people-fill"></i>
+                    </button>
+
+                    <!-- 2. Ir a Vista Completa de Check-in / Escáner QR -->
+                    <button
+                      class="btn-table-action btn-qr"
+                      title="Validador de Acceso / Escáner QR"
+                      (click)="irACheckin(c)"
+                    >
+                      <i class="bi bi-qr-code-scan"></i>
+                    </button>
+
+                    <!-- 3. Sustitución de Instructor / Cambio de Área -->
+                    <button
+                      class="btn-table-action btn-sub"
+                      title="Sustitución de Instructor / Cambio de Área"
+                      (click)="openSubstitutionModal(c)"
+                    >
+                      <i class="bi bi-person-fill-gear"></i>
+                    </button>
+
+                    <!-- 4. Ver Detalle si está en curso / Editar si es Próxima/Borrador -->
+                    <button
+                      class="btn-table-action"
+                      [class.btn-view]="c.status === 'ongoing'"
+                      [class.btn-edit]="c.status !== 'ongoing'"
+                      [title]="c.status === 'ongoing' ? 'Ver Clínica (En curso - Solo lectura)' : 'Editar Clínica'"
+                      (click)="openEditModal(c)"
+                    >
+                      <i class="bi" [class.bi-eye-fill]="c.status === 'ongoing'" [class.bi-pencil-fill]="c.status !== 'ongoing'"></i>
+                    </button>
+
+                    <!-- 5. Eliminar (solo si no está en curso) -->
+                    <button
+                      *ngIf="c.status !== 'ongoing'"
+                      class="btn-table-action btn-delete"
+                      title="Eliminar Clínica"
+                      (click)="deleteClinic(c)"
+                    >
+                      <i class="bi bi-trash-fill"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Card Footer -->
+      <div class="card-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small">
+          Mostrando {{ filteredClinics().length }} de {{ clinics().length }} clínicas registradas
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- VISTA 2: INSCRITOS DE LA CLÍNICA (Fiel al diseño de Event-Attendees-Page)    -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'inscritos'" class="view-section">
+
+    <!-- Header con botón Volver al listado -->
+    <div class="page-header d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="irAListado()">
+          <i class="bi bi-arrow-left me-1"></i> Volver a Clínicas
+        </button>
+        <div>
+          <h4 class="mb-0 fw-bold">
+            <i class="bi bi-people-fill me-2 text-primary"></i>Inscritos al Paquete
+          </h4>
+          <small class="text-muted">
+            {{ selectedClinic()?.name }} · {{ selectedClinic()?.location?.name || 'Sede' }} ({{ selectedClinic()?.area?.name || 'Área Base' }})
+          </small>
+        </div>
+      </div>
+      <div class="d-flex gap-2 flex-wrap align-items-center">
+        <span class="badge border px-3 py-2 small" [class]="getStatusBadgeClass(selectedClinic()?.status || '')">
+          <i class="bi bi-circle-fill me-1" style="font-size: .45rem;"></i>
+          {{ getStatusLabel(selectedClinic()?.status || '') }}
+        </span>
+        <!-- Botón Emitir Cupón (Excepción con Sobrecupo) -->
+        <button class="btn btn-sm btn-warning d-flex align-items-center gap-1 fw-semibold text-dark shadow-sm px-3" (click)="openCouponModal()">
+          <i class="bi bi-ticket-perforated-fill"></i> Emitir Cupón (Sobrecupo)
+        </button>
+        <button class="btn btn-sm btn-success d-flex align-items-center gap-1 shadow-sm px-3" (click)="openAddStudentModal()">
+          <i class="bi bi-person-plus-fill"></i> Nueva inscripción
+        </button>
+        <button class="btn btn-sm btn-primary d-flex align-items-center gap-1 shadow-sm px-3" (click)="irACheckin()">
+          <i class="bi bi-qr-code-scan"></i> Escanear QR
+        </button>
+      </div>
+    </div>
+
+    <!-- KPI Strip de la vista de Inscritos -->
+    <div class="kpi-strip">
+      <div class="kpi-card kpi-blue">
+        <div class="kpi-icon"><i class="bi bi-people-fill"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ inscritosKpis().total }}</span>
+          <span class="kpi-label">Inscritos</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-teal">
+        <div class="kpi-icon"><i class="bi bi-person-check"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ inscritosKpis().capacidad }}</span>
+          <span class="kpi-label">Capacidad Máx</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-green">
+        <div class="kpi-icon"><i class="bi bi-cash-stack"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">${{ formatPrice(inscritosKpis().recaudacion) }}</span>
+          <span class="kpi-label">Recaudación Pagada</span>
+        </div>
+      </div>
+      <div class="kpi-card kpi-yellow">
+        <div class="kpi-icon"><i class="bi bi-ticket-perforated"></i></div>
+        <div class="kpi-body">
+          <span class="kpi-value">{{ inscritosKpis().cupones }}</span>
+          <span class="kpi-label">Sobrecupo (Cupones)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card con Tabla de Inscritos -->
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-white border-bottom py-3 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div>
+          <h5 class="card-title mb-0 fw-semibold" style="font-size: 0.95rem;">
+            <i class="bi bi-list-check me-2 text-primary"></i>Padrón de Alumnos (Inscripción Indivisible)
+          </h5>
+          <small class="text-muted">
+            * El alumno adquiere todo el paquete de clases del periodo; las inasistencias individuales no se reprograman (RN-01, RN-03).
+          </small>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" (click)="selectedClinic() && loadEnrollments(selectedClinic()!.id)">
+          <i class="bi bi-arrow-clockwise"></i> Actualizar
+        </button>
+      </div>
+
+      <div class="card-body p-0">
+        <!-- Spinner -->
+        <div *ngIf="isLoadingEnrollments()" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando inscripciones...</span>
+          </div>
+          <p class="mt-2 text-muted small">Cargando listado de alumnos inscritos...</p>
+        </div>
+
+        <!-- Sin Inscritos -->
+        <div *ngIf="!isLoadingEnrollments() && enrollmentsList().length === 0" class="text-center py-5">
+          <i class="bi bi-people fs-1 text-muted d-block mb-2"></i>
+          <h6 class="fw-semibold text-dark">Aún no hay alumnos inscritos</h6>
+          <p class="text-muted small mb-3">Registra al primer socio usando el botón "Nueva inscripción".</p>
+          <button class="btn btn-sm btn-primary px-3" (click)="openAddStudentModal()">
+            <i class="bi bi-person-plus-fill me-1"></i> Inscribir Alumno
+          </button>
+        </div>
+
+        <!-- Tabla de Inscritos -->
+        <div *ngIf="!isLoadingEnrollments() && enrollmentsList().length > 0" class="table-responsive">
+          <table class="table table-hover table-sm align-middle mb-0">
+            <thead class="table-light">
+              <tr style="font-size: 0.78rem;">
+                <th class="ps-3">Alumno / Socio</th>
+                <th>Membresía</th>
+                <th>Orden NetSuite</th>
+                <th>Estatus Pago</th>
+                <th>Método</th>
+                <th>Importe</th>
+                <th>Fecha Registro</th>
+                <th class="text-center">Pase QR</th>
+                <th class="text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody style="font-size: 0.83rem;">
+              <tr *ngFor="let enr of enrollmentsList()">
+                <td class="ps-3 py-2">
+                  <div class="fw-semibold text-dark">{{ enr.full_name }}</div>
+                  <div class="text-muted" style="font-size: 0.7rem;">Ref: {{ enr.payment_reference }}</div>
+                </td>
+                <td>
+                  <span *ngIf="enr.member_number" class="badge bg-light text-dark border">
+                    {{ enr.member_number }}
+                  </span>
+                  <span *ngIf="!enr.member_number" class="text-muted small">Externo</span>
+                </td>
+                <td>
+                  <div *ngIf="enr.ns_sales_order_id">
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">
+                      #{{ enr.ns_sales_order_id }}
+                    </span>
+                  </div>
+                  <span *ngIf="!enr.ns_sales_order_id" class="text-muted small">—</span>
+                </td>
+                <td>
+                  <span
+                    class="badge px-2 py-1"
+                    [class.bg-success-subtle]="enr.payment_status === 'paid' || enr.status === 'paid'"
+                    [class.text-success]="enr.payment_status === 'paid' || enr.status === 'paid'"
+                    [class.border-success-subtle]="enr.payment_status === 'paid' || enr.status === 'paid'"
+                    [class.bg-warning-subtle]="enr.payment_status === 'pending' || enr.status === 'pending'"
+                    [class.text-warning-emphasis]="enr.payment_status === 'pending' || enr.status === 'pending'"
+                    [class.border-warning-subtle]="enr.payment_status === 'pending' || enr.status === 'pending'"
+                    [class.bg-danger-subtle]="enr.payment_status === 'cancelled' || enr.status === 'cancelled'"
+                    [class.text-danger]="enr.payment_status === 'cancelled' || enr.status === 'cancelled'"
+                  >
+                    {{ (enr.payment_status === 'paid' || enr.status === 'paid') ? 'Pagado' : ((enr.payment_status === 'pending' || enr.status === 'pending') ? 'Pendiente' : 'Cancelado') }}
+                  </span>
+                </td>
+                <td>
+                  <span class="small text-muted">{{ enr.payment_method }}</span>
+                  <div *ngIf="enr.coupon_code">
+                    <span class="badge bg-warning-subtle text-dark border" style="font-size: 0.65rem;">
+                      Cupón: {{ enr.coupon_code }}
+                    </span>
+                  </div>
+                </td>
+                <td class="fw-semibold text-dark">
+                  ${{ formatPrice(enr.amount_paid) }}
+                </td>
+                <td class="text-muted small">
+                  {{ enr.created_at ? (enr.created_at | date:'dd/MM/yyyy HH:mm') : '—' }}
+                </td>
+                <td class="text-center">
+                  <button
+                    class="btn btn-outline-primary btn-sm py-0 px-2"
+                    title="Ver Código QR del Alumno"
+                    (click)="viewStudentQr(enr)"
+                  >
+                    <i class="bi bi-qr-code"></i> Ver QR
+                  </button>
+                </td>
+                <td class="text-center">
+                  <div class="d-flex justify-content-center gap-1">
+                    <button
+                      class="btn btn-outline-warning text-dark btn-sm py-0 px-2"
+                      title="Emitir Cupón de Excepción para este alumno"
+                      (click)="openCouponModal(enr)"
+                    >
+                      <i class="bi bi-ticket-perforated-fill text-warning"></i> Cupón
+                    </button>
+                    <button
+                      *ngIf="enr.status !== 'cancelled'"
+                      class="btn btn-outline-danger btn-sm py-0 px-2"
+                      title="Cancelar inscripción"
+                      (click)="cancelEnrollment(enr)"
+                    >
+                      <i class="bi bi-x-circle"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer bg-white border-top py-2 px-3 d-flex justify-content-between align-items-center">
+        <span class="text-muted small">
+          Mostrando {{ enrollmentsList().length }} alumnos inscritos
+        </span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- VISTA 3: VALIDADOR DE ACCESO EN CAMPO (ESCÁNER QR PANTALLA COMPLETA)         -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentView() === 'checkin'" class="view-section">
+
+    <!-- Header con botón Volver -->
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" (click)="selectedClinic() ? irAInscritos(selectedClinic()!) : irAListado()">
+          <i class="bi bi-arrow-left me-1"></i> Volver a Inscritos
+        </button>
+        <div>
+          <h5 class="mb-0 fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-qr-code-scan text-primary"></i> Validador de Acceso en Campo (Check-in QR)
+          </h5>
+          <small class="text-muted">
+            {{ selectedClinic()?.name || 'Clínica Deportiva' }} · Instructor: {{ selectedClinic()?.instructor?.first_name }} {{ selectedClinic()?.instructor?.last_name }}
+          </small>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill small">
+          <i class="bi bi-camera-video-fill me-1"></i> Cámara Activa
+        </span>
+      </div>
+    </div>
+
+    <!-- Visor de Escáner Pantalla Completa -->
+    <div class="scanner-fullscreen-container position-relative">
+      
+      <!-- Badge superior -->
+      <div class="scanner-top-badge shadow-sm">
+        <i class="bi bi-phone me-1 text-warning"></i> Alinea el código QR del alumno dentro del marco
+      </div>
+
+      <!-- Viewfinder con láser animado -->
+      <div class="scanner-viewfinder">
+        <div class="scan-laser-line"></div>
+        <i class="bi bi-qr-code text-white opacity-25" style="font-size: 5rem;"></i>
+      </div>
+
+      <!-- Controles de simulación de escaneo -->
+      <div class="scanner-overlay-controls flex-wrap">
+        <div class="bg-dark bg-opacity-75 p-2 rounded-4 border border-secondary border-opacity-50 d-flex flex-wrap gap-2 justify-content-center shadow">
+          <button class="btn btn-success btn-sm rounded-pill px-3 fw-semibold shadow-sm" (click)="simularEscaneoQR('ok')">
+            <i class="bi bi-check-circle-fill me-1"></i> Simular: Acceso Válido (Pagado / Cupón)
+          </button>
+          <button class="btn btn-warning text-dark btn-sm rounded-pill px-3 fw-bold shadow-sm" (click)="simularEscaneoQR('pendiente')">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> Simular: Pendiente de Pago
+          </button>
+          <button class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold shadow-sm" (click)="simularEscaneoQR('invalido')">
+            <i class="bi bi-x-octagon-fill me-1"></i> Simular: QR Inválido / No Registrado
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal / Tarjeta de Resultado del Escaneo -->
+    <div *ngIf="scanSimulationResult()" class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.7); z-index: 1090;">
+      <div class="modal-dialog modal-dialog-centered" style="max-width: 480px;">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-center">
+          
+          <div
+            class="modal-header border-0 py-4 d-flex flex-column align-items-center justify-content-center text-white"
+            [class.bg-success]="scanSimulationResult()?.type === 'ok'"
+            [class.bg-warning]="scanSimulationResult()?.type === 'pendiente'"
+            [class.bg-danger]="scanSimulationResult()?.type === 'invalido'"
+          >
+            <i
+              class="bi fs-1 mb-2"
+              [class.bi-check-circle-fill]="scanSimulationResult()?.type === 'ok'"
+              [class.bi-exclamation-circle-fill]="scanSimulationResult()?.type === 'pendiente'"
+              [class.bi-x-circle-fill]="scanSimulationResult()?.type === 'invalido'"
+            ></i>
+            <h5 class="modal-title fw-bold text-white mb-0">
+              {{ scanSimulationResult()?.message }}
+            </h5>
+          </div>
+
+          <div class="modal-body p-4 text-start">
+            <div *ngIf="scanSimulationResult()?.details as det" class="bg-light p-3 rounded-3 border">
+              <div *ngIf="det.alumno" class="mb-2">
+                <span class="text-muted small d-block">Alumno:</span>
+                <strong class="text-dark">{{ det.alumno }}</strong>
+              </div>
+              <div *ngIf="det.clinica" class="mb-2">
+                <span class="text-muted small d-block">Clínica:</span>
+                <span class="text-dark">{{ det.clinica }}</span>
+              </div>
+              <div *ngIf="det.estado" class="mb-2">
+                <span class="text-muted small d-block">Estatus:</span>
+                <span class="badge" [class.bg-success]="scanSimulationResult()?.type === 'ok'" [class.bg-warning]="scanSimulationResult()?.type === 'pendiente'">
+                  {{ det.estado }}
+                </span>
+              </div>
+              <div *ngIf="det.error" class="text-danger small">
+                {{ det.error }}
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer border-top p-3 bg-light justify-content-center">
+            <button type="button" class="btn btn-secondary px-4 rounded-pill" (click)="cerrarResultadoEscaneo()">
+              Continuar Escaneando
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL: CREAR / EDITAR CLÍNICA                                                -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showFormModal()" class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1050;">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 780px;">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        
+        <div class="modal-header border-bottom py-3 px-4 bg-light">
+          <div class="d-flex align-items-center gap-2">
+            <div class="bg-primary text-white p-2 rounded-3 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+              <i class="bi" [class.bi-plus-lg]="!isEditing()" [class.bi-pencil-fill]="isEditing() && !isOngoingSelected()" [class.bi-eye-fill]="isOngoingSelected()"></i>
+            </div>
+            <div>
+              <h5 class="modal-title fw-bold text-dark mb-0">
+                {{ isOngoingSelected() ? 'Detalles de la Clínica (En Curso)' : (isEditing() ? 'Editar Clínica Deportiva' : 'Nueva Clínica Deportiva') }}
+              </h5>
+              <small class="text-muted">
+                {{ isOngoingSelected() ? 'Solo se permite actualizar el Estado Operativo por estar en curso' : 'Los paquetes calendarizados son cerrados e indivisibles' }}
+              </small>
+            </div>
+          </div>
+          <button type="button" class="btn-close" (click)="closeFormModal()"></button>
+        </div>
+
+        <form [formGroup]="clinicForm" (ngSubmit)="saveClinic()">
+          <div class="modal-body p-4">
+
+            <!-- Banner Informativo si está en curso -->
+            <div *ngIf="isOngoingSelected()" class="alert alert-warning py-2 small mb-3 d-flex align-items-center gap-2">
+              <i class="bi bi-lock-fill fs-5 text-warning"></i>
+              <div>
+                <strong>Clínica en Curso:</strong> Por reglas operativas y consistencia con las órdenes de NetSuite, no se permite modificar la sede, área, profesor ni fechas. Solo puedes actualizar el <strong>Estado Operativo</strong>.
+              </div>
+            </div>
+
+            <div class="row g-3 mb-3">
+              <!-- Disciplina / Actividad con Buscador Integrado -->
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">Actividad Base (Disciplina) <span class="text-danger">*</span></label>
+                <ng-select
+                  class="custom-sm-select w-100"
+                  formControlName="activity_id"
+                  [items]="actividades()"
+                  bindLabel="nombre"
+                  bindValue="id"
+                  [searchable]="true"
+                  [clearable]="false"
+                  placeholder="Selecciona o busca disciplina...">
+                </ng-select>
+                <div class="form-text small" style="font-size: 0.72rem;">Permite buscar entre todas las actividades registradas.</div>
+              </div>
+
+              <!-- Profesor Titular Único con Buscador Integrado -->
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">Profesor Titular Único <span class="text-danger">*</span></label>
+                <ng-select
+                  class="custom-sm-select w-100"
+                  formControlName="instructor_id"
+                  [items]="profesores()"
+                  bindLabel="nombre"
+                  bindValue="id"
+                  [searchable]="true"
+                  [clearable]="false"
+                  placeholder="Selecciona o busca profesor...">
+                </ng-select>
+                <div class="form-text small" style="font-size: 0.72rem;">Carga todo el catálogo de entrenadores activos.</div>
+              </div>
+            </div>
+
+            <!-- Nombre de la Clínica -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Nombre de la Clínica <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="name"
+                placeholder="Ej. Clínica Tenis Pre-Torneo Verano"
+                maxlength="150"
+              />
+            </div>
+
+            <!-- Sede y Área Física -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">Sede <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="location_id">
+                  <option value="" disabled>Selecciona sede...</option>
+                  <option *ngFor="let loc of locations()" [value]="loc.id">
+                    {{ loc.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">Área / Cancha Asignada <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="area_id">
+                  <option value="" disabled>Selecciona área física...</option>
+                  <option *ngFor="let a of areas()" [value]="a.id">
+                    {{ a.name }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Fechas Inicio y Fin -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">Fecha Inicio <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" formControlName="start_date" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small">Fecha Fin <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" formControlName="end_date" />
+              </div>
+            </div>
+
+            <!-- Cupo Máximo, Precio del Paquete, Estado y Servicio NetSuite -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-3">
+                <label class="form-label fw-semibold small">Cupo Máximo <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" formControlName="max_capacity" min="1" max="500" />
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold small">Precio Paquete (MXN) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                  <span class="input-group-text">$</span>
+                  <input type="number" class="form-control" formControlName="price" min="0" step="100" />
+                </div>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold small">Estado Operativo <span class="text-danger">*</span></label>
+                <select class="form-select fw-semibold" formControlName="status">
+                  <option value="upcoming">Próxima</option>
+                  <option value="ongoing">En curso</option>
+                  <option value="finished">Finalizada</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+              </div>
+
+              <div class="col-md-3">
+                <label class="form-label fw-semibold small" title="ID de Artículo NetSuite para Facturación / Orden de Venta">
+                  ID Ítem NetSuite <span class="text-danger">*</span>
+                </label>
+                <input
+                  type="number"
+                  class="form-control"
+                  formControlName="ns_item_id"
+                  placeholder="Ej. 3345"
+                  title="ID numérico interno de NetSuite para generar la Orden de Venta"
+                />
+              </div>
+            </div>
+
+            <!-- Descripción y Detalles del Espacio -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Descripción del Programa</label>
+              <textarea
+                class="form-control"
+                formControlName="description"
+                rows="2"
+                placeholder="Objetivos del curso, nivel requerido, material necesario..."
+              ></textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold small">Detalles de Lugar / Punto de Encuentro</label>
+              <input
+                type="text"
+                class="form-control"
+                formControlName="venue_details"
+                placeholder="Ej. Cancha 3 de Tenis junto a las gradas"
+              />
+            </div>
+
+          </div>
+
+          <div class="modal-footer border-top p-3 bg-light d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary px-3" (click)="closeFormModal()">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn btn-primary px-4 fw-semibold"
+              [disabled]="isSaving()"
+            >
+              <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1"></span>
+              {{ isOngoingSelected() ? 'Actualizar Estado' : (isEditing() ? 'Guardar Cambios' : 'Crear Clínica') }}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL: SUSTITUCIONES DE INSTRUCTOR Y CAMBIO DE ÁREA                         -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showSubstitutionModal()" class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1055;">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 820px;">
+      <div class="modal-content shadow-lg border-0 rounded-4">
+        
+        <div class="modal-header border-bottom py-3 px-4 bg-info-subtle">
+          <div>
+            <h5 class="modal-title fw-bold text-dark mb-0">
+              <i class="bi bi-person-fill-gear text-info me-2"></i>Sustitución Temporal: Instructor y Área Física
+            </h5>
+            <small class="text-muted">Clínica: {{ selectedClinic()?.name }}</small>
+          </div>
+          <button type="button" class="btn-close" (click)="closeSubstitutionModal()"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          
+          <div class="alert alert-info py-2.5 small mb-3 d-flex align-items-start gap-2">
+            <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 text-info"></i>
+            <div>
+              <strong>Gestión de Contingencias:</strong> Permite registrar la ausencia del profesor titular (vacaciones/incapacidad) y/o el cambio de cancha por lluvia o mantenimiento. El sistema <strong>notificará por correo</strong> a los alumnos inscritos, manteniendo el mismo código QR de acceso (RN-09, RN-10).
+            </div>
+          </div>
+
+          <div class="card border rounded-3 p-3 bg-light mb-4">
+            <h6 class="fw-bold text-dark mb-3">
+              <i class="bi bi-plus-circle me-1 text-primary"></i>Registrar Nueva Sustitución Temporal
+            </h6>
+
+            <form [formGroup]="substitutionForm" (ngSubmit)="saveSubstitution()">
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small">Profesor Titular Actual</label>
+                  <input
+                    type="text"
+                    class="form-control bg-white"
+                    readonly
+                    [value]="selectedClinic()?.instructor?.first_name + ' ' + selectedClinic()?.instructor?.last_name"
+                  >
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small">Profesor Suplente Asignado</label>
+                  <ng-select
+                    class="custom-sm-select w-100"
+                    formControlName="substitute_instructor_id"
+                    [items]="profesores()"
+                    bindLabel="nombre"
+                    bindValue="id"
+                    [searchable]="true"
+                    [clearable]="true"
+                    placeholder="(Sin cambio de profesor)">
+                  </ng-select>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small">Área / Cancha Base</label>
+                  <input
+                    type="text"
+                    class="form-control bg-white"
+                    readonly
+                    [value]="selectedClinic()?.area?.name || 'Área Base'"
+                  >
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small">Área / Cancha Alterna (Sustituta)</label>
+                  <ng-select
+                    class="custom-sm-select w-100"
+                    formControlName="substitute_area_id"
+                    [items]="areas()"
+                    bindLabel="name"
+                    bindValue="id"
+                    [searchable]="true"
+                    [clearable]="true"
+                    placeholder="(Sin cambio de cancha)">
+                  </ng-select>
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small">Fecha Inicio de Sustitución <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" formControlName="start_date" />
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold small">Fecha Fin de Sustitución <span class="text-danger">*</span></label>
+                  <input type="date" class="form-control" formControlName="end_date" />
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-semibold small">Motivo / Causa de la Sustitución <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="reason"
+                  placeholder="Ej. Incapacidad médica del profesor titular / Lluvia en cancha abierta"
+                />
+              </div>
+
+              <div class="d-flex justify-content-end">
+                <button
+                  type="submit"
+                  class="btn btn-info text-white fw-semibold px-4"
+                  [disabled]="isSaving() || substitutionForm.invalid"
+                >
+                  <span *ngIf="isSaving()" class="spinner-border spinner-border-sm me-1"></span>
+                  Guardar y Notificar a Alumnos
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Historial de Sustituciones -->
+          <h6 class="fw-bold text-dark mb-2">
+            <i class="bi bi-clock-history me-1"></i>Historial de Sustituciones Registradas
+          </h6>
+
+          <div *ngIf="isLoadingSubstitutions()" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-info"></div>
+            <span class="ms-2 small text-muted">Cargando sustituciones...</span>
+          </div>
+
+          <div *ngIf="!isLoadingSubstitutions() && substitutionsList().length === 0" class="text-muted small py-2">
+            No hay sustituciones registradas para esta clínica.
+          </div>
+
+          <div *ngIf="!isLoadingSubstitutions() && substitutionsList().length > 0" class="table-responsive">
+            <table class="table table-sm table-hover border align-middle mb-0" style="font-size: 0.8rem;">
+              <thead class="table-light">
+                <tr>
+                  <th>Periodo</th>
+                  <th>Profesor Sustituto</th>
+                  <th>Área Alterna</th>
+                  <th>Motivo</th>
+                  <th>Estado</th>
+                  <th class="text-end">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let s of substitutionsList()">
+                  <td>{{ s.start_date }} al {{ s.end_date }}</td>
+                  <td>
+                    <span *ngIf="s.substitute_instructor" class="badge bg-warning-subtle text-dark border">
+                      {{ s.substitute_instructor.first_name }} {{ s.substitute_instructor.last_name }}
+                    </span>
+                    <span *ngIf="!s.substitute_instructor" class="text-muted">—</span>
+                  </td>
+                  <td>
+                    <span *ngIf="s.substitute_area" class="badge bg-info-subtle text-dark border">
+                      {{ s.substitute_area.name }}
+                    </span>
+                    <span *ngIf="!s.substitute_area" class="text-muted">—</span>
+                  </td>
+                  <td>{{ s.reason }}</td>
+                  <td>
+                    <span class="badge" [class.bg-success]="s.status === 'active'" [class.bg-secondary]="s.status !== 'active'">
+                      {{ s.status === 'active' ? 'Activa' : 'Cancelada' }}
+                    </span>
+                  </td>
+                  <td class="text-end">
+                    <button
+                      *ngIf="s.status === 'active'"
+                      class="btn btn-outline-danger btn-sm py-0 px-2"
+                      style="font-size: 0.72rem;"
+                      (click)="cancelSubstitution(s)"
+                    >
+                      Cancelar
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+        <div class="modal-footer border-top p-3 bg-light">
+          <button type="button" class="btn btn-outline-secondary px-4" (click)="closeSubstitutionModal()">
+            Cerrar
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- WIZARD MULTI-PASO: INSCRIBIR SOCIO Y FAMILIA (ESTÁNDAR DE EVENTOS)           -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <app-clinic-inscribir-wizard
+    *ngIf="showAddStudentModal() && selectedClinic()"
+    [clinic]="selectedClinic()!"
+    [existingEnrollments]="enrollmentsList()"
+    (inscripcionGuardada)="selectedClinic() && loadEnrollments(selectedClinic()!.id); loadClinics()"
+    (cerrar)="closeAddStudentModal()"
+  >
+  </app-clinic-inscribir-wizard>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL: CÓDIGO QR / PASE DE ACCESO                                            -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showQrModal()" class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); z-index: 1080;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden text-center">
+        
+        <div class="modal-header bg-light border-bottom p-3">
+          <h5 class="modal-title fw-bold text-dark mb-0">
+            <i class="bi bi-qr-code text-primary me-2"></i>Pase de Acceso
+          </h5>
+          <button type="button" class="btn-close" (click)="closeQrModal()" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          <h6 class="fw-bold text-dark mb-1">{{ qrData()?.title }}</h6>
+          <p class="text-muted small mb-3">{{ qrData()?.subtitle }}</p>
+
+          <div class="d-inline-block p-3 bg-white border rounded-3 shadow-sm mb-3">
+            <img [src]="qrData()?.qrUrl" alt="Código QR" width="220" height="220" class="d-block mx-auto" />
+          </div>
+
+          <div class="badge bg-light text-dark border px-3 py-1.5 mb-2 font-monospace" style="font-size: 0.8rem;">
+            {{ qrData()?.token }}
+          </div>
+
+          <p class="text-muted small mt-2 mb-0" style="font-size: 0.75rem;">
+            Escanea este código en los lectores de recepción o con el escáner del instructor para validar el ingreso.
+          </p>
+        </div>
+
+        <div class="modal-footer border-top p-3 bg-light justify-content-center">
+          <button type="button" class="btn btn-outline-secondary px-4" (click)="closeQrModal()">
+            Cerrar
+          </button>
+          <a [href]="qrData()?.qrUrl" target="_blank" download="pase-qr.png" class="btn btn-primary px-3">
+            <i class="bi bi-download me-1"></i> Descargar QR
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <!-- MODAL: EMITIR CUPÓN QR DE EXCEPCIÓN (SOBRECUPO AUTORIZADO)                   -->
+  <!-- ════════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="showCouponModal()" class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.65); z-index: 1075;">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+        
+        <div class="modal-header bg-warning-subtle py-3 px-4 border-bottom">
+          <div>
+            <h5 class="modal-title fw-bold text-dark mb-0">
+              <i class="bi bi-ticket-perforated-fill text-warning me-2"></i>Emitir Cupón de Excepción (QR con Sobrecupo)
+            </h5>
+            <small class="text-muted">Reglas de Negocio RN-02 y RN-04: Compensación / Reasignación autorizada</small>
+          </div>
+          <button type="button" class="btn-close" (click)="closeCouponModal()"></button>
+        </div>
+
+        <div class="modal-body p-4">
+          
+          <!-- Banner Explicativo -->
+          <div class="alert alert-warning py-2.5 small mb-3 d-flex align-items-start gap-2">
+            <i class="bi bi-shield-check fs-5 flex-shrink-0 text-warning-emphasis"></i>
+            <div>
+              <strong>Sobrecupo Excepcional:</strong> Este cupón permite el ingreso de un socio a la clínica seleccionada aún si el cupo regular está completo. Solo coordinación deportiva puede emitirlo con motivo justificado (reposición por lluvia, torneo o compensación).
+            </div>
+          </div>
+
+          <!-- Alumno / Beneficiario y Clínica Destino -->
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Socio / Alumno Inscrito <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Nombre o Membresía del socio..."
+                [(ngModel)]="couponStudentName"
+              />
+              <small class="text-muted" style="font-size: 0.72rem;">Socio al que se le compensa o autoriza la excepción.</small>
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label fw-semibold small">Clínica Destino (Misma Disciplina) <span class="text-danger">*</span></label>
+              <select class="form-select" [(ngModel)]="couponTargetClinicId">
+                <option *ngFor="let c of clinics()" [value]="c.id">
+                  {{ c.name }} ({{ c.location?.name }}) - {{ c.instructor?.first_name }} {{ c.instructor?.last_name }}
+                </option>
+              </select>
+              <small class="text-muted" style="font-size: 0.72rem;">Puede reasignarse a otra clínica o mantenerse en la actual.</small>
+            </div>
+          </div>
+
+          <!-- Selección de Días: Selector Chosen Tags + Calendario -->
+          <div class="p-3 bg-light rounded-3 border mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="fw-bold small mb-0 text-dark">
+                <i class="bi bi-calendar-check me-1 text-primary"></i>Selección de Días para el Cupón
+              </h6>
+              <small class="text-muted fw-semibold">{{ calendarMonthLabel() }}</small>
+            </div>
+
+            <!-- Tags Seleccionados (Chosen style) -->
+            <div class="mb-3">
+              <label class="form-label fw-semibold small mb-1">Días seleccionados:</label>
+              <div class="ng-chosen-box">
+                <div class="d-flex flex-wrap gap-1 align-items-center">
+                  <span *ngIf="couponSelectedDates().length === 0" class="text-muted small fst-italic">
+                    Haz clic en los días disponibles del calendario para agregarlos...
+                  </span>
+                  <span *ngFor="let d of couponSelectedDates()" class="ng-chosen-tag">
+                    <span>{{ d }}</span>
+                    <i class="bi bi-x ms-1 text-danger cursor-pointer" (click)="removeCouponDate(d)"></i>
+                  </span>
+                </div>
+                <i class="bi bi-calendar3 text-muted"></i>
+              </div>
+              <small class="text-muted" style="font-size: 0.72rem;">* Puedes autorizar una sola sesión, días alternados o periodo completo.</small>
+            </div>
+
+            <!-- Calendario Interactivo -->
+            <div class="simple-calendar-card shadow-sm">
+              <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                <span class="small fw-bold text-dark">{{ calendarMonthLabel() }}</span>
+                <div class="d-flex gap-2 align-items-center">
+                  <span class="badge bg-light text-secondary border small" style="font-size: 0.65rem;">
+                    <span class="d-inline-block rounded-circle bg-primary me-1" style="width: 6px; height: 6px;"></span>Sesión clínica
+                  </span>
+                  <button type="button" class="btn btn-sm btn-light border py-0 px-2" style="font-size: 0.72rem;" (click)="seleccionarSemanaCompleta()">
+                    + Seleccionar Semana
+                  </button>
+                  <button type="button" class="btn btn-sm btn-light border py-0 px-2 text-danger" style="font-size: 0.72rem;" (click)="limpiarDiasSeleccionados()">
+                    Limpiar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Cabecera de días -->
+              <div class="calendar-days-grid mb-1">
+                <div class="cal-header-day">Lu</div>
+                <div class="cal-header-day">Ma</div>
+                <div class="cal-header-day">Mi</div>
+                <div class="cal-header-day">Ju</div>
+                <div class="cal-header-day">Vi</div>
+                <div class="cal-header-day">Sá</div>
+                <div class="cal-header-day">Do</div>
+              </div>
+
+              <!-- Grid de Días -->
+              <div class="calendar-days-grid">
+                <div
+                  *ngFor="let cell of calendarDays()"
+                  class="cal-day-cell"
+                  [class.disabled]="!cell.isCurrentMonth"
+                  [class.available]="cell.isAvailable"
+                  [class.selected]="couponSelectedDates().includes(cell.dateStr)"
+                  (click)="cell.isCurrentMonth && toggleCouponDate(cell.dateStr)"
+                >
+                  {{ cell.day > 0 ? cell.day : '' }}
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Motivo Obligatorio -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold small">Motivo Obligatorio de la Excepción <span class="text-danger">*</span></label>
+            <textarea
+              class="form-control"
+              rows="2"
+              [(ngModel)]="couponReason"
+              placeholder="Ej. Reposición autorizada por lluvia en sesión anterior / Reasignación por evento institucional"
+              required
+            ></textarea>
+            <small class="text-muted" style="font-size: 0.75rem;">Queda registrado para auditoría de Coordinación Deportiva.</small>
+          </div>
+
+        </div>
+
+        <div class="modal-footer border-top p-3 bg-light d-flex justify-content-end gap-2">
+          <button type="button" class="btn btn-outline-secondary px-3" (click)="closeCouponModal()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-warning fw-bold px-4 text-dark shadow-sm"
+            [disabled]="isSavingCoupon() || !couponStudentName.trim() || !couponReason.trim() || couponSelectedDates().length === 0"
+            (click)="submitCoupon()"
+          >
+            <span *ngIf="isSavingCoupon()" class="spinner-border spinner-border-sm me-1"></span>
+            Emitir Cupón QR
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+

@@ -288,6 +288,11 @@ export const routes: Routes = [
           import('./components/deportivo/actividades/deportivo-actividades').then(m => m.DeportivoActividadesComponent)
       },
       {
+        path: 'clinicas',
+        loadComponent: () =>
+          import('./components/deportivo/clinicas/deportivo-clinicas').then(m => m.DeportivoClinicasComponent)
+      },
+      {
         path: 'horarios',
         loadComponent: () =>
           import('./components/deportivo/horarios/deportivo-horarios').then(m => m.DeportivoHorariosComponent)
