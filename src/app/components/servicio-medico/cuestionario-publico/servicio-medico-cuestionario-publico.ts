@@ -333,6 +333,7 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     transfusion_motivo: '',
     transfusion_fecha: '',
     alergias_tipo: ['Ninguna'] as string[],
+    alergias_detalle: {} as Record<string, string>,
     alergias_tipo_otra: '',
     alergias_reaccion: '',
 
@@ -495,6 +496,12 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
 
         if (d.respuestas && typeof d.respuestas === 'object') {
           this.r = { ...this.r, ...d.respuestas };
+        }
+        if (!this.r.alergias_detalle || typeof this.r.alergias_detalle !== 'object' || Array.isArray(this.r.alergias_detalle)) {
+          this.r.alergias_detalle = {};
+        }
+        if (this.r.alergias_tipo_otra && !this.r.alergias_detalle['Otras']) {
+          this.r.alergias_detalle['Otras'] = this.r.alergias_tipo_otra;
         }
         const mapParentesco: Record<string, string> = {
           Abuelo: 'Abuelo(a)',
@@ -799,6 +806,88 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
     this.triggerDraftSave();
   }
 
+  get selectedAlergiasConDetalle(): string[] {
+    const arr = Array.isArray(this.r?.alergias_tipo) ? this.r.alergias_tipo : [];
+    return arr.filter((al: string) => Boolean(al) && al !== 'Ninguna');
+  }
+
+  trackByAlergia(_index: number, item: string): string {
+    return item;
+  }
+
+  onToggleAlergia(al: string): void {
+    this.toggleMultiOption('alergias_tipo', al, 'Ninguna');
+    if (!this.r.alergias_detalle || typeof this.r.alergias_detalle !== 'object' || Array.isArray(this.r.alergias_detalle)) {
+      this.r.alergias_detalle = {};
+    }
+    if (al === 'Ninguna') {
+      this.r.alergias_detalle = {};
+      this.r.alergias_tipo_otra = '';
+    } else if (!this.isSelected('alergias_tipo', al)) {
+      delete this.r.alergias_detalle[al];
+      if (al === 'Otras') {
+        this.r.alergias_tipo_otra = '';
+      }
+    } else if (this.r.alergias_detalle[al] === undefined) {
+      this.r.alergias_detalle[al] = '';
+    }
+    this.triggerDraftSave();
+  }
+
+  onAlergiaDetalleChange(al: string, value: string): void {
+    if (!this.r.alergias_detalle || typeof this.r.alergias_detalle !== 'object' || Array.isArray(this.r.alergias_detalle)) {
+      this.r.alergias_detalle = {};
+    }
+    this.r.alergias_detalle[al] = value;
+    if (al === 'Otras') {
+      this.r.alergias_tipo_otra = value;
+    }
+    this.triggerDraftSave();
+  }
+
+  getAlergiaDetailLabel(al: string): string {
+    const lower = (al || '').toLowerCase();
+    if (lower.includes('medicamento')) {
+      return '¿A qué medicamentos es alérgico(a)?*';
+    }
+    if (lower.includes('picadura') || lower.includes('insecto')) {
+      return '¿A qué picaduras de insectos es alérgico(a)?*';
+    }
+    if (lower.includes('aliment')) {
+      return '¿A qué alimentos es alérgico(a)?*';
+    }
+    if (lower.includes('cutánea') || lower.includes('cutanea') || lower.includes('contacto')) {
+      return '¿A qué sustancias o materiales por contacto es alérgico(a)?*';
+    }
+    if (lower.includes('respiratoria')) {
+      return '¿A qué alérgenos o factores respiratorios es alérgico(a)?*';
+    }
+    if (lower === 'otras' || lower === 'otra') {
+      return 'Especifique a qué otra sustancia o factor es alérgico(a)*';
+    }
+    return `¿A qué es alérgico(a)? (${al})*`;
+  }
+
+  getAlergiaDetailPlaceholder(al: string): string {
+    const lower = (al || '').toLowerCase();
+    if (lower.includes('medicamento')) {
+      return 'Ej. Penicilina, aspirina, ibuprofeno, sulfas...';
+    }
+    if (lower.includes('picadura') || lower.includes('insecto')) {
+      return 'Ej. Abeja, avispa, hormiga...';
+    }
+    if (lower.includes('aliment')) {
+      return 'Ej. Mariscos, nueces, cacahuate, lácteos...';
+    }
+    if (lower.includes('cutánea') || lower.includes('cutanea') || lower.includes('contacto')) {
+      return 'Ej. Látex, níquel, cosméticos, detergentes...';
+    }
+    if (lower.includes('respiratoria')) {
+      return 'Ej. Polen, polvo, ácaros, pelo de animales...';
+    }
+    return 'Describa a qué es alérgico(a)...';
+  }
+
   // ── Envío Final del Cuestionario ─────────────────────────────────────────
   submitQuestionnaire(): void {
     if (this.isSubmitting) return;
@@ -858,6 +947,18 @@ export class ServicioMedicoCuestionarioPublico implements OnInit, OnDestroy {
         return;
       }
       this.r.contacto_emergencia_telefono = tel;
+
+      for (const al of this.selectedAlergiasConDetalle) {
+        const det = String(this.r.alergias_detalle?.[al] || (al === 'Otras' ? this.r.alergias_tipo_otra : '') || '').trim();
+        if (!det) {
+          Swal.fire(
+            'Detalle de alergia requerido',
+            `Seleccionaste "${al}". Por favor describe a qué eres alérgico(a).`,
+            'warning'
+          );
+          return;
+        }
+      }
     }
 
     this.isSubmitting = true;

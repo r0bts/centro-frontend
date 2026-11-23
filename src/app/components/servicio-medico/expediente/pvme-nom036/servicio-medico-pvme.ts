@@ -12,12 +12,15 @@ import {
   ManiobraPosicion,
   NordicSugerencia,
   RESUMEN_16_REGIONES,
+  ResumenImpresionOficialRow,
   calcularMediaPrension,
   calcularResumenSugerido,
   calcularSugerenciaNordico,
   clasificarPrension,
+  construirResumenImpresionOficial,
   evaluarManiobraAlterada,
   getOpcionesManiobra,
+  resumirAlteracionesRegion,
   tieneCapturaManiobra
 } from './anexo-a-catalog';
 
@@ -29,6 +32,8 @@ export interface NordicRegionRow {
   molestia_7d: 'Si' | 'No' | '';
   intensidad: number | null;
 }
+
+export type AnexoStatus = 'pendiente' | 'en_proceso' | 'por_firmar' | 'firmado';
 
 export interface ExploracionRegionRow {
   key: string;
@@ -62,6 +67,11 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     anexo_b: false,
     anexo_c: false,
     anexo_a: false
+  };
+  anexoStatuses: { anexo_b: AnexoStatus; anexo_c: AnexoStatus; anexo_a: AnexoStatus } = {
+    anexo_b: 'pendiente',
+    anexo_c: 'pendiente',
+    anexo_a: 'pendiente'
   };
 
   @HostListener('document:keydown.escape')
@@ -459,16 +469,280 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
       });
   }
 
+  private nonEmpty(val: any): boolean {
+    return val !== null && val !== undefined && String(val).trim() !== '';
+  }
+
+  markAnexoCapturado(anexo: 'anexo_b' | 'anexo_c' | 'anexo_a'): void {
+    if (anexo === 'anexo_b' && this.anexoB) {
+      this.anexoB.capturado = true;
+    } else if (anexo === 'anexo_c' && this.anexoC) {
+      this.anexoC.capturado = true;
+    } else if (anexo === 'anexo_a' && this.anexoA) {
+      this.anexoA.capturado = true;
+    }
+  }
+
+  evaluateAnexoBStatus(b: any, a?: any, evalItem?: any): AnexoStatus {
+    if (!b || typeof b !== 'object') return 'pendiente';
+
+    const hasAllSigs = this.nonEmpty(b.firma_trabajador_data) && this.nonEmpty(b.firma_aplico_data);
+    if (hasAllSigs) return 'firmado';
+
+    const hasAnySig = this.nonEmpty(b.firma_trabajador_data) || this.nonEmpty(b.firma_aplico_data);
+    const fromPreregistro = Boolean(evalItem?.preregistro_id || evalItem?.estado === 'tamizaje_completado');
+    const regiones = Array.isArray(b.regiones) ? b.regiones : [];
+    const anyPositiveRegion = regiones.some(
+      (r: any) =>
+        r.molestia_12m === 'Si' ||
+        r.impidio_trabajo === 'Si' ||
+        r.molestia_7d === 'Si' ||
+        Number(r.intensidad) > 0
+    );
+    const hasOwnAplico = this.nonEmpty(b.aplico_nombre) && b.aplico_nombre !== a?.medico_valorador_nombre;
+
+    const hasData =
+      hasAnySig ||
+      fromPreregistro ||
+      b.capturado === true ||
+      anyPositiveRegion ||
+      this.nonEmpty(b.atribuye_actividad) ||
+      this.nonEmpty(b.ha_recibido_tratamiento) ||
+      (b.capturado !== false && hasOwnAplico);
+
+    if (!hasData) return 'pendiente';
+
+    const identOk = this.nonEmpty(b.no_empleado) && this.nonEmpty(b.nombre) && this.nonEmpty(b.fecha);
+    const allRegionsAnswered =
+      regiones.length >= 10 &&
+      regiones.every(
+        (r: any) =>
+          (r.molestia_12m === 'Si' || r.molestia_12m === 'No') &&
+          (r.molestia_12m === 'No' ||
+            ((r.impidio_trabajo === 'Si' || r.impidio_trabajo === 'No') &&
+              (r.molestia_7d === 'Si' || r.molestia_7d === 'No') &&
+              r.intensidad !== null &&
+              r.intensidad !== undefined &&
+              String(r.intensidad) !== ''))
+      );
+    const tieneMolestia = regiones.some((r: any) => r.molestia_12m === 'Si' || r.molestia_7d === 'Si');
+    const preguntasOk = !tieneMolestia || (this.nonEmpty(b.atribuye_actividad) && this.nonEmpty(b.ha_recibido_tratamiento));
+
+    return identOk && allRegionsAnswered && preguntasOk ? 'por_firmar' : 'en_proceso';
+  }
+
+  evaluateAnexoCStatus(c: any, a?: any, b?: any): AnexoStatus {
+    if (!c || typeof c !== 'object') return 'pendiente';
+
+    const hasAllSigs =
+      this.nonEmpty(c.firma_trabajador_data) &&
+      this.nonEmpty(c.firma_informo_data) &&
+      this.nonEmpty(c.firma_testigo_data);
+    if (hasAllSigs) return 'firmado';
+
+    const hasAnySig =
+      this.nonEmpty(c.firma_trabajador_data) ||
+      this.nonEmpty(c.firma_informo_data) ||
+      this.nonEmpty(c.firma_testigo_data);
+
+    const hasOwnInformo =
+      this.nonEmpty(c.informo_nombre_cargo) &&
+      c.informo_nombre_cargo !== a?.medico_valorador_nombre &&
+      c.informo_nombre_cargo !== b?.aplico_nombre;
+
+    const hasSubstantiveFields =
+      this.nonEmpty(c.formato_num) ||
+      this.nonEmpty(c.masa_mayor_puesto_kg) ||
+      this.nonEmpty(c.actividad_1) ||
+      this.nonEmpty(c.actividad_2) ||
+      this.nonEmpty(c.actividad_3) ||
+      this.nonEmpty(c.que_manipula) ||
+      this.nonEmpty(c.testigo_jefe_nombre) ||
+      Boolean(c.acepta_acuse_riesgos) ||
+      hasOwnInformo ||
+      (c.capturado === true && this.nonEmpty(c.informo_nombre_cargo));
+
+    const hasData = hasAnySig || Boolean(c.acepta_acuse_riesgos) || (c.capturado !== false && hasSubstantiveFields);
+    if (!hasData) return 'pendiente';
+
+    const isComplete =
+      this.nonEmpty(c.no_empleado) &&
+      this.nonEmpty(c.trabajador) &&
+      this.nonEmpty(c.turno) &&
+      this.nonEmpty(c.area) &&
+      this.nonEmpty(c.puesto) &&
+      this.nonEmpty(c.nivel_riesgo) &&
+      this.nonEmpty(c.grupo_tabla1) &&
+      this.nonEmpty(c.limite_masa_kg) &&
+      this.nonEmpty(c.masa_mayor_puesto_kg) &&
+      this.nonEmpty(c.situacion_frente_limite) &&
+      this.nonEmpty(c.actividad_1) &&
+      this.nonEmpty(c.que_manipula) &&
+      this.nonEmpty(c.tipo_esfuerzo) &&
+      this.nonEmpty(c.ayuda_mecanica_corresponde) &&
+      this.nonEmpty(c.cita_fecha) &&
+      this.nonEmpty(c.cita_hora) &&
+      this.nonEmpty(c.cita_sede);
+
+    return isComplete ? 'por_firmar' : 'en_proceso';
+  }
+
+  evaluateAnexoAStatus(a: any, b?: any): AnexoStatus {
+    if (!a || typeof a !== 'object') return 'pendiente';
+
+    const hasAllSigs =
+      this.nonEmpty(a.firma_trabajador_data) &&
+      this.nonEmpty(a.firma_medica_designada_data) &&
+      (a.modalidad_determinacion === 'personalmente' || this.nonEmpty(a.firma_medico_valorador_data));
+    if (hasAllSigs) return 'firmado';
+
+    const hasAnySig =
+      this.nonEmpty(a.firma_medico_valorador_data) ||
+      this.nonEmpty(a.firma_trabajador_data) ||
+      this.nonEmpty(a.firma_medica_designada_data);
+
+    const hasManiobras = Boolean(
+      a.maniobras &&
+        MANIOBRAS_CATALOG.some(
+          m =>
+            a.maniobras[m.id] &&
+            (tieneCapturaManiobra(m, a.maniobras[m.id]) ||
+              Boolean(a.maniobras[m.id].omitida) ||
+              this.nonEmpty(a.maniobras[m.id].observaciones))
+        )
+    );
+    const expRows = Array.isArray(a.exploracion) ? a.exploracion : [];
+    const hasExploracion =
+      Boolean(a.secciones_cerradas?.exploracion) ||
+      expRows.some((r: any) => (r.hallazgo && r.hallazgo !== 'Sin evaluar') || this.nonEmpty(r.observaciones));
+    const hasOwnMedico = this.nonEmpty(a.medico_valorador_nombre) && a.medico_valorador_nombre !== b?.aplico_nombre;
+
+    const hasSubstantiveFields =
+      this.nonEmpty(a.antiguedad) ||
+      this.nonEmpty(a.folio_visita_medica) ||
+      this.nonEmpty(a.peso_kg) ||
+      this.nonEmpty(a.talla_m) ||
+      this.nonEmpty(a.ta) ||
+      this.nonEmpty(a.fc) ||
+      this.nonEmpty(a.puestos_previos_cargas) ||
+      this.nonEmpty(a.antecedentes_patologicos_relevantes) ||
+      this.nonEmpty(a.incapacidades_previas_me) ||
+      a.condicion_gestacion === 'gestacion' ||
+      a.condicion_gestacion === 'posparto' ||
+      a.condicion_gestacion === 'si' ||
+      this.nonEmpty(a.fecha_parto) ||
+      hasManiobras ||
+      hasExploracion ||
+      this.nonEmpty(a.razon_ajuste) ||
+      this.nonEmpty(a.recomendaciones_puesto) ||
+      this.nonEmpty(a.restricciones_vinculantes) ||
+      this.nonEmpty(a.periodo_recuperacion) ||
+      this.nonEmpty(a.vigencia_restriccion_hasta) ||
+      this.nonEmpty(a.medico_valorador_cedula) ||
+      hasOwnMedico ||
+      (a.capturado === true && this.nonEmpty(a.medico_valorador_nombre));
+
+    const hasData = hasAnySig || (a.capturado !== false && hasSubstantiveFields);
+    if (!hasData) return 'pendiente';
+
+    const reqFolioVisita =
+      a.tipo_valoracion === 'a_demanda' ||
+      a.tipo_valoracion === 'sintomas' ||
+      a.tipo_valoracion === 'reincorporacion';
+    const identOk =
+      this.nonEmpty(a.fecha) &&
+      this.nonEmpty(a.tipo_valoracion) &&
+      this.nonEmpty(a.no_empleado) &&
+      this.nonEmpty(a.nombre) &&
+      this.nonEmpty(a.edad) &&
+      this.nonEmpty(a.sexo) &&
+      this.nonEmpty(a.turno) &&
+      this.nonEmpty(a.puesto) &&
+      this.nonEmpty(a.area) &&
+      this.nonEmpty(a.antiguedad) &&
+      this.nonEmpty(a.nivel_riesgo) &&
+      (!reqFolioVisita || this.nonEmpty(a.folio_visita_medica));
+
+    const somatoOk =
+      this.nonEmpty(a.peso_kg) &&
+      this.nonEmpty(a.talla_m) &&
+      this.nonEmpty(a.ta) &&
+      this.nonEmpty(a.fc);
+
+    const reqParto =
+      a.condicion_gestacion === 'gestacion' ||
+      a.condicion_gestacion === 'posparto' ||
+      a.condicion_gestacion === 'si';
+    const antecOk =
+      this.nonEmpty(a.puestos_previos_cargas) &&
+      this.nonEmpty(a.antecedentes_patologicos_relevantes) &&
+      this.nonEmpty(a.incapacidades_previas_me) &&
+      (!reqParto || this.nonEmpty(a.fecha_parto));
+
+    const sinAlteradaSinObs = !expRows.some((r: any) => r.hallazgo === 'Alterado' && !this.nonEmpty(r.observaciones));
+    const exploracionCompleta =
+      (Boolean(a.secciones_cerradas?.exploracion) ||
+        (expRows.length > 0 && expRows.every((r: any) => r.hallazgo === 'Normal' || r.hallazgo === 'Alterado'))) &&
+      sinAlteradaSinObs;
+
+    const reqAjuste =
+      this.nonEmpty(a.limite_determinado_kg) &&
+      this.nonEmpty(a.limite_nominal_kg) &&
+      Number(a.limite_determinado_kg) !== Number(a.limite_nominal_kg);
+    const reqVigencia =
+      a.conclusion === 'apto_con_restriccion_temporal' || a.conclusion === 'apto_restriccion_temporal';
+    const reqRecup = a.conclusion === 'no_apto_temporal';
+    const bloque2Ok =
+      this.nonEmpty(a.limite_nominal_kg) &&
+      this.nonEmpty(a.limite_determinado_kg) &&
+      (!reqAjuste || this.nonEmpty(a.razon_ajuste)) &&
+      this.nonEmpty(a.conclusion) &&
+      (!reqVigencia || this.nonEmpty(a.vigencia_restriccion_hasta)) &&
+      (!reqRecup || this.nonEmpty(a.periodo_recuperacion)) &&
+      (a.nivel_riesgo === 'fuera' || this.nonEmpty(a.fecha_proxima_valoracion));
+
+    return identOk && somatoOk && antecOk && exploracionCompleta && bloque2Ok ? 'por_firmar' : 'en_proceso';
+  }
+
+  getLiveAnexoStatus(anexo: 'anexo_b' | 'anexo_c' | 'anexo_a'): AnexoStatus {
+    const pseudoEval = { preregistro_id: this.currentPreregistroId, estado: this.currentEstado };
+    if (anexo === 'anexo_b') return this.evaluateAnexoBStatus(this.anexoB, this.anexoA, pseudoEval);
+    if (anexo === 'anexo_c') return this.evaluateAnexoCStatus(this.anexoC, this.anexoA, this.anexoB);
+    return this.evaluateAnexoAStatus(this.anexoA, this.anexoB);
+  }
+
+  getAnexoBadgeMeta(status: AnexoStatus): { label: string; css: string; icon: string } {
+    switch (status) {
+      case 'firmado':
+        return { label: 'Firmado', css: 'bg-success-subtle text-success', icon: 'bi-check-circle-fill' };
+      case 'por_firmar':
+        return { label: 'Por firmar', css: 'bg-warning-subtle text-warning-emphasis', icon: 'bi-pen' };
+      case 'en_proceso':
+        return { label: 'En proceso...', css: 'bg-info-subtle text-info-emphasis', icon: 'bi-hourglass-split' };
+      default:
+        return { label: 'Pendiente', css: 'bg-secondary-subtle text-secondary', icon: 'bi-clock' };
+    }
+  }
+
   private syncSavedAnexosFromLatest(): void {
     const latest = this.evaluations?.[0];
-    if (!latest) return;
+    if (!latest) {
+      this.anexoStatuses = { anexo_b: 'pendiente', anexo_c: 'pendiente', anexo_a: 'pendiente' };
+      this.savedAnexos = { anexo_b: false, anexo_c: false, anexo_a: false };
+      return;
+    }
     const b = latest.anexo_b;
     const c = latest.anexo_c;
     const a = latest.anexo_a;
+    this.anexoStatuses = {
+      anexo_b: this.evaluateAnexoBStatus(b, a, latest),
+      anexo_c: this.evaluateAnexoCStatus(c, a, b),
+      anexo_a: this.evaluateAnexoAStatus(a, b)
+    };
     this.savedAnexos = {
-      anexo_b: Boolean(b && (b.firma_trabajador_data || b.firma_aplico_data)),
-      anexo_c: Boolean(c && (c.firma_trabajador_data || c.firma_informo_data || c.firma_testigo_data)),
-      anexo_a: Boolean(a && (a.firma_medico_valorador_data || a.firma_trabajador_data || a.firma_medica_designada_data))
+      anexo_b: this.anexoStatuses.anexo_b === 'firmado',
+      anexo_c: this.anexoStatuses.anexo_c === 'firmado',
+      anexo_a: this.anexoStatuses.anexo_a === 'firmado'
     };
   }
 
@@ -482,6 +756,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     const edad = this.medicalProfile?.age || '';
 
     this.anexoB = {
+      capturado: false,
       no_empleado: empNum,
       nombre: empName,
       fecha: today,
@@ -502,6 +777,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     };
 
     this.anexoA = {
+      capturado: false,
       folio: '',
       fecha: today,
       tipo_valoracion: 'inicial',
@@ -572,6 +848,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     };
 
     this.anexoC = {
+      capturado: false,
       formato_num: '',
       formato_total: '203',
       no_empleado: empNum,
@@ -640,6 +917,28 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
 
   // ── Acciones de Navegación y Creación ─────────────────────────────────────
 
+  abrirOCapturarAnexo(targetTab: 'anexo_b' | 'anexo_a' | 'anexo_c'): void {
+    const latest = this.evaluations?.[0];
+    if (latest) {
+      this.abrirValoracion(latest, targetTab, true);
+    } else {
+      this.iniciarNuevaValoracion(targetTab);
+    }
+  }
+
+  imprimirAnexoResumen(targetTab: 'anexo_b' | 'anexo_a' | 'anexo_c'): void {
+    const latest = this.evaluations?.[0];
+    if (latest) {
+      this.abrirValoracion(latest, targetTab, false);
+      this.imprimirFormatoOficial(targetTab);
+    } else {
+      this.initBlankForms();
+      this.prefillEmployeeData();
+      this.aplicarConfiguracionAFormularios();
+      this.imprimirFormatoOficial(targetTab);
+    }
+  }
+
   iniciarNuevaValoracion(targetTab?: 'anexo_b' | 'anexo_a' | 'anexo_c'): void {
     this.currentEvalId = null;
     this.currentEstado = 'borrador';
@@ -667,6 +966,8 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     this.currentEstado = item.estado || 'borrador';
     this.currentPreregistroId = item.preregistro_id || null;
     this.initBlankForms();
+    this.prefillEmployeeData();
+    this.aplicarConfiguracionAFormularios();
 
     if (item.anexo_b && typeof item.anexo_b === 'object') {
       const mergedRegions = this.nordicRegionsCatalog.map(cat => {
@@ -682,7 +983,14 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
           intensidad: 0
         };
       });
-      this.anexoB = { ...this.anexoB, ...item.anexo_b, regiones: mergedRegions };
+      this.anexoB = {
+        ...this.anexoB,
+        ...item.anexo_b,
+        capturado: typeof item.anexo_b.capturado === 'boolean' ? item.anexo_b.capturado : undefined,
+        regiones: mergedRegions
+      };
+    } else {
+      this.anexoB.capturado = undefined;
     }
 
     if (item.anexo_a && typeof item.anexo_a === 'object') {
@@ -703,6 +1011,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
       this.anexoA = {
         ...this.anexoA,
         ...item.anexo_a,
+        capturado: typeof item.anexo_a.capturado === 'boolean' ? item.anexo_a.capturado : undefined,
         folio: item.folio || item.anexo_a.folio,
         exploracion: mergedExp,
         maniobras: item.anexo_a.maniobras || {},
@@ -714,15 +1023,24 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
           ...(item.anexo_a.secciones_cerradas || {})
         }
       };
+    } else {
+      this.anexoA.capturado = undefined;
     }
 
     if (item.anexo_c && typeof item.anexo_c === 'object') {
-      this.anexoC = { ...this.anexoC, ...item.anexo_c };
+      this.anexoC = {
+        ...this.anexoC,
+        ...item.anexo_c,
+        capturado: typeof item.anexo_c.capturado === 'boolean' ? item.anexo_c.capturado : undefined
+      };
+    } else {
+      this.anexoC.capturado = undefined;
     }
 
     this.prefillEmployeeData();
     if (openEditor) {
       this.viewMode = 'editor';
+      this.setBodyScrollLock(true);
       this.editorModeChange.emit(true);
       this.activeAnexo = tab;
     }
@@ -823,7 +1141,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
   }
 
   get requiereVigenciaRestriccion(): boolean {
-    return this.anexoA?.conclusion === 'apto_con_restriccion_temporal';
+    return this.anexoA?.conclusion === 'apto_con_restriccion_temporal' || this.anexoA?.conclusion === 'apto_restriccion_temporal';
   }
 
   get requierePeriodoRecuperacion(): boolean {
@@ -941,6 +1259,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     const fullName = med ? `${med.first_name || ''} ${med.last_name || ''}`.trim() : '';
     if (target === 'anexoB') {
       this.anexoB.aplico_nombre = fullName;
+      this.markAnexoCapturado('anexo_b');
       if (med && !this.anexoA.medico_valorador_nombre) {
         this.anexoA.medico_valorador_id = med.id;
         this.anexoA.medico_valorador_nombre = fullName;
@@ -951,6 +1270,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     } else if (target === 'anexoA') {
       this.anexoA.medico_valorador_id = med ? med.id : null;
       this.anexoA.medico_valorador_nombre = fullName;
+      this.markAnexoCapturado('anexo_a');
       if (med && !this.anexoB.aplico_nombre) {
         this.anexoB.aplico_nombre = fullName;
       }
@@ -959,6 +1279,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
       }
     } else if (target === 'anexoC') {
       this.anexoC.informo_nombre_cargo = fullName;
+      this.markAnexoCapturado('anexo_c');
     }
     this.activeDoctoraDropdown = null;
     this.doctoraSearchTerm = '';
@@ -991,6 +1312,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
   // ── Guardado de la Valoración (Anexos A, B y C) ───────────────────────────
 
   guardarValoracion(nuevoEstado?: 'borrador' | 'tamizaje_completado' | 'bloque1_completado' | 'cerrada_firmada'): void {
+    this.markAnexoCapturado(this.activeAnexo);
     this.sincronizarAnexoAconAnexoC();
     const targetEstado = nuevoEstado || this.currentEstado || 'borrador';
 
@@ -1006,7 +1328,10 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
         return;
       }
       const regAlteradaSinObs = (this.anexoA.exploracion || []).find(
-        (exp: ExploracionRegionRow) => exp.hallazgo === 'Alterado' && !String(exp.observaciones || '').trim()
+        (exp: ExploracionRegionRow) =>
+          exp.hallazgo === 'Alterado' &&
+          !String(exp.observaciones || '').trim() &&
+          !this.getAlteracionesRegionTexto(exp.key)
       );
       if (regAlteradaSinObs) {
         Swal.fire(
@@ -1309,29 +1634,37 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     switch (this.signatureTargetKey) {
       case 'anexoB_trabajador':
         this.anexoB.firma_trabajador_data = dataUrl;
+        this.markAnexoCapturado('anexo_b');
         break;
       case 'anexoB_aplico':
         this.anexoB.firma_aplico_data = dataUrl;
+        this.markAnexoCapturado('anexo_b');
         break;
       case 'anexoA_medico':
       case 'anexoA_medico_valorador':
         this.anexoA.firma_medico_valorador_data = dataUrl;
+        this.markAnexoCapturado('anexo_a');
         break;
       case 'anexoA_trabajador':
         this.anexoA.firma_trabajador_data = dataUrl;
+        this.markAnexoCapturado('anexo_a');
         break;
       case 'anexoA_medica_designada':
         this.anexoA.firma_medica_designada_data = dataUrl;
         this.anexoA.medica_designada_firmado = true;
+        this.markAnexoCapturado('anexo_a');
         break;
       case 'anexoC_trabajador':
         this.anexoC.firma_trabajador_data = dataUrl;
+        this.markAnexoCapturado('anexo_c');
         break;
       case 'anexoC_informo':
         this.anexoC.firma_informo_data = dataUrl;
+        this.markAnexoCapturado('anexo_c');
         break;
       case 'anexoC_testigo':
         this.anexoC.firma_testigo_data = dataUrl;
+        this.markAnexoCapturado('anexo_c');
         break;
     }
 
@@ -1532,6 +1865,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
   }
 
   recalcularResumen(): void {
+    this.markAnexoCapturado('anexo_a');
     const sugerido = calcularResumenSugerido(this.anexoA.maniobras || {}, this.anexoA.edad, this.anexoA.sexo);
     if (!Array.isArray(this.anexoA.exploracion)) return;
     for (const row of this.anexoA.exploracion) {
@@ -1543,11 +1877,25 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
     }
   }
 
+  getAlteracionesRegionTexto(regionKey: string): string {
+    return resumirAlteracionesRegion(regionKey, this.anexoA?.maniobras, this.anexoA?.edad, this.anexoA?.sexo);
+  }
+
+  private escapeHtml(value: string): string {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   onResumenManualChange(row: ExploracionRegionRow): void {
     row.manual = true;
+    this.markAnexoCapturado('anexo_a');
   }
 
   cerrarSeccionAnexoA(sec: 'datos' | 'exploracion' | 'bloque2' | 'cierre'): void {
+    this.markAnexoCapturado('anexo_a');
     if (!this.anexoA.secciones_cerradas) {
       this.anexoA.secciones_cerradas = { datos: false, exploracion: false, bloque2: false, cierre: false };
     }
@@ -1574,6 +1922,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
       apto_sin_restriccion: 'Apto sin restricción',
       apto_con_recomendaciones: 'Apto con recomendaciones',
       apto_con_restriccion_temporal: 'Apto con restricción temporal',
+      apto_restriccion_temporal: 'Apto con restricción temporal',
       requiere_estudio_especializado: 'Requiere estudio o valoración especializada',
       no_apto_temporal: 'No apto temporal para el puesto'
     };
@@ -1640,25 +1989,29 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
 
   private getCommonPrintStyles(): string {
     return `
-      @page { size: letter portrait; margin: 12mm 14mm; }
-      * { box-sizing: border-box; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-      body { margin: 0; padding: 0; color: #1e293b; font-size: 11px; line-height: 1.38; }
-      .page { page-break-after: always; position: relative; min-height: 248mm; display: flex; flex-direction: column; }
-      .page:last-child { page-break-after: auto; }
-      .top-meta { text-align: right; font-size: 9.5px; color: #64748b; margin-bottom: 6px; }
-      h1 { font-size: 14.5px; font-weight: 700; color: #1e3a5f; margin: 0 0 3px 0; text-transform: uppercase; }
-      h2 { font-size: 12px; font-weight: 700; color: #1e3a5f; margin: 12px 0 5px 0; }
-      .sub-meta { font-size: 10px; color: #475569; margin-bottom: 8px; }
-      .notice-box { background: #eef2f7; border-left: 3.5px solid #1e3a5f; padding: 7px 10px; font-size: 10px; margin-bottom: 10px; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-      th, td { border: 1px solid #cbd5e1; padding: 5px 7px; vertical-align: middle; font-size: 10.5px; }
-      th, .cell-label { background: #edf2f9; font-weight: 700; color: #1e3a5f; text-align: left; }
-      .chk { display: inline-block; width: 11px; height: 11px; border: 1.2px solid #334155; text-align: center; line-height: 10px; font-size: 9px; font-weight: bold; margin-right: 3px; vertical-align: middle; }
-      .sig-grid { display: flex; justify-content: space-between; gap: 18px; margin-top: 26px; }
-      .sig-col { flex: 1; text-align: center; font-size: 10px; }
-      .sig-line { border-top: 1.2px solid #0f172a; padding-top: 4px; margin-top: 42px; }
-      .sig-img { max-height: 38px; display: block; margin: 0 auto -36px auto; }
-      .footer-meta { margin-top: auto; padding-top: 8px; text-align: center; font-size: 9px; color: #64748b; }
+      @page { size: letter portrait; margin: 10mm 13mm; }
+      * { box-sizing: border-box; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { margin: 0; padding: 0; color: #1e293b; font-size: 10.5px; line-height: 1.36; }
+      .page { page-break-after: always; break-after: page; position: relative; min-height: 238mm; display: flex; flex-direction: column; }
+      .page:last-child { page-break-after: auto; break-after: auto; }
+      .page-break { page-break-after: always; break-after: page; height: 0; }
+      .top-meta { text-align: right; font-size: 9.5px; color: #64748b; margin-bottom: 5px; }
+      h1 { font-size: 14.5px; font-weight: 700; color: #1e3a5f; margin: 0 0 3px 0; text-transform: uppercase; letter-spacing: 0.1px; }
+      h2 { font-size: 11.5px; font-weight: 700; color: #1e3a5f; margin: 10px 0 4px 0; }
+      .sub-meta { font-size: 9.8px; color: #475569; margin-bottom: 7px; }
+      .donde-vive-box { background: #f3eff8; border: 1px solid #c7b6e2; padding: 7px 10px; font-size: 9.8px; line-height: 1.4; margin-bottom: 9px; color: #1e293b; }
+      .donde-vive-box .dv-tag { font-weight: 700; color: #4c2882; }
+      .info-box { background: #eef3f9; border: 1px solid #b8c7dc; padding: 7px 10px; font-size: 9.8px; line-height: 1.4; margin-bottom: 9px; color: #1e293b; }
+      .notice-box { background: #eef2f7; border: 1px solid #b8c7dc; padding: 7px 10px; font-size: 9.8px; margin-bottom: 9px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 9px; }
+      th, td { border: 1px solid #b8c4d6; padding: 4.5px 6.5px; vertical-align: middle; font-size: 10px; }
+      th, .cell-label { background: #eaeff7; font-weight: 700; color: #1e3a5f; text-align: left; }
+      .chk { display: inline-block; width: 10.5px; height: 10.5px; border: 1.1px solid #334155; text-align: center; line-height: 9.5px; font-size: 8.5px; font-weight: bold; margin-right: 2.5px; vertical-align: middle; background: #fff; }
+      .sig-grid { display: flex; justify-content: space-between; gap: 18px; margin-top: 22px; }
+      .sig-col { flex: 1; text-align: center; font-size: 9.5px; line-height: 1.35; }
+      .sig-line { border-top: 1.1px solid #0f172a; padding-top: 4px; margin-top: 38px; }
+      .sig-img { max-height: 36px; display: block; margin: 0 auto -34px auto; }
+      .footer-meta { margin-top: auto; padding-top: 6px; text-align: center; font-size: 8.8px; color: #64748b; }
     `;
   }
 
@@ -1683,8 +2036,8 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
         <div class="top-meta">SST – PRO – PVME – 01 · v2.0 rev 03 · 24 / 09 / 2026</div>
         <h1>ANEXO B · CUESTIONARIO NÓRDICO MUSCULOESQUELÉTICO</h1>
         <div class="sub-meta">Instrumento de tamizaje. Marque una casilla por columna y por región. Este cuestionario orienta la exploración; no constituye un diagnóstico. Los diez renglones cubren las nueve regiones anatómicas del cuestionario, con el hombro desglosado por lado.</div>
-        <div class="notice-box">
-          <strong>DÓNDE VIVE</strong> EXPEDIENTE CLÍNICO, exclusivamente. Se archiva junto con la cédula del Anexo A, cinco años. Es el documento más sensible del protocolo: recoge síntomas referidos por el trabajador. Nunca se entrega, ni completo ni resumido, al jefe de área ni a Recursos Humanos. Regla SMD-PVME-17.
+        <div class="donde-vive-box">
+          <span class="dv-tag">DÓNDE VIVE</span> EXPEDIENTE CLÍNICO, exclusivamente. Se archiva junto con la cédula del Anexo A, cinco años. Es el documento más sensible del protocolo: recoge síntomas referidos por el trabajador. Nunca se entrega, ni completo ni resumido, al jefe de área ni a Recursos Humanos. Regla SMD-PVME-17.
         </div>
         <table>
           <tr>
@@ -1720,7 +2073,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
             <td>${b.ha_recibido_tratamiento || ''}</td>
           </tr>
         </table>
-        <div class="notice-box" style="margin-top:6px;">
+        <div class="info-box" style="margin-top:4px;">
           <div style="font-weight:700;color:#1e3a5f;margin-bottom:4px;">CÓMO SE LEE ESTE CUESTIONARIO</div>
           <div style="margin-bottom:3px;"><strong>Positivo a 7 días CON interferencia:</strong> explore obligatoriamente esa región y asiéntelo. La conclusión no puede ser “apto sin restricción” sin que la cédula diga por qué.</div>
           <div style="margin-bottom:3px;"><strong>Positivo a 12 meses SIN molestia actual:</strong> es antecedente. Se explora y se anota; por sí solo no restringe.</div>
@@ -1743,14 +2096,42 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
 
   private buildPrintAnexoA(): string {
     const a = this.anexoA;
-    const exp1 = (a.exploracion || []).slice(0, 6);
-    const exp2 = (a.exploracion || []).slice(6, 10);
+    const rowsOficiales = construirResumenImpresionOficial(a.exploracion, a.maniobras, a.edad, a.sexo);
+    const exp1 = rowsOficiales.slice(0, 6);
+    const exp2 = rowsOficiales.slice(6, 10);
 
-    const renderExpRows = (list: ExploracionRegionRow[]) => list.map(r => `
+    const buildObservacionesYManiobras = (r: ResumenImpresionOficialRow): string => {
+      const blocks: string[] = [];
+
+      if (r.alteradasList.length > 0) {
+        blocks.push(`<strong>Alteraciones:</strong> ${this.escapeHtml(r.alteradasList.join('; '))}`);
+      }
+      if (r.normalesSummary) {
+        if (r.alteradasList.length > 0) {
+          blocks.push(`<span style="color:#334155;"><strong>Normales:</strong> ${this.escapeHtml(r.normalesSummary)}</span>`);
+        } else {
+          blocks.push(`<span style="color:#1e293b;">${this.escapeHtml(r.normalesSummary)}</span>`);
+        }
+      }
+      if (r.obsManualList.length > 0) {
+        const joinedObs = r.obsManualList.join(' · ');
+        blocks.push(`<strong>Obs.:</strong> ${this.escapeHtml(joinedObs)}`);
+      }
+
+      if (blocks.length > 0) {
+        return blocks.join(' &nbsp;·&nbsp; ');
+      }
+      if (r.allOmitted) {
+        return `<span style="color:#64748b;">Omitida por tamizaje Nórdico · ${this.escapeHtml(r.guia)}</span>`;
+      }
+      return `<span style="color:#64748b;">${this.escapeHtml(r.guia)}</span>`;
+    };
+
+    const renderExpRows = (list: ResumenImpresionOficialRow[]) => list.map(r => `
       <tr>
-        <td style="font-weight:700;width:25%;">${r.label}</td>
-        <td style="width:23%;">${this.chk(r.hallazgo === 'Normal')} Normal &nbsp; ${this.chk(r.hallazgo === 'Alterado')} Alterado</td>
-        <td>${r.observaciones ? `<strong>${r.observaciones}</strong> <span style="color:#64748b;">(${r.guia})</span>` : `<span style="color:#64748b;">${r.guia}</span>`}</td>
+        <td style="font-weight:700;width:23%;padding:4px 6px;font-size:10px;">${r.label}</td>
+        <td style="width:21%;padding:4px 6px;font-size:9.8px;white-space:nowrap;">${this.chk(r.hallazgo === 'Normal')} Normal &nbsp; ${this.chk(r.hallazgo === 'Alterado')} Alterado</td>
+        <td style="padding:4px 6px;font-size:9px;line-height:1.28;">${buildObservacionesYManiobras(r)}</td>
       </tr>
     `).join('');
 
@@ -1760,16 +2141,26 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
         <div class="top-meta">SST – PRO – PVME – 01 · v2.0 rev 03 · 24 / 09 / 2026</div>
         <h1>ANEXO A · CÉDULA DE VALORACIÓN MÉDICA MUSCULOESQUELÉTICA</h1>
         <div class="sub-meta">Documento clínico. Se resguarda en el expediente del trabajador; al expediente de SST sólo se traslada la conclusión.</div>
-        <div class="notice-box">
-          <strong>DÓNDE VIVE</strong> EXPEDIENTE CLÍNICO, exclusivamente. Resguardo del Servicio Médico, cinco años (numeral 9.4). No se entrega copia al jefe de área ni a Recursos Humanos. De esta cédula sólo salen la conclusión de aptitud, el límite de masa y las medidas, por la vía del Anexo D. Regla SMD-PVME-17.
+        <div class="donde-vive-box">
+          <span class="dv-tag">DÓNDE VIVE</span> EXPEDIENTE CLÍNICO, exclusivamente. Resguardo del Servicio Médico, cinco años (numeral 9.4). No se entrega copia al jefe de área ni a Recursos Humanos. De esta cédula sólo salen la conclusión de aptitud, el límite de masa y las medidas, por la vía del Anexo D. Regla SMD-PVME-17.
         </div>
         <table>
+          <colgroup>
+            <col style="width:11%;">
+            <col style="width:12%;">
+            <col style="width:11%;">
+            <col style="width:25%;">
+            <col style="width:10%;">
+            <col style="width:9%;">
+            <col style="width:12%;">
+            <col style="width:10%;">
+          </colgroup>
           <tr>
-            <td class="cell-label" style="width:9%;">Folio</td>
-            <td style="width:14%;">${a.folio || ''}</td>
-            <td class="cell-label" style="width:9%;">Fecha</td>
-            <td style="width:14%;">${a.fecha || ''}</td>
-            <td class="cell-label" style="width:13%;">Tipo de valoración</td>
+            <td class="cell-label">Folio</td>
+            <td>${a.folio || ''}</td>
+            <td class="cell-label">Fecha</td>
+            <td>${a.fecha || ''}</td>
+            <td class="cell-label">Tipo de valoración</td>
             <td colspan="3">
               ${this.chk(a.tipo_valoracion === 'inicial')} Inicial &nbsp;
               ${this.chk(a.tipo_valoracion === 'periodica')} Periódica &nbsp;
@@ -1782,18 +2173,19 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
             <td class="cell-label">No. de empleado</td>
             <td>${a.no_empleado || ''}</td>
             <td class="cell-label">Nombre</td>
-            <td colspan="2">${a.nombre || ''}</td>
-            <td class="cell-label" style="width:8%;">Edad</td>
-            <td style="width:10%;">${a.edad || ''}</td>
-            <td><strong>Sexo:</strong> ${a.sexo || ''}</td>
+            <td>${a.nombre || ''}</td>
+            <td class="cell-label">Edad</td>
+            <td>${a.edad || ''}</td>
+            <td class="cell-label">Sexo</td>
+            <td>${a.sexo || ''}</td>
           </tr>
           <tr>
             <td class="cell-label">Turno</td>
             <td>${a.turno || ''}</td>
             <td class="cell-label">Puesto</td>
-            <td colspan="2">${a.puesto || ''}</td>
+            <td>${a.puesto || ''}</td>
             <td class="cell-label">Área</td>
-            <td colspan="2">${a.area || ''}</td>
+            <td colspan="3">${a.area || ''}</td>
           </tr>
           <tr>
             <td class="cell-label">Antigüedad</td>
@@ -1806,7 +2198,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
               ${this.chk(a.nivel_riesgo === 'medio')} Medio &nbsp;
               ${this.chk(a.nivel_riesgo === 'bajo')} Bajo
             </td>
-            <td class="cell-label">Folio de visita médica</td>
+            <td class="cell-label" style="font-size:8.8px;line-height:1.2;">Folio de visita médica (si se originó en una molestia)</td>
             <td>${a.folio_visita_medica || ''}</td>
           </tr>
         </table>
@@ -1814,18 +2206,18 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
         <h2>BLOQUE I · APARTADOS 1 A 3 — LOS LLENA EL MÉDICO QUE PRACTICA LA VALORACIÓN</h2>
         <div class="sub-meta">Somatometría, antecedentes y exploración física dirigida. No son actuaciones reservadas: las practica cualquier médico del Servicio Médico que haya acreditado la capacitación de este protocolo.</div>
 
-        <div style="font-weight:700;margin-bottom:4px;">1. Somatometría</div>
+        <div style="font-weight:700;margin-bottom:3px;">1. Somatometría</div>
         <table>
           <tr>
-            <td class="cell-label">Peso (kg)</td><td>${a.peso_kg || ''}</td>
-            <td class="cell-label">Talla (m)</td><td>${a.talla_m || ''}</td>
-            <td class="cell-label">IMC</td><td>${a.imc || ''}</td>
-            <td class="cell-label">T/A</td><td>${a.ta || ''}</td>
-            <td class="cell-label">Frecuencia cardiaca</td><td>${a.fc || ''}</td>
+            <td class="cell-label" style="width:11%;">Peso (kg)</td><td style="width:9%;">${a.peso_kg || ''}</td>
+            <td class="cell-label" style="width:11%;">Talla (m)</td><td style="width:9%;">${a.talla_m || ''}</td>
+            <td class="cell-label" style="width:9%;">IMC</td><td style="width:9%;">${a.imc || ''}</td>
+            <td class="cell-label" style="width:9%;">T/A</td><td style="width:11%;">${a.ta || ''}</td>
+            <td class="cell-label" style="width:13%;">Frecuencia cardiaca</td><td style="width:9%;">${a.fc || ''}</td>
           </tr>
         </table>
 
-        <div style="font-weight:700;margin-bottom:4px;">2. Antecedentes</div>
+        <div style="font-weight:700;margin-bottom:3px;">2. Antecedentes</div>
         <table>
           <tr>
             <td class="cell-label" style="width:36%;">Puestos previos con manejo de cargas</td>
@@ -1844,15 +2236,15 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
             <td>
               ${this.chk(a.condicion_gestacion === 'no_aplica')} No aplica &nbsp;
               ${this.chk(a.condicion_gestacion === 'no')} No &nbsp;
-              ${this.chk(a.condicion_gestacion === 'si')} Sí — fecha probable de parto o fecha de parto: <u>${a.fecha_parto || '______________'}</u>
+              ${this.chk(a.condicion_gestacion === 'si' || a.condicion_gestacion === 'gestacion' || a.condicion_gestacion === 'posparto')} Sí — fecha probable de parto o fecha de parto: <u>${a.fecha_parto || '______________'}</u>
             </td>
           </tr>
         </table>
 
-        <div style="font-weight:700;margin-bottom:4px;">3. Exploración física dirigida</div>
+        <div style="font-weight:700;margin-bottom:3px;">3. Exploración física dirigida</div>
         <table>
           <thead>
-            <tr><th style="width:25%;">Región</th><th style="width:23%;">Hallazgo</th><th>Observaciones y maniobras</th></tr>
+            <tr><th style="width:23%;">Región</th><th style="width:21%;">Hallazgo</th><th>Observaciones y maniobras</th></tr>
           </thead>
           <tbody>${renderExpRows(exp1)}</tbody>
         </table>
@@ -1893,7 +2285,7 @@ export class ServicioMedicoPvmeComponent implements OnInit, OnChanges, OnDestroy
             <td colspan="2" style="line-height:1.7;">
               <div>${this.chk(a.conclusion === 'apto_sin_restriccion')} Apto sin restricción</div>
               <div>${this.chk(a.conclusion === 'apto_con_recomendaciones')} Apto con recomendaciones</div>
-              <div>${this.chk(a.conclusion === 'apto_con_restriccion_temporal')} Apto con restricción temporal — vigencia hasta: <u>${a.vigencia_restriccion_hasta || '____________________'}</u></div>
+              <div>${this.chk(a.conclusion === 'apto_con_restriccion_temporal' || a.conclusion === 'apto_restriccion_temporal')} Apto con restricción temporal — vigencia hasta: <u>${a.vigencia_restriccion_hasta || '____________________'}</u></div>
               <div>${this.chk(a.conclusion === 'requiere_estudio_especializado')} Requiere estudio o valoración especializada</div>
               <div>${this.chk(a.conclusion === 'no_apto_temporal')} No apto temporal para el puesto</div>
             </td>
