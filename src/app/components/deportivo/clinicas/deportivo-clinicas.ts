@@ -97,6 +97,18 @@ export class DeportivoClinicasComponent implements OnInit {
   showQrModal = signal<boolean>(false);
   qrData = signal<{ qrUrl: string; token: string; title: string; subtitle: string } | null>(null);
 
+  // ── Días de la semana para Selector Interactivo ───────────────────────────
+  readonly availableWeekDays = [
+    { key: 'LUN', label: 'Lun', full: 'Lunes', initial: 'L' },
+    { key: 'MAR', label: 'Mar', full: 'Martes', initial: 'M' },
+    { key: 'MIE', label: 'Mié', full: 'Miércoles', initial: 'M' },
+    { key: 'JUE', label: 'Jue', full: 'Jueves', initial: 'J' },
+    { key: 'VIE', label: 'Vie', full: 'Viernes', initial: 'V' },
+    { key: 'SAB', label: 'Sáb', full: 'Sábado', initial: 'S' },
+    { key: 'DOM', label: 'Dom', full: 'Domingo', initial: 'D' },
+  ];
+  selectedWeekDays = signal<string[]>(['LUN', 'MAR', 'MIE', 'JUE']);
+
   // Formulario de Creación / Edición de Clínica
   clinicForm: FormGroup = this.fb.group({
     activity_id: ['', Validators.required],
@@ -108,6 +120,10 @@ export class DeportivoClinicasComponent implements OnInit {
     name: ['', [Validators.required, Validators.maxLength(150)]],
     description: [''],
     venue_details: [''],
+    days_of_week: [''],
+    start_time: [''],
+    end_time: [''],
+    duration_minutes: [60],
     start_date: ['', Validators.required],
     end_date: ['', Validators.required],
     max_capacity: [16, [Validators.required, Validators.min(1)]],
@@ -203,6 +219,23 @@ export class DeportivoClinicasComponent implements OnInit {
         endDateControl?.setValue(startDateVal, { emitEvent: false });
       }
     });
+
+    // Auto-cálculo de duración en minutos entre start_time y end_time
+    const calcDuration = () => {
+      const st = this.clinicForm.get('start_time')?.value;
+      const et = this.clinicForm.get('end_time')?.value;
+      if (st && et) {
+        const [sh, sm] = st.split(':').map(Number);
+        const [eh, em] = et.split(':').map(Number);
+        const startMins = sh * 60 + (sm || 0);
+        const endMins = eh * 60 + (em || 0);
+        if (endMins > startMins) {
+          this.clinicForm.get('duration_minutes')?.setValue(endMins - startMins, { emitEvent: false });
+        }
+      }
+    };
+    this.clinicForm.get('start_time')?.valueChanges.subscribe(() => calcDuration());
+    this.clinicForm.get('end_time')?.valueChanges.subscribe(() => calcDuration());
   }
 
   // ── Cargar Catálogos para Selects ──────────────────────────────────────────
@@ -342,19 +375,90 @@ export class DeportivoClinicasComponent implements OnInit {
       name: '',
       description: '',
       venue_details: '',
+      days_of_week: 'Lunes a Jueves',
+      start_time: '16:00',
+      end_time: '17:00',
+      duration_minutes: 60,
       start_date: new Date().toISOString().substring(0, 10),
       end_date: '',
       max_capacity: 16,
       price: 1500,
       status: 'upcoming'
     });
+    this.selectedWeekDays.set(['LUN', 'MAR', 'MIE', 'JUE']);
+    this.syncDaysOfWeekControl();
     this.showFormModal.set(true);
+  }
+
+  // ── Helpers de Selección de Días (UX/UI) ──────────────────────────────────
+  toggleWeekDay(dayKey: string): void {
+    const current = [...this.selectedWeekDays()];
+    const idx = current.indexOf(dayKey);
+    if (idx >= 0) {
+      current.splice(idx, 1);
+    } else {
+      current.push(dayKey);
+    }
+    // Ordenar de acuerdo al orden natural de la semana (LUN..DOM)
+    const sorted = this.availableWeekDays
+      .map(d => d.key)
+      .filter(k => current.includes(k));
+    this.selectedWeekDays.set(sorted);
+    this.syncDaysOfWeekControl();
+  }
+
+  isWeekDaySelected(dayKey: string): boolean {
+    return this.selectedWeekDays().includes(dayKey);
+  }
+
+  private syncDaysOfWeekControl(): void {
+    const selected = this.selectedWeekDays();
+    if (selected.length === 0) {
+      this.clinicForm.get('days_of_week')?.setValue('');
+      return;
+    }
+    // Si coincide con presets comunes, usar el texto legible
+    if (selected.length === 4 && selected.join(',') === 'LUN,MAR,MIE,JUE') {
+      this.clinicForm.get('days_of_week')?.setValue('Lunes a Jueves');
+    } else if (selected.length === 5 && selected.join(',') === 'LUN,MAR,MIE,JUE,VIE') {
+      this.clinicForm.get('days_of_week')?.setValue('Lunes a Viernes');
+    } else if (selected.length === 2 && selected.join(',') === 'SAB,DOM') {
+      this.clinicForm.get('days_of_week')?.setValue('Sábados y Domingos');
+    } else if (selected.length === 7) {
+      this.clinicForm.get('days_of_week')?.setValue('Toda la semana');
+    } else {
+      const labels = selected.map(k => this.availableWeekDays.find(d => d.key === k)?.label || k);
+      this.clinicForm.get('days_of_week')?.setValue(labels.join(', '));
+    }
+  }
+
+  private parseDaysFromText(text: string): string[] {
+    if (!text) return ['LUN', 'MAR', 'MIE', 'JUE'];
+    const lower = text.toLowerCase();
+    if (lower.includes('lunes a jueves')) return ['LUN', 'MAR', 'MIE', 'JUE'];
+    if (lower.includes('lunes a viernes')) return ['LUN', 'MAR', 'MIE', 'JUE', 'VIE'];
+    if (lower.includes('sab') && lower.includes('dom')) return ['SAB', 'DOM'];
+    if (lower.includes('toda')) return this.availableWeekDays.map(d => d.key);
+
+    const result: string[] = [];
+    if (lower.includes('lun')) result.push('LUN');
+    if (lower.includes('mar')) result.push('MAR');
+    if (lower.includes('mie') || lower.includes('mié')) result.push('MIE');
+    if (lower.includes('jue')) result.push('JUE');
+    if (lower.includes('vie')) result.push('VIE');
+    if (lower.includes('sab') || lower.includes('sáb')) result.push('SAB');
+    if (lower.includes('dom')) result.push('DOM');
+    return result.length > 0 ? result : ['LUN', 'MAR', 'MIE', 'JUE'];
   }
 
   // ── CRUD: Abrir Modal Ver / Editar Clínica ─────────────────────────────────
   openEditModal(clinic: ClinicItem): void {
     this.isEditing.set(true);
     this.selectedClinic.set(clinic);
+
+    // Parsear días para el selector de píldoras
+    const daysArr = this.parseDaysFromText(clinic.days_of_week || '');
+    this.selectedWeekDays.set(daysArr);
 
     // RN: Si la clínica está en curso ('ongoing') o su fecha de inicio ya pasó, se bloquea toda edición (modo solo lectura / ver)
     const today = new Date().toISOString().substring(0, 10);
@@ -374,6 +478,10 @@ export class DeportivoClinicasComponent implements OnInit {
       name: clinic.name,
       description: clinic.description || '',
       venue_details: clinic.venue_details || '',
+      days_of_week: clinic.days_of_week || '',
+      start_time: clinic.start_time || '',
+      end_time: clinic.end_time || '',
+      duration_minutes: clinic.duration_minutes || 60,
       start_date: clinic.start_date,
       end_date: clinic.end_date,
       max_capacity: clinic.max_capacity,

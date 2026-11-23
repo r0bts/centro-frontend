@@ -493,5 +493,32 @@
   }
 }
 
+// ── Píldoras de Selección de Días (Agenda UX/UI) ───────────────────────────
+.day-pill-btn {
+  width: 44px;
+  height: 48px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  transition: all 0.15s ease-in-out;
+  line-height: 1.1;
 
+  .day-initial {
+    font-size: 0.95rem;
+    font-weight: 700;
+  }
 
+  .day-label {
+    font-size: 0.65rem;
+    opacity: 0.85;
+  }
+
+  &:hover:not(.btn-primary) {
+    background-color: #e2e8f0;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+
+  &.btn-primary {
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+  }
+}

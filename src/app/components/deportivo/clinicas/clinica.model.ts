@@ -75,6 +75,10 @@ export interface ClinicItem {
   name: string;
   description?: string;
   venue_details?: string;
+  days_of_week?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  duration_minutes?: number | null;
   start_date: string;
   end_date: string;
   max_capacity: number;

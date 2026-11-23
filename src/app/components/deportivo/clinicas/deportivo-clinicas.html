@@ -253,10 +253,16 @@
                   </div>
                 </td>
 
-                <!-- Periodo -->
+                <!-- Periodo y Agenda -->
                 <td>
-                  <div class="small fw-semibold text-dark">{{ c.start_date }}</div>
-                  <div class="text-muted" style="font-size: 0.72rem;">al {{ c.end_date }}</div>
+                  <div class="small fw-semibold text-dark">{{ c.start_date }} <span class="text-muted fw-normal">al</span> {{ c.end_date }}</div>
+                  <div *ngIf="c.days_of_week" class="text-primary fw-medium" style="font-size: 0.72rem;">
+                    <i class="bi bi-calendar3 me-1"></i>{{ c.days_of_week }}
+                  </div>
+                  <div *ngIf="c.start_time" class="text-muted" style="font-size: 0.70rem;">
+                    <i class="bi bi-clock me-1"></i>{{ c.start_time?.substring(0, 5) }} - {{ c.end_time?.substring(0, 5) }}
+                    <span *ngIf="c.duration_minutes"> ({{ c.duration_minutes }}m)</span>
+                  </div>
                 </td>
 
                 <!-- Cupo Regular -->
@@ -792,14 +798,83 @@
               </div>
             </div>
 
-            <!-- Cupo Máximo, Precio del Paquete, Estado y Servicio NetSuite -->
+            <!-- Agenda: Días de la semana, Horario y Duración -->
+            <div class="p-3 mb-3 bg-light rounded-3 border">
+              <div class="d-flex align-items-center gap-1.5 text-primary fw-semibold small mb-2">
+                <i class="bi bi-clock-history fs-6"></i> Programación y Agenda de Sesiones
+              </div>
+
+              <!-- Selector Interactivo de Días (Píldoras L, M, M, J, V, S, D) -->
+              <div class="mb-3">
+                <label class="form-label fw-semibold text-secondary mb-1.5" style="font-size: 0.76rem;">
+                  Días de impartición <span class="text-danger">*</span>
+                </label>
+                <div class="d-flex gap-1.5 flex-wrap">
+                  <button
+                    *ngFor="let day of availableWeekDays"
+                    type="button"
+                    class="btn btn-sm d-flex flex-column align-items-center justify-content-center day-pill-btn"
+                    [class.btn-primary]="isWeekDaySelected(day.key)"
+                    [class.btn-outline-secondary]="!isWeekDaySelected(day.key)"
+                    (click)="toggleWeekDay(day.key)"
+                    [title]="day.full"
+                  >
+                    <span class="day-initial">{{ day.initial }}</span>
+                    <span class="day-label">{{ day.label }}</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Horarios y Duración -->
+              <div class="row g-2 align-items-end">
+                <div class="col-md-4 col-6">
+                  <label class="form-label fw-semibold text-secondary mb-1" style="font-size: 0.74rem;">Hora Inicio</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-clock text-primary"></i></span>
+                    <input type="time" class="form-control" formControlName="start_time" />
+                  </div>
+                </div>
+
+                <div class="col-md-4 col-6">
+                  <label class="form-label fw-semibold text-secondary mb-1" style="font-size: 0.74rem;">Hora Fin</label>
+                  <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-clock-fill text-primary"></i></span>
+                    <input type="time" class="form-control" formControlName="end_time" />
+                  </div>
+                </div>
+
+                <div class="col-md-4 col-12">
+                  <label class="form-label fw-semibold text-secondary mb-1" style="font-size: 0.74rem;">Duración por Clase</label>
+                  <div class="input-group input-group-sm">
+                    <input type="number" class="form-control" formControlName="duration_minutes" min="15" step="15" />
+                    <span class="input-group-text small bg-white text-muted">min</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Badge Resumen Visual de la Agenda -->
+              <div *ngIf="clinicForm.get('start_time')?.value && clinicForm.get('end_time')?.value" class="mt-2.5 pt-2 border-top d-flex align-items-center justify-content-between text-muted" style="font-size: 0.74rem;">
+                <div>
+                  <i class="bi bi-info-circle text-info me-1"></i>
+                  Horario de cada sesión:
+                  <strong class="text-dark ms-1">
+                    {{ clinicForm.get('start_time')?.value }} a {{ clinicForm.get('end_time')?.value }}
+                  </strong>
+                </div>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                  {{ clinicForm.get('duration_minutes')?.value }} minutos por sesión
+                </span>
+              </div>
+            </div>
+
+            <!-- Cupo Máximo, Precio del Paquete y Estado Operativo -->
             <div class="row g-3 mb-3">
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <label class="form-label fw-semibold small">Cupo Máximo <span class="text-danger">*</span></label>
                 <input type="number" class="form-control" formControlName="max_capacity" min="1" max="500" />
               </div>
 
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <label class="form-label fw-semibold small">Precio Paquete (MXN) <span class="text-danger">*</span></label>
                 <div class="input-group">
                   <span class="input-group-text">$</span>
@@ -807,7 +882,7 @@
                 </div>
               </div>
 
-              <div class="col-md-3">
+              <div class="col-md-4">
                 <label class="form-label fw-semibold small">Estado Operativo <span class="text-danger">*</span></label>
                 <select class="form-select fw-semibold" formControlName="status">
                   <option value="upcoming">Próxima</option>
@@ -817,18 +892,8 @@
                 </select>
               </div>
 
-              <div class="col-md-3">
-                <label class="form-label fw-semibold small" title="ID de Artículo NetSuite para Facturación / Orden de Venta">
-                  ID Ítem NetSuite <span class="text-danger">*</span>
-                </label>
-                <input
-                  type="number"
-                  class="form-control"
-                  formControlName="ns_item_id"
-                  placeholder="Ej. 3345"
-                  title="ID numérico interno de NetSuite para generar la Orden de Venta"
-                />
-              </div>
+              <!-- Control oculto: ID Ítem NetSuite (inicializado en 3345 por defecto) -->
+              <input type="hidden" formControlName="ns_item_id" />
             </div>
 
             <!-- Descripción y Detalles del Espacio -->
