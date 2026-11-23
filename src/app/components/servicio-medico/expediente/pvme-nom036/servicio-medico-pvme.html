@@ -137,16 +137,13 @@
             </div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            <span *ngIf="savedAnexos.anexo_b" class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
-              <i class="bi bi-check-circle-fill me-1"></i>Guardado
+            <span class="badge rounded-pill px-2 py-1" [ngClass]="getAnexoBadgeMeta(anexoStatuses.anexo_b).css">
+              <i class="bi me-1" [ngClass]="getAnexoBadgeMeta(anexoStatuses.anexo_b).icon"></i>{{ getAnexoBadgeMeta(anexoStatuses.anexo_b).label }}
             </span>
-            <span *ngIf="!savedAnexos.anexo_b" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
-              <i class="bi bi-clock me-1"></i>Pendiente
-            </span>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_b')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="abrirOCapturarAnexo('anexo_b')">
               Capturar
             </button>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_b')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="imprimirAnexoResumen('anexo_b')">
               <i class="bi bi-printer"></i>
             </button>
           </div>
@@ -161,16 +158,13 @@
             </div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            <span *ngIf="savedAnexos.anexo_c" class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
-              <i class="bi bi-check-circle-fill me-1"></i>Guardado
+            <span class="badge rounded-pill px-2 py-1" [ngClass]="getAnexoBadgeMeta(anexoStatuses.anexo_c).css">
+              <i class="bi me-1" [ngClass]="getAnexoBadgeMeta(anexoStatuses.anexo_c).icon"></i>{{ getAnexoBadgeMeta(anexoStatuses.anexo_c).label }}
             </span>
-            <span *ngIf="!savedAnexos.anexo_c" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
-              <i class="bi bi-clock me-1"></i>Pendiente
-            </span>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_c')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="abrirOCapturarAnexo('anexo_c')">
               Capturar
             </button>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_c')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="imprimirAnexoResumen('anexo_c')">
               <i class="bi bi-printer"></i>
             </button>
           </div>
@@ -185,16 +179,13 @@
             </div>
           </div>
           <div class="d-flex align-items-center gap-2 flex-shrink-0">
-            <span *ngIf="savedAnexos.anexo_a" class="badge bg-success-subtle text-success rounded-pill px-2 py-1">
-              <i class="bi bi-check-circle-fill me-1"></i>Guardado
+            <span class="badge rounded-pill px-2 py-1" [ngClass]="getAnexoBadgeMeta(anexoStatuses.anexo_a).css">
+              <i class="bi me-1" [ngClass]="getAnexoBadgeMeta(anexoStatuses.anexo_a).icon"></i>{{ getAnexoBadgeMeta(anexoStatuses.anexo_a).label }}
             </span>
-            <span *ngIf="!savedAnexos.anexo_a" class="badge bg-secondary-subtle text-secondary rounded-pill px-2 py-1">
-              <i class="bi bi-clock me-1"></i>Pendiente
-            </span>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="iniciarNuevaValoracion('anexo_a')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-3 fw-semibold" (click)="abrirOCapturarAnexo('anexo_a')">
               Capturar
             </button>
-            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="initBlankForms(); prefillEmployeeData(); aplicarConfiguracionAFormularios(); imprimirFormatoOficial('anexo_a')">
+            <button class="btn btn-sm btn-white bg-white border rounded-pill px-2 text-secondary" title="Imprimir formato" (click)="imprimirAnexoResumen('anexo_a')">
               <i class="bi bi-printer"></i>
             </button>
           </div>
@@ -309,7 +300,9 @@
               [class.active]="activeAnexo === 'anexo_b'"
               (click)="activeAnexo = 'anexo_b'">
               <span><strong>Anexo B</strong> · Cuestionario Nórdico</span>
-              <i *ngIf="savedAnexos.anexo_b" class="bi bi-check-circle-fill text-success" title="Guardado"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_b') === 'firmado'" class="bi bi-check-circle-fill text-success" title="Firmado"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_b') === 'por_firmar'" class="bi bi-pen-fill text-warning" title="Por firmar"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_b') === 'en_proceso'" class="bi bi-hourglass-split text-info" title="En proceso..."></i>
               <span *ngIf="regionesPositivas12m.length > 0" class="badge bg-danger rounded-pill">{{ regionesPositivas12m.length }}</span>
             </button>
 
@@ -319,7 +312,9 @@
               [class.active]="activeAnexo === 'anexo_c'"
               (click)="sincronizarAnexoAconAnexoC(); activeAnexo = 'anexo_c'">
               <span><strong>Anexo C</strong> · Información de Riesgos</span>
-              <i *ngIf="savedAnexos.anexo_c" class="bi bi-check-circle-fill text-success" title="Guardado"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_c') === 'firmado'" class="bi bi-check-circle-fill text-success" title="Firmado"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_c') === 'por_firmar'" class="bi bi-pen-fill text-warning" title="Por firmar"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_c') === 'en_proceso'" class="bi bi-hourglass-split text-info" title="En proceso..."></i>
             </button>
 
             <button
@@ -328,7 +323,9 @@
               [class.active]="activeAnexo === 'anexo_a'"
               (click)="activeAnexo = 'anexo_a'">
               <span><strong>Anexo A</strong> · Cédula Médica</span>
-              <i *ngIf="savedAnexos.anexo_a" class="bi bi-check-circle-fill text-success" title="Guardado"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_a') === 'firmado'" class="bi bi-check-circle-fill text-success" title="Firmado"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_a') === 'por_firmar'" class="bi bi-pen-fill text-warning" title="Por firmar"></i>
+              <i *ngIf="getLiveAnexoStatus('anexo_a') === 'en_proceso'" class="bi bi-hourglass-split text-info" title="En proceso..."></i>
             </button>
           </div>
         </div>
@@ -364,7 +361,7 @@
         <!-- ═══════════════════════════════════════════════════════════════════ -->
         <!-- DOCUMENTO 1: ANEXO B · CUESTIONARIO NÓRDICO MUSCULOESQUELÉTICO       -->
         <!-- ═══════════════════════════════════════════════════════════════════ -->
-        <div *ngIf="activeAnexo === 'anexo_b'" class="pvme-doc-sheet">
+        <div *ngIf="activeAnexo === 'anexo_b'" class="pvme-doc-sheet" (input)="markAnexoCapturado('anexo_b')" (change)="markAnexoCapturado('anexo_b')">
           <div class="pvme-doc-meta">SST – PRO – PVME – 01 · v2.0 rev 03 · 24 / 09 / 2026</div>
           <div class="pvme-doc-title">ANEXO B · CUESTIONARIO NÓRDICO MUSCULOESQUELÉTICO</div>
           <div class="pvme-doc-subtitle">
@@ -419,7 +416,7 @@
                 <td
                   class="pvme-switch-td"
                   [class.is-positive-td]="reg.molestia_12m === 'Si'"
-                  (click)="reg.molestia_12m = reg.molestia_12m === 'Si' ? 'No' : 'Si'; reg.molestia_12m === 'No' && (reg.impidio_trabajo = 'No') && (reg.molestia_7d = 'No') && (reg.intensidad = 0)">
+                  (click)="markAnexoCapturado('anexo_b'); reg.molestia_12m = reg.molestia_12m === 'Si' ? 'No' : 'Si'; reg.molestia_12m === 'No' && (reg.impidio_trabajo = 'No') && (reg.molestia_7d = 'No') && (reg.intensidad = 0)">
                   <div class="form-check form-switch pvme-switch-label mb-0">
                     <input
                       class="form-check-input"
@@ -436,7 +433,7 @@
                 <td
                   class="pvme-switch-td"
                   [class.is-positive-td]="reg.impidio_trabajo === 'Si'"
-                  (click)="reg.impidio_trabajo = reg.impidio_trabajo === 'Si' ? 'No' : 'Si'; reg.impidio_trabajo === 'Si' && (reg.molestia_12m = 'Si')">
+                  (click)="markAnexoCapturado('anexo_b'); reg.impidio_trabajo = reg.impidio_trabajo === 'Si' ? 'No' : 'Si'; reg.impidio_trabajo === 'Si' && (reg.molestia_12m = 'Si')">
                   <div class="form-check form-switch pvme-switch-label mb-0">
                     <input
                       class="form-check-input"
@@ -453,7 +450,7 @@
                 <td
                   class="pvme-switch-td"
                   [class.is-positive-td]="reg.molestia_7d === 'Si'"
-                  (click)="reg.molestia_7d = reg.molestia_7d === 'Si' ? 'No' : 'Si'; reg.molestia_7d === 'Si' && (reg.molestia_12m = 'Si')">
+                  (click)="markAnexoCapturado('anexo_b'); reg.molestia_7d = reg.molestia_7d === 'Si' ? 'No' : 'Si'; reg.molestia_7d === 'Si' && (reg.molestia_12m = 'Si')">
                   <div class="form-check form-switch pvme-switch-label mb-0">
                     <input
                       class="form-check-input"
@@ -615,7 +612,7 @@
         <!-- ═══════════════════════════════════════════════════════════════════ -->
         <!-- DOCUMENTO 2: ANEXO A · CÉDULA DE VALORACIÓN MÉDICA                  -->
         <!-- ═══════════════════════════════════════════════════════════════════ -->
-        <div *ngIf="activeAnexo === 'anexo_a'" class="pvme-doc-sheet">
+        <div *ngIf="activeAnexo === 'anexo_a'" class="pvme-doc-sheet" (input)="markAnexoCapturado('anexo_a')" (change)="markAnexoCapturado('anexo_a')">
           <div class="pvme-doc-meta">SST – PRO – PVME – 01 · v2.0 rev 03 · 24 / 09 / 2026</div>
           <div class="pvme-doc-title">ANEXO A · CÉDULA DE VALORACIÓN MÉDICA MUSCULOESQUELÉTICA</div>
           <div class="pvme-doc-subtitle">
@@ -1113,7 +1110,10 @@
                   </select>
                 </td>
                 <td>
-                  <input type="text" class="form-control form-control-sm" [(ngModel)]="exp.observaciones" placeholder="Observaciones de la región...">
+                  <div *ngIf="getAlteracionesRegionTexto(exp.key) as altTxt" class="small text-danger mb-1">
+                    <i class="bi bi-exclamation-circle me-1"></i>{{ altTxt }}
+                  </div>
+                  <input type="text" class="form-control form-control-sm" [(ngModel)]="exp.observaciones" placeholder="Observaciones adicionales de la región...">
                 </td>
               </tr>
             </tbody>
@@ -1172,17 +1172,17 @@
               <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'apto_con_recomendaciones'" (click)="anexoA.conclusion = 'apto_con_recomendaciones'">
                 Apto con recomendaciones
               </button>
-              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'apto_restriccion_temporal'" (click)="anexoA.conclusion = 'apto_restriccion_temporal'">
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'apto_con_restriccion_temporal' || anexoA.conclusion === 'apto_restriccion_temporal'" (click)="anexoA.conclusion = 'apto_con_restriccion_temporal'; markAnexoCapturado('anexo_a')">
                 Apto con restricción temporal
               </button>
-              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'requiere_estudio_especializado'" (click)="anexoA.conclusion = 'requiere_estudio_especializado'">
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'requiere_estudio_especializado'" (click)="anexoA.conclusion = 'requiere_estudio_especializado'; markAnexoCapturado('anexo_a')">
                 Requiere estudio o valoración especializada
               </button>
-              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'no_apto_temporal'" (click)="anexoA.conclusion = 'no_apto_temporal'">
+              <button type="button" class="pvme-option-pill" [class.active]="anexoA.conclusion === 'no_apto_temporal'" (click)="anexoA.conclusion = 'no_apto_temporal'; markAnexoCapturado('anexo_a')">
                 No apto temporal para el puesto
               </button>
             </div>
-            <div *ngIf="anexoA.conclusion === 'apto_restriccion_temporal'" class="d-flex align-items-center gap-2 mt-2 pt-2 border-top small">
+            <div *ngIf="anexoA.conclusion === 'apto_con_restriccion_temporal' || anexoA.conclusion === 'apto_restriccion_temporal'" class="d-flex align-items-center gap-2 mt-2 pt-2 border-top small">
               <span class="fw-bold">Vigencia de restricción temporal hasta:</span>
               <input
                 type="date"
@@ -1373,7 +1373,7 @@
         <!-- ═══════════════════════════════════════════════════════════════════ -->
         <!-- DOCUMENTO 3: ANEXO C · INFORMACIÓN DE RIESGOS POR MANEJO DE CARGAS  -->
         <!-- ═══════════════════════════════════════════════════════════════════ -->
-        <div *ngIf="activeAnexo === 'anexo_c'" class="pvme-doc-sheet">
+        <div *ngIf="activeAnexo === 'anexo_c'" class="pvme-doc-sheet" (input)="markAnexoCapturado('anexo_c')" (change)="markAnexoCapturado('anexo_c')">
           <div class="pvme-doc-meta">ANEXO C · información de riesgos · SST – ANX – C – 01 · 24 / 09 / 2026</div>
           <div class="pvme-doc-title">ANEXO C INFORMACIÓN DE RIESGOS POR MANEJO MANUAL DE CARGAS</div>
           <div class="d-flex flex-wrap align-items-center gap-2 pvme-doc-subtitle">

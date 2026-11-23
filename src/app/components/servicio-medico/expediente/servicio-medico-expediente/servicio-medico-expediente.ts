@@ -640,7 +640,8 @@ export class ServicioMedicoExpediente implements OnInit {
         },
         error: (err) => {
           console.error(err);
-          Swal.fire('Error', 'No se pudo conectar con NetSuite', 'error');
+          const errorMessage = err?.error?.message || 'No se pudo conectar con NetSuite';
+          Swal.fire('Error', errorMessage, 'error');
         }
       });
   }

@@ -756,21 +756,23 @@
               class="cq-chip"
               *ngFor="let al of alergiasCat"
               [class.active]="isSelected('alergias_tipo', al)"
-              (click)="toggleMultiOption('alergias_tipo', al, 'Ninguna')">
+              (click)="onToggleAlergia(al)">
               {{ al }}
             </button>
           </div>
         </div>
 
-        <div class="row g-3 mb-3" *ngIf="isSelected('alergias_tipo', 'Otras')">
-          <div class="col-md-6">
-            <label class="form-label small fw-semibold">Especifique otra alergia</label>
+        <div class="row g-3 mb-3" *ngIf="selectedAlergiasConDetalle.length > 0">
+          <div class="col-md-6" *ngFor="let al of selectedAlergiasConDetalle; let i = index; trackBy: trackByAlergia">
+            <label class="form-label small fw-semibold" [for]="'alergia_det_' + i">{{ getAlergiaDetailLabel(al) }}</label>
             <input
               type="text"
               class="form-control"
-              name="alergias_tipo_otra"
-              [(ngModel)]="r.alergias_tipo_otra"
-              (ngModelChange)="triggerDraftSave()" />
+              [id]="'alergia_det_' + i"
+              [name]="'alergia_detalle_' + al"
+              [placeholder]="getAlergiaDetailPlaceholder(al)"
+              [(ngModel)]="r.alergias_detalle[al]"
+              (ngModelChange)="onAlergiaDetalleChange(al, $event)" />
           </div>
         </div>
 

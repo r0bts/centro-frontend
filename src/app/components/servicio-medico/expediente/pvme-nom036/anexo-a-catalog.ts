@@ -552,3 +552,343 @@ export function calcularResumenSugerido(
   }
   return result;
 }
+
+export interface OficialAnexoARegionDef {
+  oficialKey: string;
+  label: string;
+  guia: string;
+  resumenKeys: string[];
+}
+
+export const OFICIAL_10_REGIONES_ANEXO_A: OficialAnexoARegionDef[] = [
+  // Página 1 (6 renglones exactos del formato oficial SST-PRO-PVME-01)
+  {
+    oficialKey: 'columna_cervical',
+    label: 'Columna cervical',
+    guia: 'Movilidad, contractura, signos radiculares',
+    resumenKeys: ['columna_cervical']
+  },
+  {
+    oficialKey: 'hombro_derecho',
+    label: 'Hombro derecho',
+    guia: 'Arco de movimiento · Neer · Jobe',
+    resumenKeys: ['hombro_der', 'hombro_derecho']
+  },
+  {
+    oficialKey: 'hombro_izquierdo',
+    label: 'Hombro izquierdo',
+    guia: 'Arco de movimiento · Neer · Jobe',
+    resumenKeys: ['hombro_izq', 'hombro_izquierdo']
+  },
+  {
+    oficialKey: 'codo_antebrazo',
+    label: 'Codo / antebrazo',
+    guia: 'Epicondilalgia',
+    resumenKeys: ['codo_der', 'codo_izq', 'codo_antebrazo']
+  },
+  {
+    oficialKey: 'muneca_mano',
+    label: 'Muñeca y mano',
+    guia: 'Phalen · Tinel · Finkelstein · prensión',
+    resumenKeys: ['muneca_der', 'muneca_izq', 'muneca_mano']
+  },
+  {
+    oficialKey: 'columna_dorsal',
+    label: 'Columna dorsal',
+    guia: 'Movilidad, contractura',
+    resumenKeys: ['columna_dorsal']
+  },
+  // Página 2 (4 renglones exactos del formato oficial SST-PRO-PVME-01)
+  {
+    oficialKey: 'columna_lumbar',
+    label: 'Columna lumbar',
+    guia: 'Movilidad, contractura · Lasègue',
+    resumenKeys: ['columna_lumbar', 'marcha_neurologico']
+  },
+  {
+    oficialKey: 'cadera',
+    label: 'Cadera',
+    guia: 'Arco de movimiento, dolor a la carga',
+    resumenKeys: ['cadera_der', 'cadera_izq', 'cadera']
+  },
+  {
+    oficialKey: 'rodilla',
+    label: 'Rodilla',
+    guia: 'Arco de movimiento, dolor a la carga',
+    resumenKeys: ['rodilla_der', 'rodilla_izq', 'rodilla']
+  },
+  {
+    oficialKey: 'tobillo_pie',
+    label: 'Tobillo y pie',
+    guia: 'Arco de movimiento, dolor a la carga',
+    resumenKeys: ['tobillo_der', 'tobillo_izq', 'tobillo_pie']
+  }
+];
+
+function stripSideSuffix(nombre: string): string {
+  return nombre
+    .replace(/\s+(derecho|derecha|izquierdo|izquierda)$/i, '')
+    .replace(/\s+mano\s+(derecha|izquierda)$/i, '')
+    .trim();
+}
+
+function shortSideLabel(lado: ManiobraLado): string {
+  if (lado === 'Der') return 'der.';
+  if (lado === 'Izq') return 'izq.';
+  return '';
+}
+
+export interface ResumenImpresionOficialRow {
+  oficialKey: string;
+  label: string;
+  guia: string;
+  hallazgo: 'Normal' | 'Alterado' | 'Sin evaluar';
+  alteradasList: string[];
+  normalesSummary: string;
+  obsManualList: string[];
+  allOmitted: boolean;
+}
+
+export function construirResumenImpresionOficial(
+  exploracionRows: any[] | undefined,
+  maniobrasMap: Record<string, ManiobraCaptura> | undefined,
+  edad?: number | string | null,
+  sexo?: string | null
+): ResumenImpresionOficialRow[] {
+  const expArr = Array.isArray(exploracionRows) ? exploracionRows : [];
+  const mMap = maniobrasMap || {};
+
+  return OFICIAL_10_REGIONES_ANEXO_A.map(def => {
+    const items = MANIOBRAS_CATALOG.filter(m => def.resumenKeys.includes(m.resumenKey));
+    const matchingExpRows = expArr.filter(r => r && def.resumenKeys.includes(r.key));
+
+    const alteradasList: string[] = [];
+    const cuantitativasNormales: string[] = [];
+    const rangosNormales: string[] = [];
+    const pruebasNormalesMap = new Map<string, Set<ManiobraLado>>();
+    const obsManiobrasNoAlteradas: string[] = [];
+
+    let evaluatedCount = 0;
+    let omittedCount = 0;
+
+    for (const item of items) {
+      const c = mMap[item.id];
+      if (c?.omitida) {
+        omittedCount++;
+        continue;
+      }
+      if (!c || c.resultado === 'No realizada') continue;
+
+      const estado = evaluarManiobraAlterada(item, c, edad, sexo);
+      const obsManiobra = (c.observaciones || '').trim();
+
+      if (estado === 'alterado') {
+        evaluatedCount++;
+        const detalles: string[] = [];
+        if (item.tipo === 'positivo_negativo' && c.resultado === 'Positivo') {
+          detalles.push('Positivo');
+        } else if (item.tipo === 'normal_anormal' && c.resultado === 'Anormal') {
+          detalles.push('Anormal');
+        } else if (item.tipo === 'rango' && c.rango) {
+          if (item.rangoReferencia && c.rango !== item.rangoReferencia) {
+            detalles.push(`${c.rango} (ref. ${item.rangoReferencia})`);
+          } else {
+            detalles.push(c.rango);
+          }
+        } else if (item.tipo === 'medicion_cm' && c.medicion1 != null && c.medicion2 != null) {
+          const diff = Math.round((Number(c.medicion2) - Number(c.medicion1)) * 10) / 10;
+          detalles.push(`dif. ${diff} cm (${c.medicion1}→${c.medicion2} cm, ref. ≥ 5 cm)`);
+        } else if (item.tipo === 'prension_kg') {
+          const media = calcularMediaPrension(c.tomas);
+          if (media !== null) {
+            const cls = clasificarPrension(media, edad, sexo);
+            detalles.push(`${media} kg${cls ? ` (${cls})` : ''}`);
+          }
+        }
+
+        if (Array.isArray(c.hallazgos) && c.hallazgos.length > 0) {
+          const hallazgosAlt = c.hallazgos.filter(h => !isHallazgoNormal(h));
+          if (hallazgosAlt.length > 0) {
+            detalles.push(hallazgosAlt.join(', '));
+          }
+        }
+
+        if (c.dolor != null && Number(c.dolor) > 0) {
+          detalles.push(`Dolor ${c.dolor}/10`);
+        }
+
+        if (obsManiobra) {
+          detalles.push(obsManiobra);
+        }
+
+        alteradasList.push(detalles.length > 0 ? `${item.nombre}: ${detalles.join(', ')}` : `${item.nombre}: Alterado`);
+      } else if (estado === 'normal') {
+        evaluatedCount++;
+        if (item.tipo === 'prension_kg') {
+          const media = calcularMediaPrension(c.tomas);
+          if (media !== null) {
+            const cls = clasificarPrension(media, edad, sexo);
+            const side = shortSideLabel(item.lado);
+            cuantitativasNormales.push(`Prensión${side ? ' ' + side : ''} ${media} kg${cls ? ` (${cls})` : ''}`);
+          }
+        } else if (item.tipo === 'medicion_cm' && c.medicion1 != null && c.medicion2 != null) {
+          const diff = Math.round((Number(c.medicion2) - Number(c.medicion1)) * 10) / 10;
+          cuantitativasNormales.push(`${item.nombre}: dif. ${diff} cm (Normal)`);
+        } else if (item.tipo === 'rango') {
+          rangosNormales.push(c.rango ? `${item.nombre} (${c.rango})` : item.nombre);
+        } else {
+          const base = stripSideSuffix(item.nombre);
+          if (!pruebasNormalesMap.has(base)) {
+            pruebasNormalesMap.set(base, new Set<ManiobraLado>());
+          }
+          pruebasNormalesMap.get(base)!.add(item.lado);
+        }
+
+        if (obsManiobra) {
+          obsManiobrasNoAlteradas.push(`${item.nombre}: ${obsManiobra}`);
+        }
+      } else if (obsManiobra) {
+        obsManiobrasNoAlteradas.push(`${item.nombre}: ${obsManiobra}`);
+      }
+    }
+
+    // Construir resumen compacto y completo de maniobras normales practicadas
+    const normalParts: string[] = [];
+    if (cuantitativasNormales.length > 0) {
+      normalParts.push(cuantitativasNormales.join(', '));
+    }
+    if (rangosNormales.length > 0) {
+      if (rangosNormales.length <= 2) {
+        normalParts.push(`Arcos completos (${rangosNormales.join(', ')})`);
+      } else {
+        normalParts.push(`Arcos de movimiento completos (${rangosNormales.length})`);
+      }
+    }
+    if (pruebasNormalesMap.size > 0) {
+      const groupedTests: string[] = [];
+      const multiSideRegion = def.resumenKeys.length > 1;
+      pruebasNormalesMap.forEach((sides, baseName) => {
+        if (sides.has('Der') && sides.has('Izq')) {
+          groupedTests.push(`${baseName} bilat.`);
+        } else if (sides.has('Der')) {
+          groupedTests.push(multiSideRegion ? `${baseName} der.` : baseName);
+        } else if (sides.has('Izq')) {
+          groupedTests.push(multiSideRegion ? `${baseName} izq.` : baseName);
+        } else {
+          groupedTests.push(baseName);
+        }
+      });
+      normalParts.push(`${groupedTests.join(', ')}: sin alteración`);
+    }
+    if (obsManiobrasNoAlteradas.length > 0) {
+      normalParts.push(obsManiobrasNoAlteradas.join('; '));
+    }
+
+    // Recoger observaciones manuales por sub-región en la tabla resumen
+    const obsManualList: string[] = [];
+    const multiSub = matchingExpRows.length > 1;
+    for (const r of matchingExpRows) {
+      const txt = String(r.observaciones || '').trim();
+      if (txt) {
+        if (multiSub && r.label) {
+          obsManualList.push(`${r.label}: ${txt}`);
+        } else {
+          obsManualList.push(txt);
+        }
+      }
+    }
+
+    // Determinar estado final de la fila oficial (respetando selección manual de la médica y/o maniobras)
+    let hallazgo: 'Normal' | 'Alterado' | 'Sin evaluar' = 'Sin evaluar';
+    const anyExpAlterado = matchingExpRows.some(r => r.hallazgo === 'Alterado');
+    const anyExpNormal = matchingExpRows.some(r => r.hallazgo === 'Normal');
+
+    if (anyExpAlterado || alteradasList.length > 0) {
+      hallazgo = 'Alterado';
+    } else if (anyExpNormal || evaluatedCount > 0) {
+      hallazgo = 'Normal';
+    }
+
+    const allOmitted = evaluatedCount === 0 && alteradasList.length === 0 && omittedCount > 0;
+
+    return {
+      oficialKey: def.oficialKey,
+      label: def.label,
+      guia: def.guia,
+      hallazgo,
+      alteradasList,
+      normalesSummary: normalParts.join('; '),
+      obsManualList,
+      allOmitted
+    };
+  });
+}
+
+export function resumirAlteracionesRegion(
+  regionKey: string,
+  maniobrasMap: Record<string, ManiobraCaptura> | undefined,
+  edad?: number | string | null,
+  sexo?: string | null
+): string {
+  if (!maniobrasMap) return '';
+  const items = MANIOBRAS_CATALOG.filter(m => m.resumenKey === regionKey);
+  const entries: string[] = [];
+
+  for (const item of items) {
+    const c = maniobrasMap[item.id];
+    if (!c || c.omitida || c.resultado === 'No realizada') continue;
+
+    const estado = evaluarManiobraAlterada(item, c, edad, sexo);
+    const obsManiobra = (c.observaciones || '').trim();
+
+    if (estado !== 'alterado' && !obsManiobra) continue;
+
+    const detalles: string[] = [];
+
+    if (estado === 'alterado') {
+      if (item.tipo === 'positivo_negativo' && c.resultado === 'Positivo') {
+        detalles.push('Positivo');
+      } else if (item.tipo === 'normal_anormal' && c.resultado === 'Anormal') {
+        detalles.push('Anormal');
+      } else if (item.tipo === 'rango' && c.rango) {
+        if (item.rangoReferencia && c.rango !== item.rangoReferencia) {
+          detalles.push(`${c.rango} (ref. ${item.rangoReferencia})`);
+        } else {
+          detalles.push(c.rango);
+        }
+      } else if (item.tipo === 'medicion_cm' && c.medicion1 != null && c.medicion2 != null) {
+        const diff = Math.round((Number(c.medicion2) - Number(c.medicion1)) * 10) / 10;
+        detalles.push(`Dif. ${diff} cm (${c.medicion1} a ${c.medicion2} cm, ref. ≥ 5 cm)`);
+      } else if (item.tipo === 'prension_kg') {
+        const media = calcularMediaPrension(c.tomas);
+        if (media !== null) {
+          const cls = clasificarPrension(media, edad, sexo);
+          detalles.push(`Media ${media} kg${cls ? ` (${cls})` : ''}`);
+        }
+      }
+
+      if (Array.isArray(c.hallazgos) && c.hallazgos.length > 0) {
+        const hallazgosAlterados = c.hallazgos.filter(h => !isHallazgoNormal(h));
+        if (hallazgosAlterados.length > 0) {
+          detalles.push(hallazgosAlterados.join(', '));
+        }
+      }
+
+      if (c.dolor != null && Number(c.dolor) > 0) {
+        detalles.push(`Dolor ${c.dolor}/10`);
+      }
+    }
+
+    if (obsManiobra) {
+      detalles.push(obsManiobra);
+    }
+
+    if (detalles.length > 0) {
+      entries.push(`${item.nombre}: ${detalles.join(', ')}`);
+    } else if (estado === 'alterado') {
+      entries.push(`${item.nombre}: Alterado`);
+    }
+  }
+
+  return entries.join('; ');
+}
