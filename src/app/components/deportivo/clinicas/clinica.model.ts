@@ -64,6 +64,21 @@ export interface ClinicSubstitutionItem {
   };
 }
 
+export interface ClinicCycleItem {
+  id: number;
+  clinic_id: number;
+  cycle_number: number;
+  start_date: string;
+  end_date: string;
+  price: string | number;
+  max_capacity: number;
+  total_enrolled: number;
+  status: 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ClinicItem {
   id: number;
   activity_id: number;
@@ -82,6 +97,7 @@ export interface ClinicItem {
   start_date: string;
   end_date: string;
   max_capacity: number;
+  current_cycle?: number;
   current_enrolled_count: number;
   price: string | number;
   status: 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
@@ -94,11 +110,14 @@ export interface ClinicItem {
   location?: ClinicLocation;
   area?: ClinicArea;
   clinic_substitutions?: ClinicSubstitutionItem[];
+  clinic_cycles?: ClinicCycleItem[];
 }
 
 export interface ClinicEnrollmentItem {
   id: number;
   clinic_id: number;
+  cycle_number?: number;
+  cycle_id?: number | null;
   socio_id?: number | null;
   titular_id?: number | null;
   student_id?: number | null;
@@ -138,3 +157,4 @@ export interface ClinicCouponItem {
   qr_url?: string;
   target_clinic?: ClinicItem;
 }
+

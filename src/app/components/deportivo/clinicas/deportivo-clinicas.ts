@@ -97,6 +97,21 @@ export class DeportivoClinicasComponent implements OnInit {
   showQrModal = signal<boolean>(false);
   qrData = signal<{ qrUrl: string; token: string; title: string; subtitle: string } | null>(null);
 
+  // ── Modal y Estado de Renovación de Clínica (RN-11, RN-12) ───────────────────
+  showRenewModal = signal<boolean>(false);
+  isRenewing = signal<boolean>(false);
+  clinicToRenew = signal<ClinicItem | null>(null);
+  cyclesList = signal<any[]>([]);
+  selectedEnrollmentCycle = signal<string>('current');
+
+  renewForm: FormGroup = this.fb.group({
+    start_date: ['', Validators.required],
+    end_date: ['', Validators.required],
+    price: ['', [Validators.required, Validators.min(0)]],
+    max_capacity: ['', [Validators.required, Validators.min(1)]],
+    status: ['upcoming', Validators.required]
+  });
+
   // ── Días de la semana para Selector Interactivo ───────────────────────────
   readonly availableWeekDays = [
     { key: 'LUN', label: 'Lun', full: 'Lunes', initial: 'L' },
@@ -563,9 +578,13 @@ export class DeportivoClinicasComponent implements OnInit {
     });
   }
 
-  // ── SUSTITUCIONES: Abrir Modal y Listar ────────────────────────────────────
-  openSubstitutionModal(clinic: ClinicItem): void {
+  // Pestaña activa en Modal Operativo (bi-person-fill-gear): 'sustitucion' | 'renovacion'
+  activeOperationalTab = signal<'sustitucion' | 'renovacion'>('sustitucion');
+
+  // ── SUSTITUCIONES Y GESTIÓN OPERATIVA: Abrir Modal y Listar ────────────────
+  openSubstitutionModal(clinic: ClinicItem, defaultTab: 'sustitucion' | 'renovacion' = 'sustitucion'): void {
     this.selectedClinic.set(clinic);
+    this.activeOperationalTab.set(defaultTab);
     this.substitutionForm.reset({
       substitute_instructor_id: '',
       substitute_area_id: '',
@@ -574,8 +593,39 @@ export class DeportivoClinicasComponent implements OnInit {
       reason: ''
     });
 
+    this.initRenewForm(clinic);
     this.showSubstitutionModal.set(true);
     this.loadSubstitutions(clinic.id);
+    this.loadCycles(clinic.id);
+  }
+
+  initRenewForm(clinic: ClinicItem): void {
+    this.clinicToRenew.set(clinic);
+
+    // Calcular fechas sugeridas: siguiente mes a partir de su end_date
+    let suggestedStart = '';
+    let suggestedEnd = '';
+    if (clinic.end_date) {
+      const parts = clinic.end_date.split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10);
+        const nextMonth = month === 12 ? 1 : month + 1;
+        const nextYear = month === 12 ? year + 1 : year;
+        const mStr = nextMonth < 10 ? `0${nextMonth}` : `${nextMonth}`;
+        suggestedStart = `${nextYear}-${mStr}-01`;
+        const lastDay = new Date(nextYear, nextMonth, 0).getDate();
+        suggestedEnd = `${nextYear}-${mStr}-${lastDay < 10 ? '0' + lastDay : lastDay}`;
+      }
+    }
+
+    this.renewForm.patchValue({
+      start_date: suggestedStart,
+      end_date: suggestedEnd,
+      price: clinic.price,
+      max_capacity: clinic.max_capacity,
+      status: 'upcoming'
+    });
   }
 
   closeSubstitutionModal(): void {
@@ -723,12 +773,6 @@ export class DeportivoClinicasComponent implements OnInit {
     this.loadClinics();
   }
 
-  irAInscritos(clinic: ClinicItem): void {
-    this.selectedClinic.set(clinic);
-    this.currentView.set('inscritos');
-    this.loadEnrollments(clinic.id);
-  }
-
   irACheckin(clinic?: ClinicItem): void {
     if (clinic) {
       this.selectedClinic.set(clinic);
@@ -780,17 +824,38 @@ export class DeportivoClinicasComponent implements OnInit {
   }
 
   // Compatibilidad con botones previos
-  openEnrollmentsModal(clinic: ClinicItem): void {
-    this.irAInscritos(clinic);
+  irAInscritos(clinic: ClinicItem): void {
+    this.selectedClinic.set(clinic);
+    this.currentView.set('inscritos');
+    this.selectedEnrollmentCycle.set('current');
+    this.loadEnrollments(clinic.id, 'current');
+    this.loadCycles(clinic.id);
   }
 
-  closeEnrollmentsModal(): void {
-    this.irAListado();
+  loadCycles(clinicId: number): void {
+    this.http.get<{ success: boolean; data: any[] }>(`${this.apiUrl}/${clinicId}/cycles`)
+      .subscribe({
+        next: res => {
+          if (res.success && res.data) {
+            this.cyclesList.set(res.data);
+          }
+        },
+        error: () => {}
+      });
   }
 
-  loadEnrollments(clinicId: number): void {
+  onEnrollmentCycleChange(cycleVal: string): void {
+    this.selectedEnrollmentCycle.set(cycleVal);
+    const clinic = this.selectedClinic();
+    if (clinic) {
+      this.loadEnrollments(clinic.id, cycleVal);
+    }
+  }
+
+  loadEnrollments(clinicId: number, cycle: string = 'current'): void {
     this.isLoadingEnrollments.set(true);
-    this.http.get<{ success: boolean; data: ClinicEnrollmentItem[] }>(`${this.apiUrl}/${clinicId}/inscripciones`)
+    const cycleQuery = cycle ? `?cycle=${cycle}` : '';
+    this.http.get<{ success: boolean; data: ClinicEnrollmentItem[] }>(`${this.apiUrl}/${clinicId}/inscripciones${cycleQuery}`)
       .subscribe({
         next: res => {
           this.isLoadingEnrollments.set(false);
@@ -801,6 +866,51 @@ export class DeportivoClinicasComponent implements OnInit {
         error: err => {
           this.isLoadingEnrollments.set(false);
           this.triggerError('Error cargando la lista de inscritos: ' + (err.error?.message || err.message));
+        }
+      });
+  }
+
+  // ── Gestión de Renovación de Clínica (Unificada en Modal Operativo) ───────────
+  openRenewModal(clinic: ClinicItem): void {
+    this.openSubstitutionModal(clinic, 'renovacion');
+  }
+
+  closeRenewModal(): void {
+    this.showRenewModal.set(false);
+  }
+
+  submitRenew(): void {
+    if (this.renewForm.invalid) {
+      this.renewForm.markAllAsTouched();
+      return;
+    }
+
+    const clinic = this.clinicToRenew();
+    if (!clinic) return;
+
+    this.isRenewing.set(true);
+    const payload = this.renewForm.value;
+
+    this.http.post<{ success: boolean; message: string; data: any }>(`${this.apiUrl}/${clinic.id}/renew`, payload)
+      .subscribe({
+        next: res => {
+          this.isRenewing.set(false);
+          if (res.success) {
+            this.triggerSuccess(res.message || 'Clínica renovada exitosamente para el nuevo periodo');
+            if (res.data) {
+              this.selectedClinic.set(res.data);
+              this.initRenewForm(res.data);
+            }
+            this.closeRenewModal();
+            this.loadCycles(clinic.id);
+            this.loadClinics();
+          } else {
+            this.triggerError(res.message || 'No fue posible renovar la clínica');
+          }
+        },
+        error: err => {
+          this.isRenewing.set(false);
+          this.triggerError(err.error?.message || 'Error al renovar la clínica');
         }
       });
   }
